@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Users, ArrowRight, Plus, X } from 'lucide-react';
@@ -42,7 +43,7 @@ export function Events() {
   );
 }
 
-function EventItem({ event, index }: { event: Event, index: number }) {
+function EventItem({ event, index }: { event: Event, index: number, key?: React.Key }) {
   const isLeft = index % 2 === 0;
 
   return (

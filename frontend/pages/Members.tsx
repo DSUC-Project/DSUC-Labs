@@ -30,7 +30,7 @@ export function Members() {
   );
 }
 
-function MemberCard({ member }: { member: Member }) {
+function MemberCard({ member }: { member: Member; key?: React.Key }) {
   return (
     <Link to={`/member/${member.id}`}>
       <motion.div

@@ -6,7 +6,7 @@ import { twMerge } from 'tailwind-merge';
 import { Home, Users, Calendar, Calculator, Briefcase, Folder, Wallet, Menu, X, Terminal, User, Rocket } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
-export function Layout({ children }: { children: React.ReactNode }) {
+export function Layout({ children }: { children?: React.ReactNode }) {
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
 
   return (
@@ -68,7 +68,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
             {/* Logo Area */}
             <div className="hidden md:flex items-center gap-3 text-cyber-blue font-display font-bold tracking-wider">
                <img src="/logo.png" alt="DSUC Logo" className="w-8 h-8 drop-shadow-[0_0_8px_rgba(41,121,255,0.5)]" />
-               <span>DSUC.LAB</span>
+               <span>DSUC LAB</span>
             </div>
 
             {/* Desktop Nav */}
@@ -131,7 +131,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
             {/* Mobile Toggle */}
             <div className="md:hidden flex items-center gap-4">
                {/* Mobile Logo */}
-               <img src="/logo.svg" alt="Logo" className="w-8 h-8" />
+               <img src="/logo.png" alt="Logo" className="w-8 h-8" />
                <button onClick={() => setMobileMenuOpen(true)} className="text-cyber-blue">
                  <Menu size={24} />
                </button>
@@ -151,7 +151,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
           >
             <div className="flex justify-between items-center mb-12 border-b border-cyber-blue/20 pb-4">
               <span className="font-display font-bold text-cyber-blue text-xl flex items-center gap-2">
-                <img src="/logo.svg" alt="Logo" className="w-6 h-6" />
+                <img src="/logo.png" alt="Logo" className="w-6 h-6" />
                 SYSTEM NAV
               </span>
               <button onClick={() => setMobileMenuOpen(false)} className="text-white/60 hover:text-white">

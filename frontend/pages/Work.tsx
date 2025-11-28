@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { GitBranch, Star, Code, ExternalLink, Plus, X } from 'lucide-react';
@@ -37,7 +38,7 @@ export function Work() {
   );
 }
 
-function TabButton({ children, active, onClick }: { children: React.ReactNode, active: boolean, onClick: () => void }) {
+function TabButton({ children, active, onClick }: { children?: React.ReactNode, active: boolean, onClick: () => void }) {
   return (
     <button 
       onClick={onClick}
@@ -82,7 +83,7 @@ function BountyBoard() {
   );
 }
 
-function BountyCard({ bounty }: { bounty: Bounty }) {
+function BountyCard({ bounty }: { bounty: Bounty; key?: React.Key }) {
   return (
     <motion.div 
       whileHover={{ scale: 1.02 }}

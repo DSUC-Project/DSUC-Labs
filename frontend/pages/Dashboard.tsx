@@ -160,7 +160,7 @@ export function Dashboard() {
   );
 }
 
-function FloatingBadge({ children, className, delay }: { children: React.ReactNode, className?: string, delay: number }) {
+function FloatingBadge({ children, className, delay }: { children?: React.ReactNode, className?: string, delay: number }) {
   return (
     <motion.div
       initial={{ opacity: 0 }}

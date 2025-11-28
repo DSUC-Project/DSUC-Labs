@@ -3,102 +3,102 @@ import { Member, Event, Bounty, Repo, Resource, Bank, Project } from '../types';
 
 export const MEMBERS: Member[] = [
   {
-    id: '1',
-    name: 'Alex Nguyen',
+    id: '101240059',
+    name: 'Zah',
     role: 'President',
-    avatar: 'https://picsum.photos/seed/alex/200/200',
+    avatar: 'zahnft.png',
     skills: ['Rust', 'React', 'Solidity'],
-    socials: { github: 'https://github.com/alexdev', twitter: 'https://x.com/alex_sol', telegram: 'https://t.me/alex_tg' },
-    bankInfo: { bankId: '970422', accountNo: '000123456789' } // MB Bank
+    socials: { github: 'https://github.com/lilzahs', twitter: 'https://x.com/doandanh_zah', telegram: 'https://t.me/doandanh_zah' },
+    bankInfo: { bankId: '970422', accountNo: '06271099999' } // MB Bank
   },
   {
-    id: '2',
-    name: 'Sarah Tran',
-    role: 'Media-Lead',
+    id: '102240396',
+    name: 'Jerry',
+    role: 'Vice-President',
     avatar: 'https://picsum.photos/seed/sarah/200/200',
     skills: ['UI/UX Design', 'Graphic Design'],
-    socials: { twitter: 'https://x.com/sarahtdesign' },
-    bankInfo: { bankId: '970436', accountNo: '9876543210' } // VCB
+    socials: { twitter: 'https://x.com/jerry_icy' },
+    bankInfo: { bankId: '970436', accountNo: '1028328959' } // VCB
   },
   {
-    id: '3',
-    name: 'Minh Le',
-    role: 'Tech-Lead',
-    avatar: 'https://picsum.photos/seed/minh/200/200',
-    skills: ['TypeScript', 'Node.js', 'DevOps'],
-    socials: { github: 'https://github.com/minhcode' }
-  },
-  {
-    id: '4',
-    name: 'Huy Hoang',
+    id: '101240060',
+    name: 'Thodium',
     role: 'Vice-President',
-    avatar: 'https://picsum.photos/seed/huy/200/200',
-    skills: ['Marketing', 'Community Mgmt'],
-    socials: { twitter: 'https://x.com/huy_grow' }
+    avatar: 'https://picsum.photos/seed/minh/200/200',
+    skills: ['TypeScript', 'Solidity', 'Rust'],
+    socials: { github: 'https://github.com/thodium', twitter: 'https://x.com/Th0rDium' }
   },
   {
-    id: '5',
-    name: 'Vy Pham',
-    role: 'Tech-Member',
+    id: '101240386',
+    name: 'Neko Nora',
+    role: 'Tech-Lead',
+    avatar: 'https://picsum.photos/seed/huy/200/200',
+    skills: ['Rust', 'Next.js', 'TypeScript'],
+    socials: { twitter: 'https://x.com/nekonora' }
+  },
+  {
+    id: '101240071',
+    name: 'Huyz',
+    role: 'Media-Lead',
     avatar: 'https://picsum.photos/seed/vy/200/200',
-    skills: ['React', 'Three.js'],
-    socials: { github: 'https://github.com/vy_front' }
+    skills: ['Marketing', 'Next.js', 'Content Writing'],
+    socials: { github: 'https://github.com/phanconghuy' }
   },
 ];
 
 export const EVENTS: Event[] = [
   {
-    id: '1',
-    title: 'Solana Rust Workshop',
-    date: '2023-10-25',
-    time: '18:00',
+    id: '0001',
+    title: 'SuperteamVN Demo Day',
+    date: '2025-11-29',
+    time: '8:00',
     type: 'Workshop',
-    location: 'Room F101, DUT',
-    attendees: 42
+    location: 'Galaxy Innovation Hub, Ho Chi Minh City',
+    attendees: 132
   },
   {
-    id: '2',
-    title: 'Superteam Hackathon Kickoff',
-    date: '2023-11-02',
+    id: '0002',
+    title: 'Solana University Hackathon Kickoff',
+    date: '2025-12-01',
     time: '09:00',
     type: 'Hackathon',
-    location: 'Maker Space',
+    location: 'Online',
     attendees: 120
   },
   {
-    id: '3',
-    title: 'Web3 Career Talk',
-    date: '2023-11-15',
-    time: '14:00',
+    id: '0003',
+    title: 'Solana Danang Connection 2025: Soccer Match 7:30pm 5/12',
+    date: '2025-12-05',
+    time: '19:00',
     type: 'Social',
-    location: 'Virtual (Discord)',
-    attendees: 85
+    location: 'Cao Thang soccer mini field, Danang',
+    attendees: 15
   }
 ];
 
 export const BOUNTIES: Bounty[] = [
   {
     id: '1',
-    title: 'Implement Token Swap UI',
-    reward: '$250 USDC',
+    title: 'Token Swap',
+    reward: '200k VND',
     difficulty: 'Medium',
-    tags: ['React', 'Web3.js'],
+    tags: ['React', 'Rust'],
     status: 'Open'
   },
   {
     id: '2',
-    title: 'Design Landing Page Hero',
-    reward: '$100 USDC',
+    title: 'Design Landing Page',
+    reward: '100k VND',
     difficulty: 'Easy',
     tags: ['Figma', 'Design'],
     status: 'In Progress'
   },
   {
     id: '3',
-    title: 'Optimize Rust Smart Contract',
-    reward: '$500 USDC',
-    difficulty: 'Hard',
-    tags: ['Rust', 'Anchor'],
+    title: 'Write Conntent introduce about DSUC',
+    reward: '200k VND',
+    difficulty: 'Easy',
+    tags: ['Content', 'Media'],
     status: 'Open'
   }
 ];
@@ -151,21 +151,21 @@ export const BANKS: Bank[] = [
 export const PROJECTS: Project[] = [
   {
     id: '1',
-    name: 'DSUC Official Hub',
-    description: 'The central dashboard for club members to manage events, finance, and bounties.',
+    name: 'DSUC Labs',
+    description: 'Official Web3 platform for DSUC members to showcase projects and collaborate.',
     category: 'Web3 Platform',
-    builders: ['Vy Pham', 'Minh Le'],
-    link: 'https://github.com/dsuc/hub',
-    repoLink: 'https://github.com/dsuc/hub-repo'
+    builders: ['Zah'],
+    link: 'https://dsuc.fun',
+    repoLink: 'https://github.com/DSUC-Project/DSUC-Labs'
   },
   {
     id: '2',
-    name: 'SolVote',
-    description: 'On-chain voting mechanism for selecting club leadership positions.',
-    category: 'dApp',
-    builders: ['Alex Nguyen'],
-    link: 'https://github.com/dsuc/solvote',
-    repoLink: 'https://github.com/dsuc/solvote-repo'
+    name: 'Gimme Idea',
+    description: 'Share ideas and get feedback from community and AI.',
+    category: 'Social',
+    builders: ['Zah', 'Thodium'],
+    link: 'https://gimmeidea.com',
+    repoLink: 'https://github.com/lilzahs/Gimme-Idea'
   },
   {
     id: '3',

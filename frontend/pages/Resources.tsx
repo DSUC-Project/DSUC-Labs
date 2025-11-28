@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Link as LinkIcon, Download, Plus, X, Video, Book, Trophy } from 'lucide-react';
@@ -56,7 +57,7 @@ export function Resources() {
   );
 }
 
-function ResourceCard({ resource, index }: { resource: Resource, index: number }) {
+function ResourceCard({ resource, index }: { resource: Resource, index: number, key?: React.Key }) {
   const getIcon = () => {
      switch(resource.category) {
        case 'Media': return Video;
