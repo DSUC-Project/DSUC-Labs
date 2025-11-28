@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DSUC Lab | Web3 Student Hub</title>
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              background: '#020408', // Deep Navy Black
+              surface: '#050A14',    // Slightly lighter dark
+              cyber: {
+                blue: '#2979FF',     // Electric Blue
+                yellow: '#FFD600',   // Cyber Yellow
+                dark: '#0A1220'
+              }
+            },
+            fontFamily: {
+              sans: ['Open Sans', 'sans-serif'],
+              display: ['Chakra Petch', 'sans-serif'],
+            },
+            backgroundImage: {
+              'grid-pattern': "linear-gradient(to right, #2979FF10 1px, transparent 1px), linear-gradient(to bottom, #2979FF10 1px, transparent 1px)",
+            },
+            animation: {
+              'scan': 'scan 4s linear infinite',
+              'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            },
+            keyframes: {
+              scan: {
+                '0%': { backgroundPosition: '0% 0%' },
+                '100%': { backgroundPosition: '0% 100%' },
+              },
+            },
+          },
+        },
+      }
+    </script>
+    <style>
+      body {
+        background-color: #020408;
+        color: #ffffff;
+        overflow-x: hidden;
+      }
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #020408; 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #2979FF; 
+        border-radius: 0px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #FFD600; 
+      }
+      .glass-panel {
+        background: rgba(5, 10, 20, 0.7);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(41, 121, 255, 0.3);
+        box-shadow: 0 0 15px rgba(41, 121, 255, 0.1);
+      }
+      .cyber-card {
+        background: linear-gradient(180deg, rgba(41, 121, 255, 0.1) 0%, rgba(2, 4, 8, 0) 100%);
+        border: 1px solid rgba(41, 121, 255, 0.3);
+      }
+      .cyber-clip-top {
+        clip-path: polygon(20px 0, 100% 0, 100% 100%, 0 100%, 0 20px);
+      }
+      .cyber-clip-bottom {
+        clip-path: polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%);
+      }
+      .cyber-button {
+        clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+      }
+      .nav-shape {
+        clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%);
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "zustand": "https://aistudiocdn.com/zustand@^5.0.8",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.6",
+    "framer-motion": "https://aistudiocdn.com/framer-motion@^12.23.24",
+    "clsx": "https://aistudiocdn.com/clsx@^2.1.1",
+    "tailwind-merge": "https://aistudiocdn.com/tailwind-merge@^3.4.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+
+import { create } from 'zustand';
+import { FinanceRequest, Event, Bounty, Repo, Resource, Member, Project } from '../types';
+import { EVENTS, BOUNTIES, REPOS, RESOURCES, MEMBERS, PROJECTS } from '../data/mockData';
+
+interface AppState {
+  isWalletConnected: boolean;
+  walletAddress: string | null;
+  walletProvider: 'Phantom' | 'Solflare' | null;
+  currentUser: Member | null; // The logged-in user's profile
+  
+  connectWallet: (provider: 'Phantom' | 'Solflare') => void;
+  disconnectWallet: () => void;
+  
+  // Data Lists
+  members: Member[]; // Mutable members list
+  events: Event[];
+  bounties: Bounty[];
+  repos: Repo[];
+  resources: Resource[];
+  projects: Project[];
+  financeRequests: FinanceRequest[];
+  financeHistory: FinanceRequest[];
+
+  // Actions
+  addEvent: (event: Event) => void;
+  addBounty: (bounty: Bounty) => void;
+  addRepo: (repo: Repo) => void;
+  addResource: (resource: Resource) => void;
+  addProject: (project: Project) => void;
+  
+  submitFinanceRequest: (req: FinanceRequest) => void;
+  approveFinanceRequest: (id: string) => void;
+  rejectFinanceRequest: (id: string) => void;
+  
+  updateCurrentUser: (updates: Partial<Member>) => void;
+}
+
+export const useStore = create<AppState>((set, get) => ({
+  isWalletConnected: false,
+  walletAddress: null,
+  walletProvider: null,
+  currentUser: null,
+  
+  members: MEMBERS, // Initialize with mock data
+  events: EVENTS,
+  bounties: BOUNTIES,
+  repos: REPOS,
+  resources: RESOURCES,
+  projects: PROJECTS,
+  financeRequests: [],
+  financeHistory: [],
+
+  connectWallet: (provider) => {
+    // For demo purposes, log in as the first mock member if no user is set
+    const state = get();
+    const mockUser = state.members[0]; 
+    
+    set({ 
+      isWalletConnected: true, 
+      walletAddress: '8x...3f2a', 
+      walletProvider: provider,
+      currentUser: mockUser
+    });
+  },
+
+  disconnectWallet: () => set({ 
+    isWalletConnected: false, 
+    walletAddress: null, 
+    walletProvider: null,
+    currentUser: null
+  }),
+
+  addEvent: (event) => set((state) => ({ events: [...state.events, event] })),
+  addBounty: (bounty) => set((state) => ({ bounties: [...state.bounties, bounty] })),
+  addRepo: (repo) => set((state) => ({ repos: [...state.repos, repo] })),
+  addResource: (resource) => set((state) => ({ resources: [...state.resources, resource] })),
+  addProject: (project) => set((state) => ({ projects: [...state.projects, project] })),
+
+  submitFinanceRequest: (req) => set((state) => ({ 
+    financeRequests: [...state.financeRequests, req] 
+  })),
+
+  approveFinanceRequest: (id) => set((state) => {
+    const request = state.financeRequests.find(r => r.id === id);
+    if (!request) return state;
+    return {
+      financeRequests: state.financeRequests.filter(r => r.id !== id),
+      financeHistory: [...state.financeHistory, { ...request, status: 'completed' }]
+    };
+  }),
+
+  rejectFinanceRequest: (id) => set((state) => {
+    const request = state.financeRequests.find(r => r.id === id);
+    if (!request) return state;
+    return {
+      financeRequests: state.financeRequests.filter(r => r.id !== id),
+      financeHistory: [...state.financeHistory, { ...request, status: 'rejected' }]
+    };
+  }),
+
+  updateCurrentUser: (updates) => set((state) => {
+    if (!state.currentUser) return state;
+
+    const updatedUser = { ...state.currentUser, ...updates };
+    
+    // Also update this user in the main members list so changes are visible publicly
+    const updatedMembers = state.members.map(m => 
+      m.id === updatedUser.id ? updatedUser : m
+    );
+
+    return {
+      currentUser: updatedUser,
+      members: updatedMembers
+    };
+  })
+}));
