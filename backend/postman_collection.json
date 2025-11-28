@@ -1,0 +1,56 @@
+{
+  "info": {
+    "name": "DSUC Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/health"
+      }
+    },
+    {
+      "name": "Get Members",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/members" }
+    },
+    {
+      "name": "Get Member",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/members/{{memberId}}" }
+    },
+    {
+      "name": "Update Member",
+      "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{ \"name\": \"New Name\" }"}, "url": "{{baseUrl}}/api/members/{{memberId}}" }
+    },
+    {
+      "name": "Upload Avatar",
+      "request": { "method": "POST", "header": [], "body": {"mode":"formdata","formdata":[{"key":"file","type":"file","src":"/path/to/avatar.png"}]}, "url": "{{baseUrl}}/api/members/{{memberId}}/avatar" }
+    },
+    {
+      "name": "Get Projects",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/projects" }
+    },
+    {
+      "name": "Create Project",
+      "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{ \"name\": \"New Project\" }"}, "url": "{{baseUrl}}/api/projects" }
+    },
+    {
+      "name": "Get Events",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/events" }
+    },
+    {
+      "name": "Create Event",
+      "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{ \"title\": \"Event\", \"date\": \"2025-12-01\" }"}, "url": "{{baseUrl}}/api/events" }
+    },
+    {
+      "name": "Submit Finance Request",
+      "request": { "method": "POST", "body": {"mode":"formdata","formdata":[{"key":"file","type":"file","src":"/path/to/bill.png"},{"key":"requester_id","value":"{{memberId}}"}]}, "url": "{{baseUrl}}/api/finance/request" }
+    },
+    {
+      "name": "Get Pending Finance",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/finance/pending" }
+    }
+  ]
+}
