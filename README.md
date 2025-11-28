@@ -4,7 +4,7 @@ Tài liệu này mô tả chi tiết chức năng Frontend hiện tại và hư�
 
 ---
 
-# PHẦN 1: HƯỚNG DẪN SỬ DỤNG FRONTEND (UI/UX MANUAL)
+# PHẦN 1: HƯỚNG DẪN SỬ DỤNG FRONTEND ( UI/UX MANUAL )
 
 ## 1. Global Navigation (Thanh điều hướng)
 - **Logo (Góc trái):** Chuyển hướng về trang chủ (`/home`).
