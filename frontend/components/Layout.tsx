@@ -46,140 +46,62 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const primaryLinks = [
+  // All navigation links in one array
+  const allLinks = [
     { name: 'Home', path: '/home', icon: Home },
     { name: 'Members', path: '/members', icon: Users },
     { name: 'Events', path: '/events', icon: Calendar },
-  ];
-
-  const dropdownLinks = [
     { name: 'Projects', path: '/projects', icon: Rocket },
     { name: 'Finance', path: '/finance', icon: Calculator },
     { name: 'Work', path: '/work', icon: Briefcase },
     { name: 'Resources', path: '/resources', icon: Folder },
   ];
 
-  const isDropdownActive = dropdownLinks.some(link => location.pathname === link.path);
-
   return (
     <>
-      <div className="fixed top-0 left-0 right-0 z-[9000] flex justify-center">
-        {/* Cyber Deck Navbar Container */}
-        <nav className="relative bg-surface/80 backdrop-blur-md border-b border-l border-r border-cyber-blue/30 px-6 py-4 nav-shape shadow-[0_5px_20px_rgba(41,121,255,0.2)]">
+      <div className="fixed top-0 left-0 right-0 z-[9000] flex justify-center px-4">
+        {/* Cyber Deck Navbar Container - Full Width */}
+        <nav className="relative w-full max-w-7xl bg-surface/80 backdrop-blur-md border-b border-l border-r border-cyber-blue/30 px-6 py-4 nav-shape shadow-[0_5px_20px_rgba(41,121,255,0.2)]">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-cyber-blue/50" />
           <div className="absolute bottom-0 left-1/4 right-1/4 h-[2px] bg-cyber-blue shadow-[0_0_10px_#2979FF]" />
           
-          <div className="flex items-center gap-8">
-            {/* Logo Area - Always Visible */}
+          <div className="flex items-center justify-between gap-4">
+            {/* Logo Area */}
             <div className="flex items-center gap-3 text-cyber-blue font-display font-bold tracking-wider">
                <img src="/logo.png" alt="DSUC Logo" className="w-8 h-8 drop-shadow-[0_0_8px_rgba(41,121,255,0.5)]" />
                <span className="hidden sm:inline">DSUC LAB</span>
             </div>
 
-            {/* Desktop Nav */}
-            <div className="hidden md:flex items-center gap-1">
-              {primaryLinks.map((link) => {
-                const isActive = location.pathname === link.path;
-                return (
-                  <NavLink
-                    key={link.path}
-                    to={link.path}
-                    className={({ isActive }) =>
-                      twMerge(
-                        "relative px-4 py-1.5 text-xs font-display font-bold uppercase tracking-wide transition-all duration-300 hover:text-cyber-yellow group",
-                        isActive ? "text-cyber-blue" : "text-white/60"
-                      )
-                    }
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <span className="relative z-10 flex items-center gap-2">
-                          {link.name}
-                        </span>
-                        {isActive && (
-                          <motion.div
-                            layoutId="nav-glow"
-                            className="absolute -bottom-1 left-0 right-0 h-[1px] bg-cyber-blue shadow-[0_0_8px_#2979FF]"
-                          />
-                        )}
-                        <div className="absolute inset-0 bg-cyber-blue/5 scale-x-0 group-hover:scale-x-100 transition-transform origin-center -skew-x-12" />
-                      </>
-                    )}
-                  </NavLink>
-                );
-              })}
-
-              {/* More Dropdown */}
-              <div ref={dropdownRef} className="relative">
-                <button
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className={twMerge(
-                    "relative px-4 py-1.5 text-xs font-display font-bold uppercase tracking-wide transition-all duration-300 hover:text-cyber-yellow group flex items-center gap-1",
-                    isDropdownActive ? "text-cyber-blue" : "text-white/60"
-                  )}
+            {/* Desktop Nav - All Links */}
+            <div className="hidden lg:flex items-center gap-1">
+              {allLinks.map((link) => (
+                <NavLink
+                  key={link.path}
+                  to={link.path}
+                  className={({ isActive }) =>
+                    twMerge(
+                      "relative px-3 py-1.5 text-xs font-display font-bold uppercase tracking-wide transition-all duration-300 hover:text-cyber-yellow group",
+                      isActive ? "text-cyber-blue" : "text-white/60"
+                    )
+                  }
                 >
-                  <span className="relative z-10">More</span>
-                  <ChevronDown size={14} className={twMerge("transition-transform", dropdownOpen && "rotate-180")} />
-                  {isDropdownActive && (
-                    <motion.div
-                      layoutId="nav-glow"
-                      className="absolute -bottom-1 left-0 right-0 h-[1px] bg-cyber-blue shadow-[0_0_8px_#2979FF]"
-                    />
+                  {({ isActive }) => (
+                    <>
+                      <span className="relative z-10 flex items-center gap-2">
+                        {link.name}
+                      </span>
+                      {isActive && (
+                        <motion.div
+                          layoutId="nav-glow"
+                          className="absolute -bottom-1 left-0 right-0 h-[1px] bg-cyber-blue shadow-[0_0_8px_#2979FF]"
+                        />
+                      )}
+                      <div className="absolute inset-0 bg-cyber-blue/5 scale-x-0 group-hover:scale-x-100 transition-transform origin-center -skew-x-12" />
+                    </>
                   )}
-                  <div className="absolute inset-0 bg-cyber-blue/5 scale-x-0 group-hover:scale-x-100 transition-transform origin-center -skew-x-12" />
-                </button>
-
-                <AnimatePresence>
-                  {dropdownOpen && dropdownRef.current && ReactDOM.createPortal(
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      style={{
-                        position: 'fixed',
-                        top: dropdownRef.current.getBoundingClientRect().bottom + 8,
-                        right: window.innerWidth - dropdownRef.current.getBoundingClientRect().right,
-                        zIndex: 10000
-                      }}
-                      className="w-48 bg-surface/95 backdrop-blur-md border border-cyber-blue/30 cyber-clip-top shadow-[0_5px_20px_rgba(41,121,255,0.2)] overflow-hidden"
-                    >
-                      {dropdownLinks.map((link) => (
-                        <NavLink
-                          key={link.path}
-                          to={link.path}
-                          onClick={() => setDropdownOpen(false)}
-                          className={({ isActive }) =>
-                            twMerge(
-                              "flex items-center gap-3 px-4 py-3 text-xs font-display font-bold uppercase tracking-wide transition-all duration-200 border-b border-cyber-blue/10 last:border-b-0",
-                              isActive 
-                                ? "text-cyber-blue bg-cyber-blue/10" 
-                                : "text-white/60 hover:text-cyber-yellow hover:bg-cyber-yellow/5"
-                            )
-                          }
-                        >
-                          <link.icon size={16} />
-                          {link.name}
-                        </NavLink>
-                      ))}
-                    </motion.div>,
-                    document.body
-                  )}
-                </AnimatePresence>
-              </div>
+                </NavLink>
+              ))}
             </div>
 
             {/* Wallet / Profile Button */}
@@ -234,7 +156,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
               </button>
             </div>
             <div className="flex flex-col gap-6">
-              {primaryLinks.map((link) => (
+              {allLinks.map((link) => (
                 <NavLink
                   key={link.path}
                   to={link.path}
@@ -250,27 +172,6 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                   {link.name}
                 </NavLink>
               ))}
-              
-              {/* Mobile More Section */}
-              <div className="border-t border-cyber-blue/20 pt-6 mt-2">
-                <div className="text-xs font-mono text-white/30 uppercase tracking-widest mb-4 pl-1">More</div>
-                {dropdownLinks.map((link) => (
-                  <NavLink
-                    key={link.path}
-                    to={link.path}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={({ isActive }) =>
-                      twMerge(
-                        "text-xl font-display font-bold uppercase flex items-center gap-4 mb-4",
-                        isActive ? "text-cyber-blue translate-x-4" : "text-white/40"
-                      )
-                    }
-                  >
-                    <link.icon size={20} />
-                    {link.name}
-                  </NavLink>
-                ))}
-              </div>
 
               {isWalletConnected && (
                 <NavLink
