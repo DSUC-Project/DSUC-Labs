@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { HashRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
@@ -46,10 +46,10 @@ function AnimatedRoutes() {
 
 export default function App() {
   return (
-    <HashRouter>
+    <BrowserRouter>
       <Layout>
         <AnimatedRoutes />
       </Layout>
-    </HashRouter>
+    </BrowserRouter>
   );
 }

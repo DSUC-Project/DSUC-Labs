@@ -1,7 +1,108 @@
-import multer from "multer";
-import path from "path";
+import multer from 'multer';
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '../index';
 
+// Configure multer for memory storage
 const storage = multer.memoryStorage();
-const upload = multer({ storage });
 
-export default upload;
+// File filter
+const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const allowedTypes = /jpeg|jpg|png|gif|webp/;
+  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = allowedTypes.test(file.mimetype);
+
+  if (mimetype && extname) {
+    return cb(null, true);
+  } else {
+    cb(new Error('Only image files are allowed (jpeg, jpg, png, gif, webp)'));
+  }
+};
+
+// Multer upload instance
+export const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: fileFilter,
+});
+
+// Helper function to upload file to Supabase Storage
+export async function uploadToSupabase(
+  file: Express.Multer.File,
+  folder: string = 'uploads'
+): Promise<string> {
+  try {
+    const fileExt = path.extname(file.originalname);
+    const fileName = `${folder}/${uuidv4()}${fileExt}`;
+
+    const { data, error } = await supabase.storage
+      .from('dsuc-lab') // Bucket name
+      .upload(fileName, file.buffer, {
+        contentType: file.mimetype,
+        upsert: false,
+      });
+
+    if (error) {
+      console.error('Supabase upload error:', error);
+      throw new Error(`Failed to upload file: ${error.message}`);
+    }
+
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage
+      .from('dsuc-lab')
+      .getPublicUrl(fileName);
+
+    return publicUrlData.publicUrl;
+  } catch (error: any) {
+    console.error('Upload error:', error);
+    throw new Error(`Upload failed: ${error.message}`);
+  }
+}
+
+// Helper function to convert base64 to file and upload
+export async function uploadBase64ToSupabase(
+  base64String: string,
+  folder: string = 'uploads'
+): Promise<string> {
+  try {
+    // Remove data:image/png;base64, prefix if exists
+    const base64Data = base64String.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    // Detect image type from base64 string
+    let ext = '.png';
+    if (base64String.includes('data:image/jpeg') || base64String.includes('data:image/jpg')) {
+      ext = '.jpg';
+    } else if (base64String.includes('data:image/gif')) {
+      ext = '.gif';
+    } else if (base64String.includes('data:image/webp')) {
+      ext = '.webp';
+    }
+
+    const fileName = `${folder}/${uuidv4()}${ext}`;
+
+    const { data, error } = await supabase.storage
+      .from('dsuc-lab')
+      .upload(fileName, buffer, {
+        contentType: `image/${ext.replace('.', '')}`,
+        upsert: false,
+      });
+
+    if (error) {
+      console.error('Supabase upload error:', error);
+      throw new Error(`Failed to upload file: ${error.message}`);
+    }
+
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage
+      .from('dsuc-lab')
+      .getPublicUrl(fileName);
+
+    return publicUrlData.publicUrl;
+  } catch (error: any) {
+    console.error('Base64 upload error:', error);
+    throw new Error(`Upload failed: ${error.message}`);
+  }
+}

@@ -1,100 +1,370 @@
-import { Router } from "express";
-import { supabase } from "../index";
-import upload from "../middleware/upload";
+import { Router, Request, Response } from 'express';
+import { supabase } from '../index';
+import { authenticateWallet, AuthRequest, requireAdmin } from '../middleware/auth';
+import { uploadBase64ToSupabase } from '../middleware/upload';
 
 const router = Router();
 
-// POST /api/finance/request (accepts optional file field 'file')
-router.post("/request", upload.single("file"), async (req, res) => {
-  const payload = req.body;
+// POST /api/finance/request - Submit new finance request
+router.post('/request', authenticateWallet, async (req: AuthRequest, res: Response) => {
   try {
-    if (req.file) {
-      const bucket = process.env.SUPABASE_BILL_BUCKET || "bills";
-      const fileName = `${payload.requester_id || "anon"}_${Date.now()}`;
-      const { data: upData, error: upError } = await supabase.storage
-        .from(bucket)
-        .upload(fileName, req.file.buffer, {
-          contentType: req.file.mimetype,
-          upsert: true,
-        });
-      if (upError) return res.status(500).json({ error: upError });
-      const { data: publicData } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(upData.path);
-      payload.bill_image = publicData.publicUrl;
+    const { amount, reason, date, bill_image } = req.body;
+
+    if (!amount || !reason) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'Amount and reason are required',
+      });
     }
 
-    const { data, error } = await supabase
-      .from("finance_requests")
-      .insert(payload)
+    const requestData: any = {
+      requester_id: req.user!.id,
+      requester_name: req.user!.name,
+      amount,
+      reason,
+      date: date || new Date().toISOString().split('T')[0],
+      status: 'pending',
+    };
+
+    // Handle bill image upload if it's base64
+    if (bill_image && bill_image.startsWith('data:image')) {
+      try {
+        const uploadedImageUrl = await uploadBase64ToSupabase(bill_image, 'finance/bills');
+        requestData.bill_image = uploadedImageUrl;
+      } catch (uploadError: any) {
+        console.error('Bill image upload error:', uploadError);
+        return res.status(500).json({
+          error: 'Upload Error',
+          message: `Failed to upload bill image: ${uploadError.message}`,
+        });
+      }
+    } else if (bill_image) {
+      requestData.bill_image = bill_image;
+    }
+
+    const { data: newRequest, error } = await supabase
+      .from('finance_requests')
+      .insert([requestData])
       .select()
       .single();
-    if (error) return res.status(400).json({ error });
-    res.status(201).json(data);
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(500).json({
+        error: 'Database Error',
+        message: error.message,
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      data: newRequest,
+      message: 'Finance request submitted successfully',
+    });
+  } catch (error: any) {
+    console.error('Error creating finance request:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
   }
 });
 
-// GET /api/finance/pending
-router.get("/pending", async (_req, res) => {
+// GET /api/finance/pending - Get all pending requests (Admin view)
+router.get('/pending', authenticateWallet, requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
-    const { data, error } = await supabase
-      .from("finance_requests")
-      .select("*")
-      .eq("status", "pending");
-    if (error) return res.status(500).json({ error });
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
+    const { data: requests, error } = await supabase
+      .from('finance_requests')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(500).json({
+        error: 'Database Error',
+        message: error.message,
+      });
+    }
+
+    res.json({
+      success: true,
+      data: requests,
+      count: requests?.length || 0,
+    });
+  } catch (error: any) {
+    console.error('Error fetching pending requests:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
   }
 });
 
-// POST approve
-router.post("/approve/:id", async (req, res) => {
-  const { id } = req.params;
+// GET /api/finance/history - Get all completed/rejected requests
+router.get('/history', authenticateWallet, async (req: AuthRequest, res: Response) => {
   try {
-    const { data, error } = await supabase
-      .from("finance_requests")
-      .update({ status: "completed" })
-      .eq("id", id)
+    const { data: requests, error } = await supabase
+      .from('finance_requests')
+      .select('*')
+      .in('status', ['completed', 'rejected'])
+      .order('processed_at', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(500).json({
+        error: 'Database Error',
+        message: error.message,
+      });
+    }
+
+    res.json({
+      success: true,
+      data: requests,
+      count: requests?.length || 0,
+    });
+  } catch (error: any) {
+    console.error('Error fetching finance history:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
+  }
+});
+
+// GET /api/finance/my-requests - Get current user's requests
+router.get('/my-requests', authenticateWallet, async (req: AuthRequest, res: Response) => {
+  try {
+    const { data: requests, error } = await supabase
+      .from('finance_requests')
+      .select('*')
+      .eq('requester_id', req.user!.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(500).json({
+        error: 'Database Error',
+        message: error.message,
+      });
+    }
+
+    res.json({
+      success: true,
+      data: requests,
+      count: requests?.length || 0,
+    });
+  } catch (error: any) {
+    console.error('Error fetching user requests:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
+  }
+});
+
+// GET /api/finance/request/:id - Get request details with requester bank info
+router.get('/request/:id', authenticateWallet, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Get finance request
+    const { data: request, error: requestError } = await supabase
+      .from('finance_requests')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (requestError || !request) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'Finance request not found',
+      });
+    }
+
+    // Get requester's bank info
+    const { data: requester, error: memberError } = await supabase
+      .from('members')
+      .select('bank_info, name')
+      .eq('id', request.requester_id)
+      .single();
+
+    if (memberError) {
+      console.error('Error fetching requester info:', memberError);
+    }
+
+    // Combine data
+    const responseData = {
+      ...request,
+      requester_bank_info: requester?.bank_info || null,
+    };
+
+    res.json({
+      success: true,
+      data: responseData,
+    });
+  } catch (error: any) {
+    console.error('Error fetching request details:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
+  }
+});
+
+// POST /api/finance/approve/:id - Approve and complete request (Admin only)
+router.post('/approve/:id', authenticateWallet, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Check if request exists and is pending
+    const { data: request, error: fetchError } = await supabase
+      .from('finance_requests')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !request) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'Finance request not found',
+      });
+    }
+
+    if (request.status !== 'pending') {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'Request has already been processed',
+      });
+    }
+
+    // Update status to completed
+    const { data: updatedRequest, error } = await supabase
+      .from('finance_requests')
+      .update({
+        status: 'completed',
+        processed_by: req.user!.id,
+        processed_at: new Date().toISOString(),
+      })
+      .eq('id', id)
       .select()
       .single();
-    if (error) return res.status(400).json({ error });
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(500).json({
+        error: 'Database Error',
+        message: error.message,
+      });
+    }
+
+    res.json({
+      success: true,
+      data: updatedRequest,
+      message: 'Request approved successfully',
+    });
+  } catch (error: any) {
+    console.error('Error approving request:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
   }
 });
 
-// POST reject
-router.post("/reject/:id", async (req, res) => {
-  const { id } = req.params;
+// POST /api/finance/reject/:id - Reject request (Admin only)
+router.post('/reject/:id', authenticateWallet, requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
-    const { data, error } = await supabase
-      .from("finance_requests")
-      .update({ status: "rejected" })
-      .eq("id", id)
+    const { id } = req.params;
+
+    // Check if request exists and is pending
+    const { data: request, error: fetchError } = await supabase
+      .from('finance_requests')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !request) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'Finance request not found',
+      });
+    }
+
+    if (request.status !== 'pending') {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'Request has already been processed',
+      });
+    }
+
+    // Update status to rejected
+    const { data: updatedRequest, error } = await supabase
+      .from('finance_requests')
+      .update({
+        status: 'rejected',
+        processed_by: req.user!.id,
+        processed_at: new Date().toISOString(),
+      })
+      .eq('id', id)
       .select()
       .single();
-    if (error) return res.status(400).json({ error });
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(500).json({
+        error: 'Database Error',
+        message: error.message,
+      });
+    }
+
+    res.json({
+      success: true,
+      data: updatedRequest,
+      message: 'Request rejected successfully',
+    });
+  } catch (error: any) {
+    console.error('Error rejecting request:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
   }
 });
 
-// GET history
-router.get("/history", async (_req, res) => {
+// GET /api/finance/members-with-bank - Get members who have bank info (for Direct Transfer)
+router.get('/members-with-bank', authenticateWallet, async (req: AuthRequest, res: Response) => {
   try {
-    const { data, error } = await supabase
-      .from("finance_requests")
-      .select("*")
-      .neq("status", "pending");
-    if (error) return res.status(500).json({ error });
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
+    const { data: members, error } = await supabase
+      .from('members')
+      .select('id, name, avatar, role, bank_info')
+      .eq('is_active', true)
+      .not('bank_info', 'is', null);
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(500).json({
+        error: 'Database Error',
+        message: error.message,
+      });
+    }
+
+    // Filter members who actually have bank account number
+    const membersWithBank = members?.filter(
+      (member) => member.bank_info && member.bank_info.accountNo
+    ) || [];
+
+    res.json({
+      success: true,
+      data: membersWithBank,
+      count: membersWithBank.length,
+    });
+  } catch (error: any) {
+    console.error('Error fetching members with bank info:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
   }
 });
 

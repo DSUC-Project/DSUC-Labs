@@ -1,56 +1,453 @@
 {
   "info": {
-    "name": "DSUC Backend",
+    "name": "DSUC Lab API",
+    "description": "API collection for DSUC Lab Backend",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001/api",
+      "type": "string"
+    },
+    {
+      "key": "walletAddress",
+      "value": "CxPRESIDENT1111111111111111111111111111111",
+      "type": "string"
+    }
+  ],
   "item": [
     {
-      "name": "Health",
+      "name": "Health Check",
       "request": {
         "method": "GET",
         "header": [],
-        "url": "{{baseUrl}}/health"
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
       }
     },
     {
-      "name": "Get Members",
-      "request": { "method": "GET", "url": "{{baseUrl}}/api/members" }
+      "name": "Members",
+      "item": [
+        {
+          "name": "Get All Members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/members",
+              "host": ["{{baseUrl}}"],
+              "path": ["members"]
+            }
+          }
+        },
+        {
+          "name": "Login with Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"wallet_address\": \"{{walletAddress}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/members/auth",
+              "host": ["{{baseUrl}}"],
+              "path": ["members", "auth"]
+            }
+          }
+        },
+        {
+          "name": "Get Member by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/members/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["members", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "member-uuid"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-wallet-address",
+                "value": "{{walletAddress}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"skills\": [\"React\", \"Solana\", \"TypeScript\"],\n  \"bank_info\": {\n    \"bankId\": \"970422\",\n    \"accountNo\": \"0123456789\",\n    \"accountName\": \"NGUYEN VAN A\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/members/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["members", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "member-uuid"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
-      "name": "Get Member",
-      "request": { "method": "GET", "url": "{{baseUrl}}/api/members/{{memberId}}" }
+      "name": "Projects",
+      "item": [
+        {
+          "name": "Get All Projects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects"]
+            }
+          }
+        },
+        {
+          "name": "Create Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-wallet-address",
+                "value": "{{walletAddress}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"DeFi Protocol\",\n  \"description\": \"A new DeFi protocol on Solana\",\n  \"category\": \"DeFi\",\n  \"builders\": [\"Alice\", \"Bob\"],\n  \"link\": \"https://demo.com\",\n  \"repo_link\": \"https://github.com/repo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects"]
+            }
+          }
+        }
+      ]
     },
     {
-      "name": "Update Member",
-      "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{ \"name\": \"New Name\" }"}, "url": "{{baseUrl}}/api/members/{{memberId}}" }
+      "name": "Events",
+      "item": [
+        {
+          "name": "Get All Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["events"]
+            }
+          }
+        },
+        {
+          "name": "Get Recent Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/recent",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", "recent"]
+            }
+          }
+        },
+        {
+          "name": "Create Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-wallet-address",
+                "value": "{{walletAddress}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Solana Bootcamp 2025\",\n  \"date\": \"2025-01-15\",\n  \"time\": \"14:00\",\n  \"type\": \"Workshop\",\n  \"location\": \"HCMC University\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["events"]
+            }
+          }
+        }
+      ]
     },
     {
-      "name": "Upload Avatar",
-      "request": { "method": "POST", "header": [], "body": {"mode":"formdata","formdata":[{"key":"file","type":"file","src":"/path/to/avatar.png"}]}, "url": "{{baseUrl}}/api/members/{{memberId}}/avatar" }
+      "name": "Finance",
+      "item": [
+        {
+          "name": "Submit Finance Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-wallet-address",
+                "value": "{{walletAddress}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": \"500000\",\n  \"reason\": \"Mua thiết bị cho workshop\",\n  \"date\": \"2025-01-10\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/finance/request",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "request"]
+            }
+          }
+        },
+        {
+          "name": "Get Pending Requests (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-wallet-address",
+                "value": "{{walletAddress}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/finance/pending",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "pending"]
+            }
+          }
+        },
+        {
+          "name": "Get Finance History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-wallet-address",
+                "value": "{{walletAddress}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/finance/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "history"]
+            }
+          }
+        },
+        {
+          "name": "Get Members with Bank Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-wallet-address",
+                "value": "{{walletAddress}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/finance/members-with-bank",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "members-with-bank"]
+            }
+          }
+        },
+        {
+          "name": "Approve Request (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-wallet-address",
+                "value": "{{walletAddress}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/finance/approve/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "approve", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "request-uuid"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
-      "name": "Get Projects",
-      "request": { "method": "GET", "url": "{{baseUrl}}/api/projects" }
+      "name": "Work",
+      "item": [
+        {
+          "name": "Get All Bounties",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/work/bounties",
+              "host": ["{{baseUrl}}"],
+              "path": ["work", "bounties"]
+            }
+          }
+        },
+        {
+          "name": "Create Bounty",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-wallet-address",
+                "value": "{{walletAddress}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Build Solana Wallet Integration\",\n  \"description\": \"Integrate Phantom and Solflare\",\n  \"reward\": \"0.5 SOL\",\n  \"difficulty\": \"Medium\",\n  \"tags\": [\"Solana\", \"TypeScript\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/work/bounties",
+              "host": ["{{baseUrl}}"],
+              "path": ["work", "bounties"]
+            }
+          }
+        },
+        {
+          "name": "Get All Repos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/work/repos",
+              "host": ["{{baseUrl}}"],
+              "path": ["work", "repos"]
+            }
+          }
+        },
+        {
+          "name": "Create Repo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-wallet-address",
+                "value": "{{walletAddress}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"solana-toolkit\",\n  \"description\": \"Essential tools for Solana\",\n  \"language\": \"TypeScript\",\n  \"url\": \"https://github.com/dsuc-lab/toolkit\",\n  \"stars\": 42,\n  \"forks\": 12\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/work/repos",
+              "host": ["{{baseUrl}}"],
+              "path": ["work", "repos"]
+            }
+          }
+        }
+      ]
     },
     {
-      "name": "Create Project",
-      "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{ \"name\": \"New Project\" }"}, "url": "{{baseUrl}}/api/projects" }
-    },
-    {
-      "name": "Get Events",
-      "request": { "method": "GET", "url": "{{baseUrl}}/api/events" }
-    },
-    {
-      "name": "Create Event",
-      "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{ \"title\": \"Event\", \"date\": \"2025-12-01\" }"}, "url": "{{baseUrl}}/api/events" }
-    },
-    {
-      "name": "Submit Finance Request",
-      "request": { "method": "POST", "body": {"mode":"formdata","formdata":[{"key":"file","type":"file","src":"/path/to/bill.png"},{"key":"requester_id","value":"{{memberId}}"}]}, "url": "{{baseUrl}}/api/finance/request" }
-    },
-    {
-      "name": "Get Pending Finance",
-      "request": { "method": "GET", "url": "{{baseUrl}}/api/finance/pending" }
+      "name": "Resources",
+      "item": [
+        {
+          "name": "Get All Resources",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/resources",
+              "host": ["{{baseUrl}}"],
+              "path": ["resources"]
+            }
+          }
+        },
+        {
+          "name": "Get Resource Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/resources/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["resources", "categories"]
+            }
+          }
+        },
+        {
+          "name": "Create Resource",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-wallet-address",
+                "value": "{{walletAddress}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Solana Course\",\n  \"type\": \"Document\",\n  \"url\": \"https://drive.google.com/...\",\n  \"size\": \"2.5GB\",\n  \"category\": \"Learning\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/resources",
+              "host": ["{{baseUrl}}"],
+              "path": ["resources"]
+            }
+          }
+        }
+      ]
     }
   ]
 }

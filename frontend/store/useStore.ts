@@ -1,17 +1,38 @@
+import { create } from "zustand";
+import {
+  FinanceRequest,
+  Event,
+  Bounty,
+  Repo,
+  Resource,
+  Member,
+  Project,
+} from "../types";
+import {
+  EVENTS,
+  BOUNTIES,
+  REPOS,
+  RESOURCES,
+  MEMBERS,
+  PROJECTS,
+} from "../data/mockData";
 
-import { create } from 'zustand';
-import { FinanceRequest, Event, Bounty, Repo, Resource, Member, Project } from '../types';
-import { EVENTS, BOUNTIES, REPOS, RESOURCES, MEMBERS, PROJECTS } from '../data/mockData';
+declare global {
+  interface Window {
+    solana?: any;
+    solflare?: any;
+  }
+}
 
 interface AppState {
   isWalletConnected: boolean;
   walletAddress: string | null;
-  walletProvider: 'Phantom' | 'Solflare' | null;
+  walletProvider: "Phantom" | "Solflare" | null;
   currentUser: Member | null; // The logged-in user's profile
-  
-  connectWallet: (provider: 'Phantom' | 'Solflare') => void;
+
+  connectWallet: (provider: "Phantom" | "Solflare") => void;
   disconnectWallet: () => void;
-  
+
   // Data Lists
   members: Member[]; // Mutable members list
   events: Event[];
@@ -28,11 +49,11 @@ interface AppState {
   addRepo: (repo: Repo) => void;
   addResource: (resource: Resource) => void;
   addProject: (project: Project) => void;
-  
+
   submitFinanceRequest: (req: FinanceRequest) => void;
   approveFinanceRequest: (id: string) => void;
   rejectFinanceRequest: (id: string) => void;
-  
+
   updateCurrentUser: (updates: Partial<Member>) => void;
 }
 
@@ -41,7 +62,7 @@ export const useStore = create<AppState>((set, get) => ({
   walletAddress: null,
   walletProvider: null,
   currentUser: null,
-  
+
   members: MEMBERS, // Initialize with mock data
   events: EVENTS,
   bounties: BOUNTIES,
@@ -51,67 +72,135 @@ export const useStore = create<AppState>((set, get) => ({
   financeRequests: [],
   financeHistory: [],
 
-  connectWallet: (provider) => {
-    // For demo purposes, log in as the first mock member if no user is set
-    const state = get();
-    const mockUser = state.members[0]; 
-    
-    set({ 
-      isWalletConnected: true, 
-      walletAddress: '8x...3f2a', 
-      walletProvider: provider,
-      currentUser: mockUser
-    });
+  connectWallet: async (provider) => {
+    try {
+      let addr: string | null = null;
+      if (provider === "Phantom" && window.solana && window.solana.isPhantom) {
+        const resp = await window.solana.connect();
+        addr = resp?.publicKey?.toString() ?? null;
+      } else if (provider === "Solflare" && window.solflare) {
+        const resp = await window.solflare.connect();
+        addr = resp?.publicKey?.toString() ?? resp?.publicKey ?? null;
+      } else {
+        console.warn("Wallet provider not found");
+      }
+
+      if (!addr) {
+        set({ isWalletConnected: false });
+        return;
+      }
+
+      set({
+        isWalletConnected: true,
+        walletAddress: addr,
+        walletProvider: provider,
+      });
+
+      // Try to get/create member profile from backend
+      try {
+        const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+        const res = await fetch(`${base}/api/auth/wallet`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ wallet_address: addr }),
+        });
+        if (res.ok) {
+          const profile = await res.json();
+          if (profile) {
+            // if backend returns member, ensure it's in members list
+            set((state) => ({
+              currentUser: profile,
+              members: state.members.some((m) => m.id === profile.id)
+                ? state.members
+                : [profile, ...state.members],
+            }));
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Backend auth failed", e);
+      }
+
+      // Fallback: match by wallet locally if mock data exists
+      const state = get();
+      const found = state.members.find(
+        (m) =>
+          (m as any).wallet_address === addr ||
+          (m as any).walletAddress === addr
+      );
+      if (found) set({ currentUser: found });
+    } catch (err) {
+      console.error("connectWallet error", err);
+      set({
+        isWalletConnected: false,
+        walletAddress: null,
+        walletProvider: null,
+      });
+    }
   },
 
-  disconnectWallet: () => set({ 
-    isWalletConnected: false, 
-    walletAddress: null, 
-    walletProvider: null,
-    currentUser: null
-  }),
+  disconnectWallet: () =>
+    set({
+      isWalletConnected: false,
+      walletAddress: null,
+      walletProvider: null,
+      currentUser: null,
+    }),
 
   addEvent: (event) => set((state) => ({ events: [...state.events, event] })),
-  addBounty: (bounty) => set((state) => ({ bounties: [...state.bounties, bounty] })),
+  addBounty: (bounty) =>
+    set((state) => ({ bounties: [...state.bounties, bounty] })),
   addRepo: (repo) => set((state) => ({ repos: [...state.repos, repo] })),
-  addResource: (resource) => set((state) => ({ resources: [...state.resources, resource] })),
-  addProject: (project) => set((state) => ({ projects: [...state.projects, project] })),
+  addResource: (resource) =>
+    set((state) => ({ resources: [...state.resources, resource] })),
+  addProject: (project) =>
+    set((state) => ({ projects: [...state.projects, project] })),
 
-  submitFinanceRequest: (req) => set((state) => ({ 
-    financeRequests: [...state.financeRequests, req] 
-  })),
+  submitFinanceRequest: (req) =>
+    set((state) => ({
+      financeRequests: [...state.financeRequests, req],
+    })),
 
-  approveFinanceRequest: (id) => set((state) => {
-    const request = state.financeRequests.find(r => r.id === id);
-    if (!request) return state;
-    return {
-      financeRequests: state.financeRequests.filter(r => r.id !== id),
-      financeHistory: [...state.financeHistory, { ...request, status: 'completed' }]
-    };
-  }),
+  approveFinanceRequest: (id) =>
+    set((state) => {
+      const request = state.financeRequests.find((r) => r.id === id);
+      if (!request) return state;
+      return {
+        financeRequests: state.financeRequests.filter((r) => r.id !== id),
+        financeHistory: [
+          ...state.financeHistory,
+          { ...request, status: "completed" },
+        ],
+      };
+    }),
 
-  rejectFinanceRequest: (id) => set((state) => {
-    const request = state.financeRequests.find(r => r.id === id);
-    if (!request) return state;
-    return {
-      financeRequests: state.financeRequests.filter(r => r.id !== id),
-      financeHistory: [...state.financeHistory, { ...request, status: 'rejected' }]
-    };
-  }),
+  rejectFinanceRequest: (id) =>
+    set((state) => {
+      const request = state.financeRequests.find((r) => r.id === id);
+      if (!request) return state;
+      return {
+        financeRequests: state.financeRequests.filter((r) => r.id !== id),
+        financeHistory: [
+          ...state.financeHistory,
+          { ...request, status: "rejected" },
+        ],
+      };
+    }),
 
-  updateCurrentUser: (updates) => set((state) => {
-    if (!state.currentUser) return state;
+  updateCurrentUser: (updates) =>
+    set((state) => {
+      if (!state.currentUser) return state;
 
-    const updatedUser = { ...state.currentUser, ...updates };
-    
-    // Also update this user in the main members list so changes are visible publicly
-    const updatedMembers = state.members.map(m => 
-      m.id === updatedUser.id ? updatedUser : m
-    );
+      const updatedUser = { ...state.currentUser, ...updates };
 
-    return {
-      currentUser: updatedUser,
-      members: updatedMembers
-    };
-  })
+      // Also update this user in the main members list so changes are visible publicly
+      const updatedMembers = state.members.map((m) =>
+        m.id === updatedUser.id ? updatedUser : m
+      );
+
+      return {
+        currentUser: updatedUser,
+        members: updatedMembers,
+      };
+    }),
 }));
