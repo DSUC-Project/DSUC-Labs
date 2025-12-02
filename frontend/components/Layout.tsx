@@ -148,7 +148,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="absolute top-full mt-2 right-0 w-48 bg-surface/95 backdrop-blur-md border border-cyber-blue/30 cyber-clip-top shadow-[0_5px_20px_rgba(41,121,255,0.2)] overflow-hidden"
+                      className="absolute top-full mt-2 right-0 w-48 bg-surface/95 backdrop-blur-md border border-cyber-blue/30 cyber-clip-top shadow-[0_5px_20px_rgba(41,121,255,0.2)] overflow-hidden z-[60]"
                     >
                       {dropdownLinks.map((link) => (
                         <NavLink

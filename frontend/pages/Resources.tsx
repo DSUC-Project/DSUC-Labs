@@ -113,10 +113,12 @@ function AddResourceModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
-      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-surface cyber-card border border-cyber-blue/50 p-8 w-full max-w-lg relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-white/40 hover:text-white"><X /></button>
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-surface cyber-card border border-cyber-blue/50 p-8 w-full max-w-lg relative z-10">
+        <button onClick={onClose} className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors">
+          <X size={20} />
+        </button>
         <h3 className="text-2xl font-display font-bold mb-6 text-cyber-blue uppercase">UPLOAD RESOURCE</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <input name="name" placeholder="Resource Name" required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
