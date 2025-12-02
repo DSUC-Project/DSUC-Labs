@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
@@ -143,12 +144,18 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                 </button>
 
                 <AnimatePresence>
-                  {dropdownOpen && (
+                  {dropdownOpen && dropdownRef.current && ReactDOM.createPortal(
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="absolute top-full mt-2 right-0 w-48 bg-surface/95 backdrop-blur-md border border-cyber-blue/30 cyber-clip-top shadow-[0_5px_20px_rgba(41,121,255,0.2)] overflow-hidden z-[10000]"
+                      style={{
+                        position: 'fixed',
+                        top: dropdownRef.current.getBoundingClientRect().bottom + 8,
+                        right: window.innerWidth - dropdownRef.current.getBoundingClientRect().right,
+                        zIndex: 10000
+                      }}
+                      className="w-48 bg-surface/95 backdrop-blur-md border border-cyber-blue/30 cyber-clip-top shadow-[0_5px_20px_rgba(41,121,255,0.2)] overflow-hidden"
                     >
                       {dropdownLinks.map((link) => (
                         <NavLink
@@ -168,7 +175,8 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                           {link.name}
                         </NavLink>
                       ))}
-                    </motion.div>
+                    </motion.div>,
+                    document.body
                   )}
                 </AnimatePresence>
               </div>

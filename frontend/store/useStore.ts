@@ -276,20 +276,44 @@ export const useStore = create<AppState>((set, get) => ({
                 : [profile, ...state.members],
             }));
             return;
+          } else {
+            // Backend responded OK but no member found
+            alert(
+              "❌ BẠN KHÔNG PHẢI LÀ THÀNH VIÊN CLB\n\nWallet của bạn không có trong danh sách thành viên.\nHãy đăng ký tham gia để được sử dụng website!"
+            );
+            set({
+              isWalletConnected: false,
+              walletAddress: null,
+              walletProvider: null,
+            });
+            return;
           }
+        } else {
+          // Backend error - member not found
+          console.warn("Backend auth failed - member not found");
+          alert(
+            "❌ BẠN KHÔNG PHẢI LÀ THÀNH VIÊN CLB\n\nWallet của bạn không có trong danh sách thành viên.\nHãy đăng ký tham gia để được sử dụng website!"
+          );
+          set({
+            isWalletConnected: false,
+            walletAddress: null,
+            walletProvider: null,
+          });
+          return;
         }
       } catch (e) {
         console.warn("Backend auth failed", e);
+        // Network error - show generic message
+        alert(
+          "❌ KHÔNG THỂ XÁC THỰC\n\nKhông thể kết nối với server. Vui lòng thử lại sau."
+        );
+        set({
+          isWalletConnected: false,
+          walletAddress: null,
+          walletProvider: null,
+        });
+        return;
       }
-
-      // Fallback: match by wallet locally if mock data exists
-      const state = get();
-      const found = state.members.find(
-        (m) =>
-          (m as any).wallet_address === addr ||
-          (m as any).walletAddress === addr
-      );
-      if (found) set({ currentUser: found });
     } catch (err) {
       console.error("connectWallet error", err);
       set({
@@ -551,9 +575,17 @@ export const useStore = create<AppState>((set, get) => ({
       const state = get();
 
       if (!state.currentUser || !state.walletAddress) {
-        console.error("User not authenticated");
-        return;
+        console.error("[submitFinanceRequest] User not authenticated");
+        throw new Error("User not authenticated");
       }
+
+      console.log("[submitFinanceRequest] Submitting:", {
+        amount: req.amount,
+        reason: req.reason,
+        date: req.date,
+        hasImage: !!req.billImage,
+        imageSize: req.billImage?.length,
+      });
 
       const res = await fetch(`${base}/api/finance/request`, {
         method: "POST",
@@ -569,8 +601,11 @@ export const useStore = create<AppState>((set, get) => ({
         }),
       });
 
+      console.log("[submitFinanceRequest] Response status:", res.status);
+
       if (res.ok) {
         const result = await res.json();
+        console.log("[submitFinanceRequest] Success:", result);
         if (result && result.success && result.data) {
           // Add to local state
           set((state) => ({
@@ -578,10 +613,15 @@ export const useStore = create<AppState>((set, get) => ({
           }));
         }
       } else {
-        console.error("Failed to submit finance request");
+        const error = await res
+          .json()
+          .catch(() => ({ message: "Unknown error" }));
+        console.error("[submitFinanceRequest] Failed:", error);
+        throw new Error(error.message || "Failed to submit finance request");
       }
     } catch (e) {
-      console.error("Error submitting finance request:", e);
+      console.error("[submitFinanceRequest] Error:", e);
+      throw e;
     }
   },
 

@@ -18,6 +18,24 @@ export function Finance() {
     }
   }, [activeTab, isWalletConnected, currentUser, fetchPendingRequests]);
 
+  // Lock Finance page if wallet not connected
+  if (!isWalletConnected) {
+    return (
+      <div className="max-w-5xl mx-auto space-y-8">
+        <div className="flex flex-col items-center justify-center min-h-[500px] space-y-6">
+          <div className="text-6xl">🔒</div>
+          <h2 className="text-3xl font-display font-bold text-white">RESTRICTED ACCESS</h2>
+          <p className="text-cyber-blue font-mono text-sm text-center max-w-md">
+            Please connect your wallet to access the Finance module.
+          </p>
+          <div className="text-white/40 font-mono text-xs text-center max-w-lg">
+            This section is only available to club members with verified wallet addresses.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-end border-b border-cyber-blue/20 pb-6">
@@ -53,7 +71,7 @@ export function Finance() {
 }
 
 function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
-  const { submitFinanceRequest, currentUser } = useStore();
+  const { submitFinanceRequest, currentUser, isWalletConnected } = useStore();
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
   const [date, setDate] = useState('');
@@ -73,29 +91,40 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser) return;
     
-    submitFinanceRequest({
-      id: Math.random().toString(),
-      amount,
-      reason,
-      date,
-      billImage,
-      status: 'pending',
-      requesterName: currentUser.name || 'Unknown',
-      requesterId: currentUser.id
-    });
+    if (!isWalletConnected || !currentUser) {
+      alert('Please connect your wallet first!');
+      return;
+    }
+
+    console.log('[Finance] Submitting request with image:', billImage?.substring(0, 50));
     
-    // Reset form
-    setAmount('');
-    setReason('');
-    setDate('');
-    setBillImage(null);
-    setBillFile(null);
-    
-    onSubmitted();
+    try {
+      await submitFinanceRequest({
+        id: Math.random().toString(),
+        amount,
+        reason,
+        date,
+        billImage,
+        status: 'pending',
+        requesterName: currentUser.name || 'Unknown',
+        requesterId: currentUser.id
+      });
+      
+      // Reset form
+      setAmount('');
+      setReason('');
+      setDate('');
+      setBillImage(null);
+      setBillFile(null);
+      
+      onSubmitted();
+    } catch (err) {
+      console.error('[Finance] Submit failed:', err);
+      alert('Failed to submit request. Check console for details.');
+    }
   };
 
   return (

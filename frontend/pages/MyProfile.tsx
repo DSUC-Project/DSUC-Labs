@@ -64,24 +64,30 @@ export function MyProfile() {
     }
   };
 
-  const handleSave = () => {
-    updateCurrentUser({
-      name,
-      role,
-      avatar,
-      skills,
-      socials: {
-        github,
-        twitter,
-        telegram
-      },
-      bankInfo: bankId && accountNo ? { 
-        bankId, 
-        accountNo,
-        accountName: accountName || name 
-      } : undefined
-    });
-    alert('PROTOCOL UPDATED SUCCESSFULLY');
+  const handleSave = async () => {
+    console.log('[MyProfile] Saving profile with avatar:', avatar?.substring(0, 50));
+    try {
+      await updateCurrentUser({
+        name,
+        role,
+        avatar,
+        skills,
+        socials: {
+          github,
+          twitter,
+          telegram
+        },
+        bankInfo: bankId && accountNo ? { 
+          bankId, 
+          accountNo,
+          accountName: accountName || name 
+        } : undefined
+      });
+      alert('PROTOCOL UPDATED SUCCESSFULLY');
+    } catch (err) {
+      console.error('[MyProfile] Save failed:', err);
+      alert('Failed to save profile. Check console for details.');
+    }
   };
 
   const handleLogout = () => {
