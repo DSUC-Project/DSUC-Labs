@@ -32,6 +32,7 @@ CREATE TABLE events (
   type TEXT DEFAULT 'Workshop',
   location TEXT,
   attendees INT DEFAULT 0,
+  luma_link TEXT, -- Link to Luma event registration
   created_by TEXT REFERENCES members(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -71,6 +72,25 @@ CREATE TABLE finance_requests (
 
 CREATE INDEX idx_finance_status ON finance_requests(status);
 CREATE INDEX idx_finance_requester ON finance_requests(requester_id);
+
+-- 4b. Bảng Finance History (Public record of all transactions)
+CREATE TABLE finance_history (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  requester_id TEXT REFERENCES members(id) ON DELETE SET NULL,
+  requester_name TEXT NOT NULL,
+  amount TEXT NOT NULL,
+  reason TEXT,
+  date DATE,
+  bill_image TEXT, -- URL ảnh bill/receipt
+  status TEXT NOT NULL CHECK (status IN ('completed', 'rejected')),
+  processed_by TEXT REFERENCES members(id) ON DELETE SET NULL,
+  processed_by_name TEXT,
+  processed_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_finance_history_status ON finance_history(status);
+CREATE INDEX idx_finance_history_date ON finance_history(date DESC);
 
 -- 5. Bảng Bounties
 CREATE TABLE bounties (

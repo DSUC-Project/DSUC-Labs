@@ -33,6 +33,7 @@ interface AppState {
   connectWallet: (provider: "Phantom" | "Solflare") => void;
   disconnectWallet: () => void;
   fetchMembers: () => Promise<void>;
+  fetchFinanceHistory: () => Promise<void>;
 
   // Data Lists
   members: Member[]; // Mutable members list
@@ -51,9 +52,10 @@ interface AppState {
   addResource: (resource: Resource) => void;
   addProject: (project: Project) => void;
 
-  submitFinanceRequest: (req: FinanceRequest) => void;
-  approveFinanceRequest: (id: string) => void;
-  rejectFinanceRequest: (id: string) => void;
+  submitFinanceRequest: (req: FinanceRequest) => Promise<void>;
+  approveFinanceRequest: (id: string) => Promise<void>;
+  rejectFinanceRequest: (id: string) => Promise<void>;
+  fetchPendingRequests: () => Promise<void>;
 
   updateCurrentUser: (updates: Partial<Member>) => void;
 }
@@ -93,6 +95,22 @@ export const useStore = create<AppState>((set, get) => ({
       console.warn("Failed to fetch members from backend", e);
       // Fallback to mock data if backend fails
       set({ members: MEMBERS });
+    }
+  },
+
+  // Fetch finance history from backend
+  fetchFinanceHistory: async () => {
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+      const res = await fetch(`${base}/api/finance-history`);
+      if (res.ok) {
+        const result = await res.json();
+        if (result && result.success && result.data) {
+          set({ financeHistory: result.data });
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch finance history", e);
     }
   },
 
@@ -181,36 +199,141 @@ export const useStore = create<AppState>((set, get) => ({
   addProject: (project) =>
     set((state) => ({ projects: [...state.projects, project] })),
 
-  submitFinanceRequest: (req) =>
-    set((state) => ({
-      financeRequests: [...state.financeRequests, req],
-    })),
+  // Submit finance request to backend
+  submitFinanceRequest: async (req) => {
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+      const state = get();
 
-  approveFinanceRequest: (id) =>
-    set((state) => {
-      const request = state.financeRequests.find((r) => r.id === id);
-      if (!request) return state;
-      return {
-        financeRequests: state.financeRequests.filter((r) => r.id !== id),
-        financeHistory: [
-          ...state.financeHistory,
-          { ...request, status: "completed" },
-        ],
-      };
-    }),
+      if (!state.currentUser || !state.walletAddress) {
+        console.error("User not authenticated");
+        return;
+      }
 
-  rejectFinanceRequest: (id) =>
-    set((state) => {
-      const request = state.financeRequests.find((r) => r.id === id);
-      if (!request) return state;
-      return {
-        financeRequests: state.financeRequests.filter((r) => r.id !== id),
-        financeHistory: [
-          ...state.financeHistory,
-          { ...request, status: "rejected" },
-        ],
-      };
-    }),
+      const res = await fetch(`${base}/api/finance/request`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-wallet-address": state.walletAddress,
+        },
+        body: JSON.stringify({
+          amount: req.amount,
+          reason: req.reason,
+          date: req.date,
+          bill_image: req.billImage,
+        }),
+      });
+
+      if (res.ok) {
+        const result = await res.json();
+        if (result && result.success && result.data) {
+          // Add to local state
+          set((state) => ({
+            financeRequests: [...state.financeRequests, result.data],
+          }));
+        }
+      } else {
+        console.error("Failed to submit finance request");
+      }
+    } catch (e) {
+      console.error("Error submitting finance request:", e);
+    }
+  },
+
+  // Fetch pending requests from backend
+  fetchPendingRequests: async () => {
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+      const state = get();
+
+      if (!state.currentUser || !state.walletAddress) {
+        return;
+      }
+
+      const res = await fetch(`${base}/api/finance/pending`, {
+        headers: {
+          "x-wallet-address": state.walletAddress,
+        },
+      });
+
+      if (res.ok) {
+        const result = await res.json();
+        if (result && result.success && result.data) {
+          set({ financeRequests: result.data });
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch pending requests", e);
+    }
+  },
+
+  // Approve finance request via backend
+  approveFinanceRequest: async (id) => {
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+      const state = get();
+
+      if (!state.currentUser || !state.walletAddress) {
+        console.error("User not authenticated");
+        return;
+      }
+
+      const res = await fetch(`${base}/api/finance/approve/${id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-wallet-address": state.walletAddress,
+        },
+      });
+
+      if (res.ok) {
+        // Remove from pending and refresh history
+        set((state) => ({
+          financeRequests: state.financeRequests.filter((r) => r.id !== id),
+        }));
+        // Refresh finance history
+        state.fetchFinanceHistory();
+      } else {
+        console.error("Failed to approve request");
+      }
+    } catch (e) {
+      console.error("Error approving request:", e);
+    }
+  },
+
+  // Reject finance request via backend
+  rejectFinanceRequest: async (id) => {
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+      const state = get();
+
+      if (!state.currentUser || !state.walletAddress) {
+        console.error("User not authenticated");
+        return;
+      }
+
+      const res = await fetch(`${base}/api/finance/reject/${id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-wallet-address": state.walletAddress,
+        },
+      });
+
+      if (res.ok) {
+        // Remove from pending and refresh history
+        set((state) => ({
+          financeRequests: state.financeRequests.filter((r) => r.id !== id),
+        }));
+        // Refresh finance history
+        state.fetchFinanceHistory();
+      } else {
+        console.error("Failed to reject request");
+      }
+    } catch (e) {
+      console.error("Error rejecting request:", e);
+    }
+  },
 
   updateCurrentUser: (updates) =>
     set((state) => {

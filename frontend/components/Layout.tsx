@@ -1,9 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
-import { Home, Users, Calendar, Calculator, Briefcase, Folder, Wallet, Menu, X, Terminal, User, Rocket } from 'lucide-react';
+import { Home, Users, Calendar, Calculator, Briefcase, Folder, Wallet, Menu, X, Terminal, User, Rocket, ChevronDown } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
 export function Layout({ children }: { children?: React.ReactNode }) {
@@ -45,16 +45,34 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const links = [
-    { name: 'Dashboard', path: '/home', icon: Home },
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const primaryLinks = [
+    { name: 'Home', path: '/home', icon: Home },
     { name: 'Members', path: '/members', icon: Users },
-    { name: 'Projects', path: '/projects', icon: Rocket },
     { name: 'Events', path: '/events', icon: Calendar },
+  ];
+
+  const dropdownLinks = [
+    { name: 'Projects', path: '/projects', icon: Rocket },
     { name: 'Finance', path: '/finance', icon: Calculator },
     { name: 'Work', path: '/work', icon: Briefcase },
     { name: 'Resources', path: '/resources', icon: Folder },
   ];
+
+  const isDropdownActive = dropdownLinks.some(link => location.pathname === link.path);
 
   return (
     <>
@@ -65,15 +83,15 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
           <div className="absolute bottom-0 left-1/4 right-1/4 h-[2px] bg-cyber-blue shadow-[0_0_10px_#2979FF]" />
           
           <div className="flex items-center gap-8">
-            {/* Logo Area */}
-            <div className="hidden md:flex items-center gap-3 text-cyber-blue font-display font-bold tracking-wider">
+            {/* Logo Area - Always Visible */}
+            <div className="flex items-center gap-3 text-cyber-blue font-display font-bold tracking-wider">
                <img src="/logo.png" alt="DSUC Logo" className="w-8 h-8 drop-shadow-[0_0_8px_rgba(41,121,255,0.5)]" />
-               <span>DSUC LAB</span>
+               <span className="hidden sm:inline">DSUC LAB</span>
             </div>
 
             {/* Desktop Nav */}
             <div className="hidden md:flex items-center gap-1">
-              {links.map((link) => {
+              {primaryLinks.map((link) => {
                 const isActive = location.pathname === link.path;
                 return (
                   <NavLink
@@ -103,6 +121,57 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                   </NavLink>
                 );
               })}
+
+              {/* More Dropdown */}
+              <div ref={dropdownRef} className="relative">
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className={twMerge(
+                    "relative px-4 py-1.5 text-xs font-display font-bold uppercase tracking-wide transition-all duration-300 hover:text-cyber-yellow group flex items-center gap-1",
+                    isDropdownActive ? "text-cyber-blue" : "text-white/60"
+                  )}
+                >
+                  <span className="relative z-10">More</span>
+                  <ChevronDown size={14} className={twMerge("transition-transform", dropdownOpen && "rotate-180")} />
+                  {isDropdownActive && (
+                    <motion.div
+                      layoutId="nav-glow"
+                      className="absolute -bottom-1 left-0 right-0 h-[1px] bg-cyber-blue shadow-[0_0_8px_#2979FF]"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-cyber-blue/5 scale-x-0 group-hover:scale-x-100 transition-transform origin-center -skew-x-12" />
+                </button>
+
+                <AnimatePresence>
+                  {dropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute top-full mt-2 right-0 w-48 bg-surface/95 backdrop-blur-md border border-cyber-blue/30 cyber-clip-top shadow-[0_5px_20px_rgba(41,121,255,0.2)] overflow-hidden"
+                    >
+                      {dropdownLinks.map((link) => (
+                        <NavLink
+                          key={link.path}
+                          to={link.path}
+                          onClick={() => setDropdownOpen(false)}
+                          className={({ isActive }) =>
+                            twMerge(
+                              "flex items-center gap-3 px-4 py-3 text-xs font-display font-bold uppercase tracking-wide transition-all duration-200 border-b border-cyber-blue/10 last:border-b-0",
+                              isActive 
+                                ? "text-cyber-blue bg-cyber-blue/10" 
+                                : "text-white/60 hover:text-cyber-yellow hover:bg-cyber-yellow/5"
+                            )
+                          }
+                        >
+                          <link.icon size={16} />
+                          {link.name}
+                        </NavLink>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
 
             {/* Wallet / Profile Button */}
@@ -129,9 +198,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
             )}
 
             {/* Mobile Toggle */}
-            <div className="md:hidden flex items-center gap-4">
-               {/* Mobile Logo */}
-               <img src="/logo.png" alt="Logo" className="w-8 h-8" />
+            <div className="md:hidden flex items-center gap-4 ml-auto">
                <button onClick={() => setMobileMenuOpen(true)} className="text-cyber-blue">
                  <Menu size={24} />
                </button>
@@ -152,14 +219,14 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
             <div className="flex justify-between items-center mb-12 border-b border-cyber-blue/20 pb-4">
               <span className="font-display font-bold text-cyber-blue text-xl flex items-center gap-2">
                 <img src="/logo.png" alt="Logo" className="w-6 h-6" />
-                SYSTEM NAV
+                DSUC LAB
               </span>
               <button onClick={() => setMobileMenuOpen(false)} className="text-white/60 hover:text-white">
                 <X size={24} />
               </button>
             </div>
             <div className="flex flex-col gap-6">
-              {links.map((link) => (
+              {primaryLinks.map((link) => (
                 <NavLink
                   key={link.path}
                   to={link.path}
@@ -175,6 +242,28 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                   {link.name}
                 </NavLink>
               ))}
+              
+              {/* Mobile More Section */}
+              <div className="border-t border-cyber-blue/20 pt-6 mt-2">
+                <div className="text-xs font-mono text-white/30 uppercase tracking-widest mb-4 pl-1">More</div>
+                {dropdownLinks.map((link) => (
+                  <NavLink
+                    key={link.path}
+                    to={link.path}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={({ isActive }) =>
+                      twMerge(
+                        "text-xl font-display font-bold uppercase flex items-center gap-4 mb-4",
+                        isActive ? "text-cyber-blue translate-x-4" : "text-white/40"
+                      )
+                    }
+                  >
+                    <link.icon size={20} />
+                    {link.name}
+                  </NavLink>
+                ))}
+              </div>
+
               {isWalletConnected && (
                 <NavLink
                   to="/profile"

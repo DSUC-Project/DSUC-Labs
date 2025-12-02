@@ -45,6 +45,15 @@ export function Events() {
 
 function EventItem({ event, index }: { event: Event, index: number, key?: React.Key }) {
   const isLeft = index % 2 === 0;
+  const lumaLink = event.lumaLink || event.luma_link;
+
+  const handleRegister = () => {
+    if (lumaLink) {
+      window.open(lumaLink, '_blank', 'noopener,noreferrer');
+    } else {
+      alert('Registration link not available');
+    }
+  };
 
   return (
     <motion.div 
@@ -84,7 +93,11 @@ function EventItem({ event, index }: { event: Event, index: number, key?: React.
             <span className="text-xs">{event.location}</span>
           </div>
 
-          <button className="w-full py-2 bg-white/5 hover:bg-cyber-blue hover:text-white font-bold font-display text-sm transition-all flex items-center justify-center gap-2 group/btn cyber-button">
+          <button 
+            onClick={handleRegister}
+            disabled={!lumaLink}
+            className="w-full py-2 bg-white/5 hover:bg-cyber-blue hover:text-white font-bold font-display text-sm transition-all flex items-center justify-center gap-2 group/btn cyber-button disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             REGISTER
             <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
           </button>
@@ -108,6 +121,7 @@ function AddEventModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose: (
       date: formData.get('date') as string,
       time: formData.get('time') as string,
       location: formData.get('location') as string,
+      lumaLink: formData.get('lumaLink') as string,
       type: 'Workshop',
       attendees: 0
     });
@@ -121,12 +135,33 @@ function AddEventModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose: (
         <button onClick={onClose} className="absolute top-4 right-4 text-white/40 hover:text-white"><X /></button>
         <h3 className="text-2xl font-display font-bold mb-6 text-cyber-blue uppercase">New Event Protocol</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input name="title" placeholder="Event Title" required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
-          <div className="grid grid-cols-2 gap-4">
-            <input name="date" type="date" required className="bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
-            <input name="time" type="time" required className="bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
+          <div className="space-y-2">
+            <label className="text-[10px] font-mono text-white/40 uppercase">Event Title</label>
+            <input name="title" placeholder="DSUC Meetup #01" required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
           </div>
-          <input name="location" placeholder="Location" required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-mono text-white/40 uppercase">Date</label>
+              <input name="date" type="date" required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-mono text-white/40 uppercase">Time</label>
+              <input name="time" type="time" required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-[10px] font-mono text-white/40 uppercase">Location</label>
+            <input name="location" placeholder="Da Nang, Vietnam" required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-[10px] font-mono text-white/40 uppercase">Luma Registration Link</label>
+            <input name="lumaLink" type="url" placeholder="https://lu.ma/..." required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
+            <p className="text-[9px] font-mono text-white/30">Users will be redirected here when they click Register</p>
+          </div>
+          
           <button type="submit" className="w-full bg-cyber-yellow text-black font-display font-bold py-3 cyber-button hover:bg-white transition-colors uppercase tracking-widest">INITIALIZE</button>
         </form>
       </motion.div>

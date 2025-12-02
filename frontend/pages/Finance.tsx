@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Check, X, ScanLine, ArrowRight, Zap, Search, Upload } from 'lucide-react';
 import { useStore } from '../store/useStore';
@@ -8,7 +8,14 @@ import { BANKS } from '../data/mockData';
 
 export function Finance() {
   const [activeTab, setActiveTab] = useState<'submit' | 'pending' | 'history' | 'direct'>('submit');
-  const { financeRequests, financeHistory } = useStore();
+  const { financeRequests, financeHistory, fetchPendingRequests, isWalletConnected, currentUser } = useStore();
+
+  // Fetch pending requests when tab changes to pending (for admin)
+  useEffect(() => {
+    if (activeTab === 'pending' && isWalletConnected && currentUser) {
+      fetchPendingRequests();
+    }
+  }, [activeTab, isWalletConnected, currentUser, fetchPendingRequests]);
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
@@ -49,6 +56,21 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
   const [date, setDate] = useState('');
+  const [billImage, setBillImage] = useState<string | null>(null);
+  const [billFile, setBillFile] = useState<File | null>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Convert to base64 for preview and submission
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setBillImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      setBillFile(file);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,11 +81,19 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
       amount,
       reason,
       date,
-      billImage: null,
+      billImage,
       status: 'pending',
       requesterName: currentUser.name || 'Unknown',
       requesterId: currentUser.id
     });
+    
+    // Reset form
+    setAmount('');
+    setReason('');
+    setDate('');
+    setBillImage(null);
+    setBillFile(null);
+    
     onSubmitted();
   };
 
@@ -71,7 +101,7 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-2 gap-12">
       <div className="space-y-6">
         <h3 className="text-xl font-display font-bold text-cyber-blue uppercase tracking-widest">Submit Disbursement</h3>
-        <p className="text-xs font-mono text-white/40">Request reimbursement for club expenses. The QR code generated upon approval will be based on your profile's bank settings.</p>
+        <p className="text-xs font-mono text-white/40">Request reimbursement for club expenses. Upload bill/receipt as proof. QR code will be generated based on your bank info.</p>
         <form onSubmit={handleSubmit} className="space-y-6">
            <div className="space-y-2">
              <label className="text-[10px] font-mono text-white/40 uppercase">Amount (VND)</label>
@@ -85,6 +115,35 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
              <label className="text-[10px] font-mono text-white/40 uppercase">Justification</label>
              <textarea value={reason} onChange={e => setReason(e.target.value)} required rows={4} className="w-full bg-surface border border-cyber-blue/30 p-4 font-mono text-white focus:border-cyber-yellow outline-none text-sm" placeholder="Server costs for Q4..." />
            </div>
+           
+           {/* Bill/Receipt Upload */}
+           <div className="space-y-2">
+             <label className="text-[10px] font-mono text-white/40 uppercase">Bill / Receipt (Required)</label>
+             <div className="relative border-2 border-dashed border-cyber-blue/30 bg-surface/50 hover:border-cyber-yellow/50 transition-colors">
+               <input 
+                 type="file" 
+                 accept="image/*"
+                 onChange={handleImageUpload}
+                 required
+                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+               />
+               {billImage ? (
+                 <div className="p-4">
+                   <img src={billImage} alt="Bill preview" className="w-full max-h-40 object-contain mb-2 border border-cyber-blue/20" />
+                   <div className="text-cyber-blue font-mono text-xs flex items-center justify-center gap-2">
+                     <Check size={14} /> {billFile?.name}
+                   </div>
+                 </div>
+               ) : (
+                 <div className="p-8 text-center">
+                   <Upload size={32} className="mx-auto mb-2 text-cyber-blue/40" />
+                   <div className="text-white/40 font-mono text-xs mb-1">Click to upload bill/receipt</div>
+                   <div className="text-white/20 font-mono text-[10px]">PNG, JPG up to 10MB</div>
+                 </div>
+               )}
+             </div>
+           </div>
+
            <button type="submit" className="w-full bg-cyber-yellow text-black font-display font-bold py-4 cyber-button hover:bg-white transition-colors text-sm tracking-widest uppercase">
              ENCRYPT & SUBMIT
            </button>
@@ -383,7 +442,13 @@ function HistoryList() {
   const { financeHistory } = useStore();
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
+      <div className="bg-cyber-blue/5 border border-cyber-blue/20 p-4 mb-6">
+        <p className="text-xs font-mono text-cyber-blue">
+          <span className="font-bold">PUBLIC LEDGER:</span> All approved and rejected transactions are logged here for full transparency.
+        </p>
+      </div>
+      
       <div className="grid grid-cols-4 text-[10px] font-mono text-cyber-blue uppercase px-4 mb-2 tracking-wider">
         <span>Status</span>
         <span>Amount</span>

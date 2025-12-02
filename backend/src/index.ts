@@ -11,6 +11,7 @@ import financeRoutes from "./routes/finance";
 import workRoutes from "./routes/work";
 import resourceRoutes from "./routes/resources";
 import authRoutes from "./routes/auth";
+import financeHistoryRoutes from "./routes/finance-history";
 
 // Load environment variables
 dotenv.config();
@@ -55,6 +56,7 @@ app.use("/api/members", memberRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/finance", financeRoutes);
+app.use("/api/finance-history", financeHistoryRoutes);
 app.use("/api/work", workRoutes);
 app.use("/api/resources", resourceRoutes);
 app.use("/api/auth", authRoutes);
