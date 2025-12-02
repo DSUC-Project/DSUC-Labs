@@ -113,20 +113,24 @@ function AddResourceModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 overflow-y-auto">
       <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
-      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-surface cyber-card border border-cyber-blue/50 p-8 w-full max-w-lg relative z-10">
-        <button onClick={onClose} className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors">
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0 }} 
+        animate={{ scale: 1, opacity: 1 }} 
+        className="bg-surface cyber-card border border-cyber-blue/50 p-6 md:p-8 w-full max-w-md relative z-10 my-8"
+      >
+        <button onClick={onClose} className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors z-10">
           <X size={20} />
         </button>
-        <h3 className="text-2xl font-display font-bold mb-6 text-cyber-blue uppercase">UPLOAD RESOURCE</h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input name="name" placeholder="Resource Name" required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
-          <input name="url" placeholder="URL Link" required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
-          <select name="category" className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm">
+        <h3 className="text-xl md:text-2xl font-display font-bold mb-4 md:mb-6 text-cyber-blue uppercase pr-8">UPLOAD RESOURCE</h3>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <input name="name" placeholder="Resource Name" required className="w-full bg-black/50 border border-white/10 p-2.5 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
+          <input name="url" placeholder="URL Link" required className="w-full bg-black/50 border border-white/10 p-2.5 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
+          <select name="category" className="w-full bg-black/50 border border-white/10 p-2.5 text-white focus:border-cyber-blue outline-none font-mono text-sm">
             {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
-          <button type="submit" className="w-full bg-cyber-yellow text-black font-display font-bold py-3 cyber-button hover:bg-white transition-colors uppercase tracking-widest">UPLOAD TO VAULT</button>
+          <button type="submit" className="w-full bg-cyber-yellow text-black font-display font-bold py-2.5 cyber-button hover:bg-white transition-colors uppercase tracking-widest text-sm">UPLOAD TO VAULT</button>
         </form>
       </motion.div>
     </div>

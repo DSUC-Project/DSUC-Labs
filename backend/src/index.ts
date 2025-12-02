@@ -30,6 +30,9 @@ export const supabase = createClient(
 app.use(
   cors({
     origin: [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "http://127.0.0.1:5173",
       "https://dsuc.fun",
       "https://www.dsuc.fun",
       "https://dsuc-labs-xmxl.onrender.com",
@@ -41,6 +44,15 @@ app.use(
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
+// Request logging middleware
+app.use((req: Request, res: Response, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  if (req.body && Object.keys(req.body).length > 0) {
+    console.log('Body:', JSON.stringify(req.body).substring(0, 200));
+  }
+  next();
+});
 
 // Health check endpoint
 app.get("/api/health", (req: Request, res: Response) => {

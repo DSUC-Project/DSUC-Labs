@@ -76,7 +76,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
 
   return (
     <>
-      <div className="fixed top-0 left-0 right-0 z-50 flex justify-center">
+      <div className="fixed top-0 left-0 right-0 z-[100] flex justify-center">
         {/* Cyber Deck Navbar Container */}
         <nav className="relative bg-surface/80 backdrop-blur-md border-b border-l border-r border-cyber-blue/30 px-6 py-4 nav-shape shadow-[0_5px_20px_rgba(41,121,255,0.2)]">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-cyber-blue/50" />
@@ -148,7 +148,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="absolute top-full mt-2 right-0 w-48 bg-surface/95 backdrop-blur-md border border-cyber-blue/30 cyber-clip-top shadow-[0_5px_20px_rgba(41,121,255,0.2)] overflow-hidden z-[60]"
+                      className="absolute top-full mt-2 right-0 w-48 bg-surface/95 backdrop-blur-md border border-cyber-blue/30 cyber-clip-top shadow-[0_5px_20px_rgba(41,121,255,0.2)] overflow-hidden z-[110]"
                     >
                       {dropdownLinks.map((link) => (
                         <NavLink
@@ -214,7 +214,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
             initial={{ opacity: 0, x: '100%' }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: '100%' }}
-            className="fixed inset-0 z-[60] bg-background/95 backdrop-blur-xl md:hidden flex flex-col p-6 border-l border-cyber-blue/30"
+            className="fixed inset-0 z-[110] bg-background/95 backdrop-blur-xl md:hidden flex flex-col p-6 border-l border-cyber-blue/30"
           >
             <div className="flex justify-between items-center mb-12 border-b border-cyber-blue/20 pb-4">
               <span className="font-display font-bold text-cyber-blue text-xl flex items-center gap-2">
@@ -293,7 +293,7 @@ function WalletModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}

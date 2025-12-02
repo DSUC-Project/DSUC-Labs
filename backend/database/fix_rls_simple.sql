@@ -34,15 +34,19 @@ WITH CHECK (true);
 -- PROJECTS TABLE
 -- ============================================
 
--- Drop existing policies
-DROP POLICY IF EXISTS "Anyone can view projects" ON projects;
-DROP POLICY IF EXISTS "Public read access for projects" ON projects;
-DROP POLICY IF EXISTS "Authenticated users can create projects" ON projects;
-DROP POLICY IF EXISTS "Anyone can create projects" ON projects;
-DROP POLICY IF EXISTS "Users can update own projects" ON projects;
-DROP POLICY IF EXISTS "Creator can update own projects" ON projects;
-DROP POLICY IF EXISTS "Admins can delete projects" ON projects;
-DROP POLICY IF EXISTS "Creator can delete own projects" ON projects;
+-- Drop ALL existing policies for projects
+DO $$ 
+DECLARE
+    pol RECORD;
+BEGIN
+    FOR pol IN 
+        SELECT policyname 
+        FROM pg_policies 
+        WHERE tablename = 'projects'
+    LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON projects', pol.policyname);
+    END LOOP;
+END $$;
 
 -- Enable RLS
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
@@ -58,15 +62,19 @@ WITH CHECK (true);
 -- RESOURCES TABLE
 -- ============================================
 
--- Drop existing policies
-DROP POLICY IF EXISTS "Anyone can view resources" ON resources;
-DROP POLICY IF EXISTS "Public read access for resources" ON resources;
-DROP POLICY IF EXISTS "Authenticated users can create resources" ON resources;
-DROP POLICY IF EXISTS "Anyone can create resources" ON resources;
-DROP POLICY IF EXISTS "Users can update own resources" ON resources;
-DROP POLICY IF EXISTS "Creator can update own resources" ON resources;
-DROP POLICY IF EXISTS "Admins can delete resources" ON resources;
-DROP POLICY IF EXISTS "Creator can delete own resources" ON resources;
+-- Drop ALL existing policies for resources
+DO $$ 
+DECLARE
+    pol RECORD;
+BEGIN
+    FOR pol IN 
+        SELECT policyname 
+        FROM pg_policies 
+        WHERE tablename = 'resources'
+    LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON resources', pol.policyname);
+    END LOOP;
+END $$;
 
 -- Enable RLS
 ALTER TABLE resources ENABLE ROW LEVEL SECURITY;
@@ -82,15 +90,19 @@ WITH CHECK (true);
 -- BOUNTIES TABLE (Work page)
 -- ============================================
 
--- Drop existing policies
-DROP POLICY IF EXISTS "Anyone can view bounties" ON bounties;
-DROP POLICY IF EXISTS "Public read access for bounties" ON bounties;
-DROP POLICY IF EXISTS "Authenticated users can create bounties" ON bounties;
-DROP POLICY IF EXISTS "Anyone can create bounties" ON bounties;
-DROP POLICY IF EXISTS "Users can update own bounties" ON bounties;
-DROP POLICY IF EXISTS "Anyone can update bounties" ON bounties;
-DROP POLICY IF EXISTS "Admins can delete bounties" ON bounties;
-DROP POLICY IF EXISTS "Creator can delete own bounties" ON bounties;
+-- Drop ALL existing policies for bounties
+DO $$ 
+DECLARE
+    pol RECORD;
+BEGIN
+    FOR pol IN 
+        SELECT policyname 
+        FROM pg_policies 
+        WHERE tablename = 'bounties'
+    LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON bounties', pol.policyname);
+    END LOOP;
+END $$;
 
 -- Enable RLS
 ALTER TABLE bounties ENABLE ROW LEVEL SECURITY;
@@ -106,12 +118,25 @@ WITH CHECK (true);
 -- FINANCE_HISTORY TABLE (Already fixed before)
 -- ============================================
 
+-- Drop ALL existing policies for finance_history
+DO $$ 
+DECLARE
+    pol RECORD;
+BEGIN
+    FOR pol IN 
+        SELECT policyname 
+        FROM pg_policies 
+        WHERE tablename = 'finance_history'
+    LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON finance_history', pol.policyname);
+    END LOOP;
+END $$;
+
 -- This table already has correct RLS from previous migration
 -- Just verify it's enabled
 ALTER TABLE finance_history ENABLE ROW LEVEL SECURITY;
 
 -- Ensure public read access exists
-DROP POLICY IF EXISTS "Public read access for finance_history" ON finance_history;
 CREATE POLICY "Public read access for finance_history"
 ON finance_history FOR SELECT
 TO public

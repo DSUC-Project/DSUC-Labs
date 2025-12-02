@@ -103,21 +103,25 @@ function AddProjectModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose:
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 overflow-y-auto">
       <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
-      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-surface cyber-card border border-cyber-blue/50 p-8 w-full max-w-lg relative z-10">
-        <button onClick={onClose} className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors">
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0 }} 
+        animate={{ scale: 1, opacity: 1 }} 
+        className="bg-surface cyber-card border border-cyber-blue/50 p-6 md:p-8 w-full max-w-md relative z-10 my-8 max-h-[90vh] overflow-y-auto"
+      >
+        <button onClick={onClose} className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors z-10">
           <X size={20} />
         </button>
-        <h3 className="text-2xl font-display font-bold mb-6 text-cyber-blue uppercase">INITIALIZE PROJECT</h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input name="name" placeholder="Project Name" required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
-          <textarea name="description" placeholder="Short Description" rows={3} required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
-          <input name="category" placeholder="Category (e.g. DeFi, Tooling)" required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
-          <input name="builders" placeholder="Builders (comma separated)" required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
-          <input name="link" placeholder="Project URL (Demo)" required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
-          <input name="repoLink" placeholder="GitHub Repo URL" className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
-          <button type="submit" className="w-full bg-cyber-yellow text-black font-display font-bold py-3 cyber-button hover:bg-white transition-colors uppercase tracking-widest">DEPLOY TO HUB</button>
+        <h3 className="text-xl md:text-2xl font-display font-bold mb-4 md:mb-6 text-cyber-blue uppercase pr-8">INITIALIZE PROJECT</h3>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <input name="name" placeholder="Project Name" required className="w-full bg-black/50 border border-white/10 p-2.5 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
+          <textarea name="description" placeholder="Short Description" rows={3} required className="w-full bg-black/50 border border-white/10 p-2.5 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
+          <input name="category" placeholder="Category (e.g. DeFi, Tooling)" required className="w-full bg-black/50 border border-white/10 p-2.5 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
+          <input name="builders" placeholder="Builders (comma separated)" required className="w-full bg-black/50 border border-white/10 p-2.5 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
+          <input name="link" placeholder="Project URL (Demo)" required className="w-full bg-black/50 border border-white/10 p-2.5 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
+          <input name="repoLink" placeholder="GitHub Repo URL" className="w-full bg-black/50 border border-white/10 p-2.5 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
+          <button type="submit" className="w-full bg-cyber-yellow text-black font-display font-bold py-2.5 cyber-button hover:bg-white transition-colors uppercase tracking-widest text-sm">DEPLOY TO HUB</button>
         </form>
       </motion.div>
     </div>
