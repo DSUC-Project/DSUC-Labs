@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { motion } from 'framer-motion';
 import { Check, X, ScanLine, ArrowRight, Zap, Search, Upload } from 'lucide-react';
 import { useStore } from '../store/useStore';
@@ -379,8 +380,8 @@ function ApprovalModal({ request, onClose, onApprove, onReject }: { request: Fin
 
   const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${request.amount}&addInfo=${encodeURIComponent(request.reason)}&accountName=${encodeURIComponent(accountName)}`;
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+  return ReactDOM.createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
       <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-surface cyber-card border border-cyber-blue/50 p-8 w-full max-w-2xl relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8">
         
@@ -434,7 +435,8 @@ function ApprovalModal({ request, onClose, onApprove, onReject }: { request: Fin
         </div>
 
       </motion.div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

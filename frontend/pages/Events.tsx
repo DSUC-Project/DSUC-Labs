@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import { motion } from 'framer-motion';
 import { MapPin, Users, ArrowRight, Plus, X } from 'lucide-react';
 import { useStore } from '../store/useStore';
@@ -142,8 +143,8 @@ function AddEventModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose: (
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+  return ReactDOM.createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
       <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-surface cyber-card border border-cyber-blue/50 p-8 w-full max-w-lg relative">
         <button onClick={onClose} className="absolute top-4 right-4 text-white/40 hover:text-white"><X /></button>
@@ -179,6 +180,7 @@ function AddEventModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose: (
           <button type="submit" className="w-full bg-cyber-yellow text-black font-display font-bold py-3 cyber-button hover:bg-white transition-colors uppercase tracking-widest">INITIALIZE</button>
         </form>
       </motion.div>
-    </div>
+    </div>,
+    document.body
   );
 }

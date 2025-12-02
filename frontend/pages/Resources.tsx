@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import { motion } from 'framer-motion';
 import { FileText, Link as LinkIcon, Download, Plus, X, Video, Book, Trophy } from 'lucide-react';
 import { useStore } from '../store/useStore';
@@ -125,7 +126,7 @@ function AddResourceModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose
     onClose();
   };
 
-  return (
+  return ReactDOM.createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto">
       <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
       <motion.div 
@@ -146,6 +147,7 @@ function AddResourceModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose
           <button type="submit" className="w-full bg-cyber-yellow text-black font-display font-bold py-2.5 cyber-button hover:bg-white transition-colors uppercase tracking-widest text-sm">UPLOAD TO VAULT</button>
         </form>
       </motion.div>
-    </div>
+    </div>,
+    document.body
   );
 }
