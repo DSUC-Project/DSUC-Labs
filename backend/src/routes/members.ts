@@ -5,7 +5,7 @@ import {
   AuthRequest,
   requireAdmin,
 } from "../middleware/auth";
-import { upload, uploadBase64ToSupabase } from "../middleware/upload";
+import { upload, uploadBase64ToSupabase, uploadBase64ToImageBB } from "../middleware/upload";
 
 const router = Router();
 
@@ -163,8 +163,10 @@ router.put(
       // Handle avatar upload if it's base64
       if (avatar && avatar.startsWith("data:image")) {
         try {
-          const avatarUrl = await uploadBase64ToSupabase(avatar, "avatars");
+          console.log("[members.ts] Uploading avatar to ImageBB...");
+          const avatarUrl = await uploadBase64ToImageBB(avatar);
           updateData.avatar = avatarUrl;
+          console.log("[members.ts] Avatar uploaded successfully:", avatarUrl);
         } catch (uploadError: any) {
           console.error("Avatar upload error:", uploadError);
           return res.status(500).json({

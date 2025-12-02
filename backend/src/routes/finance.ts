@@ -5,7 +5,7 @@ import {
   AuthRequest,
   requireAdmin,
 } from "../middleware/auth";
-import { uploadBase64ToSupabase } from "../middleware/upload";
+import { uploadBase64ToSupabase, uploadBase64ToImageBB } from "../middleware/upload";
 
 const router = Router();
 
@@ -51,11 +51,10 @@ router.post(
       // Handle bill image upload if it's base64
       if (bill_image && bill_image.startsWith("data:image")) {
         try {
-          const uploadedImageUrl = await uploadBase64ToSupabase(
-            bill_image,
-            "finance/bills"
-          );
+          console.log("[finance.ts] Uploading bill image to ImageBB...");
+          const uploadedImageUrl = await uploadBase64ToImageBB(bill_image);
           requestData.bill_image = uploadedImageUrl;
+          console.log("[finance.ts] Bill image uploaded successfully:", uploadedImageUrl);
         } catch (uploadError: any) {
           console.error("Bill image upload error:", uploadError);
           return res.status(500).json({

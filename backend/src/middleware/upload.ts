@@ -115,3 +115,40 @@ export async function uploadBase64ToSupabase(
     throw new Error(`Upload failed: ${error.message}`);
   }
 }
+
+// Helper function to upload base64 to ImageBB (bypass Supabase RLS issues)
+export async function uploadBase64ToImageBB(
+  base64String: string
+): Promise<string> {
+  try {
+    // ImageBB API key
+    const API_KEY = process.env.IMAGEBB_API_KEY || '5c5191a763d20c7fad2bfb62035d5210';
+
+    // Remove data:image/png;base64, prefix if exists
+    const base64Data = base64String.replace(/^data:image\/\w+;base64,/, '');
+
+    // Create form data
+    const formData = new URLSearchParams();
+    formData.append('image', base64Data);
+
+    console.log('[ImageBB] Uploading image...');
+
+    const response = await fetch(`https://api.imgbb.com/1/upload?key=${API_KEY}`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const result: any = await response.json();
+
+    if (result.success && result.data && result.data.url) {
+      console.log('[ImageBB] Upload successful:', result.data.url);
+      return result.data.url; // Public URL
+    } else {
+      console.error('[ImageBB] Upload failed:', result);
+      throw new Error(result.error?.message || 'Upload failed');
+    }
+  } catch (error: any) {
+    console.error('[ImageBB] Upload error:', error);
+    throw new Error(`Upload failed: ${error.message}`);
+  }
+}
