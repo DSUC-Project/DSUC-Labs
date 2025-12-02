@@ -48,12 +48,23 @@ function AnimatedRoutes() {
 export default function App() {
   const fetchMembers = useStore((state) => state.fetchMembers);
   const fetchFinanceHistory = useStore((state) => state.fetchFinanceHistory);
+  const fetchEvents = useStore((state) => state.fetchEvents);
+  const fetchProjects = useStore((state) => state.fetchProjects);
+  const fetchResources = useStore((state) => state.fetchResources);
+  const fetchBounties = useStore((state) => state.fetchBounties);
+  const fetchRepos = useStore((state) => state.fetchRepos);
 
   // Fetch data when app loads
   useEffect(() => {
+    console.log('[App] Fetching initial data...');
     fetchMembers();
     fetchFinanceHistory();
-  }, [fetchMembers, fetchFinanceHistory]);
+    fetchEvents();
+    fetchProjects();
+    fetchResources();
+    fetchBounties();
+    fetchRepos();
+  }, [fetchMembers, fetchFinanceHistory, fetchEvents, fetchProjects, fetchResources, fetchBounties, fetchRepos]);
 
   return (
     <BrowserRouter>

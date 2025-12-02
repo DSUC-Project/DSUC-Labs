@@ -8,11 +8,19 @@ import { Resource, ResourceCategory } from '../types';
 const CATEGORIES: ResourceCategory[] = ['Learning', 'Training', 'Document', 'Media', 'Hackathon'];
 
 export function Resources() {
-  const { resources, addResource } = useStore();
+  const { resources, addResource, isWalletConnected } = useStore();
   const [filter, setFilter] = useState<ResourceCategory | 'All'>('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const filteredResources = filter === 'All' ? resources : resources.filter(r => r.category === filter);
+
+  const handleAddClick = () => {
+    if (!isWalletConnected) {
+      alert('Please connect your wallet first!');
+      return;
+    }
+    setIsModalOpen(true);
+  };
 
   return (
     <div>
@@ -38,8 +46,13 @@ export function Resources() {
              </button>
            ))}
            <button 
-             onClick={() => setIsModalOpen(true)}
-             className="ml-4 bg-cyber-yellow text-black px-4 py-2 font-bold font-display text-xs hover:bg-white flex items-center gap-2 cyber-button"
+             onClick={handleAddClick}
+             disabled={!isWalletConnected}
+             className={`ml-4 px-4 py-2 font-bold font-display text-xs cyber-button flex items-center gap-2 ${
+               isWalletConnected 
+                 ? 'bg-cyber-yellow text-black hover:bg-white' 
+                 : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
+             }`}
            >
              <Plus size={14} /> ADD
            </button>
@@ -113,7 +126,7 @@ function AddResourceModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose
   };
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto">
       <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
       <motion.div 
         initial={{ scale: 0.9, opacity: 0 }} 

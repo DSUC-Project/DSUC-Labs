@@ -6,10 +6,18 @@ import { useStore } from '../store/useStore';
 import { Event } from '../types';
 
 export function Events() {
-  const { events, addEvent } = useStore();
+  const { events, addEvent, isWalletConnected } = useStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const sortedEvents = [...events].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  const handleAddClick = () => {
+    if (!isWalletConnected) {
+      alert('Please connect your wallet first!');
+      return;
+    }
+    setIsModalOpen(true);
+  };
 
   return (
     <div className="relative min-h-screen pb-20">
@@ -19,11 +27,17 @@ export function Events() {
           <p className="text-cyber-blue font-mono text-sm">Synchronized club activities.</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-cyber-yellow text-black hover:bg-white font-display font-bold text-sm px-6 py-3 cyber-button transition-all flex items-center gap-2"
+          onClick={handleAddClick}
+          disabled={!isWalletConnected}
+          className={`font-display font-bold text-sm px-6 py-3 cyber-button transition-all flex items-center gap-2 ${
+            isWalletConnected 
+              ? 'bg-cyber-yellow text-black hover:bg-white' 
+              : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
+          }`}
         >
           <Plus size={16} />
           INITIATE EVENT
+          {!isWalletConnected && <span className="text-[10px] ml-2">(Connect Wallet)</span>}
         </button>
       </div>
 

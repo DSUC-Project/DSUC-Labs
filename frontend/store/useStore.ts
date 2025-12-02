@@ -34,6 +34,11 @@ interface AppState {
   disconnectWallet: () => void;
   fetchMembers: () => Promise<void>;
   fetchFinanceHistory: () => Promise<void>;
+  fetchEvents: () => Promise<void>;
+  fetchProjects: () => Promise<void>;
+  fetchResources: () => Promise<void>;
+  fetchBounties: () => Promise<void>;
+  fetchRepos: () => Promise<void>;
 
   // Data Lists
   members: Member[]; // Mutable members list
@@ -129,6 +134,104 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
+  // Fetch events from backend
+  fetchEvents: async () => {
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+      console.log("[fetchEvents] Fetching from:", `${base}/api/events`);
+      const res = await fetch(`${base}/api/events`);
+      if (res.ok) {
+        const result = await res.json();
+        console.log("[fetchEvents] Result:", result);
+        if (result && result.success && result.data) {
+          set({ events: result.data });
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch events", e);
+      set({ events: EVENTS });
+    }
+  },
+
+  // Fetch projects from backend
+  fetchProjects: async () => {
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+      console.log("[fetchProjects] Fetching from:", `${base}/api/projects`);
+      const res = await fetch(`${base}/api/projects`);
+      if (res.ok) {
+        const result = await res.json();
+        console.log("[fetchProjects] Result:", result);
+        if (result && result.success && result.data) {
+          set({ projects: result.data });
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch projects", e);
+      set({ projects: PROJECTS });
+    }
+  },
+
+  // Fetch resources from backend
+  fetchResources: async () => {
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+      console.log("[fetchResources] Fetching from:", `${base}/api/resources`);
+      const res = await fetch(`${base}/api/resources`);
+      if (res.ok) {
+        const result = await res.json();
+        console.log("[fetchResources] Result:", result);
+        if (result && result.success && result.data) {
+          set({ resources: result.data });
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch resources", e);
+      set({ resources: RESOURCES });
+    }
+  },
+
+  // Fetch bounties from backend
+  fetchBounties: async () => {
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+      console.log(
+        "[fetchBounties] Fetching from:",
+        `${base}/api/work/bounties`
+      );
+      const res = await fetch(`${base}/api/work/bounties`);
+      if (res.ok) {
+        const result = await res.json();
+        console.log("[fetchBounties] Result:", result);
+        if (result && result.success && result.data) {
+          set({ bounties: result.data });
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch bounties", e);
+      set({ bounties: BOUNTIES });
+    }
+  },
+
+  // Fetch repos from backend
+  fetchRepos: async () => {
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+      console.log("[fetchRepos] Fetching from:", `${base}/api/work/repos`);
+      const res = await fetch(`${base}/api/work/repos`);
+      if (res.ok) {
+        const result = await res.json();
+        console.log("[fetchRepos] Result:", result);
+        if (result && result.success && result.data) {
+          set({ repos: result.data });
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch repos", e);
+      set({ repos: REPOS });
+    }
+  },
+
   connectWallet: async (provider) => {
     try {
       let addr: string | null = null;
@@ -205,14 +308,241 @@ export const useStore = create<AppState>((set, get) => ({
       currentUser: null,
     }),
 
-  addEvent: (event) => set((state) => ({ events: [...state.events, event] })),
-  addBounty: (bounty) =>
-    set((state) => ({ bounties: [...state.bounties, bounty] })),
-  addRepo: (repo) => set((state) => ({ repos: [...state.repos, repo] })),
-  addResource: (resource) =>
-    set((state) => ({ resources: [...state.resources, resource] })),
-  addProject: (project) =>
-    set((state) => ({ projects: [...state.projects, project] })),
+  addEvent: async (event) => {
+    const state = get();
+
+    // Check wallet connection
+    if (!state.isWalletConnected || !state.walletAddress) {
+      console.error("[addEvent] Wallet not connected");
+      alert("Please connect your wallet first!");
+      return;
+    }
+
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+
+      console.log("[addEvent] Sending to backend:", event);
+
+      const res = await fetch(`${base}/api/events`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-wallet-address": state.walletAddress || "",
+        },
+        body: JSON.stringify({
+          title: event.title,
+          date: event.date,
+          time: event.time,
+          type: event.type,
+          location: event.location,
+          attendees: event.attendees || 0,
+          luma_link: event.lumaLink,
+        }),
+      });
+
+      console.log("[addEvent] Response status:", res.status);
+
+      if (res.ok) {
+        const result = await res.json();
+        console.log("[addEvent] Success:", result);
+        // Add to local state
+        set((state) => ({ events: [...state.events, result.data] }));
+      } else {
+        const error = await res.json();
+        console.error("[addEvent] Failed:", error);
+      }
+    } catch (e) {
+      console.error("Failed to add event", e);
+      // Fallback to local state
+      set((state) => ({ events: [...state.events, event] }));
+    }
+  },
+
+  addBounty: async (bounty) => {
+    const state = get();
+
+    // Check wallet connection
+    if (!state.isWalletConnected || !state.walletAddress) {
+      console.error("[addBounty] Wallet not connected");
+      alert("Please connect your wallet first!");
+      return;
+    }
+
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+
+      console.log("[addBounty] Sending to backend:", bounty);
+
+      const res = await fetch(`${base}/api/work/bounties`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-wallet-address": state.walletAddress || "",
+        },
+        body: JSON.stringify({
+          title: bounty.title,
+          reward: bounty.reward,
+          difficulty: bounty.difficulty,
+          tags: bounty.tags,
+          status: bounty.status || "Open",
+        }),
+      });
+
+      console.log("[addBounty] Response status:", res.status);
+
+      if (res.ok) {
+        const result = await res.json();
+        console.log("[addBounty] Success:", result);
+        set((state) => ({ bounties: [...state.bounties, result.data] }));
+      } else {
+        const error = await res.json();
+        console.error("[addBounty] Failed:", error);
+      }
+    } catch (e) {
+      console.error("Failed to add bounty", e);
+      set((state) => ({ bounties: [...state.bounties, bounty] }));
+    }
+  },
+
+  addRepo: async (repo) => {
+    const state = get();
+
+    // Check wallet connection
+    if (!state.isWalletConnected || !state.walletAddress) {
+      console.error("[addRepo] Wallet not connected");
+      alert("Please connect your wallet first!");
+      return;
+    }
+
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+
+      console.log("[addRepo] Sending to backend:", repo);
+
+      const res = await fetch(`${base}/api/work/repos`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-wallet-address": state.walletAddress || "",
+        },
+        body: JSON.stringify({
+          name: repo.name,
+          description: repo.description || "",
+          language: repo.language || "",
+          stars: repo.stars || 0,
+          forks: repo.forks || 0,
+        }),
+      });
+
+      console.log("[addRepo] Response status:", res.status);
+
+      if (res.ok) {
+        const result = await res.json();
+        console.log("[addRepo] Success:", result);
+        set((state) => ({ repos: [...state.repos, result.data] }));
+      } else {
+        const error = await res.json();
+        console.error("[addRepo] Failed:", error);
+      }
+    } catch (e) {
+      console.error("Failed to add repo", e);
+      set((state) => ({ repos: [...state.repos, repo] }));
+    }
+  },
+  addResource: async (resource) => {
+    const state = get();
+
+    // Check wallet connection
+    if (!state.isWalletConnected || !state.walletAddress) {
+      console.error("[addResource] Wallet not connected");
+      alert("Please connect your wallet first!");
+      return;
+    }
+
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+
+      console.log("[addResource] Sending to backend:", resource);
+
+      const res = await fetch(`${base}/api/resources`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-wallet-address": state.walletAddress || "",
+        },
+        body: JSON.stringify({
+          name: resource.name,
+          type: resource.type,
+          url: resource.url,
+          category: resource.category,
+        }),
+      });
+
+      console.log("[addResource] Response status:", res.status);
+
+      if (res.ok) {
+        const result = await res.json();
+        console.log("[addResource] Success:", result);
+        // Add to local state
+        set((state) => ({ resources: [...state.resources, result.data] }));
+      } else {
+        const error = await res.json();
+        console.error("[addResource] Failed:", error);
+      }
+    } catch (e) {
+      console.error("Failed to add resource", e);
+      // Fallback to local state
+      set((state) => ({ resources: [...state.resources, resource] }));
+    }
+  },
+  addProject: async (project) => {
+    const state = get();
+
+    // Check wallet connection
+    if (!state.isWalletConnected || !state.walletAddress) {
+      console.error("[addProject] Wallet not connected");
+      alert("Please connect your wallet first!");
+      return;
+    }
+
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+
+      console.log("[addProject] Sending to backend:", project);
+
+      const res = await fetch(`${base}/api/projects`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-wallet-address": state.walletAddress || "",
+        },
+        body: JSON.stringify({
+          name: project.name,
+          description: project.description,
+          category: project.category,
+          builders: project.builders,
+          link: project.link,
+          repo_link: project.repoLink,
+        }),
+      });
+
+      console.log("[addProject] Response status:", res.status);
+
+      if (res.ok) {
+        const result = await res.json();
+        console.log("[addProject] Success:", result);
+        // Add to local state
+        set((state) => ({ projects: [...state.projects, result.data] }));
+      } else {
+        const error = await res.json();
+        console.error("[addProject] Failed:", error);
+      }
+    } catch (e) {
+      console.error("Failed to add project", e);
+      // Fallback to local state
+      set((state) => ({ projects: [...state.projects, project] }));
+    }
+  },
 
   // Submit finance request to backend
   submitFinanceRequest: async (req) => {

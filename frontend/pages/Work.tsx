@@ -9,16 +9,31 @@ import { clsx } from 'clsx';
 export function Work() {
   const [activeTab, setActiveTab] = useState<'bounties' | 'repos'>('bounties');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { isWalletConnected } = useStore();
+
+  const handleAddClick = () => {
+    if (!isWalletConnected) {
+      alert('Please connect your wallet first!');
+      return;
+    }
+    setIsModalOpen(true);
+  };
 
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center border-b border-cyber-blue/20 pb-6">
          <h2 className="text-4xl font-display font-bold text-white uppercase">Operations</h2>
          <button 
-           onClick={() => setIsModalOpen(true)} 
-           className="bg-cyber-yellow text-black hover:bg-white font-display font-bold text-sm px-4 py-2 cyber-button flex items-center gap-2"
+           onClick={handleAddClick}
+           disabled={!isWalletConnected}
+           className={`font-display font-bold text-sm px-4 py-2 cyber-button flex items-center gap-2 ${
+             isWalletConnected 
+               ? 'bg-cyber-yellow text-black hover:bg-white' 
+               : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
+           }`}
          >
            <Plus size={16} /> ADD {activeTab === 'bounties' ? 'BOUNTY' : 'REPO'}
+           {!isWalletConnected && <span className="text-[10px] ml-2">(Connect Wallet)</span>}
          </button>
       </div>
 

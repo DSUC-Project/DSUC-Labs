@@ -7,8 +7,16 @@ import { Project } from '../types';
 import { Link } from 'react-router-dom';
 
 export function Projects() {
-  const { projects, addProject } = useStore();
+  const { projects, addProject, isWalletConnected } = useStore();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const handleAddClick = () => {
+    if (!isWalletConnected) {
+      alert('Please connect your wallet first!');
+      return;
+    }
+    setIsAddModalOpen(true);
+  };
 
   return (
     <div className="space-y-12">
@@ -22,10 +30,16 @@ export function Projects() {
               {projects.length} SYSTEMS DEPLOYED
            </div>
            <button 
-             onClick={() => setIsAddModalOpen(true)}
-             className="bg-cyber-blue text-white hover:bg-white hover:text-black font-display font-bold text-sm px-4 py-2 cyber-button flex items-center gap-2 transition-all"
+             onClick={handleAddClick}
+             disabled={!isWalletConnected}
+             className={`font-display font-bold text-sm px-4 py-2 cyber-button flex items-center gap-2 transition-all ${
+               isWalletConnected 
+                 ? 'bg-cyber-blue text-white hover:bg-white hover:text-black' 
+                 : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
+             }`}
            >
              <Plus size={16} /> ADD PROJECT
+             {!isWalletConnected && <span className="text-[10px] ml-2">(Connect Wallet)</span>}
            </button>
         </div>
       </div>
@@ -103,7 +117,7 @@ function AddProjectModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose:
   };
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto">
       <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
       <motion.div 
         initial={{ scale: 0.9, opacity: 0 }} 
