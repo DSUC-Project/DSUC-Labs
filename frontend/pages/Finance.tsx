@@ -197,8 +197,18 @@ function DirectTransferTool() {
   // Filter members who have bank info
   const eligibleMembers = members.filter(m => m.bankInfo || m.bank_info);
 
-  // Get normalized bank info
-  const getBankInfo = (member: Member) => member.bankInfo || member.bank_info;
+  // Get normalized bank info - support both camelCase and snake_case
+  const getBankInfo = (member: Member) => {
+    const info = member.bankInfo || member.bank_info;
+    if (!info) return null;
+    
+    // Normalize to camelCase
+    return {
+      bankId: info.bankId || (info as any).bank_id,
+      accountNo: info.accountNo || (info as any).account_no,
+      accountName: info.accountName || (info as any).account_name
+    };
+  };
 
   const bankInfo = selectedMember ? getBankInfo(selectedMember) : null;
   const qrUrl = bankInfo

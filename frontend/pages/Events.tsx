@@ -111,7 +111,7 @@ function EventItem({ event, index }: { event: Event, index: number, key?: React.
           <button 
             onClick={handleRegister}
             disabled={!lumaLink}
-            className="w-full py-2 bg-white/5 hover:bg-cyber-blue hover:text-white font-bold font-display text-sm transition-all flex items-center justify-center gap-2 group/btn cyber-button disabled:opacity-50 disabled:cursor-not-allowed"
+            className="relative z-10 w-full py-2 bg-white/5 hover:bg-cyber-blue hover:text-white font-bold font-display text-sm transition-all flex items-center justify-center gap-2 group/btn cyber-button disabled:opacity-50 disabled:cursor-not-allowed pointer-events-auto"
           >
             REGISTER
             <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />

@@ -41,6 +41,7 @@ export interface Bounty {
   difficulty: "Easy" | "Medium" | "Hard";
   tags: string[];
   status: "Open" | "In Progress" | "Closed";
+  submitLink?: string; // Optional link to submit bounty solution
 }
 
 export interface Repo {
@@ -50,6 +51,7 @@ export interface Repo {
   language: string;
   stars: number;
   forks: number;
+  repoLink?: string; // GitHub/GitLab repo URL
 }
 
 export type ResourceCategory =

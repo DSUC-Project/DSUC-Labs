@@ -145,7 +145,7 @@ function AddResourceModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose
           <select name="category" className="w-full bg-black/50 border border-white/10 p-2.5 text-white focus:border-cyber-blue outline-none font-mono text-sm">
             {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
-          <button type="submit" className="w-full bg-cyber-yellow text-black font-display font-bold py-2.5 cyber-button hover:bg-white transition-colors uppercase tracking-widest text-sm">UPLOAD TO VAULT</button>
+          <button type="submit" className="relative z-10 pointer-events-auto w-full bg-cyber-yellow text-black font-display font-bold py-2.5 cyber-button hover:bg-white transition-colors uppercase tracking-widest text-sm">UPLOAD TO VAULT</button>
         </form>
       </motion.div>
     </div>,

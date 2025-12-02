@@ -100,10 +100,18 @@ function BountyBoard() {
 }
 
 function BountyCard({ bounty }: { bounty: Bounty; key?: React.Key }) {
+  const handleSubmit = () => {
+    if (bounty.submitLink) {
+      window.open(bounty.submitLink, '_blank', 'noopener,noreferrer');
+    } else {
+      alert('Submit link not available for this bounty');
+    }
+  };
+
   return (
     <motion.div 
       whileHover={{ scale: 1.02 }}
-      className="cyber-card p-5 group border border-cyber-blue/20 hover:border-cyber-blue transition-all cursor-pointer bg-surface/50"
+      className="cyber-card p-5 group border border-cyber-blue/20 hover:border-cyber-blue transition-all bg-surface/50"
     >
       <div className="flex justify-between items-start mb-3">
          <span className={clsx("text-[10px] font-bold px-2 py-0.5 font-mono uppercase border", 
@@ -114,18 +122,36 @@ function BountyCard({ bounty }: { bounty: Bounty; key?: React.Key }) {
          </span>
          <span className="text-cyber-blue font-mono font-bold text-sm">{bounty.reward}</span>
       </div>
-      <h4 className="font-bold font-display text-base leading-tight mb-4 text-white">{bounty.title}</h4>
-      <div className="flex flex-wrap gap-2">
+      <h4 className="font-bold font-display text-base leading-tight mb-3 text-white">{bounty.title}</h4>
+      <div className="flex flex-wrap gap-2 mb-4">
         {bounty.tags.map(tag => (
           <span key={tag} className="text-[9px] text-white/40 font-mono border border-white/10 px-1 bg-black/50">#{tag}</span>
         ))}
       </div>
+      {bounty.submitLink && (
+        <button 
+          onClick={handleSubmit}
+          className="w-full py-2 bg-cyber-blue/10 hover:bg-cyber-blue hover:text-white text-cyber-blue font-bold font-display text-xs transition-all flex items-center justify-center gap-2 border border-cyber-blue/20 hover:border-cyber-blue group/btn"
+        >
+          SUBMIT BOUNTY
+          <ExternalLink size={12} className="group-hover/btn:translate-x-0.5 transition-transform" />
+        </button>
+      )}
     </motion.div>
   );
 }
 
 function RepoList() {
   const { repos } = useStore();
+  
+  const handleRepoClick = (repoLink?: string) => {
+    if (repoLink) {
+      window.open(repoLink, '_blank', 'noopener,noreferrer');
+    } else {
+      alert('Repository link not available');
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 gap-4">
       {repos.map((repo) => (
@@ -153,7 +179,11 @@ function RepoList() {
                 <div className="flex items-center gap-1"><Star size={12} className="text-cyber-yellow" /> {repo.stars}</div>
                 <div className="flex items-center gap-1"><GitBranch size={12} /> {repo.forks}</div>
              </div>
-             <button className="p-2 hover:bg-white/10 text-white/40 hover:text-white transition-colors">
+             <button 
+               onClick={() => handleRepoClick(repo.repoLink)}
+               disabled={!repo.repoLink}
+               className="p-2 hover:bg-white/10 text-white/40 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+             >
                <ExternalLink size={18} />
              </button>
           </div>
@@ -178,7 +208,8 @@ function AddItemModal({ type, onClose }: { type: 'bounties' | 'repos', onClose: 
         reward: formData.get('reward') as string,
         difficulty: formData.get('difficulty') as any,
         tags: (formData.get('tags') as string).split(',').map(s => s.trim()),
-        status: 'Open'
+        status: 'Open',
+        submitLink: formData.get('submitLink') as string || undefined
       });
     } else {
       addRepo({
@@ -187,7 +218,8 @@ function AddItemModal({ type, onClose }: { type: 'bounties' | 'repos', onClose: 
         description: formData.get('description') as string,
         language: formData.get('language') as string,
         stars: 0,
-        forks: 0
+        forks: 0,
+        repoLink: formData.get('repoLink') as string || undefined
       });
     }
     onClose();
@@ -218,11 +250,13 @@ function AddItemModal({ type, onClose }: { type: 'bounties' | 'repos', onClose: 
                 </select>
               </div>
               <input name="tags" placeholder="Tags (comma separated)" required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
+              <input name="submitLink" placeholder="Submit Link (optional)" className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
             </>
           ) : (
             <>
               <textarea name="description" placeholder="Description" rows={3} required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
               <input name="language" placeholder="Language (e.g. Rust)" required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
+              <input name="repoLink" placeholder="Repository Link" required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
             </>
           )}
 
