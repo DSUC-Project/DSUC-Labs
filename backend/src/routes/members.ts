@@ -5,7 +5,11 @@ import {
   AuthRequest,
   requireAdmin,
 } from "../middleware/auth";
-import { upload, uploadBase64ToSupabase, uploadBase64ToImageBB } from "../middleware/upload";
+import {
+  upload,
+  uploadBase64ToSupabase,
+  uploadBase64ToImageBB,
+} from "../middleware/upload";
 
 const router = Router();
 
