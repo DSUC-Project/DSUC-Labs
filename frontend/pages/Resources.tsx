@@ -127,12 +127,13 @@ function AddResourceModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose
   };
 
   return ReactDOM.createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto">
-      <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
       <motion.div 
         initial={{ scale: 0.9, opacity: 0 }} 
         animate={{ scale: 1, opacity: 1 }} 
         className="bg-surface cyber-card border border-cyber-blue/50 p-6 md:p-8 w-full max-w-md relative z-10 my-8"
+        onClick={(e) => e.stopPropagation()}
       >
         <button onClick={onClose} className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors z-10">
           <X size={20} />

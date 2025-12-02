@@ -680,20 +680,57 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  updateCurrentUser: (updates) =>
-    set((state) => {
-      if (!state.currentUser) return state;
+  updateCurrentUser: async (updates) => {
+    const state = get();
 
-      const updatedUser = { ...state.currentUser, ...updates };
+    if (!state.currentUser || !state.walletAddress) {
+      console.error("[updateCurrentUser] No current user or wallet");
+      return;
+    }
 
-      // Also update this user in the main members list so changes are visible publicly
-      const updatedMembers = state.members.map((m) =>
-        m.id === updatedUser.id ? updatedUser : m
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+
+      console.log(
+        "[updateCurrentUser] Updating user:",
+        state.currentUser.id,
+        updates
       );
 
-      return {
-        currentUser: updatedUser,
-        members: updatedMembers,
-      };
-    }),
+      const res = await fetch(`${base}/api/members/${state.currentUser.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-wallet-address": state.walletAddress,
+        },
+        body: JSON.stringify(updates),
+      });
+
+      console.log("[updateCurrentUser] Response status:", res.status);
+
+      if (res.ok) {
+        const result = await res.json();
+        console.log("[updateCurrentUser] Success:", result);
+
+        const updatedUser = { ...state.currentUser, ...updates };
+
+        // Update members list
+        const updatedMembers = state.members.map((m) =>
+          m.id === updatedUser.id ? updatedUser : m
+        );
+
+        set({
+          currentUser: updatedUser,
+          members: updatedMembers,
+        });
+      } else {
+        const error = await res.json();
+        console.error("[updateCurrentUser] Failed:", error);
+        alert("Failed to update profile");
+      }
+    } catch (err) {
+      console.error("[updateCurrentUser] Error:", err);
+      alert("Failed to update profile");
+    }
+  },
 }));

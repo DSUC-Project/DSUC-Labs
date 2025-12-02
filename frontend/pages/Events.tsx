@@ -144,9 +144,14 @@ function AddEventModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose: (
   };
 
   return ReactDOM.createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
-      <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-surface cyber-card border border-cyber-blue/50 p-8 w-full max-w-lg relative">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
+      <motion.div 
+        initial={{ scale: 0.95, opacity: 0 }} 
+        animate={{ scale: 1, opacity: 1 }} 
+        className="bg-surface cyber-card border border-cyber-blue/50 p-8 w-full max-w-lg relative z-10"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button onClick={onClose} className="absolute top-4 right-4 text-white/40 hover:text-white"><X /></button>
         <h3 className="text-2xl font-display font-bold mb-6 text-cyber-blue uppercase">New Event Protocol</h3>
         <form onSubmit={handleSubmit} className="space-y-4">

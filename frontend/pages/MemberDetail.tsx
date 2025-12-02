@@ -108,18 +108,18 @@ export function MemberDetail() {
                 <span className="w-4 h-[1px] bg-cyber-yellow" /> Establish Comms
               </h3>
               <div className="flex gap-4">
-                {member.socials.github && (
-                  <a href={`https://github.com/${member.socials.github}`} target="_blank" rel="noreferrer" className="w-12 h-12 flex items-center justify-center border border-white/10 hover:border-cyber-blue hover:text-cyber-blue bg-surface text-white/60 transition-all cyber-button">
+                {member.socials?.github && (
+                  <a href={member.socials.github.startsWith('http') ? member.socials.github : `https://github.com/${member.socials.github}`} target="_blank" rel="noreferrer" className="w-12 h-12 flex items-center justify-center border border-white/10 hover:border-cyber-blue hover:text-cyber-blue bg-surface text-white/60 transition-all cyber-button">
                     <Github size={20} />
                   </a>
                 )}
-                {member.socials.twitter && (
-                  <a href={`https://twitter.com/${member.socials.twitter}`} target="_blank" rel="noreferrer" className="w-12 h-12 flex items-center justify-center border border-white/10 hover:border-cyber-blue hover:text-cyber-blue bg-surface text-white/60 transition-all cyber-button">
+                {member.socials?.twitter && (
+                  <a href={member.socials.twitter.startsWith('http') ? member.socials.twitter : `https://twitter.com/${member.socials.twitter}`} target="_blank" rel="noreferrer" className="w-12 h-12 flex items-center justify-center border border-white/10 hover:border-cyber-blue hover:text-cyber-blue bg-surface text-white/60 transition-all cyber-button">
                     <Twitter size={20} />
                   </a>
                 )}
-                {member.socials.telegram && (
-                  <a href={`https://t.me/${member.socials.telegram}`} target="_blank" rel="noreferrer" className="w-12 h-12 flex items-center justify-center border border-white/10 hover:border-cyber-blue hover:text-cyber-blue bg-surface text-white/60 transition-all cyber-button">
+                {member.socials?.telegram && (
+                  <a href={member.socials.telegram.startsWith('http') ? member.socials.telegram : `https://t.me/${member.socials.telegram}`} target="_blank" rel="noreferrer" className="w-12 h-12 flex items-center justify-center border border-white/10 hover:border-cyber-blue hover:text-cyber-blue bg-surface text-white/60 transition-all cyber-button">
                     <Send size={20} />
                   </a>
                 )}

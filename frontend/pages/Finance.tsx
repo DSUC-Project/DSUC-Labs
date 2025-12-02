@@ -381,9 +381,14 @@ function ApprovalModal({ request, onClose, onApprove, onReject }: { request: Fin
   const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${request.amount}&addInfo=${encodeURIComponent(request.reason)}&accountName=${encodeURIComponent(accountName)}`;
 
   return ReactDOM.createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
-      <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-surface cyber-card border border-cyber-blue/50 p-8 w-full max-w-2xl relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
+      <motion.div 
+        initial={{ scale: 0.95 }} 
+        animate={{ scale: 1 }} 
+        className="bg-surface cyber-card border border-cyber-blue/50 p-8 w-full max-w-2xl relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* Left: Details */}
         <div>

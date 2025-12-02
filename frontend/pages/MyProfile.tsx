@@ -23,6 +23,7 @@ export function MyProfile() {
   // Banking state
   const [bankId, setBankId] = useState('');
   const [accountNo, setAccountNo] = useState('');
+  const [accountName, setAccountName] = useState('');
 
   useEffect(() => {
     if (!isWalletConnected || !currentUser) {
@@ -39,6 +40,7 @@ export function MyProfile() {
     setTelegram(currentUser.socials?.telegram || '');
     setBankId(currentUser.bankInfo?.bankId || '');
     setAccountNo(currentUser.bankInfo?.accountNo || '');
+    setAccountName(currentUser.bankInfo?.accountName || currentUser.name || '');
   }, [currentUser, isWalletConnected, navigate]);
 
   const toggleSkill = (skill: string) => {
@@ -73,7 +75,11 @@ export function MyProfile() {
         twitter,
         telegram
       },
-      bankInfo: bankId && accountNo ? { bankId, accountNo } : undefined
+      bankInfo: bankId && accountNo ? { 
+        bankId, 
+        accountNo,
+        accountName: accountName || name 
+      } : undefined
     });
     alert('PROTOCOL UPDATED SUCCESSFULLY');
   };
@@ -198,6 +204,15 @@ export function MyProfile() {
                    onChange={e => setAccountNo(e.target.value)}
                    placeholder="0000 0000 0000"
                    className="w-full bg-black/30 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm tracking-widest" 
+                 />
+               </div>
+               <div className="space-y-2 md:col-span-2">
+                 <label className="text-xs font-mono text-cyber-yellow uppercase tracking-wider">Account Name</label>
+                 <input 
+                   value={accountName} 
+                   onChange={e => setAccountName(e.target.value)}
+                   placeholder="NGUYEN VAN A"
+                   className="w-full bg-black/30 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm tracking-widest uppercase" 
                  />
                </div>
              </div>
