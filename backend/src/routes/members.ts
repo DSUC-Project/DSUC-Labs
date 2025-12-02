@@ -120,7 +120,19 @@ router.put(
   async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;
-      const { name, avatar, skills, socials, bankInfo, bank_info } = req.body;
+      const { name, role, avatar, skills, socials, bankInfo, bank_info } =
+        req.body;
+
+      console.log(
+        "[PUT /api/members/:id] Request body:",
+        JSON.stringify(req.body, null, 2)
+      );
+      console.log(
+        "[PUT /api/members/:id] User ID:",
+        req.user?.id,
+        "Target ID:",
+        id
+      );
 
       // Verify user is updating their own profile
       if (req.user!.id !== id) {
@@ -130,17 +142,23 @@ router.put(
         });
       }
 
-      // Prepare update data (exclude role from being updated)
+      // Prepare update data
       const updateData: any = {
         updated_at: new Date().toISOString(),
       };
 
-      if (name) updateData.name = name;
-      if (skills) updateData.skills = skills;
-      if (socials) updateData.socials = socials;
+      if (name !== undefined) updateData.name = name;
+      if (role !== undefined) updateData.role = role;
+      if (skills !== undefined) updateData.skills = skills;
+      if (socials !== undefined) updateData.socials = socials;
       // Support both camelCase and snake_case
-      if (bankInfo) updateData.bank_info = bankInfo;
-      if (bank_info) updateData.bank_info = bank_info;
+      if (bankInfo !== undefined) updateData.bank_info = bankInfo;
+      if (bank_info !== undefined) updateData.bank_info = bank_info;
+
+      console.log(
+        "[PUT /api/members/:id] Update data before avatar:",
+        JSON.stringify(updateData, null, 2)
+      );
 
       // Handle avatar upload if it's base64
       if (avatar && avatar.startsWith("data:image")) {

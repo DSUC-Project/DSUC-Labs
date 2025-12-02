@@ -17,6 +17,16 @@ router.post(
     try {
       const { amount, reason, date, bill_image } = req.body;
 
+      console.log(
+        "[POST /api/finance/request] Request from:",
+        req.user?.id,
+        req.user?.name
+      );
+      console.log(
+        "[POST /api/finance/request] Body:",
+        JSON.stringify(req.body, null, 2)
+      );
+
       if (!amount || !reason) {
         return res.status(400).json({
           error: "Bad Request",
@@ -32,6 +42,11 @@ router.post(
         date: date || new Date().toISOString().split("T")[0],
         status: "pending",
       };
+
+      console.log(
+        "[POST /api/finance/request] Request data before image:",
+        JSON.stringify(requestData, null, 2)
+      );
 
       // Handle bill image upload if it's base64
       if (bill_image && bill_image.startsWith("data:image")) {
@@ -52,17 +67,28 @@ router.post(
         requestData.bill_image = bill_image;
       }
 
+      console.log(
+        "[POST /api/finance/request] Final request data:",
+        JSON.stringify(requestData, null, 2)
+      );
+
       const { data: newRequest, error } = await supabase
         .from("finance_requests")
         .insert([requestData])
         .select()
         .single();
 
+      console.log("[POST /api/finance/request] Supabase result:", {
+        data: newRequest,
+        error,
+      });
+
       if (error) {
         console.error("Supabase error:", error);
         return res.status(500).json({
           error: "Database Error",
           message: error.message,
+          details: error,
         });
       }
 
