@@ -140,7 +140,7 @@ TRUNCATE TABLE finance_requests, bounties, repos, resources, projects, events, m
 -- 1. PRESIDENT (1 người)
 INSERT INTO members (id, wallet_address, name, role, avatar, skills, socials, bank_info) VALUES
 ('101240059', 'FzcnaZMYcoAYpLgr7Wym2b8hrKYk3VXsRxWSLuvZKLJm', 'Zah', 'President',
- 'https://api.dicebear.com/7.x/avataaars/svg?seed=president',
+ 'https://ibb.co/0RGgzXXg',
  ARRAY['Web3', 'Rust', 'Design'],
  '{"github": "https://github.com/lilzahs", "twitter": "https://x.com/doandanh_zah", "telegram": "https://t.me/doandanh_zah"}',
  '{"bankId": "970422", "accountNo": "06271099999", "accountName": "DOAN DO THANH DANH"}');
@@ -148,13 +148,13 @@ INSERT INTO members (id, wallet_address, name, role, avatar, skills, socials, ba
 -- 2. VICE-PRESIDENT (2 người)
 INSERT INTO members (id, wallet_address, name, role, avatar, skills, socials, bank_info) VALUES
 ('102240396', '9aieBQHrhou4GqRyNGgieXN8nZxK9uxWKHnvoyNL7NNB', 'Jerry', 'Vice-President',
- 'https://api.dicebear.com/7.x/avataaars/svg?seed=vp1',
+ 'https://ibb.co/h1JL46Rq',
  ARRAY['Marketing', 'Operations'],
  '{"github": "https://github.com/jerry-ici", "twitter": "https://x.com/jerryiciii", "telegram": "https://t.me/jerryiciii"}',
  '{"bankId": "970436", "accountNo": "1028328959", "accountName": "LE THI THANH THAI"}'),
 
 ('101240060', 'GEeWZoVZq9JQ9RgWy9zzkhvTAnYBKSvS2gzjXetqutFe', 'Thodium', 'Vice-President',
- 'https://api.dicebear.com/7.x/avataaars/svg?seed=vp2',
+ 'https://ibb.co/XxVBkK4b',
  ARRAY['HR Management', 'Event Planning', 'Community', 'Partnership'],
  '{"github": "https://github.com/Th0dium", "twitter": "https://x.com/Th0rdium", "telegram": "https://t.me/Thodium04"}',
  '{"bankId": "970422", "accountNo": "0347373213", "accountName": "NGO VAN NHAT DUY"}');
@@ -162,7 +162,7 @@ INSERT INTO members (id, wallet_address, name, role, avatar, skills, socials, ba
 -- 3. TECH-LEAD (1 người)
 INSERT INTO members (id, wallet_address, name, role, avatar, skills, socials, bank_info) VALUES
 ('102240386', 'CYcvdzKjh8B699tbe3UnYM21Vzcp14JQqy5hXs9iUYBT', 'NekoNora', 'Tech-Lead',
- 'https://api.dicebear.com/7.x/avataaars/svg?seed=techlead',
+ 'https://ibb.co/vSsMY3F',
  ARRAY['Solana', 'Rust', 'React', 'TypeScript', 'System Design'],
  '{"github": "https://github.com/thanhnhat23", "twitter": "https://x.com/ThanhNhat06", "telegram": "https://t.me/ThanhNhat23"}',
  '{"bankId": "970422", "accountNo": "0905700494", "accountName": "LUONG THANH NHAT"}');
@@ -170,69 +170,69 @@ INSERT INTO members (id, wallet_address, name, role, avatar, skills, socials, ba
 -- 4. MEDIA-LEAD (1 người)
 INSERT INTO members (id, wallet_address, name, role, avatar, skills, socials, bank_info) VALUES
 ('101240071', '9YYY8EWz4to5SH7N9K4qAuBNNLLxvVDeJw9TCpvhgDzw', 'Garoz', 'Media-Lead',
- 'https://api.dicebear.com/7.x/avataaars/svg?seed=medialead',
+ 'https://ibb.co/h1TtgxH0',
  ARRAY['Content Creation', 'Social Media', 'Copywriting'],
  '{"github": "https://github.com/Kunsosad", "twitter": "https://x.com/darksans10", "telegram": "https://t.me/Phanconghuy"}',
  '{"bankId": "970422", "accountNo": "0987520146", "accountName": "PHAN CONG HUY"}');
 
 -- 5. MEMBERS (10 người)
 INSERT INTO members (id, wallet_address, name, role, avatar, skills, socials, bank_info) VALUES
-('101240010', 'FjTD1nP1PTR7cUu13tEBPciNe82sCiQ9qRvpkBeKxwxE', 'dainghia17', 'Member',
- 'https://api.dicebear.com/7.x/avataaars/svg?seed=member1',
+('123250164', 'FjTD1nP1PTR7cUu13tEBPciNe82sCiQ9qRvpkBeKxwxE', 'dainghia17', 'Member',
+ 'https://ibb.co/WvTny5wy',
  ARRAY['Editor', 'Media'],
  '{"github": "https://github.com/dainghiax17-hub", "twitter": "https://x.com/dainghiaaa17", "telegram": "https://t.me/dainghiaaa17"}',
  '{"bankId": "970422", "accountNo": "0356041438", "accountName": "HUYNH DAI NGHIA"}'),
 
 ('123250208', 'C3mD3SDFjZrRrswBvDTf1p2R8UGhrvpbeqPqBWFg7rMi', 'TruongPhu1003', 'Member',
- 'https://api.dicebear.com/7.x/avataaars/svg?seed=member2',
+ 'https://ibb.co/ktNTDf9',
  ARRAY['Python', 'AI/ML', 'Data Science'],
  '{"github": "https://github.com/truongphu103", "telegram": "https://t.me/TruongPhu103"}',
  '{"bankId": "970422", "accountNo": "9100320079", "accountName": "NGUYEN NGOC TRUONG PHU"}'),
 
 ('106250128', 'CDWSdzuLQ8nzKjc1UCNr8MbedAfEHZiqRFvvToWtnNiW', 'dhiern', 'Member',
- 'https://api.dicebear.com/7.x/avataaars/svg?seed=member3',
+ 'https://ibb.co/BV7S2tYb',
  ARRAY['Solana', 'Anchor', 'Rust'],
  '{"github": "https://github.com/d-hiern", "twitter": "https://x.com/D_Hiern", "telegram": "https://t.me/D_Hiern"}',
  '{"bankId": "970422", "accountNo": "0812017500", "accountName": "PHAN DUY HIEN"}'),
 
 ('102230313', 'BvCFiu95AfJBtXd4z2LyoLTrMahBKUCZJQcnCXSb6z3o', 'dhtphu05', 'Member',
- 'https://api.dicebear.com/7.x/avataaars/svg?seed=member4',
+ 'https://ibb.co/8L9S1dX1',
  ARRAY['C++', 'Node.js', 'Next.js'],
  '{"github": "https://github.com/dhtphu05", "twitter": "https://x.com/dhtphu05", "telegram": "https://t.me/dhtphu05"}',
  '{"bankId": "970436", "accountNo": "1041537741", "accountName": "DOAN HOANG THIEN PHU"}'),
 
-('101240014', 'DBW3yKvtF5k61PdGYi1VzksGaukUvGT6bN9uwdvD4z5m', 'Kuwongg', 'Member',
- 'https://api.dicebear.com/7.x/avataaars/svg?seed=member5',
+('102240127', 'DBW3yKvtF5k61PdGYi1VzksGaukUvGT6bN9uwdvD4z5m', 'Kuwongg', 'Member',
+ 'https://ibb.co/N6n5jcxR',
  ARRAY['C++'],
  '{"github": "https://github.com/Cuongkudo", "twitter": "https://x.com/Cuongkudo123", "telegram": "https://t.me/KuWongg"}',
  '{"bankId": "970415", "accountNo": "100882221015", "accountName": "NGUYEN MANH CUONG"}'),
 
 ('102240286', '7JzxzcgN6F1k2r4rPaZEBWmRb5HuCLJX3xVWdoJGGaKi', 'lacachua', 'Member',
- 'https://api.dicebear.com/7.x/avataaars/svg?seed=member6',
+ 'https://ibb.co/Rp19FZDX',
  ARRAY['Smart Contracts', 'Backend', 'C++'],
  '{"github": "https://github.com/lacachua", "twitter": "https://x.com/sh_jessica", "telegram": "https://t.me/cachuane"}',
  '{"bankId": "970436", "accountNo": "1024557336", "accountName": "NGUYEN THI CAM TUYEN"}'),
 
 ('102230323', 'GAc9UQCBQpxkL2eGKFa8xBKKMTjDagA7MjHhGT51xxNc', 'Twii', 'Member',
- 'https://api.dicebear.com/7.x/avataaars/svg?seed=member7',
+ 'https://ibb.co/990tm2JV',
  ARRAY['Backend', 'PostgreSQL', 'Express'],
  '{"github": "https://github.com/ntthuy29", "twitter": "https://x.com/Thuy292005", "telegram": "https://t.me/thuy2905"}',
  '{"bankId": "970415", "accountNo": "0334105228", "accountName": "NGUYEN THI THUY"}'),
 
 ('102240170', '46x1fCbdiooeqjDMsXsap3JEKFxHMCj1QUVwupeMXSP7', 'mtris', 'Member',
- 'https://api.dicebear.com/7.x/avataaars/svg?seed=member8',
+ 'https://ibb.co/GvVWMJJM',
  ARRAY['Next.js', 'C++'],
  '{"github": "https://github.com/mtris134", "twitter": "https://x.com/mtris134", "telegram": "https://t.me/mtris134"}',
  '{"bankId": "970436", "accountNo": "9365603556", "accountName": "LE MINH TRI"}'),
 
 ('102250190', 'DZwUcn3ssXZYdxmnMW3JDwDCjKTx66x7ztLDxvv49B6L', 'fuong', 'Member',
- 'https://api.dicebear.com/7.x/avataaars/svg?seed=member9',
+ 'https://ibb.co/4ZCD2yvr',
  ARRAY['Rust', 'VibeCode', 'C++'],
  '{"github": "https://github.com/PHUOBG", "twitter": "https://x.com/Phuongloppi", "telegram": "https://t.me/Loppygirll"}',
  '{"bankId": "970422", "accountNo": "0326616401", "accountName": "HOANG THI NGOC PHUONG"}'),
 
 ('102240261', 'fHdTXZmGfNmtN5fwErNHzX4RtKyjiWC8sahg7QkQT6K', 'Lilithium', 'Member',
- 'https://api.dicebear.com/7.x/avataaars/svg?seed=member10',
+ 'https://ibb.co/hJ281n96',
  ARRAY['Design', 'Next.js', 'TypeScript'],
  '{"github": "https://github.com/Liinh-Git", "twitter": "https://x.com/NguynLinh298772", "telegram": "https://t.me/Kaslynna"}',
  '{"bankId": "970422", "accountNo": "0865371670", "accountName": "NGUYEN DO KHANH LINH"}');
