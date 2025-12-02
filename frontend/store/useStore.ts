@@ -204,7 +204,12 @@ export const useStore = create<AppState>((set, get) => ({
         const result = await res.json();
         console.log("[fetchBounties] Result:", result);
         if (result && result.success && result.data) {
-          set({ bounties: result.data });
+          // Normalize snake_case to camelCase
+          const normalized = result.data.map((bounty: any) => ({
+            ...bounty,
+            submitLink: bounty.submit_link || bounty.submitLink,
+          }));
+          set({ bounties: normalized });
         }
       }
     } catch (e) {
@@ -223,7 +228,12 @@ export const useStore = create<AppState>((set, get) => ({
         const result = await res.json();
         console.log("[fetchRepos] Result:", result);
         if (result && result.success && result.data) {
-          set({ repos: result.data });
+          // Normalize url to repoLink
+          const normalized = result.data.map((repo: any) => ({
+            ...repo,
+            repoLink: repo.url || repo.repoLink,
+          }));
+          set({ repos: normalized });
         }
       }
     } catch (e) {
@@ -409,6 +419,7 @@ export const useStore = create<AppState>((set, get) => ({
           difficulty: bounty.difficulty,
           tags: bounty.tags,
           status: bounty.status || "Open",
+          submitLink: bounty.submitLink || null,
         }),
       });
 
@@ -453,6 +464,7 @@ export const useStore = create<AppState>((set, get) => ({
           name: repo.name,
           description: repo.description || "",
           language: repo.language || "",
+          url: repo.repoLink || null,
           stars: repo.stars || 0,
           forks: repo.forks || 0,
         }),

@@ -9,7 +9,7 @@ import { BANKS } from '../data/mockData';
 
 export function Finance() {
   const [activeTab, setActiveTab] = useState<'submit' | 'pending' | 'history' | 'direct'>('submit');
-  const { financeRequests, financeHistory, fetchPendingRequests, isWalletConnected, currentUser } = useStore();
+  const { financeRequests, financeHistory, fetchPendingRequests, fetchFinanceHistory, isWalletConnected, currentUser } = useStore();
 
   // Fetch pending requests when tab changes to pending (for admin)
   useEffect(() => {
@@ -17,6 +17,13 @@ export function Finance() {
       fetchPendingRequests();
     }
   }, [activeTab, isWalletConnected, currentUser, fetchPendingRequests]);
+
+  // Fetch finance history when tab changes to history
+  useEffect(() => {
+    if (activeTab === 'history' && isWalletConnected && currentUser) {
+      fetchFinanceHistory();
+    }
+  }, [activeTab, isWalletConnected, currentUser, fetchFinanceHistory]);
 
   // Lock Finance page if wallet not connected
   if (!isWalletConnected) {

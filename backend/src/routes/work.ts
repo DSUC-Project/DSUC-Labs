@@ -1,32 +1,32 @@
-import { Router, Request, Response } from 'express';
-import { supabase } from '../index';
-import { authenticateWallet, AuthRequest } from '../middleware/auth';
+import { Router, Request, Response } from "express";
+import { supabase } from "../index";
+import { authenticateWallet, AuthRequest } from "../middleware/auth";
 
 const router = Router();
 
 // ============ BOUNTIES ROUTES ============
 
 // GET /api/work/bounties - Get all bounties
-router.get('/bounties', async (req: Request, res: Response) => {
+router.get("/bounties", async (req: Request, res: Response) => {
   try {
     const { status } = req.query;
 
     let query = supabase
-      .from('bounties')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .from("bounties")
+      .select("*")
+      .order("created_at", { ascending: false });
 
     // Filter by status if provided
     if (status) {
-      query = query.eq('status', status);
+      query = query.eq("status", status);
     }
 
     const { data: bounties, error } = await query;
 
     if (error) {
-      console.error('Supabase error:', error);
+      console.error("Supabase error:", error);
       return res.status(500).json({
-        error: 'Database Error',
+        error: "Database Error",
         message: error.message,
       });
     }
@@ -37,29 +37,29 @@ router.get('/bounties', async (req: Request, res: Response) => {
       count: bounties?.length || 0,
     });
   } catch (error: any) {
-    console.error('Error fetching bounties:', error);
+    console.error("Error fetching bounties:", error);
     res.status(500).json({
-      error: 'Internal Server Error',
+      error: "Internal Server Error",
       message: error.message,
     });
   }
 });
 
 // GET /api/work/bounties/:id - Get bounty by ID
-router.get('/bounties/:id', async (req: Request, res: Response) => {
+router.get("/bounties/:id", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
     const { data: bounty, error } = await supabase
-      .from('bounties')
-      .select('*')
-      .eq('id', id)
+      .from("bounties")
+      .select("*")
+      .eq("id", id)
       .single();
 
     if (error || !bounty) {
       return res.status(404).json({
-        error: 'Not Found',
-        message: 'Bounty not found',
+        error: "Not Found",
+        message: "Bounty not found",
       });
     }
 
@@ -68,185 +68,199 @@ router.get('/bounties/:id', async (req: Request, res: Response) => {
       data: bounty,
     });
   } catch (error: any) {
-    console.error('Error fetching bounty:', error);
+    console.error("Error fetching bounty:", error);
     res.status(500).json({
-      error: 'Internal Server Error',
+      error: "Internal Server Error",
       message: error.message,
     });
   }
 });
 
 // POST /api/work/bounties - Create new bounty (requires authentication)
-router.post('/bounties', authenticateWallet, async (req: AuthRequest, res: Response) => {
-  try {
-    const { title, description, reward, difficulty, tags } = req.body;
+router.post(
+  "/bounties",
+  authenticateWallet,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { title, description, reward, difficulty, tags, submitLink } =
+        req.body;
 
-    if (!title) {
-      return res.status(400).json({
-        error: 'Bad Request',
-        message: 'Title is required',
+      if (!title) {
+        return res.status(400).json({
+          error: "Bad Request",
+          message: "Title is required",
+        });
+      }
+
+      const bountyData = {
+        title,
+        description,
+        reward,
+        difficulty: difficulty || "Medium",
+        tags: tags || [],
+        status: "Open",
+        submit_link: submitLink || null,
+        created_by: req.user!.id,
+      };
+
+      const { data: newBounty, error } = await supabase
+        .from("bounties")
+        .insert([bountyData])
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Supabase error:", error);
+        return res.status(500).json({
+          error: "Database Error",
+          message: error.message,
+        });
+      }
+
+      res.status(201).json({
+        success: true,
+        data: newBounty,
+        message: "Bounty created successfully",
       });
-    }
-
-    const bountyData = {
-      title,
-      description,
-      reward,
-      difficulty: difficulty || 'Medium',
-      tags: tags || [],
-      status: 'Open',
-      created_by: req.user!.id,
-    };
-
-    const { data: newBounty, error } = await supabase
-      .from('bounties')
-      .insert([bountyData])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return res.status(500).json({
-        error: 'Database Error',
+    } catch (error: any) {
+      console.error("Error creating bounty:", error);
+      res.status(500).json({
+        error: "Internal Server Error",
         message: error.message,
       });
     }
-
-    res.status(201).json({
-      success: true,
-      data: newBounty,
-      message: 'Bounty created successfully',
-    });
-  } catch (error: any) {
-    console.error('Error creating bounty:', error);
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: error.message,
-    });
   }
-});
+);
 
 // PUT /api/work/bounties/:id - Update bounty
-router.put('/bounties/:id', authenticateWallet, async (req: AuthRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { title, description, reward, difficulty, tags, status } = req.body;
+router.put(
+  "/bounties/:id",
+  authenticateWallet,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { title, description, reward, difficulty, tags, status } = req.body;
 
-    // Check if bounty exists
-    const { data: existingBounty, error: fetchError } = await supabase
-      .from('bounties')
-      .select('*')
-      .eq('id', id)
-      .single();
+      // Check if bounty exists
+      const { data: existingBounty, error: fetchError } = await supabase
+        .from("bounties")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-    if (fetchError || !existingBounty) {
-      return res.status(404).json({
-        error: 'Not Found',
-        message: 'Bounty not found',
+      if (fetchError || !existingBounty) {
+        return res.status(404).json({
+          error: "Not Found",
+          message: "Bounty not found",
+        });
+      }
+
+      // Only creator or admin can update
+      const adminRoles = ["President", "Vice-President", "Tech-Lead"];
+      if (
+        existingBounty.created_by !== req.user!.id &&
+        !adminRoles.includes(req.user!.role)
+      ) {
+        return res.status(403).json({
+          error: "Forbidden",
+          message: "You do not have permission to update this bounty",
+        });
+      }
+
+      const updateData: any = {};
+
+      if (title) updateData.title = title;
+      if (description !== undefined) updateData.description = description;
+      if (reward !== undefined) updateData.reward = reward;
+      if (difficulty) updateData.difficulty = difficulty;
+      if (tags) updateData.tags = tags;
+      if (status) updateData.status = status;
+
+      const { data: updatedBounty, error } = await supabase
+        .from("bounties")
+        .update(updateData)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Supabase error:", error);
+        return res.status(500).json({
+          error: "Database Error",
+          message: error.message,
+        });
+      }
+
+      res.json({
+        success: true,
+        data: updatedBounty,
+        message: "Bounty updated successfully",
       });
-    }
-
-    // Only creator or admin can update
-    const adminRoles = ['President', 'Vice-President', 'Tech-Lead'];
-    if (existingBounty.created_by !== req.user!.id && !adminRoles.includes(req.user!.role)) {
-      return res.status(403).json({
-        error: 'Forbidden',
-        message: 'You do not have permission to update this bounty',
-      });
-    }
-
-    const updateData: any = {};
-
-    if (title) updateData.title = title;
-    if (description !== undefined) updateData.description = description;
-    if (reward !== undefined) updateData.reward = reward;
-    if (difficulty) updateData.difficulty = difficulty;
-    if (tags) updateData.tags = tags;
-    if (status) updateData.status = status;
-
-    const { data: updatedBounty, error } = await supabase
-      .from('bounties')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return res.status(500).json({
-        error: 'Database Error',
+    } catch (error: any) {
+      console.error("Error updating bounty:", error);
+      res.status(500).json({
+        error: "Internal Server Error",
         message: error.message,
       });
     }
-
-    res.json({
-      success: true,
-      data: updatedBounty,
-      message: 'Bounty updated successfully',
-    });
-  } catch (error: any) {
-    console.error('Error updating bounty:', error);
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: error.message,
-    });
   }
-});
+);
 
 // DELETE /api/work/bounties/:id - Delete bounty (Admin only)
-router.delete('/bounties/:id', authenticateWallet, async (req: AuthRequest, res: Response) => {
-  try {
-    const { id } = req.params;
+router.delete(
+  "/bounties/:id",
+  authenticateWallet,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
 
-    // Only admin can delete
-    const adminRoles = ['President', 'Vice-President', 'Tech-Lead'];
-    if (!adminRoles.includes(req.user!.role)) {
-      return res.status(403).json({
-        error: 'Forbidden',
-        message: 'Only admins can delete bounties',
+      // Only admin can delete
+      const adminRoles = ["President", "Vice-President", "Tech-Lead"];
+      if (!adminRoles.includes(req.user!.role)) {
+        return res.status(403).json({
+          error: "Forbidden",
+          message: "Only admins can delete bounties",
+        });
+      }
+
+      const { error } = await supabase.from("bounties").delete().eq("id", id);
+
+      if (error) {
+        console.error("Supabase error:", error);
+        return res.status(500).json({
+          error: "Database Error",
+          message: error.message,
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Bounty deleted successfully",
       });
-    }
-
-    const { error } = await supabase
-      .from('bounties')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return res.status(500).json({
-        error: 'Database Error',
+    } catch (error: any) {
+      console.error("Error deleting bounty:", error);
+      res.status(500).json({
+        error: "Internal Server Error",
         message: error.message,
       });
     }
-
-    res.json({
-      success: true,
-      message: 'Bounty deleted successfully',
-    });
-  } catch (error: any) {
-    console.error('Error deleting bounty:', error);
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: error.message,
-    });
   }
-});
+);
 
 // ============ REPOS ROUTES ============
 
 // GET /api/work/repos - Get all repos
-router.get('/repos', async (req: Request, res: Response) => {
+router.get("/repos", async (req: Request, res: Response) => {
   try {
     const { data: repos, error } = await supabase
-      .from('repos')
-      .select('*')
-      .order('stars', { ascending: false });
+      .from("repos")
+      .select("*")
+      .order("stars", { ascending: false });
 
     if (error) {
-      console.error('Supabase error:', error);
+      console.error("Supabase error:", error);
       return res.status(500).json({
-        error: 'Database Error',
+        error: "Database Error",
         message: error.message,
       });
     }
@@ -257,29 +271,29 @@ router.get('/repos', async (req: Request, res: Response) => {
       count: repos?.length || 0,
     });
   } catch (error: any) {
-    console.error('Error fetching repos:', error);
+    console.error("Error fetching repos:", error);
     res.status(500).json({
-      error: 'Internal Server Error',
+      error: "Internal Server Error",
       message: error.message,
     });
   }
 });
 
 // GET /api/work/repos/:id - Get repo by ID
-router.get('/repos/:id', async (req: Request, res: Response) => {
+router.get("/repos/:id", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
     const { data: repo, error } = await supabase
-      .from('repos')
-      .select('*')
-      .eq('id', id)
+      .from("repos")
+      .select("*")
+      .eq("id", id)
       .single();
 
     if (error || !repo) {
       return res.status(404).json({
-        error: 'Not Found',
-        message: 'Repository not found',
+        error: "Not Found",
+        message: "Repository not found",
       });
     }
 
@@ -288,169 +302,181 @@ router.get('/repos/:id', async (req: Request, res: Response) => {
       data: repo,
     });
   } catch (error: any) {
-    console.error('Error fetching repo:', error);
+    console.error("Error fetching repo:", error);
     res.status(500).json({
-      error: 'Internal Server Error',
+      error: "Internal Server Error",
       message: error.message,
     });
   }
 });
 
 // POST /api/work/repos - Create new repo (requires authentication)
-router.post('/repos', authenticateWallet, async (req: AuthRequest, res: Response) => {
-  try {
-    const { name, description, language, url, stars, forks } = req.body;
+router.post(
+  "/repos",
+  authenticateWallet,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { name, description, language, url, stars, forks } = req.body;
 
-    if (!name) {
-      return res.status(400).json({
-        error: 'Bad Request',
-        message: 'Repository name is required',
+      if (!name) {
+        return res.status(400).json({
+          error: "Bad Request",
+          message: "Repository name is required",
+        });
+      }
+
+      const repoData = {
+        name,
+        description,
+        language,
+        url,
+        stars: stars || 0,
+        forks: forks || 0,
+        created_by: req.user!.id,
+      };
+
+      const { data: newRepo, error } = await supabase
+        .from("repos")
+        .insert([repoData])
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Supabase error:", error);
+        return res.status(500).json({
+          error: "Database Error",
+          message: error.message,
+        });
+      }
+
+      res.status(201).json({
+        success: true,
+        data: newRepo,
+        message: "Repository created successfully",
       });
-    }
-
-    const repoData = {
-      name,
-      description,
-      language,
-      url,
-      stars: stars || 0,
-      forks: forks || 0,
-      created_by: req.user!.id,
-    };
-
-    const { data: newRepo, error } = await supabase
-      .from('repos')
-      .insert([repoData])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return res.status(500).json({
-        error: 'Database Error',
+    } catch (error: any) {
+      console.error("Error creating repo:", error);
+      res.status(500).json({
+        error: "Internal Server Error",
         message: error.message,
       });
     }
-
-    res.status(201).json({
-      success: true,
-      data: newRepo,
-      message: 'Repository created successfully',
-    });
-  } catch (error: any) {
-    console.error('Error creating repo:', error);
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: error.message,
-    });
   }
-});
+);
 
 // PUT /api/work/repos/:id - Update repo
-router.put('/repos/:id', authenticateWallet, async (req: AuthRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { name, description, language, url, stars, forks } = req.body;
+router.put(
+  "/repos/:id",
+  authenticateWallet,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { name, description, language, url, stars, forks } = req.body;
 
-    // Check if repo exists
-    const { data: existingRepo, error: fetchError } = await supabase
-      .from('repos')
-      .select('*')
-      .eq('id', id)
-      .single();
+      // Check if repo exists
+      const { data: existingRepo, error: fetchError } = await supabase
+        .from("repos")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-    if (fetchError || !existingRepo) {
-      return res.status(404).json({
-        error: 'Not Found',
-        message: 'Repository not found',
+      if (fetchError || !existingRepo) {
+        return res.status(404).json({
+          error: "Not Found",
+          message: "Repository not found",
+        });
+      }
+
+      // Only creator or admin can update
+      const adminRoles = ["President", "Vice-President", "Tech-Lead"];
+      if (
+        existingRepo.created_by !== req.user!.id &&
+        !adminRoles.includes(req.user!.role)
+      ) {
+        return res.status(403).json({
+          error: "Forbidden",
+          message: "You do not have permission to update this repository",
+        });
+      }
+
+      const updateData: any = {};
+
+      if (name) updateData.name = name;
+      if (description !== undefined) updateData.description = description;
+      if (language) updateData.language = language;
+      if (url !== undefined) updateData.url = url;
+      if (stars !== undefined) updateData.stars = stars;
+      if (forks !== undefined) updateData.forks = forks;
+
+      const { data: updatedRepo, error } = await supabase
+        .from("repos")
+        .update(updateData)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Supabase error:", error);
+        return res.status(500).json({
+          error: "Database Error",
+          message: error.message,
+        });
+      }
+
+      res.json({
+        success: true,
+        data: updatedRepo,
+        message: "Repository updated successfully",
       });
-    }
-
-    // Only creator or admin can update
-    const adminRoles = ['President', 'Vice-President', 'Tech-Lead'];
-    if (existingRepo.created_by !== req.user!.id && !adminRoles.includes(req.user!.role)) {
-      return res.status(403).json({
-        error: 'Forbidden',
-        message: 'You do not have permission to update this repository',
-      });
-    }
-
-    const updateData: any = {};
-
-    if (name) updateData.name = name;
-    if (description !== undefined) updateData.description = description;
-    if (language) updateData.language = language;
-    if (url !== undefined) updateData.url = url;
-    if (stars !== undefined) updateData.stars = stars;
-    if (forks !== undefined) updateData.forks = forks;
-
-    const { data: updatedRepo, error } = await supabase
-      .from('repos')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return res.status(500).json({
-        error: 'Database Error',
+    } catch (error: any) {
+      console.error("Error updating repo:", error);
+      res.status(500).json({
+        error: "Internal Server Error",
         message: error.message,
       });
     }
-
-    res.json({
-      success: true,
-      data: updatedRepo,
-      message: 'Repository updated successfully',
-    });
-  } catch (error: any) {
-    console.error('Error updating repo:', error);
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: error.message,
-    });
   }
-});
+);
 
 // DELETE /api/work/repos/:id - Delete repo (Admin only)
-router.delete('/repos/:id', authenticateWallet, async (req: AuthRequest, res: Response) => {
-  try {
-    const { id } = req.params;
+router.delete(
+  "/repos/:id",
+  authenticateWallet,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
 
-    // Only admin can delete
-    const adminRoles = ['President', 'Vice-President', 'Tech-Lead'];
-    if (!adminRoles.includes(req.user!.role)) {
-      return res.status(403).json({
-        error: 'Forbidden',
-        message: 'Only admins can delete repositories',
+      // Only admin can delete
+      const adminRoles = ["President", "Vice-President", "Tech-Lead"];
+      if (!adminRoles.includes(req.user!.role)) {
+        return res.status(403).json({
+          error: "Forbidden",
+          message: "Only admins can delete repositories",
+        });
+      }
+
+      const { error } = await supabase.from("repos").delete().eq("id", id);
+
+      if (error) {
+        console.error("Supabase error:", error);
+        return res.status(500).json({
+          error: "Database Error",
+          message: error.message,
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Repository deleted successfully",
       });
-    }
-
-    const { error } = await supabase
-      .from('repos')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return res.status(500).json({
-        error: 'Database Error',
+    } catch (error: any) {
+      console.error("Error deleting repo:", error);
+      res.status(500).json({
+        error: "Internal Server Error",
         message: error.message,
       });
     }
-
-    res.json({
-      success: true,
-      message: 'Repository deleted successfully',
-    });
-  } catch (error: any) {
-    console.error('Error deleting repo:', error);
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: error.message,
-    });
   }
-});
+);
 
 export default router;
