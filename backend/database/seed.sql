@@ -180,7 +180,7 @@ INSERT INTO members (id, wallet_address, name, role, avatar, skills, socials, ba
 ('101240010', 'FjTD1nP1PTR7cUu13tEBPciNe82sCiQ9qRvpkBeKxwxE', 'dainghia17', 'Member',
  'https://api.dicebear.com/7.x/avataaars/svg?seed=member1',
  ARRAY['Editor', 'Media'],
- '{"twitter": "https://x.com/dainghiaaa17", "telegram": "https://t.me/dainghiaaa17"}',
+ '{"github": "https://github.com/dainghiax17-hub", "twitter": "https://x.com/dainghiaaa17", "telegram": "https://t.me/dainghiaaa17"}',
  '{"bankId": "970422", "accountNo": "0356041438", "accountName": "HUYNH DAI NGHIA"}'),
 
 ('123250208', 'C3mD3SDFjZrRrswBvDTf1p2R8UGhrvpbeqPqBWFg7rMi', 'TruongPhu1003', 'Member',
@@ -236,55 +236,6 @@ INSERT INTO members (id, wallet_address, name, role, avatar, skills, socials, ba
  ARRAY['Design', 'Next.js', 'TypeScript'],
  '{"github": "https://github.com/Liinh-Git", "twitter": "https://x.com/NguynLinh298772", "telegram": "https://t.me/Kaslynna"}',
  '{"bankId": "970422", "accountNo": "0865371670", "accountName": "NGUYEN DO KHANH LINH"}');
-
--- Sample Events (created_by sử dụng student ID)
-INSERT INTO events (title, date, time, type, location, attendees, created_by) VALUES
-('Solana Bootcamp 2025', '2025-01-15', '14:00', 'Workshop', 'HCMC University', 50, '101240059'),
-('Web3 Hackathon Kickoff', '2025-01-20', '09:00', 'Hackathon', 'Innovation Hub', 100, '101240003'),
-('Smart Contract Security Talk', '2025-02-01', '18:30', 'Talk', 'Online - Zoom', 75, '101240003');
-
--- Sample Projects (created_by sử dụng student ID)
-INSERT INTO projects (name, description, category, builders, link, repo_link, created_by) VALUES
-('DeFi Dashboard', 'Real-time DeFi portfolio tracker on Solana', 'DeFi',
- ARRAY['Le Van Tech', 'Tran Van E', 'Nguyen Van I'],
- 'https://defi-dashboard-demo.com', 'https://github.com/dsuc-lab/defi-dashboard', '101240003'),
-
-('NFT Marketplace', 'Community-driven NFT marketplace', 'NFT',
- ARRAY['Hoang Van C', 'Vu Thi H'],
- 'https://nft-market-demo.com', 'https://github.com/dsuc-lab/nft-marketplace', '101240010'),
-
-('DAO Voting Tool', 'On-chain governance and voting system', 'Governance',
- ARRAY['Le Van Tech', 'Tran Van E'],
- 'https://dao-voting-demo.com', 'https://github.com/dsuc-lab/dao-voting', '101240003');
-
--- Sample Bounties (created_by sử dụng student ID)
-INSERT INTO bounties (title, description, reward, difficulty, tags, status, created_by) VALUES
-('Build a Solana Wallet Integration', 'Integrate Phantom and Solflare wallet support', '0.5 SOL', 'Medium',
- ARRAY['Solana', 'TypeScript', 'React'], 'Open', '101240003'),
-
-('Design Landing Page UI', 'Create modern landing page for club website', '0.3 SOL', 'Easy',
- ARRAY['UI/UX', 'Figma', 'Design'], 'Open', '101240004'),
-
-('Write Smart Contract Audit Report', 'Audit and document security findings', '1.0 SOL', 'Hard',
- ARRAY['Security', 'Solana', 'Rust'], 'Open', '101240003');
-
--- Sample Repos (created_by sử dụng student ID)
-INSERT INTO repos (name, description, language, stars, forks, url, created_by) VALUES
-('solana-toolkit', 'Essential tools for Solana development', 'TypeScript', 42, 12,
- 'https://github.com/dsuc-lab/solana-toolkit', '101240003'),
-
-('anchor-templates', 'Boilerplate templates for Anchor projects', 'Rust', 38, 8,
- 'https://github.com/dsuc-lab/anchor-templates', '101240003'),
-
-('web3-ui-components', 'Reusable React components for Web3 apps', 'TypeScript', 25, 5,
- 'https://github.com/dsuc-lab/web3-ui-components', '101240010');
-
--- Sample Resources (created_by sử dụng student ID)
-INSERT INTO resources (name, type, url, size, category, created_by) VALUES
-('Solana Development Course', 'Document', 'https://drive.google.com/solana-course', '2.5GB', 'Learning', '101240003'),
-('Club Introduction Video', 'Video', 'https://youtube.com/dsuc-intro', '150MB', 'Media', '101240004'),
-('Rust Programming Guide', 'Document', 'https://drive.google.com/rust-guide', '500MB', 'Learning', '101240003'),
-('Design Assets Pack', 'Document', 'https://drive.google.com/design-assets', '1.2GB', 'Media', '101240004');
 
 -- Verify counts
 SELECT 'Members' as table_name, COUNT(*) as count FROM members
