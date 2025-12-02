@@ -1,4 +1,3 @@
-
 export interface Member {
   id: string;
   name: string;
@@ -13,6 +12,13 @@ export interface Member {
   bankInfo?: {
     bankId: string;
     accountNo: string;
+    accountName?: string;
+  };
+  // Backend uses snake_case, map these for compatibility
+  bank_info?: {
+    bankId: string;
+    accountNo: string;
+    accountName?: string;
   };
 }
 
@@ -21,7 +27,7 @@ export interface Event {
   title: string;
   date: string;
   time: string;
-  type: 'Workshop' | 'Hackathon' | 'Social';
+  type: "Workshop" | "Hackathon" | "Social";
   location: string;
   attendees: number;
 }
@@ -30,9 +36,9 @@ export interface Bounty {
   id: string;
   title: string;
   reward: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
+  difficulty: "Easy" | "Medium" | "Hard";
   tags: string[];
-  status: 'Open' | 'In Progress' | 'Closed';
+  status: "Open" | "In Progress" | "Closed";
 }
 
 export interface Repo {
@@ -44,12 +50,17 @@ export interface Repo {
   forks: number;
 }
 
-export type ResourceCategory = 'Learning' | 'Training' | 'Document' | 'Media' | 'Hackathon';
+export type ResourceCategory =
+  | "Learning"
+  | "Training"
+  | "Document"
+  | "Media"
+  | "Hackathon";
 
 export interface Resource {
   id: string;
   name: string;
-  type: 'Drive' | 'Doc' | 'Link';
+  type: "Drive" | "Doc" | "Link";
   url: string;
   size?: string;
   category: ResourceCategory;
@@ -70,7 +81,7 @@ export interface FinanceRequest {
   reason: string;
   date: string;
   billImage: string | null;
-  status: 'pending' | 'completed' | 'rejected';
+  status: "pending" | "completed" | "rejected";
   requesterName: string;
   requesterId: string; // Linked to Member ID for bank info lookup
 }

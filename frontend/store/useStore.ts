@@ -32,6 +32,7 @@ interface AppState {
 
   connectWallet: (provider: "Phantom" | "Solflare") => void;
   disconnectWallet: () => void;
+  fetchMembers: () => Promise<void>;
 
   // Data Lists
   members: Member[]; // Mutable members list
@@ -63,7 +64,7 @@ export const useStore = create<AppState>((set, get) => ({
   walletProvider: null,
   currentUser: null,
 
-  members: MEMBERS, // Initialize with mock data
+  members: [], // Initialize empty, will be fetched from backend
   events: EVENTS,
   bounties: BOUNTIES,
   repos: REPOS,
@@ -71,6 +72,29 @@ export const useStore = create<AppState>((set, get) => ({
   projects: PROJECTS,
   financeRequests: [],
   financeHistory: [],
+
+  // Fetch members from backend
+  fetchMembers: async () => {
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+      const res = await fetch(`${base}/api/members`);
+      if (res.ok) {
+        const result = await res.json();
+        if (result && result.success && result.data) {
+          // Normalize backend data: map bank_info to bankInfo
+          const members = result.data.map((m: any) => ({
+            ...m,
+            bankInfo: m.bank_info || m.bankInfo,
+          }));
+          set({ members });
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch members from backend", e);
+      // Fallback to mock data if backend fails
+      set({ members: MEMBERS });
+    }
+  },
 
   connectWallet: async (provider) => {
     try {

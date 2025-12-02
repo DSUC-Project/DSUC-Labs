@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Layout } from './components/Layout';
@@ -13,6 +13,7 @@ import { Work } from './pages/Work';
 import { Resources } from './pages/Resources';
 import { Projects } from './pages/Projects';
 import { ProjectDetail } from './pages/ProjectDetail';
+import { useStore } from './store/useStore';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -45,6 +46,13 @@ function AnimatedRoutes() {
 }
 
 export default function App() {
+  const fetchMembers = useStore((state) => state.fetchMembers);
+
+  // Fetch members when app loads
+  useEffect(() => {
+    fetchMembers();
+  }, [fetchMembers]);
+
   return (
     <BrowserRouter>
       <Layout>

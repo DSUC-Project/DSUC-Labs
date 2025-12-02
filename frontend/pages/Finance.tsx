@@ -106,10 +106,14 @@ function DirectTransferTool() {
   const [showQR, setShowQR] = useState(false);
 
   // Filter members who have bank info
-  const eligibleMembers = members.filter(m => m.bankInfo);
+  const eligibleMembers = members.filter(m => m.bankInfo || m.bank_info);
 
-  const qrUrl = selectedMember && selectedMember.bankInfo 
-    ? `https://img.vietqr.io/image/${selectedMember.bankInfo.bankId}-${selectedMember.bankInfo.accountNo}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(content)}`
+  // Get normalized bank info
+  const getBankInfo = (member: Member) => member.bankInfo || member.bank_info;
+
+  const bankInfo = selectedMember ? getBankInfo(selectedMember) : null;
+  const qrUrl = bankInfo
+    ? `https://img.vietqr.io/image/${bankInfo.bankId}-${bankInfo.accountNo}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(content)}`
     : '';
 
   return (
@@ -123,21 +127,41 @@ function DirectTransferTool() {
         
         {!selectedMember ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2">
-            {eligibleMembers.map(member => (
-              <button 
-                key={member.id}
-                onClick={() => setSelectedMember(member)}
-                className="flex items-center gap-4 p-4 cyber-card hover:bg-cyber-blue/10 transition-colors border-l-2 border-transparent hover:border-l-cyber-blue text-left"
-              >
-                <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10">
-                  <img src={member.avatar} alt={member.name} className="w-full h-full object-cover grayscale" />
-                </div>
-                <div>
-                  <div className="font-bold font-display text-white">{member.name}</div>
-                  <div className="text-[10px] font-mono text-white/40">{member.role}</div>
-                </div>
-              </button>
-            ))}
+            {eligibleMembers.map(member => {
+              const memberBankInfo = getBankInfo(member);
+              return (
+                <button 
+                  key={member.id}
+                  onClick={() => setSelectedMember(member)}
+                  className="flex flex-col gap-2 p-4 cyber-card hover:bg-cyber-blue/10 transition-colors border-l-2 border-transparent hover:border-l-cyber-blue text-left"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10">
+                      <img src={member.avatar} alt={member.name} className="w-full h-full object-cover grayscale" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-bold font-display text-white">{member.name}</div>
+                      <div className="text-[10px] font-mono text-white/40">{member.role}</div>
+                    </div>
+                  </div>
+                  {memberBankInfo && (
+                    <div className="pl-14 space-y-1">
+                      <div className="text-[9px] font-mono text-cyan-400/70">
+                        {BANKS.find(b => b.id === memberBankInfo.bankId)?.shortName || memberBankInfo.bankId}
+                      </div>
+                      {memberBankInfo.accountName && (
+                        <div className="text-[9px] font-mono text-white/30">
+                          {memberBankInfo.accountName}
+                        </div>
+                      )}
+                      <div className="text-[9px] font-mono text-white/30">
+                        {memberBankInfo.accountNo}
+                      </div>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
             {eligibleMembers.length === 0 && (
                <div className="col-span-2 text-center text-white/30 font-mono text-sm py-10">NO MEMBERS WITH BANK DATA FOUND</div>
             )}
@@ -203,11 +227,18 @@ function DirectTransferTool() {
 
       {/* Right: QR Display */}
       <div className="flex items-center justify-center bg-white/5 cyber-card border border-white/5 relative">
-         {showQR && selectedMember ? (
+         {showQR && selectedMember && bankInfo ? (
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center p-8 bg-white w-full h-full flex flex-col items-center justify-center">
                <img src={qrUrl} alt="VietQR" className="max-w-[250px] mix-blend-multiply mb-4" />
                <div className="text-black font-mono text-xs font-bold uppercase">Scan to Pay {selectedMember.name}</div>
-               <div className="text-black/50 font-mono text-[10px] mt-1">Bank: {BANKS.find(b => b.id === selectedMember.bankInfo?.bankId)?.shortName}</div>
+               <div className="text-black/50 font-mono text-[10px] mt-1">
+                 Bank: {BANKS.find(b => b.id === bankInfo.bankId)?.shortName || bankInfo.bankId}
+               </div>
+               {bankInfo.accountName && (
+                 <div className="text-black/40 font-mono text-[9px] mt-0.5">
+                   {bankInfo.accountName}
+                 </div>
+               )}
             </motion.div>
          ) : (
             <div className="text-center opacity-30">
@@ -274,14 +305,17 @@ function ApprovalModal({ request, onClose, onApprove, onReject }: { request: Fin
   // Find requester to get their bank info
   const requester = members.find(m => m.id === request.requesterId);
   
+  // Get normalized bank info
+  const requesterBankInfo = requester ? (requester.bankInfo || requester.bank_info) : null;
+  
   // Default Club Account if requester has no bank info
   const DEFAULT_ACCOUNT_NO = "0356616096"; 
   const DEFAULT_BANK_ID = "970422"; // MB Bank
   const DEFAULT_NAME = "DUT SUPERTEAM";
 
-  const bankId = requester?.bankInfo?.bankId || DEFAULT_BANK_ID;
-  const accountNo = requester?.bankInfo?.accountNo || DEFAULT_ACCOUNT_NO;
-  const accountName = requester ? requester.name : DEFAULT_NAME;
+  const bankId = requesterBankInfo?.bankId || DEFAULT_BANK_ID;
+  const accountNo = requesterBankInfo?.accountNo || DEFAULT_ACCOUNT_NO;
+  const accountName = requesterBankInfo?.accountName || (requester ? requester.name : DEFAULT_NAME);
   const bankName = BANKS.find(b => b.id === bankId)?.shortName || 'Unknown Bank';
 
   const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${request.amount}&addInfo=${encodeURIComponent(request.reason)}&accountName=${encodeURIComponent(accountName)}`;
