@@ -49,7 +49,7 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use((req: Request, res: Response, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   if (req.body && Object.keys(req.body).length > 0) {
-    console.log('Body:', JSON.stringify(req.body).substring(0, 200));
+    console.log("Body:", JSON.stringify(req.body).substring(0, 200));
   }
   next();
 });

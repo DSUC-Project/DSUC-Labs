@@ -79,28 +79,32 @@ export const useStore = create<AppState>((set, get) => ({
   fetchMembers: async () => {
     try {
       const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-      console.log('[fetchMembers] API Base URL:', base);
+      console.log("[fetchMembers] API Base URL:", base);
       const url = `${base}/api/members`;
-      console.log('[fetchMembers] Fetching from:', url);
-      
+      console.log("[fetchMembers] Fetching from:", url);
+
       const res = await fetch(url);
-      console.log('[fetchMembers] Response status:', res.status);
-      
+      console.log("[fetchMembers] Response status:", res.status);
+
       if (res.ok) {
         const result = await res.json();
-        console.log('[fetchMembers] Result:', result);
-        
+        console.log("[fetchMembers] Result:", result);
+
         if (result && result.success && result.data) {
           // Normalize backend data: map bank_info to bankInfo
           const members = result.data.map((m: any) => ({
             ...m,
             bankInfo: m.bank_info || m.bankInfo,
           }));
-          console.log('[fetchMembers] Setting members:', members.length);
+          console.log("[fetchMembers] Setting members:", members.length);
           set({ members });
         }
       } else {
-        console.error('[fetchMembers] Response not OK:', res.status, res.statusText);
+        console.error(
+          "[fetchMembers] Response not OK:",
+          res.status,
+          res.statusText
+        );
       }
     } catch (e) {
       console.error("Failed to fetch members from backend", e);
