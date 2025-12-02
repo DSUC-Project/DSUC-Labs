@@ -30,13 +30,13 @@ export function MyProfile() {
       return;
     }
     // Load current data
-    setName(currentUser.name);
-    setRole(currentUser.role);
-    setAvatar(currentUser.avatar);
-    setSkills(currentUser.skills);
-    setGithub(currentUser.socials.github || '');
-    setTwitter(currentUser.socials.twitter || '');
-    setTelegram(currentUser.socials.telegram || '');
+    setName(currentUser.name || '');
+    setRole(currentUser.role || '');
+    setAvatar(currentUser.avatar || '');
+    setSkills(currentUser.skills || []);
+    setGithub(currentUser.socials?.github || '');
+    setTwitter(currentUser.socials?.twitter || '');
+    setTelegram(currentUser.socials?.telegram || '');
     setBankId(currentUser.bankInfo?.bankId || '');
     setAccountNo(currentUser.bankInfo?.accountNo || '');
   }, [currentUser, isWalletConnected, navigate]);

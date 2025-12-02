@@ -128,10 +128,10 @@ export function Dashboard() {
                 </span>
                 <div className="text-right">
                    <div className="text-2xl font-display font-bold text-white/20 group-hover:text-cyber-blue transition-colors">
-                     {event.date.split('-')[2]}
+                     {event.date?.split('-')[2] || '--'}
                    </div>
                    <div className="text-[10px] font-mono text-white/40 uppercase">
-                     {new Date(event.date).toLocaleString('default', { month: 'short' })}
+                     {event.date ? new Date(event.date).toLocaleString('default', { month: 'short' }) : '---'}
                    </div>
                 </div>
               </div>

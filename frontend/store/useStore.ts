@@ -105,8 +105,9 @@ export const useStore = create<AppState>((set, get) => ({
           body: JSON.stringify({ wallet_address: addr }),
         });
         if (res.ok) {
-          const profile = await res.json();
-          if (profile) {
+          const result = await res.json();
+          if (result && result.success && result.data) {
+            const profile = result.data;
             // if backend returns member, ensure it's in members list
             set((state) => ({
               currentUser: profile,

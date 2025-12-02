@@ -61,7 +61,7 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
       date,
       billImage: null,
       status: 'pending',
-      requesterName: currentUser.name,
+      requesterName: currentUser.name || 'Unknown',
       requesterId: currentUser.id
     });
     onSubmitted();

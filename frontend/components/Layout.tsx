@@ -115,7 +115,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                   <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
                 </div>
                 <span className="text-xs font-bold font-mono text-cyber-blue group-hover:text-cyber-yellow transition-colors uppercase tracking-wider">
-                  {currentUser.name.split(' ')[0]}
+                  {currentUser.name?.split(' ')[0] || 'User'}
                 </span>
               </button>
             ) : (
