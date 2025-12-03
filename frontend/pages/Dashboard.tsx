@@ -129,7 +129,10 @@ export function Dashboard() {
 function EventCard({ event, idx }: { event: any, idx: number }) {
   const lumaLink = event.lumaLink || event.luma_link;
   
+  console.log("[EventCard] Event:", event.title, "lumaLink:", lumaLink, "raw event:", event);
+  
   const handleClick = () => {
+    console.log("[EventCard] Clicked! lumaLink:", lumaLink);
     if (lumaLink) {
       window.open(lumaLink, '_blank', 'noopener,noreferrer');
     }

@@ -165,9 +165,15 @@ export const useStore = create<AppState>((set, get) => ({
       const res = await fetch(`${base}/api/events`);
       if (res.ok) {
         const result = await res.json();
-        console.log("[fetchEvents] Result:", result);
+        console.log("[fetchEvents] Raw result:", result);
         if (result && result.success && result.data) {
-          set({ events: result.data });
+          // Normalize snake_case to camelCase
+          const events = result.data.map((e: any) => ({
+            ...e,
+            lumaLink: e.luma_link || e.lumaLink,
+          }));
+          console.log("[fetchEvents] Normalized events:", events);
+          set({ events });
         }
       }
     } catch (e) {
