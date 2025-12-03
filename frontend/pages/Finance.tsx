@@ -9,7 +9,14 @@ import { BANKS } from '../data/mockData';
 
 export function Finance() {
   const [activeTab, setActiveTab] = useState<'submit' | 'pending' | 'history' | 'direct'>('submit');
-  const { financeRequests, financeHistory, fetchPendingRequests, fetchFinanceHistory, isWalletConnected, currentUser } = useStore();
+  const { financeRequests, financeHistory, fetchPendingRequests, fetchFinanceHistory, fetchMembers, isWalletConnected, currentUser } = useStore();
+
+  // Fetch members on mount (needed for bank info lookup in ApprovalModal)
+  useEffect(() => {
+    if (isWalletConnected && currentUser) {
+      fetchMembers();
+    }
+  }, [isWalletConnected, currentUser, fetchMembers]);
 
   // Fetch pending requests when tab changes to pending (for admin)
   useEffect(() => {
@@ -411,13 +418,22 @@ function ApprovalModal({ request, onClose, onApprove, onReject }: { request: Fin
   // Find requester to get their bank info
   const requester = members.find(m => m.id === request.requesterId);
   
+  console.log("[ApprovalModal] Request:", request);
+  console.log("[ApprovalModal] Looking for requesterId:", request.requesterId);
+  console.log("[ApprovalModal] Found requester:", requester);
+  console.log("[ApprovalModal] All members:", members.map(m => ({ id: m.id, name: m.name, bankInfo: m.bankInfo })));
+  
   // Get normalized bank info - handle both camelCase and snake_case
-  const rawBankInfo = requester ? (requester.bankInfo || requester.bank_info) : null;
+  const rawBankInfo = requester ? (requester.bankInfo || (requester as any).bank_info) : null;
+  console.log("[ApprovalModal] Raw bank info:", rawBankInfo);
+  
   const requesterBankInfo = rawBankInfo ? {
     bankId: rawBankInfo.bankId || (rawBankInfo as any).bank_id,
     accountNo: rawBankInfo.accountNo || (rawBankInfo as any).account_no,
     accountName: rawBankInfo.accountName || (rawBankInfo as any).account_name
   } : null;
+  
+  console.log("[ApprovalModal] Normalized bank info:", requesterBankInfo);
   
   // Default Club Account if requester has no bank info
   const DEFAULT_ACCOUNT_NO = "0356616096"; 

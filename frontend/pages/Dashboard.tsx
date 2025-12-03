@@ -2,9 +2,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
-import { ArrowUpRight, TrendingUp, Users, Wallet, Cpu, Globe, ArrowRight, Facebook } from 'lucide-react';
+import { ArrowUpRight, Cpu, Globe, Facebook } from 'lucide-react';
 import { useStore } from '../store/useStore';
-import { Link } from 'react-router-dom';
 
 export function Dashboard() {
   const { events } = useStore();
@@ -130,7 +129,7 @@ export function Dashboard() {
 function EventCard({ event, idx }: { event: any, idx: number }) {
   const lumaLink = event.lumaLink || event.luma_link;
   
-  const openLink = () => {
+  const handleClick = () => {
     if (lumaLink) {
       window.open(lumaLink, '_blank', 'noopener,noreferrer');
     }
@@ -141,25 +140,25 @@ function EventCard({ event, idx }: { event: any, idx: number }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: idx * 0.1 }}
-      onClick={openLink}
+      onClick={handleClick}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && openLink()}
+      onKeyDown={(e) => e.key === 'Enter' && handleClick()}
       className={clsx(
-        "cyber-card p-6 relative overflow-hidden group transition-all bg-surface/50",
-        lumaLink ? "cursor-pointer hover:border-cyber-blue" : ""
+        "cyber-card p-4 relative overflow-hidden group transition-all bg-surface/50",
+        lumaLink ? "cursor-pointer hover:border-cyber-blue hover:shadow-[0_0_20px_rgba(41,121,255,0.3)]" : "cursor-default"
       )}
     >
-      {/* Hover gradient - pointer-events-none to not block clicks */}
+      {/* Hover gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-cyber-blue/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
       
       {/* Header with type and date */}
-      <div className="flex justify-between items-start mb-4 relative">
+      <div className="flex justify-between items-start mb-3 relative">
         <span className="px-2 py-0.5 border border-white/10 text-[10px] font-mono uppercase bg-black/50 text-white/60">
           {event.type}
         </span>
         <div className="text-right">
-          <div className="text-2xl font-display font-bold text-white/20 group-hover:text-cyber-blue transition-colors">
+          <div className="text-xl font-display font-bold text-white/20 group-hover:text-cyber-blue transition-colors">
             {event.date?.split('-')[2] || '--'}
           </div>
           <div className="text-[10px] font-mono text-white/40 uppercase">
@@ -169,25 +168,10 @@ function EventCard({ event, idx }: { event: any, idx: number }) {
       </div>
 
       {/* Title and location */}
-      <h3 className="text-xl font-display font-bold mb-2 text-white group-hover:text-cyber-yellow transition-colors truncate">
+      <h3 className="text-lg font-display font-bold mb-1 text-white group-hover:text-cyber-yellow transition-colors truncate">
         {event.title}
       </h3>
-      <p className="text-cyber-blue font-mono text-xs mb-4">{event.location}</p>
-      
-      {/* CTA text */}
-      {lumaLink ? (
-        <span className="text-[10px] font-bold font-display uppercase tracking-widest flex items-center gap-2 text-cyber-blue group-hover:text-white transition-colors">
-          Register Now <ArrowRight size={12} />
-        </span>
-      ) : (
-        <Link 
-          to="/events" 
-          onClick={(e) => e.stopPropagation()}
-          className="text-[10px] font-bold font-display uppercase tracking-widest flex items-center gap-2 text-white/40 group-hover:text-white transition-colors"
-        >
-          View Details <ArrowRight size={12} />
-        </Link>
-      )}
+      <p className="text-cyber-blue font-mono text-xs">{event.location}</p>
     </motion.div>
   );
 }

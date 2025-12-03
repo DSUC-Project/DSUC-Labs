@@ -322,8 +322,9 @@ router.post(
       }
 
       // Add to finance_history for public ledger
-      try {
-        await supabase.from("finance_history").insert({
+      const { data: historyData, error: historyError } = await supabase
+        .from("finance_history")
+        .insert({
           requester_id: request.requester_id,
           requester_name: request.requester_name,
           amount: request.amount,
@@ -334,10 +335,13 @@ router.post(
           processed_by: req.user!.id,
           processed_by_name: req.user!.name,
           processed_at: new Date().toISOString(),
-        });
-      } catch (historyError) {
+        })
+        .select();
+
+      if (historyError) {
         console.error("Error adding to finance history:", historyError);
-        // Don't fail the request if history logging fails
+      } else {
+        console.log("[approve] Added to finance_history:", historyData);
       }
 
       res.json({
@@ -406,8 +410,9 @@ router.post(
       }
 
       // Add to finance_history for public ledger
-      try {
-        await supabase.from("finance_history").insert({
+      const { data: historyData, error: historyError } = await supabase
+        .from("finance_history")
+        .insert({
           requester_id: request.requester_id,
           requester_name: request.requester_name,
           amount: request.amount,
@@ -418,10 +423,13 @@ router.post(
           processed_by: req.user!.id,
           processed_by_name: req.user!.name,
           processed_at: new Date().toISOString(),
-        });
-      } catch (historyError) {
+        })
+        .select();
+
+      if (historyError) {
         console.error("Error adding to finance history:", historyError);
-        // Don't fail the request if history logging fails
+      } else {
+        console.log("[reject] Added to finance_history:", historyData);
       }
 
       res.json({

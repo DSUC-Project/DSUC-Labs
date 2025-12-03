@@ -135,8 +135,21 @@ export const useStore = create<AppState>((set, get) => ({
       const res = await fetch(`${base}/api/finance-history`);
       if (res.ok) {
         const result = await res.json();
+        console.log("[fetchFinanceHistory] Raw result:", result);
         if (result && result.success && result.data) {
-          set({ financeHistory: result.data });
+          // Normalize snake_case to camelCase
+          const history = result.data.map((r: any) => ({
+            id: r.id,
+            amount: r.amount,
+            reason: r.reason,
+            date: r.date,
+            billImage: r.bill_image || r.billImage,
+            status: r.status,
+            requesterName: r.requester_name || r.requesterName,
+            requesterId: r.requester_id || r.requesterId,
+          }));
+          console.log("[fetchFinanceHistory] Normalized history:", history);
+          set({ financeHistory: history });
         }
       }
     } catch (e) {
@@ -676,9 +689,26 @@ export const useStore = create<AppState>((set, get) => ({
         const result = await res.json();
         if (result && result.success && result.data) {
           // For non-admin, filter to only show pending requests
-          const pendingRequests = isAdmin
+          const rawRequests = isAdmin
             ? result.data
             : result.data.filter((r: any) => r.status === "pending");
+
+          // Normalize snake_case to camelCase
+          const pendingRequests = rawRequests.map((r: any) => ({
+            id: r.id,
+            amount: r.amount,
+            reason: r.reason,
+            date: r.date,
+            billImage: r.bill_image || r.billImage,
+            status: r.status,
+            requesterName: r.requester_name || r.requesterName,
+            requesterId: r.requester_id || r.requesterId,
+          }));
+
+          console.log(
+            "[fetchPendingRequests] Normalized requests:",
+            pendingRequests
+          );
           set({ financeRequests: pendingRequests });
         }
       }

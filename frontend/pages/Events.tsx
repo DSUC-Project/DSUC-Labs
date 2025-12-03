@@ -10,7 +10,8 @@ export function Events() {
   const { events, addEvent, isWalletConnected } = useStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const sortedEvents = [...events].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  // Sort by date descending - newest first
+  const sortedEvents = [...events].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const handleAddClick = () => {
     if (!isWalletConnected) {
