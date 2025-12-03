@@ -4,7 +4,7 @@ import ReactDOM from 'react-dom';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
-import { Home, Users, Calendar, Calculator, Briefcase, Folder, Wallet, Menu, X, Terminal, User, Rocket, ChevronDown } from 'lucide-react';
+import { Home, Users, Calendar, Calculator, Briefcase, Folder, Wallet, Menu, X, Terminal, User, Rocket, ChevronDown, MoreHorizontal } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
 export function Layout({ children }: { children?: React.ReactNode }) {
@@ -46,17 +46,40 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
+  const moreButtonRef = useRef<HTMLButtonElement>(null);
 
-  // All navigation links in one array
-  const allLinks = [
+  // Main navigation links (visible in navbar)
+  const mainLinks = [
     { name: 'Home', path: '/home', icon: Home },
     { name: 'Members', path: '/members', icon: Users },
     { name: 'Events', path: '/events', icon: Calendar },
+  ];
+
+  // More dropdown links
+  const moreLinks = [
     { name: 'Projects', path: '/projects', icon: Rocket },
     { name: 'Finance', path: '/finance', icon: Calculator },
     { name: 'Work', path: '/work', icon: Briefcase },
     { name: 'Resources', path: '/resources', icon: Folder },
   ];
+
+  // All links for mobile menu
+  const allLinks = [...mainLinks, ...moreLinks];
+
+  // Check if any "more" link is active
+  const isMoreActive = moreLinks.some(link => location.pathname === link.path);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (moreButtonRef.current && !moreButtonRef.current.contains(event.target as Node)) {
+        setMoreDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <>
@@ -68,14 +91,14 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
           
           <div className="flex items-center justify-between gap-4">
             {/* Logo Area */}
-            <div className="flex items-center gap-3 text-cyber-blue font-display font-bold tracking-wider">
-               <img src="/logo.png" alt="DSUC Logo" className="w-8 h-8 drop-shadow-[0_0_8px_rgba(41,121,255,0.5)]" />
-               <span className="hidden sm:inline">DSUC LAB</span>
+            <div className="flex items-center gap-3 text-cyber-blue font-display font-bold tracking-wider shrink-0">
+               <img src="/logo.png" alt="DSUC Logo" className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(41,121,255,0.5)]" />
+               <span className="hidden sm:inline text-sm md:text-base whitespace-nowrap">DSUC LAB</span>
             </div>
 
-            {/* Desktop Nav - All Links */}
+            {/* Desktop Nav - Main Links + More Dropdown */}
             <div className="hidden lg:flex items-center gap-1">
-              {allLinks.map((link) => (
+              {mainLinks.map((link) => (
                 <NavLink
                   key={link.path}
                   to={link.path}
@@ -102,6 +125,61 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                   )}
                 </NavLink>
               ))}
+
+              {/* More Dropdown */}
+              <div className="relative">
+                <button
+                  ref={moreButtonRef}
+                  onClick={() => setMoreDropdownOpen(!moreDropdownOpen)}
+                  className={twMerge(
+                    "relative px-3 py-1.5 text-xs font-display font-bold uppercase tracking-wide transition-all duration-300 hover:text-cyber-yellow group flex items-center gap-1",
+                    isMoreActive ? "text-cyber-blue" : "text-white/60"
+                  )}
+                >
+                  <span className="relative z-10 flex items-center gap-1">
+                    More
+                    <ChevronDown size={14} className={twMerge("transition-transform", moreDropdownOpen && "rotate-180")} />
+                  </span>
+                  {isMoreActive && (
+                    <motion.div
+                      layoutId="nav-glow"
+                      className="absolute -bottom-1 left-0 right-0 h-[1px] bg-cyber-blue shadow-[0_0_8px_#2979FF]"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-cyber-blue/5 scale-x-0 group-hover:scale-x-100 transition-transform origin-center -skew-x-12" />
+                </button>
+
+                {/* Dropdown Menu */}
+                <AnimatePresence>
+                  {moreDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute top-full right-0 mt-2 w-48 bg-surface/95 backdrop-blur-md border border-cyber-blue/30 shadow-[0_5px_20px_rgba(41,121,255,0.2)] overflow-hidden"
+                    >
+                      {moreLinks.map((link) => (
+                        <NavLink
+                          key={link.path}
+                          to={link.path}
+                          onClick={() => setMoreDropdownOpen(false)}
+                          className={({ isActive }) =>
+                            twMerge(
+                              "flex items-center gap-3 px-4 py-3 text-xs font-display font-bold uppercase tracking-wide transition-all duration-200 border-l-2",
+                              isActive
+                                ? "text-cyber-blue bg-cyber-blue/10 border-cyber-blue"
+                                : "text-white/60 hover:text-white hover:bg-white/5 border-transparent"
+                            )
+                          }
+                        >
+                          <link.icon size={16} />
+                          {link.name}
+                        </NavLink>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
 
             {/* Wallet / Profile Button */}
