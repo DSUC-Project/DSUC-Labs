@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { motion } from 'framer-motion';
-import { MapPin, Users, ArrowRight, Plus, X } from 'lucide-react';
+import { MapPin, Users, Plus, X } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { Event } from '../types';
 
@@ -63,11 +63,9 @@ function EventItem({ event, index }: { event: Event, index: number, key?: React.
   const isLeft = index % 2 === 0;
   const lumaLink = event.lumaLink || event.luma_link;
 
-  const handleRegister = () => {
+  const handleClick = () => {
     if (lumaLink) {
       window.open(lumaLink, '_blank', 'noopener,noreferrer');
-    } else {
-      alert('Registration link not available');
     }
   };
 
@@ -89,9 +87,17 @@ function EventItem({ event, index }: { event: Event, index: number, key?: React.
       {/* Center Dot */}
       <div className="absolute left-8 md:left-1/2 w-3 h-3 bg-black border border-cyber-blue transform rotate-45 -translate-x-1/2 z-10 shadow-[0_0_10px_#2979FF]" />
 
-      {/* Card */}
+      {/* Card - Clickable */}
       <div className="md:w-1/2 w-full pl-16 md:pl-0">
-        <div className="cyber-card p-6 rounded-none hover:bg-cyber-blue/5 transition-all group border-l-2 border-l-cyber-blue/50 relative">
+        <div 
+          onClick={handleClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && handleClick()}
+          className={`cyber-card p-5 rounded-none transition-all group border-l-2 border-l-cyber-blue/50 relative ${
+            lumaLink ? 'cursor-pointer hover:bg-cyber-blue/5 hover:border-l-cyber-blue hover:shadow-[0_0_20px_rgba(41,121,255,0.2)]' : ''
+          }`}
+        >
           <div className="flex justify-between items-start mb-3">
             <span className="px-2 py-0.5 bg-cyber-blue/10 text-[10px] font-bold font-mono uppercase tracking-wider text-cyber-blue border border-cyber-blue/20">
               {event.type}
@@ -102,21 +108,12 @@ function EventItem({ event, index }: { event: Event, index: number, key?: React.
             </div>
           </div>
 
-          <h3 className="text-xl font-display font-bold mb-2 group-hover:text-cyber-yellow transition-colors uppercase">{event.title}</h3>
+          <h3 className="text-lg font-display font-bold mb-2 group-hover:text-cyber-yellow transition-colors uppercase">{event.title}</h3>
 
-          <div className="flex items-center gap-2 text-white/50 mb-6 font-mono">
+          <div className="flex items-center gap-2 text-white/50 font-mono">
             <MapPin size={14} />
             <span className="text-xs">{event.location}</span>
           </div>
-
-          <button
-            onClick={handleRegister}
-            disabled={!lumaLink}
-            className="relative z-50 pointer-events-auto w-full py-2 bg-white/5 hover:bg-cyber-blue hover:text-white font-bold font-display text-sm transition-all flex items-center justify-center gap-2 group/btn cyber-button disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            REGISTER
-            <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-          </button>
         </div>
       </div>
     </motion.div>

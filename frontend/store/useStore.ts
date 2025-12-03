@@ -268,15 +268,38 @@ export const useStore = create<AppState>((set, get) => ({
   connectWallet: async (provider) => {
     try {
       let addr: string | null = null;
+
+      console.log("[connectWallet] Provider:", provider);
+      console.log("[connectWallet] window.solana:", window.solana);
+      console.log("[connectWallet] window.solflare:", window.solflare);
+
       if (provider === "Phantom" && window.solana && window.solana.isPhantom) {
         const resp = await window.solana.connect();
+        console.log("[connectWallet] Phantom response:", resp);
         addr = resp?.publicKey?.toString() ?? null;
       } else if (provider === "Solflare" && window.solflare) {
-        const resp = await window.solflare.connect();
-        addr = resp?.publicKey?.toString() ?? resp?.publicKey ?? null;
+        // Solflare có thể cần kiểm tra isConnected hoặc connect trước
+        if (!window.solflare.isConnected) {
+          await window.solflare.connect();
+        }
+        // Lấy publicKey từ solflare - có thể là property trực tiếp
+        const publicKey = window.solflare.publicKey;
+        console.log("[connectWallet] Solflare publicKey:", publicKey);
+
+        if (publicKey) {
+          // publicKey có thể là object với toString() hoặc string trực tiếp
+          addr =
+            typeof publicKey === "string" ? publicKey : publicKey.toString();
+        }
       } else {
         console.warn("Wallet provider not found");
+        alert(
+          `${provider} không được cài đặt hoặc không khả dụng. Vui lòng cài extension ${provider}.`
+        );
+        return;
       }
+
+      console.log("[connectWallet] Final address:", addr);
 
       if (!addr) {
         set({ isWalletConnected: false });
