@@ -134,6 +134,7 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
       setBillImage(null);
       setBillFile(null);
       
+      alert('SUCCESS');
       onSubmitted();
     } catch (err) {
       console.error('[Finance] Submit failed:', err);
