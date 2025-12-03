@@ -9,9 +9,9 @@ import { Link } from 'react-router-dom';
 export function Dashboard() {
   const { events } = useStore();
 
-  // Get 3 nearest upcoming events
+  // Get 3 nearest upcoming events - sorted by date descending (newest first)
   const nearestEvents = [...events]
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 3);
 
   return (
@@ -112,60 +112,9 @@ export function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {nearestEvents.map((event, idx) => {
-            const lumaLink = event.lumaLink || event.luma_link;
-            const handleCardClick = () => {
-              if (lumaLink) {
-                window.open(lumaLink, '_blank', 'noopener,noreferrer');
-              }
-            };
-            
-            return (
-              <motion.div 
-                key={event.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                onClick={handleCardClick}
-                className="cyber-card p-6 relative overflow-hidden group cursor-pointer hover:border-cyber-blue transition-all bg-surface/50"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-cyber-blue/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                
-                <div className="flex justify-between items-start relative z-10 mb-4">
-                  <span className="px-2 py-0.5 border border-white/10 text-[10px] font-mono uppercase bg-black/50 text-white/60">
-                    {event.type}
-                  </span>
-                  <div className="text-right">
-                     <div className="text-2xl font-display font-bold text-white/20 group-hover:text-cyber-blue transition-colors">
-                       {event.date?.split('-')[2] || '--'}
-                     </div>
-                     <div className="text-[10px] font-mono text-white/40 uppercase">
-                       {event.date ? new Date(event.date).toLocaleString('default', { month: 'short' }) : '---'}
-                     </div>
-                  </div>
-                </div>
-
-                <h3 className="text-xl font-display font-bold mb-2 text-white group-hover:text-cyber-yellow transition-colors truncate">
-                  {event.title}
-                </h3>
-                <p className="text-cyber-blue font-mono text-xs mb-4">{event.location}</p>
-                
-                {lumaLink ? (
-                  <div className="text-[10px] font-bold font-display uppercase tracking-widest flex items-center gap-2 text-cyber-blue group-hover:text-white transition-colors">
-                    Register Now <ArrowRight size={12} />
-                  </div>
-                ) : (
-                  <Link 
-                    to="/events" 
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-[10px] font-bold font-display uppercase tracking-widest flex items-center gap-2 text-white/40 group-hover:text-white transition-colors"
-                  >
-                    View Details <ArrowRight size={12} />
-                  </Link>
-                )}
-              </motion.div>
-            );
-          })}
+          {nearestEvents.map((event, idx) => (
+            <EventCard key={event.id} event={event} idx={idx} />
+          ))}
           {nearestEvents.length === 0 && (
             <div className="col-span-3 text-center py-10 border border-dashed border-white/10 text-white/20 font-mono text-sm">
               NO SCHEDULED EVENTS
@@ -174,6 +123,72 @@ export function Dashboard() {
         </div>
       </section>
     </div>
+  );
+}
+
+// Separate EventCard component to avoid closure issues
+function EventCard({ event, idx }: { event: any, idx: number }) {
+  const lumaLink = event.lumaLink || event.luma_link;
+  
+  const openLink = () => {
+    if (lumaLink) {
+      window.open(lumaLink, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: idx * 0.1 }}
+      onClick={openLink}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && openLink()}
+      className={clsx(
+        "cyber-card p-6 relative overflow-hidden group transition-all bg-surface/50",
+        lumaLink ? "cursor-pointer hover:border-cyber-blue" : ""
+      )}
+    >
+      {/* Hover gradient - pointer-events-none to not block clicks */}
+      <div className="absolute inset-0 bg-gradient-to-br from-cyber-blue/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+      
+      {/* Header with type and date */}
+      <div className="flex justify-between items-start mb-4 relative">
+        <span className="px-2 py-0.5 border border-white/10 text-[10px] font-mono uppercase bg-black/50 text-white/60">
+          {event.type}
+        </span>
+        <div className="text-right">
+          <div className="text-2xl font-display font-bold text-white/20 group-hover:text-cyber-blue transition-colors">
+            {event.date?.split('-')[2] || '--'}
+          </div>
+          <div className="text-[10px] font-mono text-white/40 uppercase">
+            {event.date ? new Date(event.date).toLocaleString('default', { month: 'short' }) : '---'}
+          </div>
+        </div>
+      </div>
+
+      {/* Title and location */}
+      <h3 className="text-xl font-display font-bold mb-2 text-white group-hover:text-cyber-yellow transition-colors truncate">
+        {event.title}
+      </h3>
+      <p className="text-cyber-blue font-mono text-xs mb-4">{event.location}</p>
+      
+      {/* CTA text */}
+      {lumaLink ? (
+        <span className="text-[10px] font-bold font-display uppercase tracking-widest flex items-center gap-2 text-cyber-blue group-hover:text-white transition-colors">
+          Register Now <ArrowRight size={12} />
+        </span>
+      ) : (
+        <Link 
+          to="/events" 
+          onClick={(e) => e.stopPropagation()}
+          className="text-[10px] font-bold font-display uppercase tracking-widest flex items-center gap-2 text-white/40 group-hover:text-white transition-colors"
+        >
+          View Details <ArrowRight size={12} />
+        </Link>
+      )}
+    </motion.div>
   );
 }
 

@@ -85,11 +85,11 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
     <>
       <div className="fixed top-0 left-0 right-0 z-[9000] flex justify-center px-2 md:px-4">
         {/* Cyber Deck Navbar Container - Compact */}
-        <nav className="relative w-full max-w-7xl bg-surface/80 backdrop-blur-md border-b border-l border-r border-cyber-blue/30 px-3 md:px-4 py-2.5 md:py-3 nav-shape shadow-[0_5px_20px_rgba(41,121,255,0.2)]">
+        <nav className="relative w-full max-w-5xl bg-surface/80 backdrop-blur-md border-b border-l border-r border-cyber-blue/30 px-3 md:px-6 py-2.5 md:py-3 nav-shape shadow-[0_5px_20px_rgba(41,121,255,0.2)]">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-cyber-blue/50" />
           <div className="absolute bottom-0 left-1/4 right-1/4 h-[2px] bg-cyber-blue shadow-[0_0_10px_#2979FF]" />
 
-          <div className="flex items-center justify-between gap-2 md:gap-3">
+          <div className="flex items-center justify-between gap-4">
             {/* Logo Area - Compact */}
             <div className="flex items-center gap-2 text-cyber-blue font-display font-bold tracking-wider shrink-0">
                <img src="/logo.png" alt="DSUC Logo" className="w-7 h-7 md:w-8 md:h-8 object-contain drop-shadow-[0_0_8px_rgba(41,121,255,0.5)]" />
@@ -151,19 +151,22 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
 
                 {/* Dropdown Menu - Use Portal for highest z-index */}
                 {moreDropdownOpen && ReactDOM.createPortal(
-                  <div 
-                    className="fixed inset-0 z-[99999]"
-                    onClick={() => setMoreDropdownOpen(false)}
-                  >
+                  <>
+                    {/* Invisible backdrop to close on click outside */}
+                    <div 
+                      className="fixed inset-0 z-[99998]"
+                      onClick={() => setMoreDropdownOpen(false)}
+                    />
+                    {/* Actual dropdown menu */}
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      onClick={(e) => e.stopPropagation()}
                       style={{
                         position: 'fixed',
                         top: moreButtonRef.current ? moreButtonRef.current.getBoundingClientRect().bottom + 8 : 60,
                         right: moreButtonRef.current ? window.innerWidth - moreButtonRef.current.getBoundingClientRect().right : 100,
+                        zIndex: 99999,
                       }}
                       className="w-48 bg-surface/98 backdrop-blur-md border border-cyber-blue/30 shadow-[0_5px_30px_rgba(41,121,255,0.4)] overflow-hidden"
                     >
@@ -174,7 +177,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                           onClick={() => setMoreDropdownOpen(false)}
                           className={({ isActive }) =>
                             twMerge(
-                              "flex items-center gap-3 px-4 py-3 text-xs font-display font-bold uppercase tracking-wide transition-all duration-200 border-l-2",
+                              "flex items-center gap-3 px-4 py-3 text-xs font-display font-bold uppercase tracking-wide transition-all duration-200 border-l-2 pointer-events-auto",
                               isActive
                                 ? "text-cyber-blue bg-cyber-blue/10 border-cyber-blue"
                                 : "text-white/60 hover:text-white hover:bg-white/5 border-transparent"
@@ -186,17 +189,24 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                         </NavLink>
                       ))}
                     </motion.div>
-                  </div>,
+                  </>,
                   document.body
                 )}
               </div>
             </div>
 
-            {/* Wallet / Profile Button - Compact */}
+            {/* Mobile Toggle - Bên trái trên mobile */}
+            <div className="md:hidden flex items-center">
+               <button onClick={() => setMobileMenuOpen(true)} className="text-cyber-blue">
+                 <Menu size={24} />
+               </button>
+            </div>
+
+            {/* Wallet / Profile Button - Bên phải */}
             {isWalletConnected && currentUser ? (
               <button
                 onClick={() => navigate('/profile')}
-                className="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-cyber-dark border border-cyber-blue cyber-button hover:bg-cyber-blue/10 transition-colors group shrink-0"
+                className="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-cyber-dark border border-cyber-blue cyber-button hover:bg-cyber-blue/10 transition-colors group shrink-0 ml-auto md:ml-0"
               >
                 <div className="w-6 h-6 rounded-full border border-cyber-blue/50 overflow-hidden">
                   <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
@@ -208,19 +218,12 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
             ) : (
               <button
                 onClick={onConnectClick}
-                className="cyber-button px-4 py-1.5 text-xs font-bold font-display uppercase tracking-widest transition-all duration-300 flex items-center gap-2 border bg-cyber-yellow text-black border-cyber-yellow hover:bg-white hover:border-white hover:shadow-[0_0_15px_#FFD600] shrink-0"
+                className="cyber-button px-4 py-1.5 text-xs font-bold font-display uppercase tracking-widest transition-all duration-300 flex items-center gap-2 border bg-cyber-yellow text-black border-cyber-yellow hover:bg-white hover:border-white hover:shadow-[0_0_15px_#FFD600] shrink-0 ml-auto md:ml-0"
               >
                 <Wallet size={14} />
                 <span className="hidden md:inline">Connect</span>
               </button>
             )}
-
-            {/* Mobile Toggle */}
-            <div className="md:hidden flex items-center gap-4 ml-auto">
-               <button onClick={() => setMobileMenuOpen(true)} className="text-cyber-blue">
-                 <Menu size={24} />
-               </button>
-            </div>
           </div>
         </nav>
       </div>
