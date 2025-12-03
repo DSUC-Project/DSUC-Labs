@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { supabase } from "../index";
+import { db } from "../index";
 import {
   authenticateWallet,
   AuthRequest,
@@ -11,7 +11,7 @@ const router = Router();
 // GET /api/finance-history - Get all finance history (public)
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const { data: history, error } = await supabase
+    const { data: history, error } = await db
       .from("finance_history")
       .select("*")
       .order("date", { ascending: false });
@@ -71,7 +71,7 @@ router.post(
         });
       }
 
-      const { data: history, error } = await supabase
+      const { data: history, error } = await db
         .from("finance_history")
         .insert({
           requester_id,

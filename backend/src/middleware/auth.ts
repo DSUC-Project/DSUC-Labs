@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { supabase } from '../index';
+import { db } from '../index';
 import { PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
+
+const USE_MOCK_DB = process.env.USE_MOCK_DB === 'true';
 
 // Extend Express Request to include user info
 export interface AuthRequest extends Request {
@@ -33,25 +35,36 @@ export async function authenticateWallet(
       });
     }
 
-    // Validate Solana address format
-    try {
-      new PublicKey(walletAddress);
-    } catch (error) {
-      return res.status(400).json({
-        error: 'Invalid Wallet',
-        message: 'Invalid Solana wallet address format',
-      });
+    // In mock mode, skip Solana validation for simpler local dev
+    if (!USE_MOCK_DB) {
+      // Validate Solana address format (production only)
+      try {
+        new PublicKey(walletAddress);
+      } catch (error) {
+        return res.status(400).json({
+          error: 'Invalid Wallet',
+          message: 'Invalid Solana wallet address format',
+        });
+      }
     }
 
     // Query member from database
-    const { data: member, error } = await supabase
+    let query = db
       .from('members')
       .select('*')
-      .eq('wallet_address', walletAddress)
-      .eq('is_active', true)
-      .single();
+      .eq('wallet_address', walletAddress);
 
-    if (error || !member) {
+    // Only check is_active in production (Supabase has this field)
+    if (!USE_MOCK_DB) {
+      query = query.eq('is_active', true);
+    }
+
+    const { data: member, error } = await (USE_MOCK_DB ? query : query.single());
+
+    // In mock mode, get first result from array
+    const foundMember = USE_MOCK_DB ? (Array.isArray(member) ? member[0] : member) : member;
+
+    if (error || !foundMember) {
       return res.status(404).json({
         error: 'Member Not Found',
         message: 'Wallet address not registered in the system',
@@ -59,7 +72,7 @@ export async function authenticateWallet(
     }
 
     // Attach user info to request
-    req.user = member;
+    req.user = foundMember;
     next();
   } catch (error: any) {
     console.error('Authentication error:', error);

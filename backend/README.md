@@ -6,9 +6,10 @@ Backend API cho DSUC Lab - Web3 Student Hub với Solana wallet authentication.
 
 - Node.js >= 18.x
 - npm hoặc yarn
-- Supabase account (miễn phí)
 
-## 🚀 Cài đặt
+## 🚀 Quick Start - Local Development
+
+Chỉ cần 3 bước để bắt đầu phát triển local:
 
 ### 1. Cài đặt dependencies
 
@@ -17,7 +18,42 @@ cd backend
 npm install
 ```
 
-### 2. Cấu hình Supabase
+### 2. Tạo file .env
+
+```bash
+cp .env.example.local .env
+```
+
+File `.env` đã được cấu hình sẵn với mock data - không cần Supabase!
+
+### 3. Chạy server
+
+```bash
+npm run dev
+```
+
+Server sẽ chạy tại `http://localhost:3001` với mock data đã có sẵn.
+
+### 🎯 Test với Mock Data
+
+Backend đã có sẵn mock data để test. Bạn có thể dùng các wallet address sau:
+
+**Mock Wallet Addresses:**
+- **Thodium (Vice-President):** `GEeWZoVZq9JQ9RgWy9zzkhvTAnYBKSvS2gzjXetqutFe`
+- **NekoNora (Tech-Lead):** `CYcvdzKjh8B699tbe3UnYM21Vzcp14JQqy5hXs9iUYBT`
+
+Thử test API:
+```bash
+curl http://localhost:3001/api/members
+curl http://localhost:3001/api/events
+curl http://localhost:3001/api/projects
+```
+
+## 🔧 Production Deployment
+
+Khi deploy lên production (Render, Vercel, etc.):
+
+### 1. Cấu hình Supabase
 
 #### Bước 1: Tạo project trên Supabase
 
@@ -29,50 +65,36 @@ npm install
 
 1. Vào **SQL Editor** trong Supabase Dashboard
 2. Chạy file `database/schema.sql` để tạo các bảng
-3. Chạy file `database/seed.sql` để thêm 15 tài khoản mẫu
+3. Chạy file `database/seed.sql` để thêm dữ liệu
 
 #### Bước 3: Tạo Storage Bucket
 
 1. Vào **Storage** trong Supabase Dashboard
-2. Tạo bucket mới tên `dsuc-lab`
+2. Tạo bucket mới tên `avatars`
 3. Set bucket thành **Public** để có thể truy cập ảnh
-4. Vào **Policies** và enable "Public access" cho bucket
 
-### 3. Cấu hình Environment Variables
+### 2. Cấu hình Environment Variables
 
-1. Copy file `.env.example` thành `.env`
-2. Điền thông tin Supabase:
-
-```bash
-cp .env.example .env
-```
-
-Sau đó sửa file `.env`:
+Sử dụng file `.env.example.deployment` làm reference:
 
 ```env
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
+USE_MOCK_DB=false
+NODE_ENV=production
 PORT=3001
-NODE_ENV=development
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=https://dsuc.fun
+
+# Supabase credentials
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-supabase-anon-key
+
+# Optional: ImageBB for uploads
+IMAGEBB_API_KEY=your-imagebb-api-key
 ```
 
-**Cách lấy Supabase credentials:**
+**Lấy Supabase credentials:**
 - Vào **Settings > API** trong Supabase Dashboard
-- Copy `Project URL` vào `SUPABASE_URL`
-- Copy `anon public` key vào `SUPABASE_ANON_KEY`
-
-### 4. Cập nhật wallet addresses trong seed.sql
-
-⚠️ **QUAN TRỌNG**: File `database/seed.sql` hiện có địa chỉ ví mẫu. Bạn cần thay thế bằng địa chỉ ví Solana thật của 15 thành viên.
-
-Mở file `database/seed.sql` và thay thế các địa chỉ ví:
-- `CxPRESIDENT1111111111111111111111111111111` (President)
-- `CxVICEPRES111111111111111111111111111111A` (Vice-President 1)
-- `CxVICEPRES111111111111111111111111111111B` (Vice-President 2)
-- ... và các địa chỉ khác
-
-Sau khi sửa xong, chạy lại file seed.sql trong SQL Editor.
+- Copy `Project URL` → `SUPABASE_URL`
+- Copy `anon public` key → `SUPABASE_ANON_KEY`
 
 ## 🏃 Chạy Backend
 

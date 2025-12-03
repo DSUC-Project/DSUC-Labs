@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { supabase } from "../index";
+import { db } from "../index";
 import {
   authenticateWallet,
   AuthRequest,
@@ -16,7 +16,7 @@ const router = Router();
 // GET /api/members - Get all members
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const { data: members, error } = await supabase
+    const { data: members, error } = await db
       .from("members")
       .select("*")
       .eq("is_active", true)
@@ -49,7 +49,7 @@ router.get("/:id", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const { data: member, error } = await supabase
+    const { data: member, error } = await db
       .from("members")
       .select("*")
       .eq("id", id)
@@ -88,7 +88,7 @@ router.post("/auth", async (req: Request, res: Response) => {
       });
     }
 
-    const { data: member, error } = await supabase
+    const { data: member, error } = await db
       .from("members")
       .select("*")
       .eq("wallet_address", wallet_address)
@@ -182,7 +182,7 @@ router.put(
         updateData.avatar = avatar;
       }
 
-      const { data: updatedMember, error } = await supabase
+      const { data: updatedMember, error } = await db
         .from("members")
         .update(updateData)
         .eq("id", id)
@@ -233,7 +233,7 @@ router.get("/wallet/:wallet_address", async (req: Request, res: Response) => {
   try {
     const { wallet_address } = req.params;
 
-    const { data: member, error } = await supabase
+    const { data: member, error } = await db
       .from("members")
       .select("*")
       .eq("wallet_address", wallet_address)

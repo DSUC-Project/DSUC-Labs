@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { supabase } from "../index";
+import { db } from "../index";
 import { authenticateWallet, AuthRequest } from "../middleware/auth";
 
 const router = Router();
@@ -11,7 +11,7 @@ router.get("/bounties", async (req: Request, res: Response) => {
   try {
     const { status } = req.query;
 
-    let query = supabase
+    let query = db
       .from("bounties")
       .select("*")
       .order("created_at", { ascending: false });
@@ -50,7 +50,7 @@ router.get("/bounties/:id", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const { data: bounty, error } = await supabase
+    const { data: bounty, error } = await db
       .from("bounties")
       .select("*")
       .eq("id", id)
@@ -103,7 +103,7 @@ router.post(
         created_by: req.user!.id,
       };
 
-      const { data: newBounty, error } = await supabase
+      const { data: newBounty, error } = await db
         .from("bounties")
         .insert([bountyData])
         .select()
@@ -142,7 +142,7 @@ router.put(
       const { title, description, reward, difficulty, tags, status } = req.body;
 
       // Check if bounty exists
-      const { data: existingBounty, error: fetchError } = await supabase
+      const { data: existingBounty, error: fetchError } = await db
         .from("bounties")
         .select("*")
         .eq("id", id)
@@ -176,7 +176,7 @@ router.put(
       if (tags) updateData.tags = tags;
       if (status) updateData.status = status;
 
-      const { data: updatedBounty, error } = await supabase
+      const { data: updatedBounty, error } = await db
         .from("bounties")
         .update(updateData)
         .eq("id", id)
@@ -223,7 +223,7 @@ router.delete(
         });
       }
 
-      const { error } = await supabase.from("bounties").delete().eq("id", id);
+      const { error } = await db.from("bounties").delete().eq("id", id);
 
       if (error) {
         console.error("Supabase error:", error);
@@ -252,7 +252,7 @@ router.delete(
 // GET /api/work/repos - Get all repos
 router.get("/repos", async (req: Request, res: Response) => {
   try {
-    const { data: repos, error } = await supabase
+    const { data: repos, error } = await db
       .from("repos")
       .select("*")
       .order("stars", { ascending: false });
@@ -284,7 +284,7 @@ router.get("/repos/:id", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const { data: repo, error } = await supabase
+    const { data: repo, error } = await db
       .from("repos")
       .select("*")
       .eq("id", id)
@@ -335,7 +335,7 @@ router.post(
         created_by: req.user!.id,
       };
 
-      const { data: newRepo, error } = await supabase
+      const { data: newRepo, error } = await db
         .from("repos")
         .insert([repoData])
         .select()
@@ -374,7 +374,7 @@ router.put(
       const { name, description, language, url, stars, forks } = req.body;
 
       // Check if repo exists
-      const { data: existingRepo, error: fetchError } = await supabase
+      const { data: existingRepo, error: fetchError } = await db
         .from("repos")
         .select("*")
         .eq("id", id)
@@ -408,7 +408,7 @@ router.put(
       if (stars !== undefined) updateData.stars = stars;
       if (forks !== undefined) updateData.forks = forks;
 
-      const { data: updatedRepo, error } = await supabase
+      const { data: updatedRepo, error } = await db
         .from("repos")
         .update(updateData)
         .eq("id", id)
@@ -455,7 +455,7 @@ router.delete(
         });
       }
 
-      const { error } = await supabase.from("repos").delete().eq("id", id);
+      const { error } = await db.from("repos").delete().eq("id", id);
 
       if (error) {
         console.error("Supabase error:", error);

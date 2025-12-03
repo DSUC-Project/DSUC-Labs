@@ -3,6 +3,8 @@ import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { supabase } from "../index";
 
+const USE_MOCK_DB = process.env.USE_MOCK_DB === 'true';
+
 // Configure multer for memory storage
 const storage = multer.memoryStorage();
 
@@ -39,11 +41,17 @@ export async function uploadToSupabase(
   file: Express.Multer.File,
   folder: string = "uploads"
 ): Promise<string> {
+  // In mock mode, return placeholder URL
+  if (USE_MOCK_DB) {
+    console.log('[MOCK] Skipping Supabase upload, returning placeholder');
+    return `https://via.placeholder.com/150x150?text=${folder}`;
+  }
+
   try {
     const fileExt = path.extname(file.originalname);
     const fileName = `${folder}/${uuidv4()}${fileExt}`;
 
-    const { data, error } = await supabase.storage
+    const { data, error } = await supabase!.storage
       .from("avatars") // Bucket name - changed from 'dsuc-lab' to 'avatars'
       .upload(fileName, file.buffer, {
         contentType: file.mimetype,
@@ -56,7 +64,7 @@ export async function uploadToSupabase(
     }
 
     // Get public URL
-    const { data: publicUrlData } = supabase.storage
+    const { data: publicUrlData } = supabase!.storage
       .from("avatars")
       .getPublicUrl(fileName);
 
@@ -72,6 +80,12 @@ export async function uploadBase64ToSupabase(
   base64String: string,
   folder: string = "uploads"
 ): Promise<string> {
+  // In mock mode, return placeholder URL
+  if (USE_MOCK_DB) {
+    console.log('[MOCK] Skipping base64 Supabase upload, returning placeholder');
+    return `https://via.placeholder.com/150x150?text=${folder}`;
+  }
+
   try {
     // Remove data:image/png;base64, prefix if exists
     const base64Data = base64String.replace(/^data:image\/\w+;base64,/, "");
@@ -92,7 +106,7 @@ export async function uploadBase64ToSupabase(
 
     const fileName = `${folder}/${uuidv4()}${ext}`;
 
-    const { data, error } = await supabase.storage
+    const { data, error } = await supabase!.storage
       .from("avatars") // Changed from 'dsuc-lab' to 'avatars'
       .upload(fileName, buffer, {
         contentType: `image/${ext.replace(".", "")}`,
@@ -105,7 +119,7 @@ export async function uploadBase64ToSupabase(
     }
 
     // Get public URL
-    const { data: publicUrlData } = supabase.storage
+    const { data: publicUrlData } = supabase!.storage
       .from("avatars") // Changed from 'dsuc-lab' to 'avatars'
       .getPublicUrl(fileName);
 
@@ -120,6 +134,12 @@ export async function uploadBase64ToSupabase(
 export async function uploadBase64ToImageBB(
   base64String: string
 ): Promise<string> {
+  // In mock mode, return placeholder URL
+  if (USE_MOCK_DB) {
+    console.log('[MOCK] Skipping ImageBB upload, returning placeholder');
+    return 'https://via.placeholder.com/400x300?text=UploadedImage';
+  }
+
   try {
     // ImageBB API key
     const API_KEY =

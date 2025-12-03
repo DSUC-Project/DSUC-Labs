@@ -1,6 +1,6 @@
 # DSUC Lab - Web3 Student Hub Documentation
 
-Tài liệu này mô tả chi tiết chức năng Frontend hiện tại và hướng dẫn xây dựng Backend (Node.js + Supabase) để thay thế dữ liệu giả (Mock Data).
+Tài liệu này mô tả chi tiết chức năng Frontend và hướng dẫn sử dụng Backend API đã được xây dựng sẵn.
 
 ---
 
@@ -100,7 +100,11 @@ Gồm 4 Tabs chức năng:
 
 # PHẦN 2: HƯỚNG DẪN BUILD BACKEND (NODE.JS + SUPABASE)
 
-Để bỏ Mock Data, bạn cần xây dựng Backend. Dưới đây là kiến trúc Database và API mapping chính xác với Frontend.
+Backend đã được xây dựng sẵn với mock data để phát triển local. Khi deploy production cần kết nối Supabase.
+
+**Xem hướng dẫn setup chi tiết:**
+- **Backend Setup & API:** [backend/README.md](./backend/README.md)
+- **Frontend Setup:** [frontend/README.md](./frontend/README.md)
 
 ## BƯỚC 1: SUPABASE DATABASE SCHEMA
 
@@ -192,7 +196,7 @@ CREATE TABLE resources (
 
 ## BƯỚC 2: NODE.JS API ENDPOINTS MAPPING
 
-Tạo một Express Server (`app.js`). Dưới đây là mapping giữa các nút trên Frontend và API cần gọi.
+Backend đã có sẵn các API endpoints. Dưới đây là mapping giữa các nút trên Frontend và API cần gọi:
 
 ### 1. Members & Auth
 - **GET** `/api/members` -> Trả về danh sách cho trang `/members`.
@@ -226,9 +230,17 @@ Tạo một Express Server (`app.js`). Dưới đây là mapping giữa các nú
 - **GET/POST** `/api/repos` -> Trang Work (Repos).
 - **GET/POST** `/api/resources` -> Trang Resources.
 
-## BƯỚC 3: CÁCH BỎ MOCK DATA TRONG FRONTEND
+## BƯỚC 3: KẾT NỐI FRONTEND VỚI BACKEND
 
-Bạn cần sửa file `store/useStore.ts`. Thay vì gán giá trị cứng, hãy dùng `fetch` (hoặc `axios`) để gọi API.
+Frontend kết nối với backend thông qua biến môi trường `VITE_API_BASE_URL` trong file `.env`:
+
+```env
+# Local development
+VITE_API_BASE_URL=http://localhost:3001
+
+# Production
+VITE_API_BASE_URL=https://your-backend-url.com
+```
 
 **Ví dụ sửa Action `addProject`:**
 

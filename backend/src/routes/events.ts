@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { supabase } from '../index';
+import { db } from '../index';
 import { authenticateWallet, AuthRequest } from '../middleware/auth';
 
 const router = Router();
@@ -9,7 +9,7 @@ router.get('/', async (req: Request, res: Response) => {
   try {
     const { upcoming, limit } = req.query;
 
-    let query = supabase
+    let query = db
       .from('events')
       .select('*');
 
@@ -56,7 +56,7 @@ router.get('/recent', async (req: Request, res: Response) => {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    const { data: events, error } = await supabase
+    const { data: events, error } = await db
       .from('events')
       .select('*')
       .gte('date', today)
@@ -90,7 +90,7 @@ router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const { data: event, error } = await supabase
+    const { data: event, error } = await db
       .from('events')
       .select('*')
       .eq('id', id)
@@ -138,7 +138,7 @@ router.post('/', authenticateWallet, async (req: AuthRequest, res: Response) => 
       created_by: req.user!.id,
     };
 
-    const { data: newEvent, error } = await supabase
+    const { data: newEvent, error } = await db
       .from('events')
       .insert([eventData])
       .select()
@@ -173,7 +173,7 @@ router.put('/:id', authenticateWallet, async (req: AuthRequest, res: Response) =
     const { title, date, time, type, location, attendees } = req.body;
 
     // Check if event exists
-    const { data: existingEvent, error: fetchError } = await supabase
+    const { data: existingEvent, error: fetchError } = await db
       .from('events')
       .select('*')
       .eq('id', id)
@@ -204,7 +204,7 @@ router.put('/:id', authenticateWallet, async (req: AuthRequest, res: Response) =
     if (location !== undefined) updateData.location = location;
     if (attendees !== undefined) updateData.attendees = attendees;
 
-    const { data: updatedEvent, error } = await supabase
+    const { data: updatedEvent, error } = await db
       .from('events')
       .update(updateData)
       .eq('id', id)
@@ -247,7 +247,7 @@ router.delete('/:id', authenticateWallet, async (req: AuthRequest, res: Response
       });
     }
 
-    const { error } = await supabase
+    const { error } = await db
       .from('events')
       .delete()
       .eq('id', id);
@@ -279,7 +279,7 @@ router.post('/:id/register', authenticateWallet, async (req: AuthRequest, res: R
     const { id } = req.params;
 
     // Get current event
-    const { data: event, error: fetchError } = await supabase
+    const { data: event, error: fetchError } = await db
       .from('events')
       .select('*')
       .eq('id', id)
@@ -293,7 +293,7 @@ router.post('/:id/register', authenticateWallet, async (req: AuthRequest, res: R
     }
 
     // Increment attendees
-    const { data: updatedEvent, error } = await supabase
+    const { data: updatedEvent, error } = await db
       .from('events')
       .update({ attendees: event.attendees + 1 })
       .eq('id', id)

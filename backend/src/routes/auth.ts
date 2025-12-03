@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { supabase } from "../index";
+import { db } from "../index";
 
 const router = Router();
 
@@ -15,7 +15,7 @@ router.post("/wallet", async (req: Request, res: Response) => {
       });
     }
 
-    const { data: member, error } = await supabase
+    const { data: member, error } = await db
       .from("members")
       .select("*")
       .eq("wallet_address", wallet_address)

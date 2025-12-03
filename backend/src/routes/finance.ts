@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { supabase } from "../index";
+import { db } from "../index";
 import {
   authenticateWallet,
   AuthRequest,
@@ -77,7 +77,7 @@ router.post(
         JSON.stringify(requestData, null, 2)
       );
 
-      const { data: newRequest, error } = await supabase
+      const { data: newRequest, error } = await db
         .from("finance_requests")
         .insert([requestData])
         .select()
@@ -119,7 +119,7 @@ router.get(
   requireAdmin,
   async (req: AuthRequest, res: Response) => {
     try {
-      const { data: requests, error } = await supabase
+      const { data: requests, error } = await db
         .from("finance_requests")
         .select("*")
         .eq("status", "pending")
@@ -154,7 +154,7 @@ router.get(
   authenticateWallet,
   async (req: AuthRequest, res: Response) => {
     try {
-      const { data: requests, error } = await supabase
+      const { data: requests, error } = await db
         .from("finance_requests")
         .select("*")
         .in("status", ["completed", "rejected"])
@@ -189,7 +189,7 @@ router.get(
   authenticateWallet,
   async (req: AuthRequest, res: Response) => {
     try {
-      const { data: requests, error } = await supabase
+      const { data: requests, error } = await db
         .from("finance_requests")
         .select("*")
         .eq("requester_id", req.user!.id)
@@ -227,7 +227,7 @@ router.get(
       const { id } = req.params;
 
       // Get finance request
-      const { data: request, error: requestError } = await supabase
+      const { data: request, error: requestError } = await db
         .from("finance_requests")
         .select("*")
         .eq("id", id)
@@ -241,7 +241,7 @@ router.get(
       }
 
       // Get requester's bank info
-      const { data: requester, error: memberError } = await supabase
+      const { data: requester, error: memberError } = await db
         .from("members")
         .select("bank_info, name")
         .eq("id", request.requester_id)
@@ -281,7 +281,7 @@ router.post(
       const { id } = req.params;
 
       // Check if request exists and is pending
-      const { data: request, error: fetchError } = await supabase
+      const { data: request, error: fetchError } = await db
         .from("finance_requests")
         .select("*")
         .eq("id", id)
@@ -302,7 +302,7 @@ router.post(
       }
 
       // Update status to completed
-      const { data: updatedRequest, error } = await supabase
+      const { data: updatedRequest, error } = await db
         .from("finance_requests")
         .update({
           status: "completed",
@@ -322,7 +322,7 @@ router.post(
       }
 
       // Add to finance_history for public ledger
-      const { data: historyData, error: historyError } = await supabase
+      const { data: historyData, error: historyError } = await db
         .from("finance_history")
         .insert({
           requester_id: request.requester_id,
@@ -369,7 +369,7 @@ router.post(
       const { id } = req.params;
 
       // Check if request exists and is pending
-      const { data: request, error: fetchError } = await supabase
+      const { data: request, error: fetchError } = await db
         .from("finance_requests")
         .select("*")
         .eq("id", id)
@@ -390,7 +390,7 @@ router.post(
       }
 
       // Update status to rejected
-      const { data: updatedRequest, error } = await supabase
+      const { data: updatedRequest, error } = await db
         .from("finance_requests")
         .update({
           status: "rejected",
@@ -410,7 +410,7 @@ router.post(
       }
 
       // Add to finance_history for public ledger
-      const { data: historyData, error: historyError } = await supabase
+      const { data: historyData, error: historyError } = await db
         .from("finance_history")
         .insert({
           requester_id: request.requester_id,
@@ -453,7 +453,7 @@ router.get(
   authenticateWallet,
   async (req: AuthRequest, res: Response) => {
     try {
-      const { data: members, error } = await supabase
+      const { data: members, error } = await db
         .from("members")
         .select("id, name, avatar, role, bank_info")
         .eq("is_active", true)
@@ -470,7 +470,7 @@ router.get(
       // Filter members who actually have bank account number
       const membersWithBank =
         members?.filter(
-          (member) => member.bank_info && member.bank_info.accountNo
+          (member: any) => member.bank_info && member.bank_info.accountNo
         ) || [];
 
       res.json({

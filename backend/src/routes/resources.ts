@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { supabase } from '../index';
+import { db } from '../index';
 import { authenticateWallet, AuthRequest } from '../middleware/auth';
 
 const router = Router();
@@ -9,7 +9,7 @@ router.get('/', async (req: Request, res: Response) => {
   try {
     const { category, type } = req.query;
 
-    let query = supabase
+    let query = db
       .from('resources')
       .select('*')
       .order('created_at', { ascending: false });
@@ -52,7 +52,7 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/categories', async (req: Request, res: Response) => {
   try {
     // Get all resources grouped by category
-    const { data: resources, error } = await supabase
+    const { data: resources, error } = await db
       .from('resources')
       .select('category');
 
@@ -66,7 +66,7 @@ router.get('/categories', async (req: Request, res: Response) => {
 
     // Count resources by category
     const categoryCounts: { [key: string]: number } = {};
-    resources?.forEach((resource) => {
+    resources?.forEach((resource: any) => {
       const cat = resource.category || 'Uncategorized';
       categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
     });
@@ -94,7 +94,7 @@ router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const { data: resource, error } = await supabase
+    const { data: resource, error } = await db
       .from('resources')
       .select('*')
       .eq('id', id)
@@ -141,7 +141,7 @@ router.post('/', authenticateWallet, async (req: AuthRequest, res: Response) => 
       created_by: req.user!.id,
     };
 
-    const { data: newResource, error } = await supabase
+    const { data: newResource, error } = await db
       .from('resources')
       .insert([resourceData])
       .select()
@@ -176,7 +176,7 @@ router.put('/:id', authenticateWallet, async (req: AuthRequest, res: Response) =
     const { name, type, url, size, category } = req.body;
 
     // Check if resource exists
-    const { data: existingResource, error: fetchError } = await supabase
+    const { data: existingResource, error: fetchError } = await db
       .from('resources')
       .select('*')
       .eq('id', id)
@@ -206,7 +206,7 @@ router.put('/:id', authenticateWallet, async (req: AuthRequest, res: Response) =
     if (size !== undefined) updateData.size = size;
     if (category) updateData.category = category;
 
-    const { data: updatedResource, error } = await supabase
+    const { data: updatedResource, error } = await db
       .from('resources')
       .update(updateData)
       .eq('id', id)
@@ -249,7 +249,7 @@ router.delete('/:id', authenticateWallet, async (req: AuthRequest, res: Response
       });
     }
 
-    const { error } = await supabase
+    const { error } = await db
       .from('resources')
       .delete()
       .eq('id', id);

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { supabase } from '../index';
+import { db } from '../index';
 import { authenticateWallet, AuthRequest } from '../middleware/auth';
 import { uploadBase64ToSupabase } from '../middleware/upload';
 
@@ -10,7 +10,7 @@ router.get('/', async (req: Request, res: Response) => {
   try {
     const { category } = req.query;
 
-    let query = supabase
+    let query = db
       .from('projects')
       .select('*')
       .order('created_at', { ascending: false });
@@ -49,7 +49,7 @@ router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const { data: project, error } = await supabase
+    const { data: project, error } = await db
       .from('projects')
       .select('*')
       .eq('id', id)
@@ -113,7 +113,7 @@ router.post('/', authenticateWallet, async (req: AuthRequest, res: Response) => 
       projectData.image_url = image_url;
     }
 
-    const { data: newProject, error } = await supabase
+    const { data: newProject, error } = await db
       .from('projects')
       .insert([projectData])
       .select()
@@ -148,7 +148,7 @@ router.put('/:id', authenticateWallet, async (req: AuthRequest, res: Response) =
     const { name, description, category, builders, link, repo_link, image_url } = req.body;
 
     // Check if project exists and user has permission
-    const { data: existingProject, error: fetchError } = await supabase
+    const { data: existingProject, error: fetchError } = await db
       .from('projects')
       .select('*')
       .eq('id', id)
@@ -195,7 +195,7 @@ router.put('/:id', authenticateWallet, async (req: AuthRequest, res: Response) =
       updateData.image_url = image_url;
     }
 
-    const { data: updatedProject, error } = await supabase
+    const { data: updatedProject, error } = await db
       .from('projects')
       .update(updateData)
       .eq('id', id)
@@ -238,7 +238,7 @@ router.delete('/:id', authenticateWallet, async (req: AuthRequest, res: Response
       });
     }
 
-    const { error } = await supabase
+    const { error } = await db
       .from('projects')
       .delete()
       .eq('id', id);
