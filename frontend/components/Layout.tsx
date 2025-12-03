@@ -97,14 +97,14 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
             </div>
 
             {/* Desktop Nav - Compact Links + More Dropdown */}
-            <div className="hidden lg:flex items-center gap-0.5">
+            <div className="hidden lg:flex items-center gap-1">
               {mainLinks.map((link) => (
                 <NavLink
                   key={link.path}
                   to={link.path}
                   className={({ isActive }) =>
                     twMerge(
-                      "relative px-2.5 py-1.5 text-[10px] font-display font-bold uppercase tracking-wide transition-all duration-300 hover:text-cyber-yellow group",
+                      "relative px-3 py-2 text-xs font-display font-bold uppercase tracking-wide transition-all duration-300 hover:text-cyber-yellow group",
                       isActive ? "text-cyber-blue" : "text-white/60"
                     )
                   }
@@ -120,25 +120,25 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                           className="absolute -bottom-0.5 left-0 right-0 h-[1px] bg-cyber-blue shadow-[0_0_8px_#2979FF]"
                         />
                       )}
-                      <div className="absolute inset-0 bg-cyber-blue/5 scale-x-0 group-hover:scale-x-100 transition-transform origin-center -skew-x-12" />
+                      <div className="absolute inset-0 bg-cyber-blue/5 scale-x-0 group-hover:scale-x-100 transition-transform origin-center -skew-x-12 pointer-events-none" />
                     </>
                   )}
                 </NavLink>
               ))}
 
               {/* More Dropdown */}
-              <div className="relative z-[9100]">
+              <div className="relative">
                 <button
                   ref={moreButtonRef}
                   onClick={() => setMoreDropdownOpen(!moreDropdownOpen)}
                   className={twMerge(
-                    "relative px-2.5 py-1.5 text-[10px] font-display font-bold uppercase tracking-wide transition-all duration-300 hover:text-cyber-yellow group flex items-center gap-0.5",
+                    "relative px-3 py-2 text-xs font-display font-bold uppercase tracking-wide transition-all duration-300 hover:text-cyber-yellow group flex items-center gap-1",
                     isMoreActive ? "text-cyber-blue" : "text-white/60"
                   )}
                 >
-                  <span className="relative z-10 flex items-center gap-0.5">
+                  <span className="relative z-10 flex items-center gap-1">
                     More
-                    <ChevronDown size={12} className={twMerge("transition-transform", moreDropdownOpen && "rotate-180")} />
+                    <ChevronDown size={14} className={twMerge("transition-transform", moreDropdownOpen && "rotate-180")} />
                   </span>
                   {isMoreActive && (
                     <motion.div
@@ -146,17 +146,26 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                       className="absolute -bottom-0.5 left-0 right-0 h-[1px] bg-cyber-blue shadow-[0_0_8px_#2979FF]"
                     />
                   )}
-                  <div className="absolute inset-0 bg-cyber-blue/5 scale-x-0 group-hover:scale-x-100 transition-transform origin-center -skew-x-12" />
+                  <div className="absolute inset-0 bg-cyber-blue/5 scale-x-0 group-hover:scale-x-100 transition-transform origin-center -skew-x-12 pointer-events-none" />
                 </button>
 
-                {/* Dropdown Menu - Highest z-index */}
-                <AnimatePresence>
-                  {moreDropdownOpen && (
+                {/* Dropdown Menu - Use Portal for highest z-index */}
+                {moreDropdownOpen && ReactDOM.createPortal(
+                  <div 
+                    className="fixed inset-0 z-[99999]"
+                    onClick={() => setMoreDropdownOpen(false)}
+                  >
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="absolute top-full right-0 mt-2 w-44 bg-surface/98 backdrop-blur-md border border-cyber-blue/30 shadow-[0_5px_30px_rgba(41,121,255,0.3)] overflow-hidden z-[9999]"
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        position: 'fixed',
+                        top: moreButtonRef.current ? moreButtonRef.current.getBoundingClientRect().bottom + 8 : 60,
+                        right: moreButtonRef.current ? window.innerWidth - moreButtonRef.current.getBoundingClientRect().right : 100,
+                      }}
+                      className="w-48 bg-surface/98 backdrop-blur-md border border-cyber-blue/30 shadow-[0_5px_30px_rgba(41,121,255,0.4)] overflow-hidden"
                     >
                       {moreLinks.map((link) => (
                         <NavLink
@@ -165,20 +174,21 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                           onClick={() => setMoreDropdownOpen(false)}
                           className={({ isActive }) =>
                             twMerge(
-                              "flex items-center gap-2.5 px-3 py-2.5 text-[10px] font-display font-bold uppercase tracking-wide transition-all duration-200 border-l-2",
+                              "flex items-center gap-3 px-4 py-3 text-xs font-display font-bold uppercase tracking-wide transition-all duration-200 border-l-2",
                               isActive
                                 ? "text-cyber-blue bg-cyber-blue/10 border-cyber-blue"
                                 : "text-white/60 hover:text-white hover:bg-white/5 border-transparent"
                             )
                           }
                         >
-                          <link.icon size={14} />
+                          <link.icon size={16} />
                           {link.name}
                         </NavLink>
                       ))}
                     </motion.div>
-                  )}
-                </AnimatePresence>
+                  </div>,
+                  document.body
+                )}
               </div>
             </div>
 
@@ -186,21 +196,21 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
             {isWalletConnected && currentUser ? (
               <button
                 onClick={() => navigate('/profile')}
-                className="flex items-center gap-2 pl-1.5 pr-3 py-1 bg-cyber-dark border border-cyber-blue cyber-button hover:bg-cyber-blue/10 transition-colors group shrink-0"
+                className="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-cyber-dark border border-cyber-blue cyber-button hover:bg-cyber-blue/10 transition-colors group shrink-0"
               >
-                <div className="w-5 h-5 rounded-full border border-cyber-blue/50 overflow-hidden">
+                <div className="w-6 h-6 rounded-full border border-cyber-blue/50 overflow-hidden">
                   <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
                 </div>
-                <span className="text-[10px] font-bold font-mono text-cyber-blue group-hover:text-cyber-yellow transition-colors uppercase tracking-wider hidden md:inline">
+                <span className="text-xs font-bold font-mono text-cyber-blue group-hover:text-cyber-yellow transition-colors uppercase tracking-wider hidden md:inline">
                   {currentUser.name?.split(' ')[0] || 'User'}
                 </span>
               </button>
             ) : (
               <button
                 onClick={onConnectClick}
-                className="cyber-button px-3 md:px-4 py-1 text-[10px] font-bold font-display uppercase tracking-widest transition-all duration-300 flex items-center gap-1.5 border bg-cyber-yellow text-black border-cyber-yellow hover:bg-white hover:border-white hover:shadow-[0_0_15px_#FFD600] shrink-0"
+                className="cyber-button px-4 py-1.5 text-xs font-bold font-display uppercase tracking-widest transition-all duration-300 flex items-center gap-2 border bg-cyber-yellow text-black border-cyber-yellow hover:bg-white hover:border-white hover:shadow-[0_0_15px_#FFD600] shrink-0"
               >
-                <Wallet size={12} />
+                <Wallet size={14} />
                 <span className="hidden md:inline">Connect</span>
               </button>
             )}

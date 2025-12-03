@@ -96,11 +96,21 @@ export const useStore = create<AppState>((set, get) => ({
         console.log("[fetchMembers] Result:", result);
 
         if (result && result.success && result.data) {
-          // Normalize backend data: map bank_info to bankInfo
-          const members = result.data.map((m: any) => ({
-            ...m,
-            bankInfo: m.bank_info || m.bankInfo,
-          }));
+          // Normalize backend data: map bank_info to bankInfo with camelCase fields
+          const members = result.data.map((m: any) => {
+            const rawBankInfo = m.bank_info || m.bankInfo;
+            return {
+              ...m,
+              bankInfo: rawBankInfo
+                ? {
+                    bankId: rawBankInfo.bankId || rawBankInfo.bank_id,
+                    accountNo: rawBankInfo.accountNo || rawBankInfo.account_no,
+                    accountName:
+                      rawBankInfo.accountName || rawBankInfo.account_name,
+                  }
+                : null,
+            };
+          });
           console.log("[fetchMembers] Setting members:", members.length);
           set({ members });
         }
@@ -647,7 +657,16 @@ export const useStore = create<AppState>((set, get) => ({
         return;
       }
 
-      const res = await fetch(`${base}/api/finance/pending`, {
+      // Admin roles can see all pending requests
+      const adminRoles = ["President", "Vice-President", "Tech-Lead"];
+      const isAdmin = adminRoles.includes(state.currentUser.role || "");
+
+      // Use appropriate endpoint based on role
+      const endpoint = isAdmin
+        ? "/api/finance/pending"
+        : "/api/finance/my-requests";
+
+      const res = await fetch(`${base}${endpoint}`, {
         headers: {
           "x-wallet-address": state.walletAddress,
         },
@@ -656,7 +675,11 @@ export const useStore = create<AppState>((set, get) => ({
       if (res.ok) {
         const result = await res.json();
         if (result && result.success && result.data) {
-          set({ financeRequests: result.data });
+          // For non-admin, filter to only show pending requests
+          const pendingRequests = isAdmin
+            ? result.data
+            : result.data.filter((r: any) => r.status === "pending");
+          set({ financeRequests: pendingRequests });
         }
       }
     } catch (e) {

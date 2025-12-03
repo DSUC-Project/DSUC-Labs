@@ -411,8 +411,13 @@ function ApprovalModal({ request, onClose, onApprove, onReject }: { request: Fin
   // Find requester to get their bank info
   const requester = members.find(m => m.id === request.requesterId);
   
-  // Get normalized bank info
-  const requesterBankInfo = requester ? (requester.bankInfo || requester.bank_info) : null;
+  // Get normalized bank info - handle both camelCase and snake_case
+  const rawBankInfo = requester ? (requester.bankInfo || requester.bank_info) : null;
+  const requesterBankInfo = rawBankInfo ? {
+    bankId: rawBankInfo.bankId || (rawBankInfo as any).bank_id,
+    accountNo: rawBankInfo.accountNo || (rawBankInfo as any).account_no,
+    accountName: rawBankInfo.accountName || (rawBankInfo as any).account_name
+  } : null;
   
   // Default Club Account if requester has no bank info
   const DEFAULT_ACCOUNT_NO = "0356616096"; 

@@ -129,7 +129,7 @@ export function Dashboard() {
                 onClick={handleCardClick}
                 className="cyber-card p-6 relative overflow-hidden group cursor-pointer hover:border-cyber-blue transition-all bg-surface/50"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-cyber-blue/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute inset-0 bg-gradient-to-br from-cyber-blue/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                 
                 <div className="flex justify-between items-start relative z-10 mb-4">
                   <span className="px-2 py-0.5 border border-white/10 text-[10px] font-mono uppercase bg-black/50 text-white/60">
