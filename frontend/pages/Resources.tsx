@@ -83,23 +83,35 @@ function ResourceCard({ resource, index }: { resource: Resource, index: number, 
   };
   const Icon = getIcon();
 
+  const handleAccess = () => {
+    if (resource.url) {
+      window.open(resource.url, '_blank', 'noopener,noreferrer');
+    } else {
+      alert('Resource link not available');
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: index * 0.05 }}
+      onClick={handleAccess}
       className="cyber-card p-6 group cursor-pointer hover:bg-cyber-blue/5 transition-colors flex flex-col items-center text-center gap-4 border border-cyber-blue/20 hover:border-cyber-blue bg-surface/50"
     >
       <div className={`w-14 h-14 bg-cyber-blue/10 flex items-center justify-center text-cyber-blue group-hover:scale-110 transition-transform duration-300 clip-path-polygon border border-cyber-blue/20`}>
         <Icon size={24} />
       </div>
-      
+
       <div>
         <h3 className="font-bold font-display text-sm mb-1 line-clamp-1 text-white">{resource.name}</h3>
         <p className="text-[9px] text-white/40 uppercase font-bold tracking-wider font-mono">{resource.category} {resource.size && `• ${resource.size}`}</p>
       </div>
 
-      <button className="mt-auto w-full py-2 bg-white/5 text-[10px] font-bold font-mono hover:bg-cyber-blue hover:text-white transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 duration-200 uppercase tracking-widest">
+      <button
+        onClick={(e) => { e.stopPropagation(); handleAccess(); }}
+        className="relative z-10 pointer-events-auto mt-auto w-full py-2 bg-white/5 text-[10px] font-bold font-mono hover:bg-cyber-blue hover:text-white transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 duration-200 uppercase tracking-widest"
+      >
         <Download size={10} />
         ACCESS DATA
       </button>

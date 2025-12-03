@@ -109,13 +109,13 @@ function BountyCard({ bounty }: { bounty: Bounty; key?: React.Key }) {
   };
 
   return (
-    <motion.div 
+    <motion.div
       whileHover={{ scale: 1.02 }}
-      className="cyber-card p-5 group border border-cyber-blue/20 hover:border-cyber-blue transition-all bg-surface/50"
+      className="cyber-card p-5 group border border-cyber-blue/20 hover:border-cyber-blue transition-all bg-surface/50 relative"
     >
       <div className="flex justify-between items-start mb-3">
-         <span className={clsx("text-[10px] font-bold px-2 py-0.5 font-mono uppercase border", 
-            bounty.difficulty === 'Easy' ? 'text-green-400 border-green-400/20' : 
+         <span className={clsx("text-[10px] font-bold px-2 py-0.5 font-mono uppercase border",
+            bounty.difficulty === 'Easy' ? 'text-green-400 border-green-400/20' :
             bounty.difficulty === 'Medium' ? 'text-cyber-yellow border-cyber-yellow/20' : 'text-red-400 border-red-400/20'
          )}>
            {bounty.difficulty}
@@ -129,9 +129,9 @@ function BountyCard({ bounty }: { bounty: Bounty; key?: React.Key }) {
         ))}
       </div>
       {bounty.submitLink && (
-        <button 
+        <button
           onClick={handleSubmit}
-          className="w-full py-2 bg-cyber-blue/10 hover:bg-cyber-blue hover:text-white text-cyber-blue font-bold font-display text-xs transition-all flex items-center justify-center gap-2 border border-cyber-blue/20 hover:border-cyber-blue group/btn"
+          className="relative z-50 pointer-events-auto w-full py-2 bg-cyber-blue/10 hover:bg-cyber-blue hover:text-white text-cyber-blue font-bold font-display text-xs transition-all flex items-center justify-center gap-2 border border-cyber-blue/20 hover:border-cyber-blue group/btn"
         >
           SUBMIT BOUNTY
           <ExternalLink size={12} className="group-hover/btn:translate-x-0.5 transition-transform" />
@@ -155,10 +155,10 @@ function RepoList() {
   return (
     <div className="grid grid-cols-1 gap-4">
       {repos.map((repo) => (
-        <motion.div 
+        <motion.div
           key={repo.id}
           whileHover={{ x: 5 }}
-          className="cyber-card p-6 flex items-center justify-between group border-l-2 border-transparent hover:border-l-cyber-blue transition-all bg-surface/50"
+          className="cyber-card p-6 flex items-center justify-between group border-l-2 border-transparent hover:border-l-cyber-blue transition-all bg-surface/50 relative"
         >
           <div className="flex items-center gap-6">
             <div className="w-10 h-10 bg-cyber-blue/5 flex items-center justify-center text-cyber-blue group-hover:text-white group-hover:bg-cyber-blue transition-colors border border-cyber-blue/20">
@@ -179,10 +179,10 @@ function RepoList() {
                 <div className="flex items-center gap-1"><Star size={12} className="text-cyber-yellow" /> {repo.stars}</div>
                 <div className="flex items-center gap-1"><GitBranch size={12} /> {repo.forks}</div>
              </div>
-             <button 
+             <button
                onClick={() => handleRepoClick(repo.repoLink)}
                disabled={!repo.repoLink}
-               className="p-2 hover:bg-white/10 text-white/40 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+               className="relative z-50 pointer-events-auto p-2 hover:bg-white/10 text-white/40 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
              >
                <ExternalLink size={18} />
              </button>

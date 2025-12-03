@@ -83,41 +83,41 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
 
   return (
     <>
-      <div className="fixed top-0 left-0 right-0 z-[9000] flex justify-center px-4">
-        {/* Cyber Deck Navbar Container - Full Width */}
-        <nav className="relative w-full max-w-7xl bg-surface/80 backdrop-blur-md border-b border-l border-r border-cyber-blue/30 px-6 py-4 nav-shape shadow-[0_5px_20px_rgba(41,121,255,0.2)]">
+      <div className="fixed top-0 left-0 right-0 z-[9000] flex justify-center px-2 md:px-4">
+        {/* Cyber Deck Navbar Container - Compact */}
+        <nav className="relative w-full max-w-7xl bg-surface/80 backdrop-blur-md border-b border-l border-r border-cyber-blue/30 px-3 md:px-4 py-2.5 md:py-3 nav-shape shadow-[0_5px_20px_rgba(41,121,255,0.2)]">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-cyber-blue/50" />
           <div className="absolute bottom-0 left-1/4 right-1/4 h-[2px] bg-cyber-blue shadow-[0_0_10px_#2979FF]" />
-          
-          <div className="flex items-center justify-between gap-4">
-            {/* Logo Area */}
-            <div className="flex items-center gap-3 text-cyber-blue font-display font-bold tracking-wider shrink-0">
-               <img src="/logo.png" alt="DSUC Logo" className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(41,121,255,0.5)]" />
-               <span className="hidden sm:inline text-sm md:text-base whitespace-nowrap">DSUC LAB</span>
+
+          <div className="flex items-center justify-between gap-2 md:gap-3">
+            {/* Logo Area - Compact */}
+            <div className="flex items-center gap-2 text-cyber-blue font-display font-bold tracking-wider shrink-0">
+               <img src="/logo.png" alt="DSUC Logo" className="w-7 h-7 md:w-8 md:h-8 object-contain drop-shadow-[0_0_8px_rgba(41,121,255,0.5)]" />
+               <span className="hidden sm:inline text-xs md:text-sm whitespace-nowrap">DSUC LAB</span>
             </div>
 
-            {/* Desktop Nav - Main Links + More Dropdown */}
-            <div className="hidden lg:flex items-center gap-1">
+            {/* Desktop Nav - Compact Links + More Dropdown */}
+            <div className="hidden lg:flex items-center gap-0.5">
               {mainLinks.map((link) => (
                 <NavLink
                   key={link.path}
                   to={link.path}
                   className={({ isActive }) =>
                     twMerge(
-                      "relative px-3 py-1.5 text-xs font-display font-bold uppercase tracking-wide transition-all duration-300 hover:text-cyber-yellow group",
+                      "relative px-2.5 py-1.5 text-[10px] font-display font-bold uppercase tracking-wide transition-all duration-300 hover:text-cyber-yellow group",
                       isActive ? "text-cyber-blue" : "text-white/60"
                     )
                   }
                 >
                   {({ isActive }) => (
                     <>
-                      <span className="relative z-10 flex items-center gap-2">
+                      <span className="relative z-10 flex items-center gap-1.5">
                         {link.name}
                       </span>
                       {isActive && (
                         <motion.div
                           layoutId="nav-glow"
-                          className="absolute -bottom-1 left-0 right-0 h-[1px] bg-cyber-blue shadow-[0_0_8px_#2979FF]"
+                          className="absolute -bottom-0.5 left-0 right-0 h-[1px] bg-cyber-blue shadow-[0_0_8px_#2979FF]"
                         />
                       )}
                       <div className="absolute inset-0 bg-cyber-blue/5 scale-x-0 group-hover:scale-x-100 transition-transform origin-center -skew-x-12" />
@@ -127,36 +127,36 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
               ))}
 
               {/* More Dropdown */}
-              <div className="relative">
+              <div className="relative z-[9100]">
                 <button
                   ref={moreButtonRef}
                   onClick={() => setMoreDropdownOpen(!moreDropdownOpen)}
                   className={twMerge(
-                    "relative px-3 py-1.5 text-xs font-display font-bold uppercase tracking-wide transition-all duration-300 hover:text-cyber-yellow group flex items-center gap-1",
+                    "relative px-2.5 py-1.5 text-[10px] font-display font-bold uppercase tracking-wide transition-all duration-300 hover:text-cyber-yellow group flex items-center gap-0.5",
                     isMoreActive ? "text-cyber-blue" : "text-white/60"
                   )}
                 >
-                  <span className="relative z-10 flex items-center gap-1">
+                  <span className="relative z-10 flex items-center gap-0.5">
                     More
-                    <ChevronDown size={14} className={twMerge("transition-transform", moreDropdownOpen && "rotate-180")} />
+                    <ChevronDown size={12} className={twMerge("transition-transform", moreDropdownOpen && "rotate-180")} />
                   </span>
                   {isMoreActive && (
                     <motion.div
                       layoutId="nav-glow"
-                      className="absolute -bottom-1 left-0 right-0 h-[1px] bg-cyber-blue shadow-[0_0_8px_#2979FF]"
+                      className="absolute -bottom-0.5 left-0 right-0 h-[1px] bg-cyber-blue shadow-[0_0_8px_#2979FF]"
                     />
                   )}
                   <div className="absolute inset-0 bg-cyber-blue/5 scale-x-0 group-hover:scale-x-100 transition-transform origin-center -skew-x-12" />
                 </button>
 
-                {/* Dropdown Menu */}
+                {/* Dropdown Menu - Highest z-index */}
                 <AnimatePresence>
                   {moreDropdownOpen && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="absolute top-full right-0 mt-2 w-48 bg-surface/95 backdrop-blur-md border border-cyber-blue/30 shadow-[0_5px_20px_rgba(41,121,255,0.2)] overflow-hidden"
+                      className="absolute top-full right-0 mt-2 w-44 bg-surface/98 backdrop-blur-md border border-cyber-blue/30 shadow-[0_5px_30px_rgba(41,121,255,0.3)] overflow-hidden z-[9999]"
                     >
                       {moreLinks.map((link) => (
                         <NavLink
@@ -165,14 +165,14 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                           onClick={() => setMoreDropdownOpen(false)}
                           className={({ isActive }) =>
                             twMerge(
-                              "flex items-center gap-3 px-4 py-3 text-xs font-display font-bold uppercase tracking-wide transition-all duration-200 border-l-2",
+                              "flex items-center gap-2.5 px-3 py-2.5 text-[10px] font-display font-bold uppercase tracking-wide transition-all duration-200 border-l-2",
                               isActive
                                 ? "text-cyber-blue bg-cyber-blue/10 border-cyber-blue"
                                 : "text-white/60 hover:text-white hover:bg-white/5 border-transparent"
                             )
                           }
                         >
-                          <link.icon size={16} />
+                          <link.icon size={14} />
                           {link.name}
                         </NavLink>
                       ))}
@@ -182,26 +182,26 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
               </div>
             </div>
 
-            {/* Wallet / Profile Button */}
+            {/* Wallet / Profile Button - Compact */}
             {isWalletConnected && currentUser ? (
-              <button 
+              <button
                 onClick={() => navigate('/profile')}
-                className="flex items-center gap-3 pl-2 pr-4 py-1.5 bg-cyber-dark border border-cyber-blue cyber-button hover:bg-cyber-blue/10 transition-colors group"
+                className="flex items-center gap-2 pl-1.5 pr-3 py-1 bg-cyber-dark border border-cyber-blue cyber-button hover:bg-cyber-blue/10 transition-colors group shrink-0"
               >
-                <div className="w-6 h-6 rounded-full border border-cyber-blue/50 overflow-hidden">
+                <div className="w-5 h-5 rounded-full border border-cyber-blue/50 overflow-hidden">
                   <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
                 </div>
-                <span className="text-xs font-bold font-mono text-cyber-blue group-hover:text-cyber-yellow transition-colors uppercase tracking-wider">
+                <span className="text-[10px] font-bold font-mono text-cyber-blue group-hover:text-cyber-yellow transition-colors uppercase tracking-wider hidden md:inline">
                   {currentUser.name?.split(' ')[0] || 'User'}
                 </span>
               </button>
             ) : (
               <button
                 onClick={onConnectClick}
-                className="cyber-button px-5 py-1.5 text-xs font-bold font-display uppercase tracking-widest transition-all duration-300 flex items-center gap-2 border bg-cyber-yellow text-black border-cyber-yellow hover:bg-white hover:border-white hover:shadow-[0_0_15px_#FFD600]"
+                className="cyber-button px-3 md:px-4 py-1 text-[10px] font-bold font-display uppercase tracking-widest transition-all duration-300 flex items-center gap-1.5 border bg-cyber-yellow text-black border-cyber-yellow hover:bg-white hover:border-white hover:shadow-[0_0_15px_#FFD600] shrink-0"
               >
-                <Wallet size={14} />
-                Connect
+                <Wallet size={12} />
+                <span className="hidden md:inline">Connect</span>
               </button>
             )}
 
