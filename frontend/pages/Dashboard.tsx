@@ -127,14 +127,14 @@ export function Dashboard() {
 
 // Separate EventCard component to avoid closure issues
 function EventCard({ event, idx }: { event: any, idx: number }) {
-  const lumaLink = event.lumaLink || event.luma_link;
+  const luma_link = event.luma_link || event.luma_link;
   
-  console.log("[EventCard] Event:", event.title, "lumaLink:", lumaLink, "raw event:", event);
+  console.log("[EventCard] Event:", event.title, "luma_link:", luma_link, "raw event:", event);
   
   const handleClick = () => {
-    console.log("[EventCard] Clicked! lumaLink:", lumaLink);
-    if (lumaLink) {
-      window.open(lumaLink, '_blank', 'noopener,noreferrer');
+    console.log("[EventCard] Clicked! luma_link:", luma_link);
+    if (luma_link) {
+      window.open(luma_link, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -149,7 +149,7 @@ function EventCard({ event, idx }: { event: any, idx: number }) {
       onKeyDown={(e) => e.key === 'Enter' && handleClick()}
       className={clsx(
         "cyber-card p-4 relative overflow-hidden group transition-all bg-surface/50",
-        lumaLink ? "cursor-pointer hover:border-cyber-blue hover:shadow-[0_0_20px_rgba(41,121,255,0.3)]" : "cursor-default"
+        luma_link ? "cursor-pointer hover:border-cyber-blue hover:shadow-[0_0_20px_rgba(41,121,255,0.3)]" : "cursor-default"
       )}
     >
       {/* Hover gradient */}

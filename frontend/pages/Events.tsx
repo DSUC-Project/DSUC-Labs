@@ -61,11 +61,11 @@ export function Events() {
 
 function EventItem({ event, index }: { event: Event, index: number, key?: React.Key }) {
   const isLeft = index % 2 === 0;
-  const lumaLink = event.lumaLink || event.luma_link;
+  const luma_link = event.luma_link || event.luma_link;
 
   const handleClick = () => {
-    if (lumaLink) {
-      window.open(lumaLink, '_blank', 'noopener,noreferrer');
+    if (luma_link) {
+      window.open(luma_link, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -95,7 +95,7 @@ function EventItem({ event, index }: { event: Event, index: number, key?: React.
           tabIndex={0}
           onKeyDown={(e) => e.key === 'Enter' && handleClick()}
           className={`cyber-card p-5 rounded-none transition-all group border-l-2 border-l-cyber-blue/50 relative ${
-            lumaLink ? 'cursor-pointer hover:bg-cyber-blue/5 hover:border-l-cyber-blue hover:shadow-[0_0_20px_rgba(41,121,255,0.2)]' : ''
+            luma_link ? 'cursor-pointer hover:bg-cyber-blue/5 hover:border-l-cyber-blue hover:shadow-[0_0_20px_rgba(41,121,255,0.2)]' : ''
           }`}
         >
           <div className="flex justify-between items-start mb-3">
@@ -134,7 +134,7 @@ function AddEventModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose: (
       date: formData.get('date') as string,
       time: formData.get('time') as string,
       location: formData.get('location') as string,
-      lumaLink: formData.get('lumaLink') as string,
+      luma_link: formData.get('luma_link') as string,
       type: 'Workshop',
       attendees: 0
     });
@@ -176,7 +176,7 @@ function AddEventModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose: (
           
           <div className="space-y-2">
             <label className="text-[10px] font-mono text-white/40 uppercase">Luma Registration Link</label>
-            <input name="lumaLink" type="url" placeholder="https://lu.ma/..." required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
+            <input name="luma_link" type="url" placeholder="https://lu.ma/..." required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
             <p className="text-[9px] font-mono text-white/30">Users will be redirected here when they click Register</p>
           </div>
           

@@ -30,7 +30,7 @@ export interface Event {
   type: "Workshop" | "Hackathon" | "Social";
   location: string;
   attendees: number;
-  lumaLink?: string;
+  luma_link?: string;
   luma_link?: string; // Backend snake_case
 }
 

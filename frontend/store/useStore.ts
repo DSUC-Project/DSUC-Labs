@@ -170,7 +170,7 @@ export const useStore = create<AppState>((set, get) => ({
           // Normalize snake_case to camelCase
           const events = result.data.map((e: any) => ({
             ...e,
-            lumaLink: e.luma_link || e.lumaLink,
+            luma_link: e.luma_link || e.luma_link,
           }));
           console.log("[fetchEvents] Normalized events:", events);
           set({ events });
@@ -422,7 +422,7 @@ export const useStore = create<AppState>((set, get) => ({
           type: event.type,
           location: event.location,
           attendees: event.attendees || 0,
-          luma_link: event.lumaLink,
+          luma_link: event.luma_link,
         }),
       });
 
