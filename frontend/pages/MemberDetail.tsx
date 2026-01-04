@@ -9,7 +9,7 @@ export function MemberDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { members } = useStore();
-  
+
   const member = members.find(m => m.id === id);
 
   if (!member) {
@@ -18,7 +18,7 @@ export function MemberDetail() {
 
   return (
     <div className="max-w-5xl mx-auto pt-10">
-      <button 
+      <button
         onClick={() => navigate('/members')}
         className="mb-8 flex items-center gap-2 text-white/40 hover:text-cyber-yellow transition-colors font-mono text-xs uppercase tracking-widest"
       >
@@ -28,7 +28,7 @@ export function MemberDetail() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
         {/* Left Column: Avatar & Basic Stats */}
         <div className="md:col-span-1 flex flex-col items-center">
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="relative w-64 h-64 mb-8"
@@ -36,43 +36,43 @@ export function MemberDetail() {
             {/* Spinning Rings */}
             <div className="absolute inset-0 rounded-full border border-cyber-blue/30 border-t-transparent animate-spin duration-3000" />
             <div className="absolute inset-2 rounded-full border border-cyber-yellow/20 border-b-transparent animate-spin duration-2000 direction-reverse" />
-            
+
             <div className="absolute inset-4 rounded-full overflow-hidden border-2 border-white/10 bg-black">
-              <img src={member.avatar} alt={member.name} className="w-full h-full object-cover grayscale contrast-125" />
+              <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
             </div>
-            
+
             <div className="absolute bottom-4 right-4 bg-cyber-blue text-black font-bold font-mono text-[10px] px-2 py-0.5 border border-white">
               LVL 1
             </div>
           </motion.div>
 
           <div className="w-full space-y-4">
-             <div className="cyber-card p-4 bg-surface/50 border border-cyber-blue/20 text-center">
-                <span className="block text-cyber-blue text-2xl font-display font-bold">100%</span>
-                <span className="text-[10px] text-white/40 uppercase font-mono tracking-wider">Mission Success Rate</span>
-             </div>
-             <div className="cyber-card p-4 bg-surface/50 border border-cyber-blue/20 text-center">
-                <span className="block text-cyber-yellow text-2xl font-display font-bold">ACTIVE</span>
-                <span className="text-[10px] text-white/40 uppercase font-mono tracking-wider">Current Status</span>
-             </div>
+            <div className="cyber-card p-4 bg-surface/50 border border-cyber-blue/20 text-center">
+              <span className="block text-cyber-blue text-2xl font-display font-bold">100%</span>
+              <span className="text-[10px] text-white/40 uppercase font-mono tracking-wider">Mission Success Rate</span>
+            </div>
+            <div className="cyber-card p-4 bg-surface/50 border border-cyber-blue/20 text-center">
+              <span className="block text-cyber-yellow text-2xl font-display font-bold">ACTIVE</span>
+              <span className="text-[10px] text-white/40 uppercase font-mono tracking-wider">Current Status</span>
+            </div>
           </div>
         </div>
 
         {/* Right Column: Detailed Dossier */}
         <div className="md:col-span-2 space-y-10">
           <div>
-            <motion.h1 
+            <motion.h1
               initial={{ x: 20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               className="text-5xl md:text-6xl font-display font-bold text-white mb-2 uppercase"
             >
               {member.name}
             </motion.h1>
-            <motion.div 
-               initial={{ x: 20, opacity: 0 }}
-               animate={{ x: 0, opacity: 1 }}
-               transition={{ delay: 0.1 }}
-               className="flex items-center gap-4"
+            <motion.div
+              initial={{ x: 20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              className="flex items-center gap-4"
             >
               <span className="text-xl font-mono text-cyber-blue uppercase tracking-widest border-b border-cyber-blue/30 pb-1">
                 {member.role}
@@ -90,7 +90,7 @@ export function MemberDetail() {
               </h3>
               <div className="flex flex-wrap gap-2">
                 {member.skills.map((skill, i) => (
-                  <motion.span 
+                  <motion.span
                     key={skill}
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -126,7 +126,7 @@ export function MemberDetail() {
               </div>
             </div>
           </div>
-          
+
           <div className="border-t border-white/10 pt-8 mt-12 flex items-center justify-between">
             <div className="flex items-center gap-2 text-white/30 text-[10px] font-mono uppercase">
               <Globe size={12} />
