@@ -159,13 +159,7 @@ export function SkillInput({ skills, onChange, maxSkills = 5 }: SkillInputProps)
                 </div>
             )}
 
-            {/* Helper text */}
-            <div className="flex justify-between mt-2 text-xs font-mono text-white/40">
-                <span>Press Enter or comma to add • Backspace to remove</span>
-                <span className={skills.length >= maxSkills ? "text-cyber-yellow" : ""}>
-                    {skills.length}/{maxSkills}
-                </span>
-            </div>
+            {/* Helper text removed */}
         </div>
     );
 }
