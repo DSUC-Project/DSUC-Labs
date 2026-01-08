@@ -16,9 +16,6 @@ export function Members() {
           <h2 className="text-4xl font-display font-bold mb-1 text-white">OPERATIVES</h2>
           <p className="text-cyber-blue font-mono text-sm">Active contributors in the network.</p>
         </div>
-        <div className="font-mono text-sm text-cyber-yellow border border-cyber-yellow/30 px-3 py-1 bg-cyber-yellow/5">
-          {members.length} UNITS ONLINE
-        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

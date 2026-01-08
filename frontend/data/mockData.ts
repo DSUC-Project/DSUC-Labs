@@ -1,42 +1,22 @@
 import { Member, Event, Bounty, Repo, Resource, Project, Bank } from "../types";
 
-export const AVAILABLE_SKILLS: string[] = [
-  'React',
-  'TypeScript',
-  'Node.js',
-  'Rust',
-  'Solana',
-  'Smart Contracts',
-  'Web3',
-  'Python',
-  'UI/UX Design',
-  'DevOps',
-  'Docker',
-  'PostgreSQL',
-  'MongoDB',
-  'GraphQL',
-  'Next.js',
-  'Blockchain',
-  'DeFi',
-  'NFT Development',
-  'Testing',
-  'AWS'
-];
+// Re-export skills from the comprehensive library
+export { AVAILABLE_SKILLS } from './skillsLibrary';
 
 export const ROLES: string[] = [
-  'President',
-  'Vice-President',
-  'Tech-Lead',
-  'Media-Lead',
-  'Member'
+    'President',
+    'Vice-President',
+    'Tech-Lead',
+    'Media-Lead',
+    'Member'
 ];
 
 export const BANKS: Bank[] = [
-  { id: '970422', name: 'Techcombank' },
-  { id: '970407', name: 'Vietcombank' },
-  { id: '970405', name: 'VietinBank' },
-  { id: '970415', name: 'Agribank' },
-  { id: '970403', name: 'BIDV' },
+    { id: '970422', name: 'Techcombank' },
+    { id: '970407', name: 'Vietcombank' },
+    { id: '970405', name: 'VietinBank' },
+    { id: '970415', name: 'Agribank' },
+    { id: '970403', name: 'BIDV' },
 ];
 
 export const MEMBERS: Member[] = [];
