@@ -26,14 +26,14 @@ function Background() {
     <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-background">
       {/* Grid */}
       <div className="absolute inset-0 bg-grid-pattern bg-[size:50px_50px] opacity-20" />
-      
+
       {/* Vignette */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#020408_100%)]" />
 
       {/* Blue Glow Top Center */}
       <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[60vw] h-[30vh] bg-cyber-blue/20 blur-[100px] rounded-full mix-blend-screen" />
-      
+
       {/* Scan Line */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-cyber-blue/5 to-transparent h-[20%] animate-scan opacity-30" />
     </div>
@@ -52,8 +52,8 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
     { name: 'Members', path: '/members', icon: Users },
     { name: 'Events', path: '/events', icon: Calendar },
     { name: 'Projects', path: '/projects', icon: Rocket },
-    { name: 'Finance', path: '/finance', icon: Calculator },
-    { name: 'Work', path: '/work', icon: Briefcase },
+    { name: 'Finance', path: '/finance', icon: Calculator, protected: true },
+    { name: 'Work', path: '/work', icon: Briefcase, protected: true },
     { name: 'Resources', path: '/resources', icon: Folder },
   ];
 
@@ -68,46 +68,54 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
           <div className="flex items-center justify-between gap-4">
             {/* Logo Area - Compact */}
             <div className="flex items-center gap-2 text-cyber-blue font-display font-bold tracking-wider shrink-0 ml-4 md:ml-6">
-               <img src="/logo.png" alt="DSUC Logo" className="w-7 h-7 md:w-8 md:h-8 object-contain drop-shadow-[0_0_8px_rgba(41,121,255,0.5)]" />
-               <span className="hidden sm:inline text-xs md:text-sm whitespace-nowrap">DSUC LAB</span>
+              <img src="/logo.png" alt="DSUC Logo" className="w-7 h-7 md:w-8 md:h-8 object-contain drop-shadow-[0_0_8px_rgba(41,121,255,0.5)]" />
+              <span className="hidden sm:inline text-xs md:text-sm whitespace-nowrap">DSUC LAB</span>
             </div>
 
             {/* Desktop Nav - All Links */}
             <div className="hidden lg:flex items-center gap-0.5">
-              {allLinks.map((link) => (
-                <NavLink
-                  key={link.path}
-                  to={link.path}
-                  className={({ isActive }) =>
-                    twMerge(
-                      "relative px-2.5 py-2 text-[11px] font-display font-bold uppercase tracking-wide transition-all duration-300 hover:text-cyber-yellow group",
-                      isActive ? "text-cyber-blue" : "text-white/60"
-                    )
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      <span className="relative z-10 flex items-center gap-1.5">
-                        {link.name}
-                      </span>
-                      {isActive && (
-                        <motion.div
-                          layoutId="nav-glow"
-                          className="absolute -bottom-0.5 left-0 right-0 h-[1px] bg-cyber-blue shadow-[0_0_8px_#2979FF]"
-                        />
+              {allLinks.map((link) => {
+                const isProtected = link.protected;
+                const isDisabled = isProtected && !currentUser;
+                return (
+                  <NavLink
+                    key={link.path}
+                    to={isDisabled ? '#' : link.path}
+                    tabIndex={isDisabled ? -1 : 0}
+                    className={({ isActive }) =>
+                      twMerge(
+                        "relative px-2.5 py-2 text-[11px] font-display font-bold uppercase tracking-wide transition-all duration-300 group",
+                        isActive ? "text-cyber-blue" : "text-white/60",
+                        isDisabled && "opacity-40 pointer-events-none select-none cursor-not-allowed"
+                      )
+                    }
+                  >
+                    <span className="relative z-10 flex items-center gap-1.5">
+                      {link.icon && <link.icon size={14} />}
+                      {link.name}
+                      {isDisabled && (
+                        <span className="ml-1 text-white/40" title="Login required">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                        </span>
                       )}
-                      <div className="absolute inset-0 bg-cyber-blue/5 scale-x-0 group-hover:scale-x-100 transition-transform origin-center -skew-x-12 pointer-events-none" />
-                    </>
-                  )}
-                </NavLink>
-              ))}
+                    </span>
+                    {isActive && (
+                      <motion.div
+                        layoutId="nav-glow"
+                        className="absolute -bottom-0.5 left-0 right-0 h-[1px] bg-cyber-blue shadow-[0_0_8px_#2979FF]"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-cyber-blue/5 scale-x-0 group-hover:scale-x-100 transition-transform origin-center -skew-x-12 pointer-events-none" />
+                  </NavLink>
+                );
+              })}
             </div>
 
             {/* Mobile Toggle - Bên trái trên mobile */}
             <div className="md:hidden flex items-center">
-               <button onClick={() => setMobileMenuOpen(true)} className="text-cyber-blue">
-                 <Menu size={24} />
-               </button>
+              <button onClick={() => setMobileMenuOpen(true)} className="text-cyber-blue">
+                <Menu size={24} />
+              </button>
             </div>
 
             {/* Wallet / Profile Button - Bên phải */}
@@ -139,7 +147,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
       {/* Mobile Menu Overlay */}
       <AnimatePresence>
         {mobileMenuOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: '100%' }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: '100%' }}
@@ -203,7 +211,7 @@ function WalletModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
@@ -216,17 +224,17 @@ function WalletModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void
           <Terminal size={40} className="mx-auto text-cyber-blue mb-2" />
           <h3 className="text-xl font-display font-bold text-white uppercase tracking-wider">Initialize Link</h3>
         </div>
-        
+
         <div className="space-y-3">
-          <button 
+          <button
             onClick={() => { connectWallet('Phantom'); onClose(); }}
             className="w-full p-4 border border-white/10 bg-white/5 hover:bg-cyber-blue/10 hover:border-cyber-blue transition-all flex items-center justify-between group cyber-button"
           >
             <span className="font-mono font-bold group-hover:text-cyber-blue transition-colors">Phantom Wallet</span>
             <div className="w-2 h-2 bg-purple-500 rounded-full shadow-[0_0_5px_purple]" />
           </button>
-          
-          <button 
+
+          <button
             onClick={() => { connectWallet('Solflare'); onClose(); }}
             className="w-full p-4 border border-white/10 bg-white/5 hover:bg-cyber-yellow/10 hover:border-cyber-yellow transition-all flex items-center justify-between group cyber-button"
           >
