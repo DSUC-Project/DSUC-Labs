@@ -8,8 +8,10 @@ import { useStore } from '../store/useStore';
 export function Dashboard() {
   const { events } = useStore();
 
-  // Get 3 nearest upcoming events - sorted by date descending (newest first)
-  const nearestEvents = [...events]
+  // Get 3 most recent past events (event history)
+  const now = new Date();
+  const eventHistory = [...events]
+    .filter(e => new Date(e.date) <= now)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 3);
 
@@ -17,7 +19,7 @@ export function Dashboard() {
     <div className="space-y-16">
       {/* Hero Section */}
       <section className="relative min-h-[50vh] flex flex-col justify-center items-center text-center pt-10">
-        
+
         {/* Technical Deco Lines */}
         <div className="absolute inset-0 pointer-events-none opacity-20">
           <div className="absolute top-1/2 left-0 w-32 h-[1px] bg-cyber-blue" />
@@ -43,51 +45,51 @@ export function Dashboard() {
         </div>
 
         <motion.div
-           initial={{ opacity: 0, scale: 0.9 }}
-           animate={{ opacity: 1, scale: 1 }}
-           className="mb-6 inline-flex items-center gap-2 px-3 py-1 border border-cyber-blue/30 rounded-full bg-cyber-blue/5 text-cyber-blue text-xs font-mono uppercase tracking-widest"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="mb-6 inline-flex items-center gap-2 px-3 py-1 border border-cyber-blue/30 rounded-full bg-cyber-blue/5 text-cyber-blue text-xs font-mono uppercase tracking-widest"
         >
           <span className="w-2 h-2 bg-cyber-blue rounded-full animate-pulse" />
           v2.0.4 System Ready
         </motion.div>
 
-        <motion.h1 
+        <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-5xl md:text-7xl font-display font-bold tracking-tight mb-6 max-w-4xl z-10 leading-[1.1] text-white"
         >
-          DUT SUPERTEAM <br/>
+          DUT SUPERTEAM <br />
           <span className="text-transparent bg-clip-text bg-gradient-to-b from-cyber-blue to-white/50">
             UNIVERSITY CLUB LABS
           </span>
         </motion.h1>
-        
-        <motion.p 
+
+        <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="text-lg text-white/60 max-w-xl mb-10 z-10 font-sans leading-relaxed"
         >
-          The central operating system for student builders. Manage bounties, deploy smart contracts, and track treasury assets on Solana.
+          A Web3 playground for DUT students to develop skills, launch Solana projects, and grow together as a tech community.
         </motion.p>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           className="flex flex-col sm:flex-row gap-4 z-10"
         >
-          <a 
-            href="https://forms.gle/Hy8Ng51DJgFdJkiw6" 
-            target="_blank" 
+          <a
+            href="https://forms.gle/Hy8Ng51DJgFdJkiw6"
+            target="_blank"
             rel="noreferrer"
             className="bg-cyber-yellow text-black font-display font-bold text-sm px-8 py-4 cyber-button hover:bg-white transition-all hover:shadow-[0_0_20px_rgba(255,214,0,0.5)] flex items-center justify-center gap-2"
           >
             JOIN WITH US <ArrowUpRight size={18} />
           </a>
-          <a 
-            href="https://www.facebook.com/superteamdut.club" 
-            target="_blank" 
+          <a
+            href="https://www.facebook.com/superteamdut.club"
+            target="_blank"
             rel="noreferrer"
             className="border border-cyber-blue/50 text-cyber-blue font-display font-bold text-sm px-8 py-4 cyber-button hover:bg-cyber-blue/10 transition-colors flex items-center justify-center gap-2"
           >
@@ -99,24 +101,26 @@ export function Dashboard() {
       {/* Stats Tickers - Updated Content */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-b border-cyber-blue/20 py-8 bg-surface/30">
         <StatCard label="Total Member" value="15" suffix="HACKERS" />
-        <StatCard label="Active Projects" value="10+" suffix="PRJ" />
-        <StatCard label="Internship" value="5+" suffix="MEMS" />
+        <StatCard label="Active Projects" value="10+" suffix="PROJECTS" />
+        <StatCard label="Internship" value="5+" suffix="MEMBERS" />
       </section>
 
-      {/* Upcoming Highlight - 3 Nearest Events */}
+      {/* Event History - 3 Most Recent Past Events */}
       <section className="space-y-6">
         <div className="flex items-center gap-2 mb-4">
-           <span className="w-1.5 h-1.5 bg-cyber-yellow rounded-full animate-pulse" />
-           <span className="text-cyber-yellow font-mono text-xs uppercase tracking-widest">Incoming Transmissions</span>
+          <span className="w-1.5 h-1.5 bg-cyber-yellow rounded-full animate-pulse" />
+          <span className="text-cyber-yellow font-mono text-xs uppercase tracking-widest">Event History</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {nearestEvents.map((event, idx) => (
-            <EventCard key={event.id} event={event} idx={idx} />
+          {eventHistory.map((event, idx) => (
+            <React.Fragment key={event.id}>
+              <EventCard event={event} idx={idx} />
+            </React.Fragment>
           ))}
-          {nearestEvents.length === 0 && (
+          {eventHistory.length === 0 && (
             <div className="col-span-3 text-center py-10 border border-dashed border-white/10 text-white/20 font-mono text-sm">
-              NO SCHEDULED EVENTS
+              NO PAST EVENTS
             </div>
           )}
         </div>
@@ -128,9 +132,9 @@ export function Dashboard() {
 // Separate EventCard component to avoid closure issues
 function EventCard({ event, idx }: { event: any, idx: number }) {
   const luma_link = event.luma_link || event.luma_link;
-  
+
   console.log("[EventCard] Event:", event.title, "luma_link:", luma_link, "raw event:", event);
-  
+
   const handleClick = () => {
     console.log("[EventCard] Clicked! luma_link:", luma_link);
     if (luma_link) {
@@ -139,7 +143,7 @@ function EventCard({ event, idx }: { event: any, idx: number }) {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: idx * 0.1 }}
@@ -154,7 +158,7 @@ function EventCard({ event, idx }: { event: any, idx: number }) {
     >
       {/* Hover gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-cyber-blue/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-      
+
       {/* Header with type and date */}
       <div className="flex justify-between items-start mb-3 relative">
         <span className="px-2 py-0.5 border border-white/10 text-[10px] font-mono uppercase bg-black/50 text-white/60">
@@ -183,13 +187,13 @@ function FloatingBadge({ children, className, delay }: { children?: React.ReactN
   return (
     <motion.div
       initial={{ opacity: 0 }}
-      animate={{ 
-        opacity: 1, 
+      animate={{
+        opacity: 1,
         y: [0, -5, 0],
       }}
-      transition={{ 
+      transition={{
         y: { repeat: Infinity, duration: 4, ease: "easeInOut", delay },
-        opacity: { duration: 0.5, delay } 
+        opacity: { duration: 0.5, delay }
       }}
       className={clsx("absolute border border-cyber-blue/20 bg-black/80 px-4 py-2 backdrop-blur-sm", className)}
     >

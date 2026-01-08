@@ -18,6 +18,7 @@ import { useStore } from './store/useStore';
 function AnimatedRoutes() {
   const location = useLocation();
 
+  const { currentUser } = useStore();
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -36,8 +37,8 @@ function AnimatedRoutes() {
           <Route path="/projects" element={<Projects />} />
           <Route path="/project/:id" element={<ProjectDetail />} />
           <Route path="/events" element={<Events />} />
-          <Route path="/finance" element={<Finance />} />
-          <Route path="/work" element={<Work />} />
+          <Route path="/finance" element={currentUser ? <Finance /> : <Navigate to="/home" replace />} />
+          <Route path="/work" element={currentUser ? <Work /> : <Navigate to="/home" replace />} />
           <Route path="/resources" element={<Resources />} />
         </Routes>
       </motion.div>
