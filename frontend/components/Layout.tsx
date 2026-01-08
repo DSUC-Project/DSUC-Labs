@@ -90,22 +90,26 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                       )
                     }
                   >
-                    <span className="relative z-10 flex items-center gap-1.5">
-                      {link.icon && <link.icon size={14} />}
-                      {link.name}
-                      {isDisabled && (
-                        <span className="ml-1 text-white/40" title="Login required">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                    {({ isActive }) => (
+                      <>
+                        <span className="relative z-10 flex items-center gap-1.5">
+                          {link.icon && <link.icon size={14} />}
+                          {link.name}
+                          {isDisabled && (
+                            <span className="ml-1 text-white/40" title="Login required">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                            </span>
+                          )}
                         </span>
-                      )}
-                    </span>
-                    {isActive && (
-                      <motion.div
-                        layoutId="nav-glow"
-                        className="absolute -bottom-0.5 left-0 right-0 h-[1px] bg-cyber-blue shadow-[0_0_8px_#2979FF]"
-                      />
+                        {isActive && (
+                          <motion.div
+                            layoutId="nav-glow"
+                            className="absolute -bottom-0.5 left-0 right-0 h-[1px] bg-cyber-blue shadow-[0_0_8px_#2979FF]"
+                          />
+                        )}
+                        <div className="absolute inset-0 bg-cyber-blue/5 scale-x-0 group-hover:scale-x-100 transition-transform origin-center -skew-x-12 pointer-events-none" />
+                      </>
                     )}
-                    <div className="absolute inset-0 bg-cyber-blue/5 scale-x-0 group-hover:scale-x-100 transition-transform origin-center -skew-x-12 pointer-events-none" />
                   </NavLink>
                 );
               })}
