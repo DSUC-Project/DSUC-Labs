@@ -86,7 +86,6 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                   >
                     <span className="relative z-10 flex items-center gap-1.5">
                       {link.name}
-                      <span className="ml-1 text-cyber-yellow">🔒</span>
                     </span>
                   </div>
                 ) : (
