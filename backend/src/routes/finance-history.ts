@@ -2,7 +2,6 @@ import { Router, Request, Response } from "express";
 import { db } from "../index";
 import {
   authenticateWallet,
-  AuthRequest,
   requireAdmin,
 } from "../middleware/auth";
 
@@ -44,7 +43,7 @@ router.post(
   "/",
   authenticateWallet as any,
   requireAdmin,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const {
         requester_id,

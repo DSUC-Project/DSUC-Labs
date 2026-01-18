@@ -2,7 +2,6 @@ import { Router, Request, Response } from "express";
 import { db } from "../index";
 import {
   authenticateWallet,
-  AuthRequest,
   requireAdmin,
 } from "../middleware/auth";
 import {
@@ -16,7 +15,7 @@ const router = Router();
 router.post(
   "/request",
   authenticateWallet as any,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const { amount, reason, date, bill_image } = req.body;
 
@@ -117,7 +116,7 @@ router.get(
   "/pending",
   authenticateWallet as any,
   requireAdmin,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const { data: requests, error } = await db
         .from("finance_requests")
@@ -152,7 +151,7 @@ router.get(
 router.get(
   "/history",
   authenticateWallet as any,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const { data: requests, error } = await db
         .from("finance_requests")
@@ -187,7 +186,7 @@ router.get(
 router.get(
   "/my-requests",
   authenticateWallet as any,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const { data: requests, error } = await db
         .from("finance_requests")
@@ -222,7 +221,7 @@ router.get(
 router.get(
   "/request/:id",
   authenticateWallet as any,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -276,7 +275,7 @@ router.post(
   "/approve/:id",
   authenticateWallet as any,
   requireAdmin,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -364,7 +363,7 @@ router.post(
   "/reject/:id",
   authenticateWallet as any,
   requireAdmin,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -451,7 +450,7 @@ router.post(
 router.get(
   "/members-with-bank",
   authenticateWallet as any,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const { data: members, error } = await db
         .from("members")

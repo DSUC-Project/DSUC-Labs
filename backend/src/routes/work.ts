@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { db } from "../index";
-import { authenticateWallet, AuthRequest } from "../middleware/auth";
+import { authenticateWallet } from "../middleware/auth";
 
 const router = Router();
 
@@ -80,7 +80,7 @@ router.get("/bounties/:id", async (req: Request, res: Response) => {
 router.post(
   "/bounties",
   authenticateWallet as any,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const { title, description, reward, difficulty, tags, submitLink } =
         req.body;
@@ -136,7 +136,7 @@ router.post(
 router.put(
   "/bounties/:id",
   authenticateWallet as any,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { title, description, reward, difficulty, tags, status } = req.body;
@@ -210,7 +210,7 @@ router.put(
 router.delete(
   "/bounties/:id",
   authenticateWallet as any,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -314,7 +314,7 @@ router.get("/repos/:id", async (req: Request, res: Response) => {
 router.post(
   "/repos",
   authenticateWallet as any,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const { name, description, language, url, stars, forks } = req.body;
 
@@ -368,7 +368,7 @@ router.post(
 router.put(
   "/repos/:id",
   authenticateWallet as any,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { name, description, language, url, stars, forks } = req.body;
@@ -442,7 +442,7 @@ router.put(
 router.delete(
   "/repos/:id",
   authenticateWallet as any,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 

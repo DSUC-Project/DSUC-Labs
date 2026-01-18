@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../index';
-import { authenticateWallet, AuthRequest } from '../middleware/auth';
+import { authenticateWallet } from '../middleware/auth';
 import { uploadBase64ToSupabase } from '../middleware/upload';
 
 const router = Router();
@@ -76,7 +76,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST /api/projects - Create new project (requires authentication)
-router.post('/', authenticateWallet as any, async (req: AuthRequest, res: Response) => {
+router.post('/', authenticateWallet as any, async (req: Request, res: Response) => {
   try {
     const { name, description, category, builders, link, repo_link, image_url } = req.body;
 
@@ -142,7 +142,7 @@ router.post('/', authenticateWallet as any, async (req: AuthRequest, res: Respon
 });
 
 // PUT /api/projects/:id - Update project (requires authentication)
-router.put('/:id', authenticateWallet as any, async (req: AuthRequest, res: Response) => {
+router.put('/:id', authenticateWallet as any, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name, description, category, builders, link, repo_link, image_url } = req.body;
@@ -225,7 +225,7 @@ router.put('/:id', authenticateWallet as any, async (req: AuthRequest, res: Resp
 });
 
 // DELETE /api/projects/:id - Delete project (Admin only)
-router.delete('/:id', authenticateWallet as any, async (req: AuthRequest, res: Response) => {
+router.delete('/:id', authenticateWallet as any, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 

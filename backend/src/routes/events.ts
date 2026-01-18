@@ -1,6 +1,6 @@
 import { Router, Request, Response, RequestHandler } from 'express';
 import { db } from '../index';
-import { authenticateWallet, AuthRequest } from '../middleware/auth';
+import { authenticateWallet } from '../middleware/auth';
 
 const router = Router();
 
@@ -117,7 +117,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST /api/events - Create new event (requires authentication)
-router.post('/', authenticateWallet as any, (async (req: AuthRequest, res: Response) => {
+router.post('/', authenticateWallet as any, (async (req: Request, res: Response) => {
   try {
     const { title, date, time, type, location } = req.body;
 
@@ -167,7 +167,7 @@ router.post('/', authenticateWallet as any, (async (req: AuthRequest, res: Respo
 }) as RequestHandler);
 
 // PUT /api/events/:id - Update event (requires authentication)
-router.put('/:id', authenticateWallet as any, (async (req: AuthRequest, res: Response) => {
+router.put('/:id', authenticateWallet as any, (async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { title, date, time, type, location, attendees } = req.body;
@@ -234,7 +234,7 @@ router.put('/:id', authenticateWallet as any, (async (req: AuthRequest, res: Res
 }) as RequestHandler);
 
 // DELETE /api/events/:id - Delete event (Admin only)
-router.delete('/:id', authenticateWallet as any, (async (req: AuthRequest, res: Response) => {
+router.delete('/:id', authenticateWallet as any, (async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -274,7 +274,7 @@ router.delete('/:id', authenticateWallet as any, (async (req: AuthRequest, res: 
 }) as RequestHandler);
 
 // POST /api/events/:id/register - Register for event (increment attendees)
-router.post('/:id/register', authenticateWallet as any, (async (req: AuthRequest, res: Response) => {
+router.post('/:id/register', authenticateWallet as any, (async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
