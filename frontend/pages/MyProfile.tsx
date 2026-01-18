@@ -2,15 +2,28 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Save, Upload, X, Github, Twitter, Send, LogOut, CreditCard } from 'lucide-react';
+import { Save, Upload, X, Github, Twitter, Send, LogOut, CreditCard, Mail, Link2, CheckCircle } from 'lucide-react';
+import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
+import { jwtDecode } from 'jwt-decode';
 import { useStore } from '../store/useStore';
 import { ROLES, BANKS } from '../data/mockData';
 import { SkillInput } from '../components/SkillInput';
 import { clsx } from 'clsx';
+import { GoogleUserInfo } from '../types';
+
+// Interface for decoded Google JWT
+interface GoogleJWTPayload {
+  sub: string;
+  email: string;
+  name: string;
+  picture: string;
+  email_verified: boolean;
+}
 
 export function MyProfile() {
-  const { currentUser, isWalletConnected, updateCurrentUser, disconnectWallet } = useStore();
+  const { currentUser, isWalletConnected, updateCurrentUser, disconnectWallet, linkGoogleAccount, logout, authMethod } = useStore();
   const navigate = useNavigate();
+  const [isLinkingGoogle, setIsLinkingGoogle] = useState(false);
 
   // Local state for form
   const [name, setName] = useState('');
@@ -84,8 +97,36 @@ export function MyProfile() {
   };
 
   const handleLogout = () => {
-    disconnectWallet();
+    logout();
     navigate('/');
+  };
+
+  // Handle linking Google account
+  const handleGoogleLinkSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      console.error('No credential received from Google');
+      return;
+    }
+
+    setIsLinkingGoogle(true);
+    try {
+      const decoded = jwtDecode<GoogleJWTPayload>(credentialResponse.credential);
+      console.log('[GoogleLink] Decoded token:', decoded);
+
+      const googleUserInfo: GoogleUserInfo = {
+        email: decoded.email,
+        google_id: decoded.sub,
+        name: decoded.name,
+        avatar: decoded.picture,
+      };
+
+      await linkGoogleAccount(googleUserInfo);
+    } catch (error) {
+      console.error('[GoogleLink] Error:', error);
+      alert('Liên kết Google thất bại. Vui lòng thử lại.');
+    } finally {
+      setIsLinkingGoogle(false);
+    }
   };
 
   if (!currentUser) return null;
@@ -230,6 +271,59 @@ export function MyProfile() {
               maxSkills={5}
             />
           </div>
+
+          {/* Google Account Linking - Only show for wallet users */}
+          {authMethod === 'wallet' && (
+            <div className="cyber-card p-8 bg-surface/50 border border-cyber-blue/20">
+              <h3 className="text-xl font-display font-bold text-cyber-blue mb-6 flex items-center gap-2">
+                <span className="w-2 h-6 bg-cyber-blue block" />
+                LIÊN KẾT TÀI KHOẢN
+              </h3>
+              <p className="text-[10px] text-white/40 font-mono mb-6">
+                Liên kết Google để đăng nhập nhanh hơn mà không cần Wallet.
+              </p>
+
+              {currentUser?.email ? (
+                // Already linked
+                <div className="flex items-center gap-4 p-4 bg-green-900/20 border border-green-500/30 rounded">
+                  <CheckCircle className="text-green-500" size={24} />
+                  <div>
+                    <p className="text-green-400 font-bold text-sm">Đã liên kết Google</p>
+                    <p className="text-white/60 text-xs font-mono">{currentUser.email}</p>
+                  </div>
+                </div>
+              ) : (
+                // Not linked yet
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 p-4 bg-yellow-900/20 border border-yellow-500/30 rounded">
+                    <Mail className="text-yellow-500" size={24} />
+                    <div>
+                      <p className="text-yellow-400 font-bold text-sm">Chưa liên kết Google</p>
+                      <p className="text-white/60 text-xs">Liên kết để đăng nhập bằng email</p>
+                    </div>
+                  </div>
+
+                  {isLinkingGoogle ? (
+                    <div className="flex items-center justify-center p-4">
+                      <span className="text-white/60">Đang xử lý...</span>
+                    </div>
+                  ) : (
+                    <div className="flex justify-center">
+                      <GoogleLogin
+                        onSuccess={handleGoogleLinkSuccess}
+                        onError={() => alert('Liên kết Google thất bại')}
+                        useOneTap={false}
+                        theme="filled_black"
+                        size="large"
+                        text="signin_with"
+                        shape="rectangular"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Socials */}
           <div className="cyber-card p-8 bg-surface/50 border border-cyber-blue/20">

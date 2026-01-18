@@ -7,6 +7,8 @@ import {
   Resource,
   Member,
   Project,
+  AuthMethod,
+  GoogleUserInfo,
 } from "../types";
 import {
   EVENTS,
@@ -29,9 +31,15 @@ interface AppState {
   walletAddress: string | null;
   walletProvider: "Phantom" | "Solflare" | null;
   currentUser: Member | null; // The logged-in user's profile
+  authMethod: AuthMethod | null; // 'wallet' or 'google'
+  authToken: string | null; // JWT token for Google auth
 
   connectWallet: (provider: "Phantom" | "Solflare") => void;
   disconnectWallet: () => void;
+  loginWithGoogle: (googleUserInfo: GoogleUserInfo) => Promise<boolean>;
+  linkGoogleAccount: (googleUserInfo: GoogleUserInfo) => Promise<boolean>;
+  checkSession: () => Promise<void>;
+  logout: () => void;
   fetchMembers: () => Promise<void>;
   fetchFinanceHistory: () => Promise<void>;
   fetchEvents: () => Promise<void>;
@@ -70,6 +78,8 @@ export const useStore = create<AppState>((set, get) => ({
   walletAddress: null,
   walletProvider: null,
   currentUser: null,
+  authMethod: null,
+  authToken: null,
 
   members: [], // Initialize empty, will be fetched from backend
   events: EVENTS,
@@ -103,11 +113,11 @@ export const useStore = create<AppState>((set, get) => ({
               ...m,
               bankInfo: rawBankInfo
                 ? {
-                    bankId: rawBankInfo.bankId || rawBankInfo.bank_id,
-                    accountNo: rawBankInfo.accountNo || rawBankInfo.account_no,
-                    accountName:
-                      rawBankInfo.accountName || rawBankInfo.account_name,
-                  }
+                  bankId: rawBankInfo.bankId || rawBankInfo.bank_id,
+                  accountNo: rawBankInfo.accountNo || rawBankInfo.account_no,
+                  accountName:
+                    rawBankInfo.accountName || rawBankInfo.account_name,
+                }
                 : null,
             };
           });
@@ -316,6 +326,7 @@ export const useStore = create<AppState>((set, get) => ({
         isWalletConnected: true,
         walletAddress: addr,
         walletProvider: provider,
+        authMethod: "wallet",
       });
 
       // Try to get/create member profile from backend
@@ -333,6 +344,7 @@ export const useStore = create<AppState>((set, get) => ({
             // if backend returns member, ensure it's in members list
             set((state) => ({
               currentUser: profile,
+              authMethod: "wallet",
               members: state.members.some((m) => m.id === profile.id)
                 ? state.members
                 : [profile, ...state.members],
@@ -347,6 +359,7 @@ export const useStore = create<AppState>((set, get) => ({
               isWalletConnected: false,
               walletAddress: null,
               walletProvider: null,
+              authMethod: null,
             });
             return;
           }
@@ -360,6 +373,7 @@ export const useStore = create<AppState>((set, get) => ({
             isWalletConnected: false,
             walletAddress: null,
             walletProvider: null,
+            authMethod: null,
           });
           return;
         }
@@ -373,6 +387,7 @@ export const useStore = create<AppState>((set, get) => ({
           isWalletConnected: false,
           walletAddress: null,
           walletProvider: null,
+          authMethod: null,
         });
         return;
       }
@@ -382,6 +397,7 @@ export const useStore = create<AppState>((set, get) => ({
         isWalletConnected: false,
         walletAddress: null,
         walletProvider: null,
+        authMethod: null,
       });
     }
   },
@@ -392,7 +408,166 @@ export const useStore = create<AppState>((set, get) => ({
       walletAddress: null,
       walletProvider: null,
       currentUser: null,
+      authMethod: null,
+      authToken: null,
     }),
+
+  // Login with Google - for users who have email pre-registered
+  loginWithGoogle: async (googleUserInfo: GoogleUserInfo) => {
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+      console.log("[loginWithGoogle] Attempting login with:", googleUserInfo.email);
+
+      const res = await fetch(`${base}/api/auth/google/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          email: googleUserInfo.email,
+          google_id: googleUserInfo.google_id,
+          name: googleUserInfo.name,
+          avatar: googleUserInfo.avatar,
+        }),
+      });
+
+      const result = await res.json();
+      console.log("[loginWithGoogle] Result:", result);
+
+      if (res.ok && result.success) {
+        const profile = result.data;
+        set((state) => ({
+          isWalletConnected: true,
+          currentUser: profile,
+          authMethod: "google",
+          authToken: result.token,
+          members: state.members.some((m) => m.id === profile.id)
+            ? state.members
+            : [profile, ...state.members],
+        }));
+
+        // Store token in localStorage for persistence
+        if (result.token) {
+          localStorage.setItem("auth_token", result.token);
+        }
+
+        return true;
+      } else {
+        alert(
+          `❌ ĐĂNG NHẬP THẤT BẠI\n\n${result.message || "Email không được đăng ký trong hệ thống."}`
+        );
+        return false;
+      }
+    } catch (error) {
+      console.error("[loginWithGoogle] Error:", error);
+      alert("❌ KHÔNG THỂ XÁC THỰC\n\nKhông thể kết nối với server. Vui lòng thử lại sau.");
+      return false;
+    }
+  },
+
+  // Link Google account to existing wallet account
+  linkGoogleAccount: async (googleUserInfo: GoogleUserInfo) => {
+    try {
+      const state = get();
+      if (!state.walletAddress || !state.currentUser) {
+        alert("Vui lòng đăng nhập bằng wallet trước khi liên kết Google.");
+        return false;
+      }
+
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+      console.log("[linkGoogleAccount] Linking Google to wallet:", state.walletAddress);
+
+      const res = await fetch(`${base}/api/auth/google/link`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-wallet-address": state.walletAddress,
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          wallet_address: state.walletAddress,
+          email: googleUserInfo.email,
+          google_id: googleUserInfo.google_id,
+        }),
+      });
+
+      const result = await res.json();
+      console.log("[linkGoogleAccount] Result:", result);
+
+      if (res.ok && result.success) {
+        // Update current user with new Google info
+        set({
+          currentUser: result.data,
+        });
+        alert("✅ Liên kết thành công!\n\nBạn có thể đăng nhập bằng Google hoặc Wallet.");
+        return true;
+      } else {
+        alert(`❌ Liên kết thất bại\n\n${result.message || "Có lỗi xảy ra."}`);
+        return false;
+      }
+    } catch (error) {
+      console.error("[linkGoogleAccount] Error:", error);
+      alert("❌ KHÔNG THỂ LIÊN KẾT\n\nKhông thể kết nối với server. Vui lòng thử lại sau.");
+      return false;
+    }
+  },
+
+  // Check existing session on app load
+  checkSession: async () => {
+    try {
+      const token = localStorage.getItem("auth_token");
+      if (!token) return;
+
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+      const res = await fetch(`${base}/api/auth/session`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+      });
+
+      const result = await res.json();
+      console.log("[checkSession] Result:", result);
+
+      if (result.success && result.authenticated && result.data) {
+        set((state) => ({
+          isWalletConnected: true,
+          currentUser: result.data,
+          authMethod: result.data.auth_provider === 'wallet' ? 'wallet' : 'google',
+          authToken: token,
+          members: state.members.some((m) => m.id === result.data.id)
+            ? state.members
+            : [result.data, ...state.members],
+        }));
+      } else {
+        // Invalid token, clear it
+        localStorage.removeItem("auth_token");
+      }
+    } catch (error) {
+      console.error("[checkSession] Error:", error);
+      localStorage.removeItem("auth_token");
+    }
+  },
+
+  // Logout - clear all auth state
+  logout: () => {
+    localStorage.removeItem("auth_token");
+
+    // Also call backend logout
+    const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+    fetch(`${base}/api/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    }).catch(console.error);
+
+    set({
+      isWalletConnected: false,
+      walletAddress: null,
+      walletProvider: null,
+      currentUser: null,
+      authMethod: null,
+      authToken: null,
+    });
+  },
 
   addEvent: async (event) => {
     const state = get();

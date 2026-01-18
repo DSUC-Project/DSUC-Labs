@@ -20,6 +20,23 @@ export interface Member {
     accountNo: string;
     accountName?: string;
   };
+  // Google auth fields
+  email?: string;
+  google_id?: string;
+  auth_provider?: 'wallet' | 'google' | 'both';
+  email_verified?: boolean;
+  wallet_address?: string;
+}
+
+// Auth method type
+export type AuthMethod = 'wallet' | 'google';
+
+// Google user info from OAuth
+export interface GoogleUserInfo {
+  email: string;
+  google_id: string;
+  name: string;
+  avatar: string;
 }
 
 export interface Event {

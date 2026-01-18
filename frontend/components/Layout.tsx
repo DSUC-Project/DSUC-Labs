@@ -3,8 +3,20 @@ import React, { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
-import { Home, Users, Calendar, Calculator, Briefcase, Folder, Wallet, Menu, X, Terminal, User, Rocket } from 'lucide-react';
+import { Home, Users, Calendar, Calculator, Briefcase, Folder, Wallet, Menu, X, Terminal, User, Rocket, Mail } from 'lucide-react';
+import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
+import { jwtDecode } from 'jwt-decode';
 import { useStore } from '../store/useStore';
+import { GoogleUserInfo } from '../types';
+
+// Interface for decoded Google JWT
+interface GoogleJWTPayload {
+  sub: string;
+  email: string;
+  name: string;
+  picture: string;
+  email_verified: boolean;
+}
 
 export function Layout({ children }: { children?: React.ReactNode }) {
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
@@ -211,7 +223,44 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
 }
 
 function WalletModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
-  const { connectWallet } = useStore();
+  const { connectWallet, loginWithGoogle } = useStore();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      console.error('No credential received from Google');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Decode the JWT to get user info
+      const decoded = jwtDecode<GoogleJWTPayload>(credentialResponse.credential);
+      console.log('[GoogleLogin] Decoded token:', decoded);
+
+      const googleUserInfo: GoogleUserInfo = {
+        email: decoded.email,
+        google_id: decoded.sub,
+        name: decoded.name,
+        avatar: decoded.picture,
+      };
+
+      const success = await loginWithGoogle(googleUserInfo);
+      if (success) {
+        onClose();
+      }
+    } catch (error) {
+      console.error('[GoogleLogin] Error:', error);
+      alert('Đăng nhập Google thất bại. Vui lòng thử lại.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    console.error('[GoogleLogin] Google login failed');
+    alert('Đăng nhập Google thất bại. Vui lòng thử lại.');
+  };
 
   if (!isOpen) return null;
 
@@ -229,10 +278,41 @@ function WalletModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void
         </button>
         <div className="mb-6 text-center">
           <Terminal size={40} className="mx-auto text-cyber-blue mb-2" />
-          <h3 className="text-xl font-display font-bold text-white uppercase tracking-wider">Initialize Link</h3>
+          <h3 className="text-xl font-display font-bold text-white uppercase tracking-wider">Đăng Nhập</h3>
+          <p className="text-white/40 text-xs mt-1">Chỉ thành viên đã đăng ký</p>
         </div>
 
         <div className="space-y-3">
+          {/* Google Login Button */}
+          <div className="flex justify-center">
+            {isLoading ? (
+              <div className="w-full p-4 border border-white/10 bg-white/5 flex items-center justify-center">
+                <span className="text-white/60">Đang xử lý...</span>
+              </div>
+            ) : (
+              <div className="w-full flex flex-col items-center">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  useOneTap={false}
+                  theme="filled_black"
+                  size="large"
+                  width="100%"
+                  text="signin_with"
+                  shape="rectangular"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 my-4">
+            <div className="flex-1 h-[1px] bg-white/10"></div>
+            <span className="text-white/30 text-xs uppercase tracking-wider">hoặc</span>
+            <div className="flex-1 h-[1px] bg-white/10"></div>
+          </div>
+
+          {/* Wallet Buttons */}
           <button
             onClick={() => { connectWallet('Phantom'); onClose(); }}
             className="w-full p-4 border border-white/10 bg-white/5 hover:bg-cyber-blue/10 hover:border-cyber-blue transition-all flex items-center justify-between group cyber-button"

@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { Members } from './pages/Members';
@@ -14,6 +15,9 @@ import { Resources } from './pages/Resources';
 import { Projects } from './pages/Projects';
 import { ProjectDetail } from './pages/ProjectDetail';
 import { useStore } from './store/useStore';
+
+// Google OAuth Client ID - set in environment variable
+const GOOGLE_CLIENT_ID = (import.meta as any).env.VITE_GOOGLE_CLIENT_ID || '';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -54,10 +58,13 @@ export default function App() {
   const fetchResources = useStore((state) => state.fetchResources);
   const fetchBounties = useStore((state) => state.fetchBounties);
   const fetchRepos = useStore((state) => state.fetchRepos);
+  const checkSession = useStore((state) => state.checkSession);
 
   // Fetch data when app loads
   useEffect(() => {
     console.log('[App] Fetching initial data...');
+    // Check for existing session first
+    checkSession();
     fetchMembers();
     fetchFinanceHistory();
     fetchEvents();
@@ -65,13 +72,15 @@ export default function App() {
     fetchResources();
     fetchBounties();
     fetchRepos();
-  }, [fetchMembers, fetchFinanceHistory, fetchEvents, fetchProjects, fetchResources, fetchBounties, fetchRepos]);
+  }, [fetchMembers, fetchFinanceHistory, fetchEvents, fetchProjects, fetchResources, fetchBounties, fetchRepos, checkSession]);
 
   return (
-    <BrowserRouter>
-      <Layout>
-        <AnimatedRoutes />
-      </Layout>
-    </BrowserRouter>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <BrowserRouter>
+        <Layout>
+          <AnimatedRoutes />
+        </Layout>
+      </BrowserRouter>
+    </GoogleOAuthProvider>
   );
 }

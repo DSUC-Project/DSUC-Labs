@@ -1,6 +1,8 @@
 import express, { Express, Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
+import passport from "passport";
 import { createClient } from "@supabase/supabase-js";
 import { mockDb } from "./mockDb";
 
@@ -28,9 +30,9 @@ const USE_MOCK_DB = process.env.USE_MOCK_DB === 'true';
 export const supabase = USE_MOCK_DB
   ? null
   : createClient(
-      process.env.SUPABASE_URL || "",
-      process.env.SUPABASE_ANON_KEY || ""
-    );
+    process.env.SUPABASE_URL || "",
+    process.env.SUPABASE_ANON_KEY || ""
+  );
 
 // Export db that switches between mockDb and supabase based on environment
 export const db = (USE_MOCK_DB ? mockDb : supabase) as any;
@@ -53,6 +55,8 @@ app.use(
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+app.use(cookieParser());
+app.use(passport.initialize());
 
 // Request logging middleware
 app.use((req: Request, res: Response, next) => {

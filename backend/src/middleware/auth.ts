@@ -2,8 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import { db } from '../index';
 import { PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
+import jwt from 'jsonwebtoken';
 
 const USE_MOCK_DB = process.env.USE_MOCK_DB === 'true';
+const JWT_SECRET = process.env.JWT_SECRET || 'dsuc-lab-jwt-secret-change-in-production';
 
 // Extend Express Request to include user info
 export interface AuthRequest extends Request {
@@ -16,7 +18,19 @@ export interface AuthRequest extends Request {
     skills?: string[];
     socials?: any;
     bank_info?: any;
+    email?: string;
+    google_id?: string;
+    auth_provider?: 'wallet' | 'google' | 'both';
   };
+}
+
+// JWT payload interface
+export interface JWTPayload {
+  userId: string;
+  email?: string;
+  wallet_address?: string;
+  iat?: number;
+  exp?: number;
 }
 
 // Middleware to authenticate wallet address
@@ -145,6 +159,96 @@ export async function verifyWalletSignature(
     console.error('Signature verification error:', error);
     return false;
   }
+}
+
+// Generate JWT token for authenticated users
+export function generateToken(payload: { userId: string; email?: string; wallet_address?: string }): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+}
+
+// Verify JWT token
+export function verifyToken(token: string): JWTPayload | null {
+  try {
+    return jwt.verify(token, JWT_SECRET) as JWTPayload;
+  } catch (error) {
+    return null;
+  }
+}
+
+// Middleware to authenticate via JWT token (for Google auth)
+export async function authenticateToken(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    // Get token from cookie or Authorization header
+    const token = req.cookies?.auth_token ||
+      req.headers.authorization?.replace('Bearer ', '');
+
+    if (!token) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Authentication token required',
+      });
+    }
+
+    const payload = verifyToken(token);
+    if (!payload) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Invalid or expired token',
+      });
+    }
+
+    // Fetch user from database
+    const { data: member, error } = await db
+      .from('members')
+      .select('*')
+      .eq('id', payload.userId)
+      .single();
+
+    if (error || !member) {
+      return res.status(404).json({
+        error: 'Member Not Found',
+        message: 'User account not found',
+      });
+    }
+
+    req.user = member;
+    next();
+  } catch (error: any) {
+    console.error('Token authentication error:', error);
+    return res.status(500).json({
+      error: 'Authentication Failed',
+      message: error.message,
+    });
+  }
+}
+
+// Combined middleware: supports both wallet header and JWT token
+export async function authenticateUser(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  // Method 1: Check wallet header (existing Solana wallet auth)
+  const walletAddress = req.headers['x-wallet-address'] as string;
+  if (walletAddress) {
+    return authenticateWallet(req, res, next);
+  }
+
+  // Method 2: Check JWT token (Google auth)
+  const token = req.cookies?.auth_token ||
+    req.headers.authorization?.replace('Bearer ', '');
+  if (token) {
+    return authenticateToken(req, res, next);
+  }
+
+  return res.status(401).json({
+    error: 'Unauthorized',
+    message: 'Wallet address or authentication token required',
+  });
 }
 
 // Optional middleware for signature verification
