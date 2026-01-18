@@ -13,7 +13,7 @@ export function Members() {
     <div className="space-y-10">
       <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-cyber-blue/20 pb-6">
         <div>
-          <h2 className="text-4xl font-display font-bold mb-1 text-white">OPERATIVES</h2>
+          <h2 className="text-4xl font-display font-bold mb-1 text-white">Members</h2>
           <p className="text-cyber-blue font-mono text-sm">Active contributors in the network.</p>
         </div>
       </div>

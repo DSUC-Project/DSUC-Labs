@@ -89,7 +89,7 @@ export function MyProfile() {
           accountName: accountName || name
         } : undefined
       });
-      alert('PROTOCOL UPDATED SUCCESSFULLY');
+      alert('✅ Profile saved successfully');
     } catch (err) {
       console.error('[MyProfile] Save failed:', err);
       alert('Failed to save profile. Check console for details.');
@@ -136,20 +136,20 @@ export function MyProfile() {
       <div className="flex flex-col md:flex-row justify-between items-end border-b border-cyber-blue/20 pb-6">
         <div>
           <h2 className="text-4xl font-display font-bold mb-1 text-white">MY PROFILE</h2>
-          <p className="text-cyber-blue font-mono text-sm">Configure your operative identity.</p>
+          <p className="text-cyber-blue font-mono text-sm">Edit your profile and preferences.</p>
         </div>
         <div className="flex gap-4">
           <button
             onClick={handleLogout}
             className="bg-red-900/20 text-red-500 border border-red-500/30 hover:bg-red-500 hover:text-white font-display font-bold text-sm px-4 py-3 cyber-button flex items-center gap-2 transition-all uppercase tracking-widest"
           >
-            <LogOut size={16} /> TERMINATE
+            <LogOut size={16} /> Logout
           </button>
           <button
             onClick={handleSave}
             className="bg-cyber-yellow text-black hover:bg-white font-display font-bold text-sm px-8 py-3 cyber-button flex items-center gap-2 transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(255,214,0,0.3)] hover:shadow-[0_0_25px_rgba(255,214,0,0.5)]"
           >
-            <Save size={16} /> UPDATE PROTOCOL
+            <Save size={16} /> Save Profile
           </button>
         </div>
       </div>
@@ -193,7 +193,7 @@ export function MyProfile() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-mono text-cyber-yellow uppercase tracking-wider">Operative Name</label>
+                <label className="text-xs font-mono text-cyber-yellow uppercase tracking-wider">Full Name</label>
                 <input
                   value={name}
                   onChange={e => setName(e.target.value)}
@@ -220,9 +220,9 @@ export function MyProfile() {
           <div className="cyber-card p-8 bg-surface/50 border border-cyber-blue/20">
             <h3 className="text-xl font-display font-bold text-cyber-blue mb-6 flex items-center gap-2">
               <span className="w-2 h-6 bg-cyber-blue block" />
-              FINANCIAL PROTOCOL
+              Bank Information
             </h3>
-            <p className="text-[10px] text-white/40 font-mono mb-6">Linked account for treasury disbursements and direct transfers.</p>
+            <p className="text-[10px] text-white/40 font-mono mb-6">Link your bank account for payments and transfers.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-xs font-mono text-cyber-yellow uppercase tracking-wider flex items-center gap-2"><CreditCard size={12} /> Bank Institute</label>

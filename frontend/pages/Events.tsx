@@ -28,14 +28,13 @@ export function Events() {
           <h2 className="text-4xl font-display font-bold mb-1 text-white">TIMELINE</h2>
           <p className="text-cyber-blue font-mono text-sm">Synchronized club activities.</p>
         </div>
-        <button 
+        <button
           onClick={handleAddClick}
           disabled={!isWalletConnected}
-          className={`font-display font-bold text-sm px-6 py-3 cyber-button transition-all flex items-center gap-2 ${
-            isWalletConnected 
-              ? 'bg-cyber-yellow text-black hover:bg-white' 
+          className={`font-display font-bold text-sm px-6 py-3 cyber-button transition-all flex items-center gap-2 ${isWalletConnected
+              ? 'bg-cyber-yellow text-black hover:bg-white'
               : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
-          }`}
+            }`}
         >
           <Plus size={16} />
           INITIATE EVENT
@@ -70,7 +69,7 @@ function EventItem({ event, index }: { event: Event, index: number, key?: React.
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-100px" }}
@@ -89,14 +88,13 @@ function EventItem({ event, index }: { event: Event, index: number, key?: React.
 
       {/* Card - Clickable */}
       <div className="md:w-1/2 w-full pl-16 md:pl-0">
-        <div 
+        <div
           onClick={handleClick}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => e.key === 'Enter' && handleClick()}
-          className={`cyber-card p-5 rounded-none transition-all group border-l-2 border-l-cyber-blue/50 relative ${
-            luma_link ? 'cursor-pointer hover:bg-cyber-blue/5 hover:border-l-cyber-blue hover:shadow-[0_0_20px_rgba(41,121,255,0.2)]' : ''
-          }`}
+          className={`cyber-card p-5 rounded-none transition-all group border-l-2 border-l-cyber-blue/50 relative ${luma_link ? 'cursor-pointer hover:bg-cyber-blue/5 hover:border-l-cyber-blue hover:shadow-[0_0_20px_rgba(41,121,255,0.2)]' : ''
+            }`}
         >
           <div className="flex justify-between items-start mb-3">
             <span className="px-2 py-0.5 bg-cyber-blue/10 text-[10px] font-bold font-mono uppercase tracking-wider text-cyber-blue border border-cyber-blue/20">
@@ -122,12 +120,12 @@ function EventItem({ event, index }: { event: Event, index: number, key?: React.
 
 function AddEventModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose: () => void, onAdd: (e: Event) => void }) {
   if (!isOpen) return null;
-  
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
-    
+
     onAdd({
       id: Math.random().toString(),
       title: formData.get('title') as string,
@@ -144,20 +142,20 @@ function AddEventModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose: (
   return ReactDOM.createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
-      <motion.div 
-        initial={{ scale: 0.95, opacity: 0 }} 
-        animate={{ scale: 1, opacity: 1 }} 
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
         className="bg-surface cyber-card border border-cyber-blue/50 p-8 w-full max-w-lg relative z-10"
         onClick={(e) => e.stopPropagation()}
       >
         <button onClick={onClose} className="absolute top-4 right-4 text-white/40 hover:text-white"><X /></button>
-        <h3 className="text-2xl font-display font-bold mb-6 text-cyber-blue uppercase">New Event Protocol</h3>
+        <h3 className="text-2xl font-display font-bold mb-6 text-cyber-blue uppercase">Create Event</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <label className="text-[10px] font-mono text-white/40 uppercase">Event Title</label>
             <input name="title" placeholder="DSUC Meetup #01" required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-[10px] font-mono text-white/40 uppercase">Date</label>
@@ -168,18 +166,18 @@ function AddEventModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose: (
               <input name="time" type="time" required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <label className="text-[10px] font-mono text-white/40 uppercase">Location</label>
             <input name="location" placeholder="Da Nang, Vietnam" required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
           </div>
-          
+
           <div className="space-y-2">
             <label className="text-[10px] font-mono text-white/40 uppercase">Luma Registration Link</label>
             <input name="luma_link" type="url" placeholder="https://lu.ma/..." required className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
             <p className="text-[9px] font-mono text-white/30">Users will be redirected here when they click Register</p>
           </div>
-          
+
           <button type="submit" className="w-full bg-cyber-yellow text-black font-display font-bold py-3 cyber-button hover:bg-white transition-colors uppercase tracking-widest">INITIALIZE</button>
         </form>
       </motion.div>

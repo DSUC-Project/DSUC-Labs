@@ -54,8 +54,8 @@ export function Finance() {
     <div className="max-w-5xl mx-auto space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-end border-b border-cyber-blue/20 pb-6">
         <div>
-          <h2 className="text-4xl font-display font-bold mb-1 text-white">TREASURY</h2>
-          <p className="text-cyber-blue font-mono text-sm">Transparency & disbursement log.</p>
+          <h2 className="text-4xl font-display font-bold mb-1 text-white">Finance</h2>
+          <p className="text-cyber-blue font-mono text-sm">View transactions and payment history.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {['submit', 'direct', 'pending', 'history'].map(tab => (
@@ -144,7 +144,7 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-2 gap-12">
       <div className="space-y-6">
-        <h3 className="text-xl font-display font-bold text-cyber-blue uppercase tracking-widest">Submit Disbursement</h3>
+        <h3 className="text-xl font-display font-bold text-cyber-blue uppercase tracking-widest">Request Payment</h3>
         <p className="text-xs font-mono text-white/40">Request reimbursement for club expenses. Upload bill/receipt as proof. QR code will be generated based on your bank info.</p>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
@@ -236,7 +236,7 @@ function DirectTransferTool() {
         <h3 className="text-xl font-display font-bold text-cyber-yellow uppercase tracking-widest flex items-center gap-2">
           <Zap size={20} /> QUICK TRANSFER LINK
         </h3>
-        <p className="text-xs font-mono text-white/40">Select an operative to generate a direct payment channel. Proof of bill is required for record keeping.</p>
+        <p className="text-xs font-mono text-white/40">Select a member to generate a payment request. Receipt or bill is required for record keeping.</p>
 
         {!selectedMember ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2">

@@ -13,7 +13,7 @@ export function MemberDetail() {
   const member = members.find(m => m.id === id);
 
   if (!member) {
-    return <div className="text-white text-center pt-20">OPERATIVE NOT FOUND</div>;
+    return <div className="text-white text-center pt-20">Member not found</div>;
   }
 
   return (
