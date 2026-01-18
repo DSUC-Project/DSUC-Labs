@@ -27,6 +27,13 @@ export interface AuthRequest extends Request {
   user?: UserInfo;
 }
 
+// Declare module to override Express User type
+declare global {
+  namespace Express {
+    interface User extends UserInfo { }
+  }
+}
+
 // JWT payload interface
 export interface JWTPayload {
   userId: string;
