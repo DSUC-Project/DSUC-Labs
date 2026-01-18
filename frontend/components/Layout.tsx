@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
@@ -8,6 +7,7 @@ import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import { useStore } from '../store/useStore';
 import { GoogleUserInfo } from '../types';
+import { LoginNotification } from './LoginNotification';
 
 // Interface for decoded Google JWT
 interface GoogleJWTPayload {
@@ -20,6 +20,22 @@ interface GoogleJWTPayload {
 
 export function Layout({ children }: { children?: React.ReactNode }) {
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [showLoginNotification, setShowLoginNotification] = useState(false);
+  const [lastLoginInfo, setLastLoginInfo] = useState<{ name?: string; method?: 'wallet' | 'google' }>({});
+  const { isWalletConnected, currentUser, authMethod } = useStore();
+  const previousConnectionRef = React.useRef(isWalletConnected);
+
+  // Show notification when user logs in
+  useEffect(() => {
+    if (isWalletConnected && !previousConnectionRef.current) {
+      setLastLoginInfo({
+        name: currentUser?.name || currentUser?.email || 'User',
+        method: (authMethod as 'wallet' | 'google') || 'wallet'
+      });
+      setShowLoginNotification(true);
+    }
+    previousConnectionRef.current = isWalletConnected;
+  }, [isWalletConnected, currentUser?.name, currentUser?.email, authMethod]);
 
   return (
     <div className="min-h-screen font-sans text-white selection:bg-cyber-yellow selection:text-black">
@@ -29,6 +45,12 @@ export function Layout({ children }: { children?: React.ReactNode }) {
         {children}
       </main>
       <WalletModal isOpen={isWalletModalOpen} onClose={() => setIsWalletModalOpen(false)} />
+      <LoginNotification
+        isVisible={showLoginNotification}
+        userName={lastLoginInfo.name}
+        authMethod={lastLoginInfo.method}
+        onDismiss={() => setShowLoginNotification(false)}
+      />
     </div>
   );
 }
