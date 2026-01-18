@@ -123,7 +123,7 @@ export function MyProfile() {
       await linkGoogleAccount(googleUserInfo);
     } catch (error) {
       console.error('[GoogleLink] Error:', error);
-      alert('Liên kết Google thất bại. Vui lòng thử lại.');
+      alert('Google account linking failed. Please try again.');
     } finally {
       setIsLinkingGoogle(false);
     }
@@ -277,10 +277,10 @@ export function MyProfile() {
             <div className="cyber-card p-8 bg-surface/50 border border-cyber-blue/20">
               <h3 className="text-xl font-display font-bold text-cyber-blue mb-6 flex items-center gap-2">
                 <span className="w-2 h-6 bg-cyber-blue block" />
-                LIÊN KẾT TÀI KHOẢN
+                LINK ACCOUNT
               </h3>
               <p className="text-[10px] text-white/40 font-mono mb-6">
-                Liên kết Google để đăng nhập nhanh hơn mà không cần Wallet.
+                Link your Google account for faster login without needing a Wallet.
               </p>
 
               {currentUser?.email ? (
@@ -288,7 +288,7 @@ export function MyProfile() {
                 <div className="flex items-center gap-4 p-4 bg-green-900/20 border border-green-500/30 rounded">
                   <CheckCircle className="text-green-500" size={24} />
                   <div>
-                    <p className="text-green-400 font-bold text-sm">Đã liên kết Google</p>
+                    <p className="text-green-400 font-bold text-sm">Google Account Linked</p>
                     <p className="text-white/60 text-xs font-mono">{currentUser.email}</p>
                   </div>
                 </div>
@@ -298,20 +298,20 @@ export function MyProfile() {
                   <div className="flex items-center gap-4 p-4 bg-yellow-900/20 border border-yellow-500/30 rounded">
                     <Mail className="text-yellow-500" size={24} />
                     <div>
-                      <p className="text-yellow-400 font-bold text-sm">Chưa liên kết Google</p>
-                      <p className="text-white/60 text-xs">Liên kết để đăng nhập bằng email</p>
+                      <p className="text-yellow-400 font-bold text-sm">Google Account Not Linked</p>
+                      <p className="text-white/60 text-xs">Link to login with email</p>
                     </div>
                   </div>
 
                   {isLinkingGoogle ? (
                     <div className="flex items-center justify-center p-4">
-                      <span className="text-white/60">Đang xử lý...</span>
+                      <span className="text-white/60">Processing...</span>
                     </div>
                   ) : (
                     <div className="flex justify-center">
                       <GoogleLogin
                         onSuccess={handleGoogleLinkSuccess}
-                        onError={() => alert('Liên kết Google thất bại')}
+                        onError={() => alert('Failed to link Google account')}
                         useOneTap={false}
                         theme="filled_black"
                         size="large"

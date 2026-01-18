@@ -147,7 +147,7 @@ router.get(
 
       if (!user) {
         return res.redirect(
-          `${FRONTEND_URL}?error=not_member&message=Email không được đăng ký trong hệ thống`
+          `${FRONTEND_URL}?error=not_member&message=Email is not registered in the system`
         );
       }
 
@@ -178,24 +178,13 @@ router.get(
 // POST /api/auth/google/link - Link Google account to existing wallet account
 router.post("/google/link", async (req: Request, res: Response) => {
   try {
-    const { wallet_address, google_token } = req.body;
+    const { wallet_address, email, google_id } = req.body;
 
-    if (!wallet_address || !google_token) {
+    // Validate required fields
+    if (!wallet_address || !email || !google_id) {
       return res.status(400).json({
         error: "Bad Request",
-        message: "wallet_address and google_token are required",
-      });
-    }
-
-    // Verify the Google token and extract user info
-    // In production, you would verify this token with Google's API
-    // For now, we'll accept the token payload directly from frontend
-    const { email, google_id } = req.body;
-
-    if (!email || !google_id) {
-      return res.status(400).json({
-        error: "Bad Request",
-        message: "email and google_id are required",
+        message: "wallet_address, email, and google_id are required",
       });
     }
 
@@ -224,7 +213,7 @@ router.post("/google/link", async (req: Request, res: Response) => {
     if (existingEmail) {
       return res.status(409).json({
         error: "Conflict",
-        message: "Email đã được liên kết với tài khoản khác",
+        message: "Email is already linked to another account",
       });
     }
 
@@ -310,7 +299,7 @@ router.post("/google/login", async (req: Request, res: Response) => {
     if (!member) {
       return res.status(404).json({
         error: "Not Found",
-        message: "Email không được đăng ký trong hệ thống. Chỉ thành viên đã đăng ký mới có thể truy cập.",
+        message: "Email is not registered in the system. Only registered members can access.",
       });
     }
 

@@ -251,7 +251,7 @@ function WalletModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void
       }
     } catch (error) {
       console.error('[GoogleLogin] Error:', error);
-      alert('Đăng nhập Google thất bại. Vui lòng thử lại.');
+      alert('Google login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -259,7 +259,7 @@ function WalletModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void
 
   const handleGoogleError = () => {
     console.error('[GoogleLogin] Google login failed');
-    alert('Đăng nhập Google thất bại. Vui lòng thử lại.');
+    alert('Google login failed. Please try again.');
   };
 
   if (!isOpen) return null;
@@ -278,37 +278,37 @@ function WalletModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void
         </button>
         <div className="mb-6 text-center">
           <Terminal size={40} className="mx-auto text-cyber-blue mb-2" />
-          <h3 className="text-xl font-display font-bold text-white uppercase tracking-wider">Đăng Nhập</h3>
-          <p className="text-white/40 text-xs mt-1">Chỉ thành viên đã đăng ký</p>
+          <h3 className="text-xl font-display font-bold text-white uppercase tracking-wider">Sign In</h3>
+          <p className="text-white/40 text-xs mt-1">Registered members only</p>
         </div>
 
         <div className="space-y-3">
           {/* Google Login Button */}
           <div className="flex justify-center">
-            {isLoading ? (
-              <div className="w-full p-4 border border-white/10 bg-white/5 flex items-center justify-center">
-                <span className="text-white/60">Đang xử lý...</span>
-              </div>
+            isLoading ? (
+            <div className="w-full p-4 border border-white/10 bg-white/5 flex items-center justify-center">
+              <span className="text-white/60">Processing...</span>
+            </div>
             ) : (
-              <div className="w-full flex flex-col items-center">
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleError}
-                  useOneTap={false}
-                  theme="filled_black"
-                  size="large"
-                  width="100%"
-                  text="signin_with"
-                  shape="rectangular"
-                />
-              </div>
+            <div className="w-full flex flex-col items-center">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                useOneTap={false}
+                theme="filled_black"
+                size="large"
+                width="100%"
+                text="signin_with"
+                shape="rectangular"
+              />
+            </div>
             )}
           </div>
 
           {/* Divider */}
           <div className="flex items-center gap-3 my-4">
             <div className="flex-1 h-[1px] bg-white/10"></div>
-            <span className="text-white/30 text-xs uppercase tracking-wider">hoặc</span>
+            <span className="text-white/30 text-xs uppercase tracking-wider">or</span>
             <div className="flex-1 h-[1px] bg-white/10"></div>
           </div>
 

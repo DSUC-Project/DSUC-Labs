@@ -310,7 +310,7 @@ export const useStore = create<AppState>((set, get) => ({
       } else {
         console.warn("Wallet provider not found");
         alert(
-          `${provider} không được cài đặt hoặc không khả dụng. Vui lòng cài extension ${provider}.`
+          `${provider} is not installed or not available. Please install the ${provider} extension.`
         );
         return;
       }
@@ -353,7 +353,7 @@ export const useStore = create<AppState>((set, get) => ({
           } else {
             // Backend responded OK but no member found
             alert(
-              "❌ BẠN KHÔNG PHẢI LÀ THÀNH VIÊN CLB\n\nWallet của bạn không có trong danh sách thành viên.\nHãy đăng ký tham gia để được sử dụng website!"
+              "❌ NOT A CLUB MEMBER\n\nYour wallet is not registered in the system.\nPlease register to use the website!"
             );
             set({
               isWalletConnected: false,
@@ -367,7 +367,7 @@ export const useStore = create<AppState>((set, get) => ({
           // Backend error - member not found
           console.warn("Backend auth failed - member not found");
           alert(
-            "❌ BẠN KHÔNG PHẢI LÀ THÀNH VIÊN CLB\n\nWallet của bạn không có trong danh sách thành viên.\nHãy đăng ký tham gia để được sử dụng website!"
+            "❌ NOT A CLUB MEMBER\n\nYour wallet is not registered in the system.\nPlease register to use the website!"
           );
           set({
             isWalletConnected: false,
@@ -381,7 +381,7 @@ export const useStore = create<AppState>((set, get) => ({
         console.warn("Backend auth failed", e);
         // Network error - show generic message
         alert(
-          "❌ KHÔNG THỂ XÁC THỰC\n\nKhông thể kết nối với server. Vui lòng thử lại sau."
+          "❌ AUTHENTICATION FAILED\n\nCannot connect to server. Please try again later."
         );
         set({
           isWalletConnected: false,
@@ -453,13 +453,13 @@ export const useStore = create<AppState>((set, get) => ({
         return true;
       } else {
         alert(
-          `❌ ĐĂNG NHẬP THẤT BẠI\n\n${result.message || "Email không được đăng ký trong hệ thống."}`
+          `❌ LOGIN FAILED\n\n${result.message || "Email is not registered in the system."}`
         );
         return false;
       }
     } catch (error) {
       console.error("[loginWithGoogle] Error:", error);
-      alert("❌ KHÔNG THỂ XÁC THỰC\n\nKhông thể kết nối với server. Vui lòng thử lại sau.");
+      alert("❌ AUTHENTICATION FAILED\n\nCannot connect to server. Please try again later.");
       return false;
     }
   },
@@ -469,7 +469,7 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       const state = get();
       if (!state.walletAddress || !state.currentUser) {
-        alert("Vui lòng đăng nhập bằng wallet trước khi liên kết Google.");
+        alert("Please login with wallet first before linking Google account.");
         return false;
       }
 
@@ -498,15 +498,15 @@ export const useStore = create<AppState>((set, get) => ({
         set({
           currentUser: result.data,
         });
-        alert("✅ Liên kết thành công!\n\nBạn có thể đăng nhập bằng Google hoặc Wallet.");
+        alert("✅ Account linked successfully!\n\nYou can now login with either Google or Wallet.");
         return true;
       } else {
-        alert(`❌ Liên kết thất bại\n\n${result.message || "Có lỗi xảy ra."}`);
+        alert(`❌ Account linking failed\n\n${result.message || "An error occurred."}`);
         return false;
       }
     } catch (error) {
       console.error("[linkGoogleAccount] Error:", error);
-      alert("❌ KHÔNG THỂ LIÊN KẾT\n\nKhông thể kết nối với server. Vui lòng thử lại sau.");
+      alert("❌ ACCOUNT LINKING FAILED\n\nCannot connect to server. Please try again later.");
       return false;
     }
   },
