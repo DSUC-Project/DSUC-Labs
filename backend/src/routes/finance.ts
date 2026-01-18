@@ -15,7 +15,7 @@ const router = Router();
 // POST /api/finance/request - Submit new finance request
 router.post(
   "/request",
-  authenticateWallet,
+  authenticateWallet as any,
   async (req: AuthRequest, res: Response) => {
     try {
       const { amount, reason, date, bill_image } = req.body;
@@ -115,7 +115,7 @@ router.post(
 // GET /api/finance/pending - Get all pending requests (Admin view)
 router.get(
   "/pending",
-  authenticateWallet,
+  authenticateWallet as any,
   requireAdmin,
   async (req: AuthRequest, res: Response) => {
     try {
@@ -151,7 +151,7 @@ router.get(
 // GET /api/finance/history - Get all completed/rejected requests
 router.get(
   "/history",
-  authenticateWallet,
+  authenticateWallet as any,
   async (req: AuthRequest, res: Response) => {
     try {
       const { data: requests, error } = await db
@@ -186,7 +186,7 @@ router.get(
 // GET /api/finance/my-requests - Get current user's requests
 router.get(
   "/my-requests",
-  authenticateWallet,
+  authenticateWallet as any,
   async (req: AuthRequest, res: Response) => {
     try {
       const { data: requests, error } = await db
@@ -221,7 +221,7 @@ router.get(
 // GET /api/finance/request/:id - Get request details with requester bank info
 router.get(
   "/request/:id",
-  authenticateWallet,
+  authenticateWallet as any,
   async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;
@@ -274,7 +274,7 @@ router.get(
 // POST /api/finance/approve/:id - Approve and complete request (Admin only)
 router.post(
   "/approve/:id",
-  authenticateWallet,
+  authenticateWallet as any,
   requireAdmin,
   async (req: AuthRequest, res: Response) => {
     try {
@@ -362,7 +362,7 @@ router.post(
 // POST /api/finance/reject/:id - Reject request (Admin only)
 router.post(
   "/reject/:id",
-  authenticateWallet,
+  authenticateWallet as any,
   requireAdmin,
   async (req: AuthRequest, res: Response) => {
     try {
@@ -450,7 +450,7 @@ router.post(
 // GET /api/finance/members-with-bank - Get members who have bank info (for Direct Transfer)
 router.get(
   "/members-with-bank",
-  authenticateWallet,
+  authenticateWallet as any,
   async (req: AuthRequest, res: Response) => {
     try {
       const { data: members, error } = await db

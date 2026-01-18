@@ -79,7 +79,7 @@ router.get("/bounties/:id", async (req: Request, res: Response) => {
 // POST /api/work/bounties - Create new bounty (requires authentication)
 router.post(
   "/bounties",
-  authenticateWallet,
+  authenticateWallet as any,
   async (req: AuthRequest, res: Response) => {
     try {
       const { title, description, reward, difficulty, tags, submitLink } =
@@ -135,7 +135,7 @@ router.post(
 // PUT /api/work/bounties/:id - Update bounty
 router.put(
   "/bounties/:id",
-  authenticateWallet,
+  authenticateWallet as any,
   async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;
@@ -209,7 +209,7 @@ router.put(
 // DELETE /api/work/bounties/:id - Delete bounty (Admin only)
 router.delete(
   "/bounties/:id",
-  authenticateWallet,
+  authenticateWallet as any,
   async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;
@@ -313,7 +313,7 @@ router.get("/repos/:id", async (req: Request, res: Response) => {
 // POST /api/work/repos - Create new repo (requires authentication)
 router.post(
   "/repos",
-  authenticateWallet,
+  authenticateWallet as any,
   async (req: AuthRequest, res: Response) => {
     try {
       const { name, description, language, url, stars, forks } = req.body;
@@ -367,7 +367,7 @@ router.post(
 // PUT /api/work/repos/:id - Update repo
 router.put(
   "/repos/:id",
-  authenticateWallet,
+  authenticateWallet as any,
   async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;
@@ -441,7 +441,7 @@ router.put(
 // DELETE /api/work/repos/:id - Delete repo (Admin only)
 router.delete(
   "/repos/:id",
-  authenticateWallet,
+  authenticateWallet as any,
   async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;

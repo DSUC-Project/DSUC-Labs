@@ -121,7 +121,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST /api/resources - Create new resource (requires authentication)
-router.post('/', authenticateWallet, async (req: AuthRequest, res: Response) => {
+router.post('/', authenticateWallet as any, async (req: AuthRequest, res: Response) => {
   try {
     const { name, type, url, size, category } = req.body;
 
@@ -170,7 +170,7 @@ router.post('/', authenticateWallet, async (req: AuthRequest, res: Response) => 
 });
 
 // PUT /api/resources/:id - Update resource
-router.put('/:id', authenticateWallet, async (req: AuthRequest, res: Response) => {
+router.put('/:id', authenticateWallet as any, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { name, type, url, size, category } = req.body;
@@ -236,7 +236,7 @@ router.put('/:id', authenticateWallet, async (req: AuthRequest, res: Response) =
 });
 
 // DELETE /api/resources/:id - Delete resource (Admin only)
-router.delete('/:id', authenticateWallet, async (req: AuthRequest, res: Response) => {
+router.delete('/:id', authenticateWallet as any, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 

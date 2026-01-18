@@ -42,7 +42,7 @@ router.get("/", async (req: Request, res: Response) => {
 // This should be called by admin when processing finance requests
 router.post(
   "/",
-  authenticateWallet,
+  authenticateWallet as any,
   requireAdmin,
   async (req: AuthRequest, res: Response) => {
     try {
