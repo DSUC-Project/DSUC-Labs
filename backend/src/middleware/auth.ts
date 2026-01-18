@@ -7,21 +7,24 @@ import jwt from 'jsonwebtoken';
 const USE_MOCK_DB = process.env.USE_MOCK_DB === 'true';
 const JWT_SECRET = process.env.JWT_SECRET || 'dsuc-lab-jwt-secret-change-in-production';
 
+// Custom user object type
+interface UserInfo {
+  id: string;
+  wallet_address: string;
+  name: string;
+  role: string;
+  avatar?: string;
+  skills?: string[];
+  socials?: any;
+  bank_info?: any;
+  email?: string;
+  google_id?: string;
+  auth_provider?: 'wallet' | 'google' | 'both';
+}
+
 // Extend Express Request to include user info
 export interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    wallet_address: string;
-    name: string;
-    role: string;
-    avatar?: string;
-    skills?: string[];
-    socials?: any;
-    bank_info?: any;
-    email?: string;
-    google_id?: string;
-    auth_provider?: 'wallet' | 'google' | 'both';
-  };
+  user?: UserInfo;
 }
 
 // JWT payload interface

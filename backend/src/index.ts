@@ -59,7 +59,7 @@ app.use(cookieParser());
 app.use(passport.initialize());
 
 // Request logging middleware
-app.use((req: Request, res: Response, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   if (req.body && Object.keys(req.body).length > 0) {
     console.log("Body:", JSON.stringify(req.body).substring(0, 200));
