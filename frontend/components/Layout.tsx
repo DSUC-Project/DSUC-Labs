@@ -285,23 +285,23 @@ function WalletModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void
         <div className="space-y-3">
           {/* Google Login Button */}
           <div className="flex justify-center">
-            isLoading ? (
-            <div className="w-full p-4 border border-white/10 bg-white/5 flex items-center justify-center">
-              <span className="text-white/60">Processing...</span>
-            </div>
+            {isLoading ? (
+              <div className="w-full p-4 border border-white/10 bg-white/5 flex items-center justify-center">
+                <span className="text-white/60">Processing...</span>
+              </div>
             ) : (
-            <div className="w-full flex flex-col items-center">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-                useOneTap={false}
-                theme="filled_black"
-                size="large"
-                width="100%"
-                text="signin_with"
-                shape="rectangular"
-              />
-            </div>
+              <div className="w-full flex flex-col items-center">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  useOneTap={false}
+                  theme="filled_black"
+                  size="large"
+                  width="100%"
+                  text="signin_with"
+                  shape="rectangular"
+                />
+              </div>
             )}
           </div>
 
