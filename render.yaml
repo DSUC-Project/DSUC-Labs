@@ -3,7 +3,7 @@ services:
     name: dsuc-lab-backend
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: cd backend && npm install && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -27,4 +27,3 @@ services:
       - key: USE_MOCK_DB
         value: "false"
     rootDir: backend
-    repo: https://github.com/DSUC-Project/DSUC-Labs

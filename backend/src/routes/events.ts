@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, RequestHandler } from 'express';
 import { db } from '../index';
 import { authenticateWallet, AuthRequest } from '../middleware/auth';
 
@@ -117,7 +117,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST /api/events - Create new event (requires authentication)
-router.post('/', authenticateWallet, async (req: AuthRequest, res: Response) => {
+router.post('/', authenticateWallet as any, (async (req: AuthRequest, res: Response) => {
   try {
     const { title, date, time, type, location } = req.body;
 
@@ -164,10 +164,10 @@ router.post('/', authenticateWallet, async (req: AuthRequest, res: Response) => 
       message: error.message,
     });
   }
-});
+}) as RequestHandler);
 
 // PUT /api/events/:id - Update event (requires authentication)
-router.put('/:id', authenticateWallet, async (req: AuthRequest, res: Response) => {
+router.put('/:id', authenticateWallet as any, (async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { title, date, time, type, location, attendees } = req.body;
@@ -231,10 +231,10 @@ router.put('/:id', authenticateWallet, async (req: AuthRequest, res: Response) =
       message: error.message,
     });
   }
-});
+}) as RequestHandler);
 
 // DELETE /api/events/:id - Delete event (Admin only)
-router.delete('/:id', authenticateWallet, async (req: AuthRequest, res: Response) => {
+router.delete('/:id', authenticateWallet as any, (async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -271,10 +271,10 @@ router.delete('/:id', authenticateWallet, async (req: AuthRequest, res: Response
       message: error.message,
     });
   }
-});
+}) as RequestHandler);
 
 // POST /api/events/:id/register - Register for event (increment attendees)
-router.post('/:id/register', authenticateWallet, async (req: AuthRequest, res: Response) => {
+router.post('/:id/register', authenticateWallet as any, (async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -320,6 +320,6 @@ router.post('/:id/register', authenticateWallet, async (req: AuthRequest, res: R
       message: error.message,
     });
   }
-});
+}) as RequestHandler);
 
 export default router;
