@@ -89,6 +89,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
     { name: 'Finance', path: '/finance', icon: Calculator, locked: !currentUser },
     { name: 'Work', path: '/work', icon: Briefcase, locked: !currentUser },
     { name: 'Resources', path: '/resources', icon: Folder },
+    { name: 'Contact', path: '/contact', icon: Mail },
   ];
 
   return (
@@ -144,7 +145,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                             className="absolute -bottom-0.5 left-0 right-0 h-[1px] bg-cyber-blue shadow-[0_0_8px_#2979FF]"
                           />
                         )}
-                        <div className="absolute inset-0 bg-cyber-blue/5 scale-x-0 group-hover:scale-x-100 transition-transform origin-center -skew-x-12 pointer-events-none" />
+                        <div className="absolute inset-0 bg-cyber-blue/5 scale-x-0 group-hover:scale-x-100 transition-transform origin-center pointer-events-none" />
                       </>
                     )}
                   </NavLink>
