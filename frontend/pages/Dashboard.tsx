@@ -80,12 +80,10 @@ export function Dashboard() {
           className="flex flex-col sm:flex-row gap-4 z-10"
         >
           <a
-            href="https://forms.gle/Hy8Ng51DJgFdJkiw6"
-            target="_blank"
-            rel="noreferrer"
+            href="/contact"
             className="bg-cyber-yellow text-black font-display font-bold text-sm px-8 py-4 cyber-button hover:bg-white transition-all hover:shadow-[0_0_20px_rgba(255,214,0,0.5)] flex items-center justify-center gap-2"
           >
-            JOIN WITH US <ArrowUpRight size={18} />
+            CONTACT US <ArrowUpRight size={18} />
           </a>
           <a
             href="https://www.facebook.com/superteamdut.club"
