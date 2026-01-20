@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
-import { Home, Users, Calendar, Calculator, Briefcase, Folder, Wallet, Menu, X, Terminal, User, Rocket, Mail } from 'lucide-react';
+import { Home, Users, Calendar, Calculator, Briefcase, Folder, Wallet, Menu, X, Terminal, User, Rocket, Mail, HelpCircle, ExternalLink } from 'lucide-react';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import { useStore } from '../store/useStore';
@@ -173,13 +173,22 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                 </span>
               </button>
             ) : (
-              <button
-                onClick={onConnectClick}
-                className="cyber-button px-4 py-1.5 text-xs font-bold font-display uppercase tracking-widest transition-all duration-300 flex items-center gap-2 border bg-cyber-yellow text-black border-cyber-yellow hover:bg-white hover:border-white hover:shadow-[0_0_15px_#FFD600] shrink-0 ml-auto md:ml-0"
-              >
-                <Wallet size={14} />
-                <span className="hidden md:inline">Connect</span>
-              </button>
+              <div className="relative group">
+                <button
+                  onClick={onConnectClick}
+                  className="cyber-button px-4 py-1.5 text-xs font-bold font-display uppercase tracking-widest transition-all duration-300 flex items-center gap-2 border bg-cyber-yellow text-black border-cyber-yellow hover:bg-white hover:border-white hover:shadow-[0_0_15px_#FFD600] shrink-0 ml-auto md:ml-0"
+                  title="Members: Sign in to access team features. Interested in collaboration? See Contact in the menu."
+                >
+                  <Wallet size={14} />
+                  <span className="hidden md:inline">Sign In</span>
+                </button>
+                {/* Tooltip for desktop */}
+                <div className="hidden md:block absolute right-0 top-full mt-2 bg-surface/95 border border-cyber-blue/50 rounded px-3 py-2 text-xs text-white/80 whitespace-nowrap z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="font-bold text-cyber-blue mb-1">For Team Members</div>
+                  <div>Interested in collaboration?</div>
+                  <div className="text-cyber-yellow mt-1">Contact us in the menu</div>
+                </div>
+              </div>
             )}
           </div>
         </nav>
@@ -300,8 +309,8 @@ function WalletModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void
         </button>
         <div className="mb-6 text-center">
           <Terminal size={40} className="mx-auto text-cyber-blue mb-2" />
-          <h3 className="text-xl font-display font-bold text-white uppercase tracking-wider">Sign In</h3>
-          <p className="text-white/40 text-xs mt-1">Registered members only</p>
+          <h3 className="text-xl font-display font-bold text-white uppercase tracking-wider">Member Sign In</h3>
+          <p className="text-white/40 text-xs mt-1">Registered members only. Not a member? Contact us for collaboration opportunities.</p>
         </div>
 
         <div className="space-y-3">
@@ -334,22 +343,33 @@ function WalletModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void
             <div className="flex-1 h-[1px] bg-white/10"></div>
           </div>
 
-          {/* Wallet Buttons */}
-          <button
-            onClick={() => { connectWallet('Phantom'); onClose(); }}
-            className="w-full p-4 border border-white/10 bg-white/5 hover:bg-cyber-blue/10 hover:border-cyber-blue transition-all flex items-center justify-between group cyber-button"
-          >
-            <span className="font-mono font-bold group-hover:text-cyber-blue transition-colors">Phantom Wallet</span>
-            <div className="w-2 h-2 bg-purple-500 rounded-full shadow-[0_0_5px_purple]" />
-          </button>
+          {/* Wallet Buttons with better labels */}
+          <div className="bg-white/5 border border-white/10 rounded p-3 mb-3">
+            <p className="text-xs text-white/60 mb-3 font-mono">
+              Sign in with your Solana wallet:
+            </p>
+            <button
+              onClick={() => { connectWallet('Phantom'); onClose(); }}
+              className="w-full p-3 border border-white/10 bg-white/5 hover:bg-cyber-blue/10 hover:border-cyber-blue transition-all flex items-center justify-between group cyber-button mb-2"
+            >
+              <span className="font-mono font-bold group-hover:text-cyber-blue transition-colors text-sm">Phantom Wallet</span>
+              <div className="w-2 h-2 bg-purple-500 rounded-full shadow-[0_0_5px_purple]" />
+            </button>
 
-          <button
-            onClick={() => { connectWallet('Solflare'); onClose(); }}
-            className="w-full p-4 border border-white/10 bg-white/5 hover:bg-cyber-yellow/10 hover:border-cyber-yellow transition-all flex items-center justify-between group cyber-button"
-          >
-            <span className="font-mono font-bold group-hover:text-cyber-yellow transition-colors">Solflare</span>
-            <div className="w-2 h-2 bg-orange-500 rounded-full shadow-[0_0_5px_orange]" />
-          </button>
+            <button
+              onClick={() => { connectWallet('Solflare'); onClose(); }}
+              className="w-full p-3 border border-white/10 bg-white/5 hover:bg-cyber-yellow/10 hover:border-cyber-yellow transition-all flex items-center justify-between group cyber-button"
+            >
+              <span className="font-mono font-bold group-hover:text-cyber-yellow transition-colors text-sm">Solflare</span>
+              <div className="w-2 h-2 bg-orange-500 rounded-full shadow-[0_0_5px_orange]" />
+            </button>
+          </div>
+
+          {/* Collaboration info */}
+          <div className="bg-cyber-yellow/5 border border-cyber-yellow/30 rounded p-3 text-xs text-white/70 font-mono">
+            <p className="font-bold text-cyber-yellow mb-1">💡 Interested in collaboration?</p>
+            <p>We're always open to partnerships and contributions. Reach out to us for more information.</p>
+          </div>
         </div>
       </motion.div>
     </div>
