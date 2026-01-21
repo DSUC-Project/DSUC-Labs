@@ -51,6 +51,7 @@ function AnimatedRoutes() {
 }
 
 export default function App() {
+  const warmupBackend = useStore((state) => state.warmupBackend);
   const fetchMembers = useStore((state) => state.fetchMembers);
   const fetchFinanceHistory = useStore((state) => state.fetchFinanceHistory);
   const fetchEvents = useStore((state) => state.fetchEvents);
@@ -62,9 +63,12 @@ export default function App() {
 
   // Fetch data when app loads
   useEffect(() => {
-    console.log('[App] Fetching initial data...');
-    // Check for existing session first
+    console.log('[App] Initializing...');
+    // Warmup backend FIRST - this starts the wake-up process
+    warmupBackend();
+    // Check for existing session
     checkSession();
+    // Fetch data
     fetchMembers();
     fetchFinanceHistory();
     fetchEvents();
@@ -72,7 +76,7 @@ export default function App() {
     fetchResources();
     fetchBounties();
     fetchRepos();
-  }, [fetchMembers, fetchFinanceHistory, fetchEvents, fetchProjects, fetchResources, fetchBounties, fetchRepos, checkSession]);
+  }, [warmupBackend, fetchMembers, fetchFinanceHistory, fetchEvents, fetchProjects, fetchResources, fetchBounties, fetchRepos, checkSession]);
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>

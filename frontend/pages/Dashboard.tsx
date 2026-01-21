@@ -7,7 +7,7 @@ import { useStore } from '../store/useStore';
 import { useContactModal } from '../components/Layout';
 
 export function Dashboard() {
-  const { events } = useStore();
+  const { events, backendStatus } = useStore();
   const { openContactModal } = useContactModal();
 
   // Get 3 most recent past events (event history)
@@ -16,6 +16,13 @@ export function Dashboard() {
     .filter(e => new Date(e.date) <= now)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 3);
+
+  // Determine status display
+  const statusConfig = {
+    connecting: { text: 'INITIALIZING...', color: 'text-cyber-yellow', icon: Cpu, pulse: true },
+    online: { text: 'SYS.ONLINE', color: 'text-cyber-blue', icon: Cpu, pulse: false },
+    offline: { text: 'NET.OFFLINE', color: 'text-red-500', icon: Cpu, pulse: false },
+  }[backendStatus];
 
   return (
     <div className="space-y-16">
@@ -30,12 +37,42 @@ export function Dashboard() {
           <div className="absolute bottom-10 right-10 w-4 h-4 border-r border-b border-cyber-blue" />
         </div>
 
-        {/* Floating HUD Elements - Smaller & Sharper */}
+        {/* Floating HUD Elements - Functional Status */}
         <div className="absolute inset-0 pointer-events-none overflow-visible hidden md:block">
           <FloatingBadge className="top-[10%] left-[10%]" delay={0}>
-            <div className="flex items-center gap-2 text-cyber-blue text-xs font-mono">
-              <Cpu size={14} />
-              <span>SYS.ONLINE</span>
+            <div className="relative group pointer-events-auto">
+              <div className={`flex items-center gap-2 ${statusConfig.color} text-xs font-mono`}>
+                <statusConfig.icon size={14} className={statusConfig.pulse ? 'animate-pulse' : ''} />
+                <span className={statusConfig.pulse ? 'animate-pulse' : ''}>{statusConfig.text}</span>
+              </div>
+
+              {/* Hover Tooltip */}
+              <div className="absolute left-0 top-full mt-2 w-64 bg-surface/95 border border-cyber-blue/50 p-3 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-50">
+                <div className="text-[10px] font-mono space-y-1">
+                  <div className="text-cyber-blue font-bold mb-2">BACKEND STATUS</div>
+                  {backendStatus === 'connecting' && (
+                    <>
+                      <div className="text-cyber-yellow">⚡ Waking up server nodes...</div>
+                      <div className="text-white/60">Database: Initializing</div>
+                      <div className="text-white/40 mt-2">Please wait ~10s</div>
+                    </>
+                  )}
+                  {backendStatus === 'online' && (
+                    <>
+                      <div className="text-green-400">✓ All systems operational</div>
+                      <div className="text-white/60">Database: Connected</div>
+                      <div className="text-white/60">API: Ready</div>
+                    </>
+                  )}
+                  {backendStatus === 'offline' && (
+                    <>
+                      <div className="text-red-400">✗ Connection failed</div>
+                      <div className="text-white/60">Database: Unreachable</div>
+                      <div className="text-white/40 mt-2">Please try again later</div>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </FloatingBadge>
           <FloatingBadge className="bottom-[20%] right-[10%]" delay={1.5}>

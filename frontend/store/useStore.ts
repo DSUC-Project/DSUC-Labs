@@ -34,6 +34,10 @@ interface AppState {
   authMethod: AuthMethod | null; // 'wallet' or 'google'
   authToken: string | null; // JWT token for Google auth
 
+  // Backend Status
+  backendStatus: 'connecting' | 'online' | 'offline';
+  warmupBackend: () => Promise<void>;
+
   connectWallet: (provider: "Phantom" | "Solflare") => void;
   disconnectWallet: () => void;
   loginWithGoogle: (googleUserInfo: GoogleUserInfo) => Promise<boolean>;
@@ -80,6 +84,7 @@ export const useStore = create<AppState>((set, get) => ({
   currentUser: null,
   authMethod: null,
   authToken: null,
+  backendStatus: 'connecting',
 
   members: [], // Initialize empty, will be fetched from backend
   events: EVENTS,
@@ -89,6 +94,38 @@ export const useStore = create<AppState>((set, get) => ({
   projects: PROJECTS,
   financeRequests: [],
   financeHistory: [],
+
+  // Warmup backend - ping to wake it up
+  warmupBackend: async () => {
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+      console.log('[warmupBackend] Pinging backend at:', base);
+      set({ backendStatus: 'connecting' });
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
+      const res = await fetch(`${base}/api/health`, {
+        signal: controller.signal,
+      }).catch(() => {
+        // Try root endpoint if health doesn't exist
+        return fetch(`${base}/`, { signal: controller.signal });
+      });
+
+      clearTimeout(timeout);
+
+      if (res.ok) {
+        console.log('[warmupBackend] Backend is online');
+        set({ backendStatus: 'online' });
+      } else {
+        console.warn('[warmupBackend] Backend returned non-200');
+        set({ backendStatus: 'offline' });
+      }
+    } catch (e) {
+      console.error('[warmupBackend] Failed to ping backend', e);
+      set({ backendStatus: 'offline' });
+    }
+  },
 
   // Fetch members from backend
   fetchMembers: async () => {
