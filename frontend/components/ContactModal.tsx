@@ -92,7 +92,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
 
                 {/* Header */}
                 <div className="text-center mb-5">
-                    <h3 className="text-xl font-display font-bold text-white">Get In Touch</h3>
+                    <h3 className="text-xl font-display font-bold text-white">Send us a message!</h3>
                     <p className="text-white/40 text-xs mt-1">We'd love to hear from you</p>
                 </div>
 
@@ -103,7 +103,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
                         name="name"
                         value={formData.name}
                         onChange={handleChange}
-                        placeholder="Your name"
+                        placeholder="What should we call you?"
                         className="w-full bg-black/30 border border-white/10 hover:border-cyber-blue/30 focus:border-cyber-blue px-3 py-2.5 text-white focus:outline-none text-sm transition-colors placeholder:text-white/30"
                         required
                         minLength={2}
@@ -132,7 +132,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
                     )}
                     {submitStatus === 'error' && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-2 bg-red-900/20 border border-red-500/30 text-red-400 text-xs text-center">
-                            {formData.name && formData.message ? 'Failed to send. Try again.' : 'Please fill in all fields.'}
+                            {formData.name && formData.message ? 'Failed to receive your message.' : 'Please fill in all fields.'}
                         </motion.div>
                     )}
 
@@ -143,7 +143,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
                         className="w-full bg-cyber-yellow text-black hover:bg-white font-bold py-2.5 flex items-center justify-center gap-2 transition-all uppercase tracking-wider text-xs disabled:opacity-50"
                     >
                         <Send size={14} />
-                        {isLoading ? 'Sending...' : 'Send Message'}
+                        {isLoading ? 'Sending...' : 'Send!'}
                     </button>
                 </form>
 
