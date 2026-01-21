@@ -102,27 +102,27 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
 
   return (
     <>
-      {/* Navbar Container with improved spacing */}
-      <div className="fixed top-0 left-0 right-0 z-[100] flex justify-center px-4 pt-4">
-        <nav className="relative w-full max-w-7xl bg-surface/90 backdrop-blur-xl border border-cyber-blue/30 rounded-lg px-4 md:px-6 py-3 md:py-4 shadow-[0_8px_32px_rgba(41,121,255,0.15)] transition-all duration-300">
+      {/* Navbar Container with improved spacing - Compact */}
+      <div className="fixed top-0 left-0 right-0 z-[100] flex justify-center px-4 pt-3">
+        <nav className="relative w-full max-w-6xl bg-surface/90 backdrop-blur-xl border border-cyber-blue/30 rounded-lg px-4 md:px-5 py-2 md:py-3 shadow-[0_8px_32px_rgba(41,121,255,0.15)] transition-all duration-300">
           {/* Top accent line */}
           <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyber-blue to-transparent opacity-60" />
-          
+
           {/* Bottom glow */}
           <div className="absolute bottom-0 left-1/4 right-1/4 h-[1px] bg-cyber-blue shadow-[0_0_12px_#2979FF] opacity-80" />
 
           <div className="flex items-center justify-between gap-4">
-            {/* Logo Area - Better balanced */}
-            <div className="flex items-center gap-3 text-cyber-blue font-display font-bold tracking-wider shrink-0">
+            {/* Logo Area - Better balanced & Compact */}
+            <div className="flex items-center gap-2.5 text-cyber-blue font-display font-bold tracking-wider shrink-0">
               <div className="relative">
-                <img 
-                  src="/logo.png" 
-                  alt="DSUC Logo" 
-                  className="w-8 h-8 md:w-10 md:h-10 object-contain drop-shadow-[0_0_10px_rgba(41,121,255,0.6)] transition-transform hover:scale-110 duration-300" 
+                <img
+                  src="/logo.png"
+                  alt="DSUC Logo"
+                  className="w-7 h-7 md:w-8 md:h-8 object-contain drop-shadow-[0_0_10px_rgba(41,121,255,0.6)] transition-transform hover:scale-110 duration-300"
                 />
                 <div className="absolute inset-0 bg-cyber-blue/20 blur-xl rounded-full -z-10" />
               </div>
-              <span className="hidden sm:inline text-sm md:text-base whitespace-nowrap bg-gradient-to-r from-cyber-blue to-white bg-clip-text text-transparent">
+              <span className="hidden sm:inline text-xs md:text-sm whitespace-nowrap bg-gradient-to-r from-cyber-blue to-white bg-clip-text text-transparent">
                 DSUC LAB
               </span>
             </div>
@@ -134,7 +134,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                   <div
                     key={link.path}
                     className={twMerge(
-                      "relative px-4 py-2.5 text-xs font-display font-bold uppercase tracking-wider transition-all duration-300 group cursor-not-allowed opacity-40",
+                      "relative px-3 py-2 text-xs font-display font-bold uppercase tracking-wider transition-all duration-300 group cursor-not-allowed opacity-40",
                       "hover:text-white/60"
                     )}
                     title="Login to access"
@@ -150,7 +150,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                     to={link.path}
                     className={({ isActive }) =>
                       twMerge(
-                        "relative px-4 py-2.5 text-xs font-display font-bold uppercase tracking-wider transition-all duration-300 hover:text-cyber-yellow group rounded-md",
+                        "relative px-3 py-2 text-xs font-display font-bold uppercase tracking-wider transition-all duration-300 hover:text-cyber-yellow group rounded-md",
                         isActive ? "text-cyber-blue" : "text-white/70 hover:text-white"
                       )
                     }
@@ -179,8 +179,8 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
             {/* Right side actions - Better alignment */}
             <div className="flex items-center gap-3 shrink-0">
               {/* Mobile menu button - moved to right side */}
-              <button 
-                onClick={() => setMobileMenuOpen(true)} 
+              <button
+                onClick={() => setMobileMenuOpen(true)}
                 className="lg:hidden text-cyber-blue hover:text-cyber-yellow transition-colors p-2 hover:bg-cyber-blue/10 rounded-md"
                 aria-label="Open menu"
               >
@@ -204,10 +204,10 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                 <div className="relative group hidden lg:block">
                   <button
                     onClick={onConnectClick}
-                    className="px-5 py-2.5 text-xs font-bold font-display uppercase tracking-widest transition-all duration-300 flex items-center gap-2.5 border border-cyber-blue/50 text-white hover:border-cyber-blue hover:bg-cyber-blue/10 hover:shadow-[0_0_20px_rgba(41,121,255,0.3)] rounded-lg relative overflow-hidden"
+                    className="px-4 py-2 text-xs font-bold font-display uppercase tracking-widest transition-all duration-300 flex items-center gap-2 border border-cyber-blue/50 text-white hover:border-cyber-blue hover:bg-cyber-blue/10 hover:shadow-[0_0_20px_rgba(41,121,255,0.3)] rounded-lg relative overflow-hidden"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-cyber-blue/0 via-cyber-blue/10 to-cyber-blue/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                    <Wallet size={16} className="relative z-10" />
+
                     <span className="relative z-10">Sign In</span>
                   </button>
                   {/* Improved tooltip */}
@@ -237,7 +237,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
               onClick={() => setMobileMenuOpen(false)}
               className="fixed inset-0 z-[150] bg-black/80 backdrop-blur-sm lg:hidden"
             />
-            
+
             {/* Menu Panel */}
             <motion.div
               initial={{ opacity: 0, x: '100%' }}
@@ -252,8 +252,8 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                   <img src="/logo.png" alt="Logo" className="w-8 h-8 drop-shadow-[0_0_8px_rgba(41,121,255,0.6)]" />
                   DSUC LAB
                 </span>
-                <button 
-                  onClick={() => setMobileMenuOpen(false)} 
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
                   className="text-white/60 hover:text-white hover:bg-white/5 p-2 rounded-lg transition-all"
                   aria-label="Close menu"
                 >
@@ -271,8 +271,8 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                     className={({ isActive }) =>
                       twMerge(
                         "text-lg font-display font-bold uppercase flex items-center gap-4 p-4 rounded-lg transition-all duration-300",
-                        isActive 
-                          ? "text-cyber-blue bg-cyber-blue/10 border border-cyber-blue/30 translate-x-2" 
+                        isActive
+                          ? "text-cyber-blue bg-cyber-blue/10 border border-cyber-blue/30 translate-x-2"
                           : "text-white/60 hover:text-white hover:bg-white/5 border border-transparent",
                         link.locked && "opacity-40 cursor-not-allowed"
                       )
@@ -297,8 +297,8 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                     className={({ isActive }) =>
                       twMerge(
                         "text-lg font-display font-bold uppercase flex items-center gap-4 p-4 rounded-lg transition-all duration-300",
-                        isActive 
-                          ? "text-cyber-blue bg-cyber-blue/10 border border-cyber-blue/30 translate-x-2" 
+                        isActive
+                          ? "text-cyber-blue bg-cyber-blue/10 border border-cyber-blue/30 translate-x-2"
                           : "text-white/60 hover:text-white hover:bg-white/5 border border-transparent"
                       )
                     }
@@ -323,7 +323,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                     }}
                     className="w-full px-5 py-3.5 text-sm font-bold font-display uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-3 border border-cyber-blue/50 text-white hover:border-cyber-blue hover:bg-cyber-blue/10 rounded-lg shadow-[0_4px_16px_rgba(41,121,255,0.2)]"
                   >
-                    <Wallet size={18} />
+
                     <span>Sign In</span>
                   </button>
                   <p className="text-[11px] text-white/40 text-center mt-3 leading-relaxed">

@@ -83,18 +83,10 @@ export function Dashboard() {
         >
           <button
             onClick={openContactModal}
-            className="bg-cyber-yellow text-black font-display font-bold text-sm px-8 py-4 cyber-button hover:bg-white transition-all hover:shadow-[0_0_20px_rgba(255,214,0,0.5)] flex items-center justify-center gap-2"
+            className="bg-cyber-yellow text-black font-display font-bold text-sm px-10 py-5 cyber-button hover:bg-white transition-all hover:shadow-[0_0_30px_rgba(255,214,0,0.6)] flex items-center justify-center gap-3 text-base"
           >
-            CONTACT US <ArrowUpRight size={18} />
+            CONTACT US <ArrowUpRight size={20} />
           </button>
-          <a
-            href="https://www.facebook.com/superteamdut.club"
-            target="_blank"
-            rel="noreferrer"
-            className="border border-cyber-blue/50 text-cyber-blue font-display font-bold text-sm px-8 py-4 cyber-button hover:bg-cyber-blue/10 transition-colors flex items-center justify-center gap-2"
-          >
-            <Facebook size={18} /> FANPAGE
-          </a>
         </motion.div>
       </section>
 
