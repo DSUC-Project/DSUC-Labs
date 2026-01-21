@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Github, Send, MessageCircle, ExternalLink, Clock, Users, Lightbulb, Handshake } from 'lucide-react';
+import { Github, Send, MessageCircle, Users, Handshake } from 'lucide-react';
 
 const FacebookIcon = () => (
     <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
@@ -27,7 +27,6 @@ export function Contact() {
     const interests = [
         { icon: Handshake, label: 'Partnerships' },
         { icon: Users, label: 'Collaborations' },
-        { icon: Lightbulb, label: 'Project Ideas' },
     ];
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -131,7 +130,7 @@ export function Contact() {
                                 name="message"
                                 value={formData.message}
                                 onChange={handleChange}
-                                placeholder="What would you like to discuss?"
+                                placeholder="Message"
                                 className="w-full bg-black/30 border border-white/10 hover:border-cyber-blue/30 focus:border-cyber-blue px-4 py-3 text-white focus:outline-none text-sm transition-colors resize-none h-28 placeholder:text-white/30"
                                 required
                                 minLength={10}
@@ -165,10 +164,6 @@ export function Contact() {
 
                     {/* Footer Info */}
                     <div className="mt-6 pt-6 border-t border-white/10 flex flex-wrap justify-center gap-6 text-xs text-white/40">
-                        <div className="flex items-center gap-1.5">
-                            <Clock size={12} />
-                            <span>Response: 24-48h</span>
-                        </div>
                         {interests.map((item) => (
                             <div key={item.label} className="flex items-center gap-1.5">
                                 <item.icon size={12} />
