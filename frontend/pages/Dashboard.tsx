@@ -2,7 +2,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
-import { ArrowUpRight, Cpu, Globe, Facebook } from 'lucide-react';
+import { ArrowUpRight, Cpu, Globe, Facebook, Loader2, AlertCircle } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useContactModal } from '../components/Layout';
 
@@ -19,9 +19,9 @@ export function Dashboard() {
 
   // Determine status display
   const statusConfig = {
-    connecting: { text: 'INITIALIZING...', color: 'text-cyber-yellow', icon: Cpu, pulse: true },
-    online: { text: 'SYS.ONLINE', color: 'text-cyber-blue', icon: Cpu, pulse: false },
-    offline: { text: 'NET.OFFLINE', color: 'text-red-500', icon: Cpu, pulse: false },
+    connecting: { text: 'INITIALIZING...', color: 'text-cyber-yellow', icon: Loader2, pulse: true, spin: true },
+    online: { text: 'SYS.ONLINE', color: 'text-cyber-blue', icon: Cpu, pulse: false, spin: false },
+    offline: { text: 'NET.OFFLINE', color: 'text-red-500', icon: AlertCircle, pulse: false, spin: false },
   }[backendStatus];
 
   return (
@@ -38,16 +38,16 @@ export function Dashboard() {
         </div>
 
         {/* Floating HUD Elements - Functional Status */}
-        <div className="absolute inset-0 pointer-events-none overflow-visible hidden md:block">
+        <div className="absolute inset-0 pointer-events-none overflow-visible hidden md:block z-50">
           <FloatingBadge className="top-[10%] left-[10%]" delay={0}>
             <div className="relative group pointer-events-auto">
               <div className={`flex items-center gap-2 ${statusConfig.color} text-xs font-mono`}>
-                <statusConfig.icon size={14} className={statusConfig.pulse ? 'animate-pulse' : ''} />
+                <statusConfig.icon size={14} className={clsx(statusConfig.pulse && 'animate-pulse', statusConfig.spin && 'animate-spin')} />
                 <span className={statusConfig.pulse ? 'animate-pulse' : ''}>{statusConfig.text}</span>
               </div>
 
               {/* Hover Tooltip */}
-              <div className="absolute left-0 top-full mt-2 w-64 bg-surface/95 border border-cyber-blue/50 p-3 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-50">
+              <div className="absolute left-0 top-full mt-2 w-64 bg-[#050510] border border-cyber-blue/50 p-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-50 shadow-[0_4px_20px_rgba(0,0,0,0.8)]">
                 <div className="text-[10px] font-mono space-y-1">
                   <div className="text-cyber-blue font-bold mb-2">BACKEND STATUS</div>
                   {backendStatus === 'connecting' && (

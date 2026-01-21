@@ -95,35 +95,54 @@ export const useStore = create<AppState>((set, get) => ({
   financeRequests: [],
   financeHistory: [],
 
-  // Warmup backend - ping to wake it up
+  // Warmup backend - ping to wake it up logic
   warmupBackend: async () => {
-    try {
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-      console.log('[warmupBackend] Pinging backend at:', base);
-      set({ backendStatus: 'connecting' });
+    const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+    console.log('[warmupBackend] Starting backend warmup sequence at:', base);
+    set({ backendStatus: 'connecting' });
 
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
+    const startTime = Date.now();
+    const INITIALIZING_TIMEOUT = 20000; // 20 seconds allowed for "connecting" state
 
-      const res = await fetch(`${base}/api/health`, {
-        signal: controller.signal,
-      }).catch(() => {
-        // Try root endpoint if health doesn't exist
-        return fetch(`${base}/`, { signal: controller.signal });
-      });
+    const ping = async () => {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000); // 10s fetch timeout
 
-      clearTimeout(timeout);
+        const res = await fetch(`${base}/api/health`, {
+          signal: controller.signal,
+        }).catch(() => null); // Catch network errors silently
 
-      if (res.ok) {
-        console.log('[warmupBackend] Backend is online');
-        set({ backendStatus: 'online' });
-      } else {
-        console.warn('[warmupBackend] Backend returned non-200');
-        set({ backendStatus: 'offline' });
+        clearTimeout(timeout);
+        return res?.ok;
+      } catch {
+        return false;
       }
-    } catch (e) {
-      console.error('[warmupBackend] Failed to ping backend', e);
-      set({ backendStatus: 'offline' });
+    };
+
+    // Polling loop
+    while (true) {
+      const isOnline = await ping();
+
+      if (isOnline) {
+        console.log('[warmupBackend] Backend is online!');
+        set({ backendStatus: 'online' });
+        break; // Stop checking once online
+      }
+
+      // If still here, it failed. Check constraints.
+      const elapsed = Date.now() - startTime;
+
+      if (elapsed > INITIALIZING_TIMEOUT) {
+        // Only show "offline" after the 60s grace period
+        set({ backendStatus: 'offline' });
+        console.log('[warmupBackend] Backend still unreachable. Retrying in 5s...');
+        await new Promise(r => setTimeout(r, 5000)); // Wait 5s before retry
+      } else {
+        // Still in "Initializing" phase
+        console.log(`[warmupBackend] Waking up... (${Math.round(elapsed / 1000)}s)`);
+        await new Promise(r => setTimeout(r, 2000)); // Quick retry every 2s while initializing
+      }
     }
   },
 
