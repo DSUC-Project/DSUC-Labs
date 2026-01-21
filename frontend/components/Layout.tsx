@@ -89,7 +89,6 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
     { name: 'Finance', path: '/finance', icon: Calculator, locked: !currentUser },
     { name: 'Work', path: '/work', icon: Briefcase, locked: !currentUser },
     { name: 'Resources', path: '/resources', icon: Folder },
-    { name: 'Contact', path: '/contact', icon: Mail },
   ];
 
   return (
