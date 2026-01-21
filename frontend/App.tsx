@@ -14,7 +14,6 @@ import { Work } from './pages/Work';
 import { Resources } from './pages/Resources';
 import { Projects } from './pages/Projects';
 import { ProjectDetail } from './pages/ProjectDetail';
-import { Contact } from './pages/Contact';
 import { useStore } from './store/useStore';
 
 // Google OAuth Client ID - set in environment variable
@@ -42,7 +41,6 @@ function AnimatedRoutes() {
           <Route path="/projects" element={<Projects />} />
           <Route path="/project/:id" element={<ProjectDetail />} />
           <Route path="/events" element={<Events />} />
-          <Route path="/contact" element={<Contact />} />
           <Route path="/finance" element={currentUser ? <Finance /> : <Navigate to="/home" replace />} />
           <Route path="/work" element={currentUser ? <Work /> : <Navigate to="/home" replace />} />
           <Route path="/resources" element={<Resources />} />

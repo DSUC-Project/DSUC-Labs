@@ -4,9 +4,11 @@ import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
 import { ArrowUpRight, Cpu, Globe, Facebook } from 'lucide-react';
 import { useStore } from '../store/useStore';
+import { useContactModal } from '../components/Layout';
 
 export function Dashboard() {
   const { events } = useStore();
+  const { openContactModal } = useContactModal();
 
   // Get 3 most recent past events (event history)
   const now = new Date();
@@ -79,12 +81,12 @@ export function Dashboard() {
           transition={{ delay: 0.3 }}
           className="flex flex-col sm:flex-row gap-4 z-10"
         >
-          <a
-            href="/contact"
+          <button
+            onClick={openContactModal}
             className="bg-cyber-yellow text-black font-display font-bold text-sm px-8 py-4 cyber-button hover:bg-white transition-all hover:shadow-[0_0_20px_rgba(255,214,0,0.5)] flex items-center justify-center gap-2"
           >
             CONTACT US <ArrowUpRight size={18} />
-          </a>
+          </button>
           <a
             href="https://www.facebook.com/superteamdut.club"
             target="_blank"

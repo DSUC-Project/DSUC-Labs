@@ -1,6 +1,16 @@
 import { Router, Request, Response } from "express";
+import nodemailer from "nodemailer";
 
 const router = Router();
+
+// Initialize email transporter
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: process.env.GMAIL_USER || "",
+        pass: process.env.GMAIL_PASSWORD || "",
+    },
+});
 
 // Store for rate limiting (IP -> count + timestamp)
 const rateLimitMap: Map<string, { count: number; timestamp: number }> = new Map();
@@ -98,14 +108,35 @@ router.post("/", async (req: Request, res: Response) => {
         const sanitizedName = sanitizeInput(name);
         const sanitizedMessage = sanitizeInput(message);
 
-        // TODO: Store message in database or send email notification
-        // For now, just log it
+        // Log the message
         console.log("[CONTACT] New message received:", {
             name: sanitizedName,
             message: sanitizedMessage,
             ip: clientIp,
             timestamp: new Date().toISOString(),
         });
+
+        // Send email notification
+        try {
+            await transporter.sendMail({
+                from: process.env.GMAIL_USER || "noreply@dsuclab.com",
+                to: process.env.ADMIN_EMAIL || process.env.GMAIL_USER || "",
+                subject: `New Contact Message from ${sanitizedName}`,
+                html: `
+                    <h2>New Contact Message</h2>
+                    <p><strong>From:</strong> ${sanitizedName}</p>
+                    <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
+                    <p><strong>IP Address:</strong> ${clientIp}</p>
+                    <hr />
+                    <p><strong>Message:</strong></p>
+                    <p>${sanitizedMessage.replace(/\n/g, "<br />")}</p>
+                `,
+            });
+            console.log("[CONTACT] Email notification sent successfully");
+        } catch (emailError: any) {
+            console.error("[CONTACT] Failed to send email notification:", emailError.message);
+            // Don't fail the request if email sending fails - the message was still received
+        }
 
         return res.status(200).json({
             success: true,
