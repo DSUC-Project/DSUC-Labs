@@ -177,7 +177,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
               <div className="relative group">
                 <button
                   onClick={onConnectClick}
-                  className="cyber-button px-4 py-1.5 text-xs font-bold font-display uppercase tracking-widest transition-all duration-300 flex items-center gap-2 border bg-cyber-yellow text-black border-cyber-yellow hover:bg-white hover:border-white hover:shadow-[0_0_15px_#FFD600] shrink-0 ml-auto md:ml-0"
+                  className="cyber-button px-4 py-1.5 text-xs font-bold font-display uppercase tracking-widest transition-all duration-300 flex items-center gap-2 border border-white/30 text-white hover:border-cyber-blue hover:bg-cyber-blue/10 shrink-0 ml-auto md:ml-0"
                   title="Members: Sign in to access team features. Interested in collaboration? See Contact in the menu."
                 >
                   <Wallet size={14} />
@@ -364,12 +364,6 @@ function WalletModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void
               <span className="font-mono font-bold group-hover:text-cyber-yellow transition-colors text-sm">Solflare</span>
               <div className="w-2 h-2 bg-orange-500 rounded-full shadow-[0_0_5px_orange]" />
             </button>
-          </div>
-
-          {/* Collaboration info */}
-          <div className="bg-cyber-yellow/5 border border-cyber-yellow/30 rounded p-3 text-xs text-white/70 font-mono">
-            <p className="font-bold text-cyber-yellow mb-1">💡 Interested in collaboration?</p>
-            <p>We're always open to partnerships and contributions. Reach out to us for more information.</p>
           </div>
         </div>
       </motion.div>
