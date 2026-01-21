@@ -83,9 +83,31 @@ export function Dashboard() {
         >
           <button
             onClick={openContactModal}
-            className="bg-cyber-yellow text-black font-display font-bold text-sm px-10 py-5 cyber-button hover:bg-white transition-all hover:shadow-[0_0_30px_rgba(255,214,0,0.6)] flex items-center justify-center gap-3 text-base"
+            className="group relative px-10 py-5 bg-transparent focus:outline-none overflow-hidden"
           >
-            CONTACT US <ArrowUpRight size={20} />
+            {/* Background & Shape */}
+            <div
+              className="absolute inset-0 bg-cyber-yellow/5 border border-cyber-yellow/30 group-hover:border-cyber-yellow group-hover:bg-cyber-yellow/10 transition-all duration-300"
+              style={{ clipPath: "polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)" }}
+            />
+
+            {/* Hover Scan Effect */}
+            <div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-cyber-yellow/40 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-none group-hover:transition-transform group-hover:duration-700 group-hover:ease-in-out pointer-events-none"
+              style={{ clipPath: "polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)" }}
+            />
+
+            {/* Corner Accents */}
+            <div className="absolute top-0 left-0 w-3 h-3 border-l-2 border-t-2 border-cyber-yellow opacity-100 transition-colors" />
+            <div className="absolute bottom-0 right-0 w-3 h-3 border-r-2 border-b-2 border-cyber-yellow opacity-100 transition-colors" />
+            <div className="absolute top-0 right-0 w-3 h-3 border-r-2 border-t-2 border-cyber-yellow opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute bottom-0 left-0 w-3 h-3 border-l-2 border-b-2 border-cyber-yellow opacity-0 group-hover:opacity-100 transition-opacity" />
+
+            {/* Content */}
+            <div className="relative flex items-center justify-center gap-3 text-cyber-yellow font-display font-bold text-lg tracking-widest group-hover:text-white transition-colors duration-300">
+              <span className="drop-shadow-[0_0_8px_rgba(255,214,0,0.5)]">CONTACT US</span>
+              <ArrowUpRight size={20} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(255,214,0,0.5)]" />
+            </div>
           </button>
         </motion.div>
       </section>
@@ -196,10 +218,10 @@ function FloatingBadge({ children, className, delay }: { children?: React.ReactN
 
 function StatCard({ label, value, suffix }: { label: string, value: string, suffix: string }) {
   return (
-    <div className="flex flex-col items-center justify-center group">
+    <div className="flex flex-col items-center justify-center">
       <span className="text-white/40 text-xs font-mono uppercase tracking-widest mb-2">{label}</span>
       <div className="flex items-baseline gap-1">
-        <span className="text-4xl font-display font-bold text-white group-hover:text-cyber-blue transition-colors shadow-glow">{value}</span>
+        <span className="text-4xl font-display font-bold text-white shadow-glow">{value}</span>
         <span className="text-xs font-bold text-cyber-yellow font-display">{suffix}</span>
       </div>
     </div>

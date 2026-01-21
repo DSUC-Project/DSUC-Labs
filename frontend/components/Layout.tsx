@@ -109,7 +109,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
           <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyber-blue to-transparent opacity-60" />
 
           {/* Bottom glow */}
-          <div className="absolute bottom-0 left-1/4 right-1/4 h-[1px] bg-cyber-blue shadow-[0_0_12px_#2979FF] opacity-80" />
+
 
           <div className="flex items-center justify-between gap-4">
             {/* Logo Area - Better balanced & Compact */}
@@ -397,7 +397,7 @@ function WalletModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void
         <div className="mb-6 text-center">
           <Terminal size={40} className="mx-auto text-cyber-blue mb-2" />
           <h3 className="text-xl font-display font-bold text-white uppercase tracking-wider">Member Sign In</h3>
-          <p className="text-white/40 text-xs mt-1">Registered members only. Not a member? Contact us for collaboration opportunities.</p>
+
         </div>
 
         <div className="space-y-3">

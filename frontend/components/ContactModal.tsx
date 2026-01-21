@@ -96,34 +96,8 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
                     <p className="text-white/40 text-xs mt-1">We'd love to hear from you</p>
                 </div>
 
-                {/* Social Links */}
-                <div className="flex justify-center gap-2 mb-4">
-                    {socialLinks.map((social) => {
-                        const Icon = social.icon;
-                        return (
-                            <a
-                                key={social.name}
-                                href={social.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`flex items-center gap-2 px-3 py-2 border border-white/10 bg-black/20 text-white/60 transition-all text-xs ${social.color}`}
-                            >
-                                <Icon size={16} />
-                                <span className="font-medium">{social.name}</span>
-                            </a>
-                        );
-                    })}
-                </div>
-
-                {/* Divider */}
-                <div className="flex items-center gap-3 mb-4">
-                    <div className="flex-1 h-px bg-white/10" />
-                    <span className="text-white/30 text-[10px] uppercase tracking-wider">or send a message</span>
-                    <div className="flex-1 h-px bg-white/10" />
-                </div>
-
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="space-y-3">
+                {/* Form (Main Feature) */}
+                <form onSubmit={handleSubmit} className="space-y-3 mb-5">
                     <input
                         type="text"
                         name="name"
@@ -172,6 +146,32 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
                         {isLoading ? 'Sending...' : 'Send Message'}
                     </button>
                 </form>
+
+                {/* Divider */}
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="flex-1 h-px bg-white/10" />
+                    <span className="text-white/30 text-[10px] uppercase tracking-wider">or connect via</span>
+                    <div className="flex-1 h-px bg-white/10" />
+                </div>
+
+                {/* Social Links */}
+                <div className="flex justify-center gap-2 mb-2">
+                    {socialLinks.map((social) => {
+                        const Icon = social.icon;
+                        return (
+                            <a
+                                key={social.name}
+                                href={social.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`flex items-center gap-2 px-3 py-2 border border-white/10 bg-black/20 text-white/60 transition-all text-xs ${social.color}`}
+                            >
+                                <Icon size={16} />
+                                <span className="font-medium">{social.name}</span>
+                            </a>
+                        );
+                    })}
+                </div>
 
                 {/* Footer */}
                 <div className="mt-4 pt-4 border-t border-white/10 flex justify-center gap-4 text-[10px] text-white/30">
