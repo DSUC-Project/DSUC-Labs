@@ -7,8 +7,13 @@ const router = Router();
 let transporter: any = null;
 
 function initializeTransporter() {
+    console.log("[CONTACT] Initializing transporter...");
+    console.log("[CONTACT] GMAIL_USER env:", process.env.GMAIL_USER ? "✓ Set" : "✗ Not set");
+    console.log("[CONTACT] GMAIL_PASSWORD env:", process.env.GMAIL_PASSWORD ? "✓ Set" : "✗ Not set");
+    console.log("[CONTACT] ADMIN_EMAIL env:", process.env.ADMIN_EMAIL ? `✓ Set to ${process.env.ADMIN_EMAIL}` : "✗ Not set");
+
     if (!transporter && process.env.GMAIL_USER && process.env.GMAIL_PASSWORD) {
-        console.log("[EMAIL] Initializing transporter with user:", process.env.GMAIL_USER);
+        console.log("[CONTACT] Creating nodemailer transporter...");
         transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
@@ -16,11 +21,9 @@ function initializeTransporter() {
                 pass: process.env.GMAIL_PASSWORD,
             },
         });
-        console.log("[EMAIL] Transporter initialized successfully");
-    } else if (!transporter) {
-        console.warn("[EMAIL] Cannot initialize - Missing env vars:");
-        console.warn("[EMAIL]   GMAIL_USER:", process.env.GMAIL_USER ? "✓" : "✗ MISSING");
-        console.warn("[EMAIL]   GMAIL_PASSWORD:", process.env.GMAIL_PASSWORD ? "✓" : "✗ MISSING");
+        console.log("[CONTACT] Transporter created successfully");
+    } else {
+        console.log("[CONTACT] Transporter already exists or credentials missing");
     }
     return transporter;
 }
@@ -130,19 +133,17 @@ router.post("/", async (req: Request, res: Response) => {
         });
 
         // Send response immediately
-        console.log("[CONTACT] Sending 200 response to client");
         res.status(200).json({
             success: true,
             message: "Message received. We'll get back to you soon!",
         });
 
         // Send email notification asynchronously (non-blocking)
-        console.log("[CONTACT] Starting async email send...");
         const emailTransporter = initializeTransporter();
         if (emailTransporter) {
-            console.log("[EMAIL] Transporter ready, attempting to send email");
-            console.log("[EMAIL] From:", process.env.GMAIL_USER);
-            console.log("[EMAIL] To:", process.env.ADMIN_EMAIL || process.env.GMAIL_USER);
+            console.log("[CONTACT] Email transporter ready, preparing to send...");
+            console.log("[CONTACT] Email from:", process.env.GMAIL_USER);
+            console.log("[CONTACT] Email to:", process.env.ADMIN_EMAIL || process.env.GMAIL_USER);
 
             // Set a timeout for email sending (don't wait more than 10 seconds)
             const emailPromise = emailTransporter.sendMail({
@@ -165,18 +166,18 @@ router.post("/", async (req: Request, res: Response) => {
             );
 
             Promise.race([emailPromise, timeoutPromise])
-                .then(() => {
-                    console.log("[EMAIL] ✓ Email sent successfully!");
+                .then((info: any) => {
+                    console.log("[CONTACT] ✓ Email sent successfully!");
+                    console.log("[CONTACT] Response ID:", info?.response);
                 })
                 .catch((error: any) => {
-                    console.error("[EMAIL] ✗ Failed to send email:", error.message);
-                    console.error("[EMAIL] Error details:", error);
+                    console.error("[CONTACT] ✗ Email send failed:", error.message);
+                    console.error("[CONTACT] Error code:", error.code);
+                    console.error("[CONTACT] Full error:", error);
                 });
         } else {
-            console.error("[EMAIL] ✗ Transporter is NULL - credentials not loaded!");
-            console.error("[EMAIL] Check these env vars in your .env file:");
-            console.error("[EMAIL]   - GMAIL_USER");
-            console.error("[EMAIL]   - GMAIL_PASSWORD");
+            console.warn("[CONTACT] ✗ Email transporter not initialized!");
+            console.warn("[CONTACT] Make sure GMAIL_USER and GMAIL_PASSWORD env vars are set");
         }
     } catch (error: any) {
         console.error("[CONTACT] Error:", error);
