@@ -84,7 +84,7 @@ function Background() {
 }
 
 function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
-  const { isWalletConnected, disconnectWallet, currentUser, members } = useStore();
+  const { isWalletConnected, disconnectWallet, currentUser } = useStore();
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -157,18 +157,6 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                   >
                     {({ isActive }) => (
                       <>
-                        {/* Member Count Watermark - Full Navbar Height */}
-                        {link.name === 'Members' && (
-                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[60px] flex items-center justify-center pointer-events-none select-none z-0">
-                            <span className={twMerge(
-                              "text-5xl font-display font-bold leading-none tracking-tighter opacity-10 scale-y-110",
-                              isActive ? "text-cyber-blue" : "text-white"
-                            )}>
-                              {(members?.length || 0).toString().padStart(2, '0')}
-                            </span>
-                          </div>
-                        )}
-
                         <span className="relative z-10 flex items-center gap-2">
                           <link.icon size={14} className={isActive ? "text-cyber-blue" : "text-white/50 group-hover:text-cyber-yellow"} />
                           {link.name}

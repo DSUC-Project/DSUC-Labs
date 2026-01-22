@@ -102,7 +102,7 @@ export const useStore = create<AppState>((set, get) => ({
     set({ backendStatus: 'connecting' });
 
     const startTime = Date.now();
-    const INITIALIZING_TIMEOUT = 20000; // 20 seconds allowed for "connecting" state
+    const INITIALIZING_TIMEOUT = 24000; // 24 seconds allowed for "connecting" state
 
     const ping = async () => {
       try {
