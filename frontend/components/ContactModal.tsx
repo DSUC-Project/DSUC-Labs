@@ -71,7 +71,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
                     console.log('[ContactModal] Closing modal after success');
                     setSubmitStatus('idle');
                     onClose();
-                }, 2000);
+                }, 3500);
             } else {
                 const errorData = await response.json().catch(() => ({}));
                 console.error('[ContactModal] ✗ Error response:', {
@@ -105,7 +105,27 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="relative bg-surface border border-cyber-blue/50 p-6 w-full max-w-md cyber-clip-top shadow-[0_0_50px_rgba(41,121,255,0.15)]"
             >
-                <button onClick={handleClose} className="absolute top-4 right-4 text-white/40 hover:text-white">
+                {/* Success Screen Overlay */}
+                {submitStatus === 'success' && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="absolute inset-0 bg-gradient-to-b from-green-900/30 to-green-900/10 backdrop-blur-sm rounded-none flex flex-col items-center justify-center z-50"
+                    >
+                        <motion.div
+                            initial={{ scale: 0, rotate: -180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            transition={{ type: 'spring', damping: 15, stiffness: 200 }}
+                            className="text-5xl mb-4"
+                        >
+                            ✓
+                        </motion.div>
+                        <h4 className="text-xl font-display font-bold text-green-400 mb-2">Message Sent!</h4>
+                        <p className="text-xs text-green-300/70 text-center px-4">We'll get back to you soon</p>
+                    </motion.div>
+                )}
+
+                <button onClick={handleClose} className="absolute top-4 right-4 text-white/40 hover:text-white z-10">
                     <X size={20} />
                 </button>
 
