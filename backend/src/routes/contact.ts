@@ -4,13 +4,20 @@ import nodemailer from "nodemailer";
 const router = Router();
 
 // Initialize email transporter
-const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-        user: process.env.GMAIL_USER || "",
-        pass: process.env.GMAIL_PASSWORD || "",
-    },
-});
+let transporter: any = null;
+
+function initializeTransporter() {
+    if (!transporter && process.env.GMAIL_USER && process.env.GMAIL_PASSWORD) {
+        transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: process.env.GMAIL_USER,
+                pass: process.env.GMAIL_PASSWORD,
+            },
+        });
+    }
+    return transporter;
+}
 
 // Store for rate limiting (IP -> count + timestamp)
 const rateLimitMap: Map<string, { count: number; timestamp: number }> = new Map();
@@ -116,9 +123,17 @@ router.post("/", async (req: Request, res: Response) => {
             timestamp: new Date().toISOString(),
         });
 
-        // Send email notification
-        try {
-            await transporter.sendMail({
+        // Send response immediately
+        res.status(200).json({
+            success: true,
+            message: "Message received. We'll get back to you soon!",
+        });
+
+        // Send email notification asynchronously (non-blocking)
+        const emailTransporter = initializeTransporter();
+        if (emailTransporter) {
+            // Set a timeout for email sending (don't wait more than 10 seconds)
+            const emailPromise = emailTransporter.sendMail({
                 from: process.env.GMAIL_USER || "noreply@dsuclab.com",
                 to: process.env.ADMIN_EMAIL || process.env.GMAIL_USER || "",
                 subject: `New Contact Message from ${sanitizedName}`,
@@ -132,16 +147,21 @@ router.post("/", async (req: Request, res: Response) => {
                     <p>${sanitizedMessage.replace(/\n/g, "<br />")}</p>
                 `,
             });
-            console.log("[CONTACT] Email notification sent successfully");
-        } catch (emailError: any) {
-            console.error("[CONTACT] Failed to send email notification:", emailError.message);
-            // Don't fail the request if email sending fails - the message was still received
-        }
 
-        return res.status(200).json({
-            success: true,
-            message: "Message received. We'll get back to you soon!",
-        });
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Email send timeout")), 10000)
+            );
+
+            Promise.race([emailPromise, timeoutPromise])
+                .then(() => {
+                    console.log("[CONTACT] Email notification sent successfully");
+                })
+                .catch((error: any) => {
+                    console.error("[CONTACT] Failed to send email notification:", error.message);
+                });
+        } else {
+            console.warn("[CONTACT] Email transporter not initialized - check GMAIL_USER and GMAIL_PASSWORD env vars");
+        }
     } catch (error: any) {
         console.error("[CONTACT] Error:", error);
         return res.status(500).json({
