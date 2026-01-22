@@ -23,12 +23,19 @@ function initializeTransporter() {
     if (!transporter && process.env.GMAIL_USER && process.env.GMAIL_PASSWORD) {
         console.log("[CONTACT] ✓ Credentials present, creating transporter...");
         console.log("[CONTACT] Transporter config - service: gmail, user:", process.env.GMAIL_USER);
+
+        // Strip spaces from password (app passwords sometimes have spaces)
+        const password = process.env.GMAIL_PASSWORD.replace(/\s/g, '');
+        console.log("[CONTACT] Password length after stripping spaces:", password.length);
+
         transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
                 user: process.env.GMAIL_USER,
-                pass: process.env.GMAIL_PASSWORD,
+                pass: password,
             },
+            logger: true,
+            debug: true,
         });
         console.log("[CONTACT] ✓ Transporter created successfully");
     } else {
@@ -176,7 +183,7 @@ router.post("/", async (req: Request, res: Response) => {
             });
 
             const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("Email send timeout")), 10000)
+                setTimeout(() => reject(new Error("Email send timeout")), 30000)
             );
 
             Promise.race([emailPromise, timeoutPromise])
