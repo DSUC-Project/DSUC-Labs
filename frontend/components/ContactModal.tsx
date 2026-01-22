@@ -35,41 +35,60 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        console.log('[ContactModal] Form submitted', { name: formData.name, messageLength: formData.message.length });
+
         if (!formData.name.trim() || !formData.message.trim()) {
+            console.warn('[ContactModal] Validation failed - missing fields');
             setSubmitStatus('error');
             setTimeout(() => setSubmitStatus('idle'), 3000);
             return;
         }
 
         setIsLoading(true);
+        const base = (import.meta as any).env.VITE_API_BASE_URL || 'http://localhost:3001';
+        console.log('[ContactModal] API endpoint:', base);
+
         try {
-            const base = (import.meta as any).env.VITE_API_BASE_URL || 'http://localhost:3001';
+            console.log('[ContactModal] Sending POST request to /api/contact...');
             const response = await fetch(`${base}/api/contact`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
             });
 
+            console.log('[ContactModal] Response received:', {
+                status: response.status,
+                statusText: response.statusText,
+                ok: response.ok,
+            });
+
             if (response.ok) {
+                const data = await response.json();
+                console.log('[ContactModal] ✓ Success response:', data);
                 setSubmitStatus('success');
                 setFormData({ name: '', message: '' });
                 setTimeout(() => {
+                    console.log('[ContactModal] Closing modal after success');
                     setSubmitStatus('idle');
                     onClose();
                 }, 2000);
             } else {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('[ContactModal] ✗ Error response:', {
+                    status: response.status,
+                    error: errorData,
+                });
                 setSubmitStatus('error');
                 setTimeout(() => setSubmitStatus('idle'), 3000);
             }
-        } catch {
+        } catch (error) {
+            console.error('[ContactModal] ✗ Fetch error:', error);
             setSubmitStatus('error');
             setTimeout(() => setSubmitStatus('idle'), 3000);
         } finally {
             setIsLoading(false);
         }
-    };
-
-    const handleClose = () => {
+    }; const handleClose = () => {
         setFormData({ name: '', message: '' });
         setSubmitStatus('idle');
         onClose();
