@@ -8,12 +8,21 @@ let transporter: any = null;
 
 function initializeTransporter() {
     console.log("[CONTACT] Initializing transporter...");
-    console.log("[CONTACT] GMAIL_USER env:", process.env.GMAIL_USER ? "✓ Set" : "✗ Not set");
-    console.log("[CONTACT] GMAIL_PASSWORD env:", process.env.GMAIL_PASSWORD ? "✓ Set" : "✗ Not set");
+    console.log("[CONTACT] GMAIL_USER env:", process.env.GMAIL_USER ? `✓ Set to ${process.env.GMAIL_USER.substring(0, 5)}...` : "✗ Not set");
+    console.log("[CONTACT] GMAIL_PASSWORD env:", process.env.GMAIL_PASSWORD ? `✓ Set (${process.env.GMAIL_PASSWORD.length} chars)` : "✗ Not set");
     console.log("[CONTACT] ADMIN_EMAIL env:", process.env.ADMIN_EMAIL ? `✓ Set to ${process.env.ADMIN_EMAIL}` : "✗ Not set");
 
+    // Debug: Log all env vars that start with GMAIL or ADMIN
+    console.log("[CONTACT] All environment variables with GMAIL/ADMIN:");
+    Object.keys(process.env).forEach(key => {
+        if (key.includes("GMAIL") || key.includes("ADMIN")) {
+            console.log(`[CONTACT]   ${key}: ${process.env[key]?.substring(0, 10)}...`);
+        }
+    });
+
     if (!transporter && process.env.GMAIL_USER && process.env.GMAIL_PASSWORD) {
-        console.log("[CONTACT] Creating nodemailer transporter...");
+        console.log("[CONTACT] ✓ Credentials present, creating transporter...");
+        console.log("[CONTACT] Transporter config - service: gmail, user:", process.env.GMAIL_USER);
         transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
@@ -21,9 +30,12 @@ function initializeTransporter() {
                 pass: process.env.GMAIL_PASSWORD,
             },
         });
-        console.log("[CONTACT] Transporter created successfully");
+        console.log("[CONTACT] ✓ Transporter created successfully");
     } else {
-        console.log("[CONTACT] Transporter already exists or credentials missing");
+        console.log("[CONTACT] ✗ Transporter NOT created!");
+        console.log("[CONTACT] Reason: transporter exists?", !!transporter);
+        console.log("[CONTACT] GMAIL_USER exists?", !!process.env.GMAIL_USER);
+        console.log("[CONTACT] GMAIL_PASSWORD exists?", !!process.env.GMAIL_PASSWORD);
     }
     return transporter;
 }
@@ -141,9 +153,11 @@ router.post("/", async (req: Request, res: Response) => {
         // Send email notification asynchronously (non-blocking)
         const emailTransporter = initializeTransporter();
         if (emailTransporter) {
-            console.log("[CONTACT] Email transporter ready, preparing to send...");
+            console.log("[CONTACT] ✓ Email transporter ready, preparing to send...");
             console.log("[CONTACT] Email from:", process.env.GMAIL_USER);
             console.log("[CONTACT] Email to:", process.env.ADMIN_EMAIL || process.env.GMAIL_USER);
+            console.log("[CONTACT] Email subject: New Contact Message from", sanitizedName);
+            console.log("[CONTACT] Email body length:", sanitizedMessage.length, "chars");
 
             // Set a timeout for email sending (don't wait more than 10 seconds)
             const emailPromise = emailTransporter.sendMail({
@@ -169,15 +183,27 @@ router.post("/", async (req: Request, res: Response) => {
                 .then((info: any) => {
                     console.log("[CONTACT] ✓ Email sent successfully!");
                     console.log("[CONTACT] Response ID:", info?.response);
+                    console.log("[CONTACT] MessageID:", info?.messageId);
                 })
                 .catch((error: any) => {
                     console.error("[CONTACT] ✗ Email send failed:", error.message);
                     console.error("[CONTACT] Error code:", error.code);
-                    console.error("[CONTACT] Full error:", error);
+                    console.error("[CONTACT] Error details:", {
+                        code: error.code,
+                        errno: error.errno,
+                        syscall: error.syscall,
+                        hostname: error.hostname,
+                        command: error.command,
+                    });
+                    console.error("[CONTACT] Full error object:", JSON.stringify(error, null, 2));
                 });
         } else {
-            console.warn("[CONTACT] ✗ Email transporter not initialized!");
-            console.warn("[CONTACT] Make sure GMAIL_USER and GMAIL_PASSWORD env vars are set");
+            console.error("[CONTACT] ✗ Email transporter is NULL!");
+            console.error("[CONTACT] Could not initialize transporter. Check:");
+            console.error("[CONTACT]   1. GMAIL_USER env var set?", !!process.env.GMAIL_USER);
+            console.error("[CONTACT]   2. GMAIL_PASSWORD env var set?", !!process.env.GMAIL_PASSWORD);
+            console.error("[CONTACT]   3. Is the app password correct (16 chars)?");
+            console.error("[CONTACT]   4. Does the Gmail account have 2FA enabled?");
         }
     } catch (error: any) {
         console.error("[CONTACT] Error:", error);
