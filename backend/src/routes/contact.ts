@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
 const router = Router();
 
@@ -33,40 +33,33 @@ function checkRateLimit(ip: string): boolean {
     return true;
 }
 
-// Simple email function
+// Simple email function using Resend API
 async function sendEmail(name: string, message: string, ip: string): Promise<void> {
-    const user = process.env.GMAIL_USER;
-    const pass = process.env.GMAIL_PASSWORD?.replace(/\s/g, ''); // Remove spaces from app password
-    const to = process.env.ADMIN_EMAIL || user;
+    const apiKey = process.env.RESEND_API_KEY;
+    const to = process.env.ADMIN_EMAIL;
 
-    console.log("[EMAIL] Starting email send...");
-    console.log("[EMAIL] From:", user);
+    console.log("[EMAIL] Starting email send with Resend...");
+    console.log("[EMAIL] API Key:", apiKey ? `✓ Set (${apiKey.substring(0, 8)}...)` : "✗ Not set");
     console.log("[EMAIL] To:", to);
-    console.log("[EMAIL] Password length:", pass?.length);
 
-    if (!user || !pass) {
-        console.error("[EMAIL] Missing credentials!");
+    if (!apiKey) {
+        console.error("[EMAIL] Missing RESEND_API_KEY!");
         return;
     }
 
-    // Create transporter fresh each time (simple approach)
-    const transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 587,
-        secure: false, // Use TLS
-        auth: {
-            user: user,
-            pass: pass,
-        },
-    });
+    if (!to) {
+        console.error("[EMAIL] Missing ADMIN_EMAIL!");
+        return;
+    }
+
+    const resend = new Resend(apiKey);
 
     try {
         console.log("[EMAIL] Sending...");
-        const info = await transporter.sendMail({
-            from: user,
+        const { data, error } = await resend.emails.send({
+            from: "DSUC Contact <onboarding@resend.dev>",
             to: to,
             subject: `[DSUC Contact] ${name}`,
-            text: `Name: ${name}\nMessage: ${message}\nIP: ${ip}\nTime: ${new Date().toISOString()}`,
             html: `
                 <h2>New Contact Message</h2>
                 <p><strong>From:</strong> ${name}</p>
@@ -75,10 +68,15 @@ async function sendEmail(name: string, message: string, ip: string): Promise<voi
                 <p><strong>Time:</strong> ${new Date().toISOString()}</p>
             `,
         });
-        console.log("[EMAIL] ✓ Sent! MessageId:", info.messageId);
+
+        if (error) {
+            console.error("[EMAIL] ✗ Resend error:", error);
+            throw new Error(error.message);
+        }
+
+        console.log("[EMAIL] ✓ Sent! ID:", data?.id);
     } catch (error: any) {
         console.error("[EMAIL] ✗ Failed:", error.message);
-        console.error("[EMAIL] Error code:", error.code);
         throw error;
     }
 }
