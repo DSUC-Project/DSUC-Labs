@@ -22,6 +22,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
     const [formData, setFormData] = useState<ContactFormData>({ name: '', message: '' });
     const [isLoading, setIsLoading] = useState(false);
     const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+    const [errorMessage, setErrorMessage] = useState('');
 
     const socialLinks = [
         { name: 'Telegram', icon: MessageCircle, url: 'https://t.me/dsuc', color: 'hover:text-blue-400 hover:border-blue-400/50' },
@@ -39,6 +40,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
 
         if (!formData.name.trim() || !formData.message.trim()) {
             console.warn('[ContactModal] Validation failed - missing fields');
+            setErrorMessage('Please fill in your name and message');
             setSubmitStatus('error');
             setTimeout(() => setSubmitStatus('idle'), 3000);
             return;
@@ -78,13 +80,26 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
                     status: response.status,
                     error: errorData,
                 });
+
+                // Set specific error messages based on status code
+                if (response.status === 429) {
+                    setErrorMessage('Too many messages. Please wait an hour before sending another.');
+                } else if (response.status === 400) {
+                    setErrorMessage('Invalid message. Please check your input.');
+                } else if (response.status === 500) {
+                    setErrorMessage('Server error. Please try again later.');
+                } else {
+                    setErrorMessage('Failed to send your message. Please try again.');
+                }
+
                 setSubmitStatus('error');
-                setTimeout(() => setSubmitStatus('idle'), 3000);
+                setTimeout(() => setSubmitStatus('idle'), 4000);
             }
         } catch (error) {
             console.error('[ContactModal] ✗ Fetch error:', error);
+            setErrorMessage('Network error. Please check your connection and try again.');
             setSubmitStatus('error');
-            setTimeout(() => setSubmitStatus('idle'), 3000);
+            setTimeout(() => setSubmitStatus('idle'), 4000);
         } finally {
             setIsLoading(false);
         }
@@ -103,7 +118,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="relative bg-surface border border-cyber-blue/50 p-6 w-full max-w-md cyber-clip-top shadow-[0_0_50px_rgba(41,121,255,0.15)]"
+                className="relative bg-surface border border-cyber-blue/50 p-8 w-full max-w-2xl cyber-clip-top shadow-[0_0_50px_rgba(41,121,255,0.15)] max-h-[90vh] overflow-y-auto"
             >
                 {/* Success Screen Overlay */}
                 {submitStatus === 'success' && (
@@ -137,12 +152,6 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
                         >
                             We'll get back to you soon
                         </motion.p>
-                        <motion.div
-                            initial={{ scaleX: 0 }}
-                            animate={{ scaleX: 1 }}
-                            transition={{ delay: 0.5, duration: 3 }}
-                            className="mt-6 h-1 w-24 bg-gradient-to-r from-green-500 to-transparent origin-left"
-                        />
                     </motion.div>
                 )}
 
@@ -176,7 +185,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
                             value={formData.message}
                             onChange={handleChange}
                             placeholder="Message"
-                            className="w-full bg-black/30 border border-white/10 hover:border-cyber-blue/30 focus:border-cyber-blue px-3 py-2.5 text-white focus:outline-none text-sm transition-colors resize-none h-24 placeholder:text-white/30"
+                            className="w-full bg-black/30 border border-white/10 hover:border-cyber-blue/30 focus:border-cyber-blue px-3 py-2.5 text-white focus:outline-none text-sm transition-colors resize-none h-40 placeholder:text-white/30"
                             required
                             minLength={10}
                             maxLength={2000}
@@ -192,7 +201,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
                     )}
                     {submitStatus === 'error' && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-2 bg-red-900/20 border border-red-500/30 text-red-400 text-xs text-center">
-                            {formData.name && formData.message ? 'Failed to receive your message.' : 'Please fill in all fields.'}
+                            {errorMessage}
                         </motion.div>
                     )}
 
