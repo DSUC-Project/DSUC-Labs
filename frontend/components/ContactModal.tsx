@@ -108,20 +108,41 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
                 {/* Success Screen Overlay */}
                 {submitStatus === 'success' && (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="absolute inset-0 bg-gradient-to-b from-green-900/30 to-green-900/10 backdrop-blur-sm rounded-none flex flex-col items-center justify-center z-50"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-black/95 flex flex-col items-center justify-center z-50"
                     >
                         <motion.div
                             initial={{ scale: 0, rotate: -180 }}
                             animate={{ scale: 1, rotate: 0 }}
                             transition={{ type: 'spring', damping: 15, stiffness: 200 }}
-                            className="text-5xl mb-4"
+                            className="text-6xl mb-6 text-green-400"
                         >
                             ✓
                         </motion.div>
-                        <h4 className="text-xl font-display font-bold text-green-400 mb-2">Message Sent!</h4>
-                        <p className="text-xs text-green-300/70 text-center px-4">We'll get back to you soon</p>
+                        <motion.h4
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="text-2xl font-display font-bold text-white mb-2"
+                        >
+                            Message Sent!
+                        </motion.h4>
+                        <motion.p
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className="text-sm text-white/60 text-center px-4"
+                        >
+                            We'll get back to you soon
+                        </motion.p>
+                        <motion.div
+                            initial={{ scaleX: 0 }}
+                            animate={{ scaleX: 1 }}
+                            transition={{ delay: 0.5, duration: 3 }}
+                            className="mt-6 h-1 w-24 bg-gradient-to-r from-green-500 to-transparent origin-left"
+                        />
                     </motion.div>
                 )}
 

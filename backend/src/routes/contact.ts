@@ -52,6 +52,20 @@ async function sendEmail(name: string, message: string, ip: string): Promise<voi
         return;
     }
 
+    // Format time in GMT+7 (Vietnam)
+    const now = new Date();
+    const gmt7Time = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+    const timeString = gmt7Time.toLocaleString('en-US', {
+        timeZone: 'Asia/Bangkok',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
+
     const resend = new Resend(apiKey);
 
     try {
@@ -65,7 +79,7 @@ async function sendEmail(name: string, message: string, ip: string): Promise<voi
                 <p><strong>From:</strong> ${name}</p>
                 <p><strong>Message:</strong> ${message}</p>
                 <p><strong>IP:</strong> ${ip}</p>
-                <p><strong>Time:</strong> ${new Date().toISOString()}</p>
+                <p><strong>Time (GMT+7):</strong> ${timeString}</p>
             `,
         });
 
