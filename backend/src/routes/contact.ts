@@ -8,6 +8,7 @@ let transporter: any = null;
 
 function initializeTransporter() {
     if (!transporter && process.env.GMAIL_USER && process.env.GMAIL_PASSWORD) {
+        console.log("[EMAIL] Initializing transporter with user:", process.env.GMAIL_USER);
         transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
@@ -15,6 +16,11 @@ function initializeTransporter() {
                 pass: process.env.GMAIL_PASSWORD,
             },
         });
+        console.log("[EMAIL] Transporter initialized successfully");
+    } else if (!transporter) {
+        console.warn("[EMAIL] Cannot initialize - Missing env vars:");
+        console.warn("[EMAIL]   GMAIL_USER:", process.env.GMAIL_USER ? "✓" : "✗ MISSING");
+        console.warn("[EMAIL]   GMAIL_PASSWORD:", process.env.GMAIL_PASSWORD ? "✓" : "✗ MISSING");
     }
     return transporter;
 }
@@ -124,14 +130,20 @@ router.post("/", async (req: Request, res: Response) => {
         });
 
         // Send response immediately
+        console.log("[CONTACT] Sending 200 response to client");
         res.status(200).json({
             success: true,
             message: "Message received. We'll get back to you soon!",
         });
 
         // Send email notification asynchronously (non-blocking)
+        console.log("[CONTACT] Starting async email send...");
         const emailTransporter = initializeTransporter();
         if (emailTransporter) {
+            console.log("[EMAIL] Transporter ready, attempting to send email");
+            console.log("[EMAIL] From:", process.env.GMAIL_USER);
+            console.log("[EMAIL] To:", process.env.ADMIN_EMAIL || process.env.GMAIL_USER);
+
             // Set a timeout for email sending (don't wait more than 10 seconds)
             const emailPromise = emailTransporter.sendMail({
                 from: process.env.GMAIL_USER || "noreply@dsuclab.com",
@@ -154,13 +166,17 @@ router.post("/", async (req: Request, res: Response) => {
 
             Promise.race([emailPromise, timeoutPromise])
                 .then(() => {
-                    console.log("[CONTACT] Email notification sent successfully");
+                    console.log("[EMAIL] ✓ Email sent successfully!");
                 })
                 .catch((error: any) => {
-                    console.error("[CONTACT] Failed to send email notification:", error.message);
+                    console.error("[EMAIL] ✗ Failed to send email:", error.message);
+                    console.error("[EMAIL] Error details:", error);
                 });
         } else {
-            console.warn("[CONTACT] Email transporter not initialized - check GMAIL_USER and GMAIL_PASSWORD env vars");
+            console.error("[EMAIL] ✗ Transporter is NULL - credentials not loaded!");
+            console.error("[EMAIL] Check these env vars in your .env file:");
+            console.error("[EMAIL]   - GMAIL_USER");
+            console.error("[EMAIL]   - GMAIL_PASSWORD");
         }
     } catch (error: any) {
         console.error("[CONTACT] Error:", error);
