@@ -8,6 +8,7 @@ export interface Member {
     github?: string;
     twitter?: string;
     telegram?: string;
+    facebook?: string;
   };
   bankInfo?: {
     bankId: string;

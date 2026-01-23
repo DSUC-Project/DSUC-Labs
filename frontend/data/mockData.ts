@@ -27,3 +27,5 @@ export const REPOS: Repo[] = [];
 export const RESOURCES: Resource[] = [];
 
 export default {};
+
+// IMPORTANT: Mock database is in backend/src/mockDb.ts
