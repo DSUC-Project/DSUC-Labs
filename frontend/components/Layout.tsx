@@ -2,7 +2,7 @@ import React, { useState, useEffect, createContext, useContext } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
-import { Home, Users, Calendar, Calculator, Briefcase, Folder, Wallet, Menu, X, Terminal, User, Rocket, Mail, HelpCircle, ExternalLink } from 'lucide-react';
+import { Home, Users, Calendar, Calculator, Briefcase, Folder, Wallet, Menu, X, Terminal, User, Rocket, Mail, HelpCircle, ExternalLink, GraduationCap } from 'lucide-react';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import { useStore } from '../store/useStore';
@@ -92,6 +92,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
   // All navigation links (visible in navbar)
   const allLinks = [
     { name: 'Home', path: '/home', icon: Home },
+    { name: 'Academy', path: '/academy', icon: GraduationCap },
     { name: 'Members', path: '/members', icon: Users },
     { name: 'Events', path: '/events', icon: Calendar },
     { name: 'Projects', path: '/projects', icon: Rocket },

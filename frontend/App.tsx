@@ -14,6 +14,10 @@ import { Work } from './pages/Work';
 import { Resources } from './pages/Resources';
 import { Projects } from './pages/Projects';
 import { ProjectDetail } from './pages/ProjectDetail';
+import { AcademyHome } from './pages/AcademyHome';
+import { AcademyTrack } from './pages/AcademyTrack';
+import { AcademyLesson } from './pages/AcademyLesson';
+import { AcademyLayout } from './components/academy/layout/AcademyLayout';
 import { useStore } from './store/useStore';
 
 // Google OAuth Client ID - set in environment variable
@@ -44,6 +48,30 @@ function AnimatedRoutes() {
           <Route path="/finance" element={currentUser ? <Finance /> : <Navigate to="/home" replace />} />
           <Route path="/work" element={currentUser ? <Work /> : <Navigate to="/home" replace />} />
           <Route path="/resources" element={<Resources />} />
+          <Route
+            path="/academy"
+            element={
+              <AcademyLayout>
+                <AcademyHome />
+              </AcademyLayout>
+            }
+          />
+          <Route
+            path="/academy/track/:track"
+            element={
+              <AcademyLayout>
+                <AcademyTrack />
+              </AcademyLayout>
+            }
+          />
+          <Route
+            path="/academy/learn/:track/:lesson"
+            element={
+              <AcademyLayout>
+                <AcademyLesson />
+              </AcademyLayout>
+            }
+          />
         </Routes>
       </motion.div>
     </AnimatePresence>
