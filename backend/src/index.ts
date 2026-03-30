@@ -16,6 +16,7 @@ import resourceRoutes from "./routes/resources";
 import authRoutes from "./routes/auth";
 import financeHistoryRoutes from "./routes/finance-history";
 import contactRoutes from "./routes/contact";
+import academyRoutes from "./routes/academy";
 
 // Load environment variables
 dotenv.config();
@@ -87,6 +88,7 @@ app.use("/api/work", workRoutes);
 app.use("/api/resources", resourceRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/academy", academyRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

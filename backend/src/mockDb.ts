@@ -24,6 +24,19 @@ export interface Project {
   status: string;
 }
 
+export interface AcademyProgress {
+  id: string;
+  user_id: string;
+  track: 'genin' | 'chunin' | 'jonin';
+  lesson_id: string;
+  lesson_completed: boolean;
+  quiz_passed: boolean;
+  checklist: boolean[];
+  xp_awarded: number;
+  created_at: string;
+  updated_at: string;
+}
+
 // Initial Data - Minimal mock data for local development
 export const MOCK_DB = {
   members: [
@@ -369,7 +382,9 @@ export const MOCK_DB = {
       created_by: '102240386',
       created_at: '2025-11-01T10:00:00Z'
     }
-  ] as any[]
+  ] as any[],
+
+  academy_progress: [] as AcademyProgress[]
 };
 
 // Helper to create chainable query builder
