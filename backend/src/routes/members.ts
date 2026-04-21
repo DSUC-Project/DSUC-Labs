@@ -39,7 +39,7 @@ router.get("/", async (req: Request, res: Response) => {
     }
 
     // Sort by role priority
-    const sortedMembers = (members || []).sort((a, b) => {
+    const sortedMembers = (members || []).sort((a: any, b: any) => {
       const priorityA = ROLE_PRIORITY[a.role] || 5;
       const priorityB = ROLE_PRIORITY[b.role] || 5;
       return priorityA - priorityB;
