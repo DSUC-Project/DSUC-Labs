@@ -13,14 +13,22 @@ import {
 
 const router = Router();
 
+// Role priority mapping
+const ROLE_PRIORITY: { [key: string]: number } = {
+  "President": 1,
+  "Vice-President": 2,
+  "Tech-Lead": 3,
+  "Media-Lead": 3,
+  "Member": 4,
+};
+
 // GET /api/members - Get all members
 router.get("/", async (req: Request, res: Response) => {
   try {
     const { data: members, error } = await db
       .from("members")
       .select("*")
-      .eq("is_active", true)
-      .order("created_at", { ascending: true });
+      .eq("is_active", true);
 
     if (error) {
       console.error("Supabase error:", error);
@@ -30,10 +38,17 @@ router.get("/", async (req: Request, res: Response) => {
       });
     }
 
+    // Sort by role priority
+    const sortedMembers = (members || []).sort((a, b) => {
+      const priorityA = ROLE_PRIORITY[a.role] || 5;
+      const priorityB = ROLE_PRIORITY[b.role] || 5;
+      return priorityA - priorityB;
+    });
+
     res.json({
       success: true,
-      data: members,
-      count: members?.length || 0,
+      data: sortedMembers,
+      count: sortedMembers?.length || 0,
     });
   } catch (error: any) {
     console.error("Error fetching members:", error);
