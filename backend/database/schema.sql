@@ -134,6 +134,24 @@ CREATE TABLE resources (
 
 CREATE INDEX idx_resources_category ON resources(category);
 
+-- 8. Bảng Academy Progress (user learning state)
+CREATE TABLE academy_progress (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id TEXT REFERENCES members(id) ON DELETE CASCADE,
+  track TEXT NOT NULL CHECK (track IN ('genin', 'chunin', 'jonin')),
+  lesson_id TEXT NOT NULL,
+  lesson_completed BOOLEAN DEFAULT false,
+  quiz_passed BOOLEAN DEFAULT false,
+  checklist BOOLEAN[] DEFAULT '{}',
+  xp_awarded INT DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, track, lesson_id)
+);
+
+CREATE INDEX idx_academy_progress_user ON academy_progress(user_id);
+CREATE INDEX idx_academy_progress_track ON academy_progress(track);
+
 -- Function để tự động update updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -145,4 +163,8 @@ $$ language 'plpgsql';
 
 -- Trigger cho bảng members
 CREATE TRIGGER update_members_updated_at BEFORE UPDATE ON members
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Trigger cho bảng academy_progress
+CREATE TRIGGER update_academy_progress_updated_at BEFORE UPDATE ON academy_progress
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
