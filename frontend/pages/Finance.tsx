@@ -9,41 +9,53 @@ import { BANKS } from '../data/mockData';
 
 export function Finance() {
   const [activeTab, setActiveTab] = useState<'submit' | 'pending' | 'history' | 'direct'>('submit');
-  const { financeRequests, financeHistory, fetchPendingRequests, fetchFinanceHistory, fetchMembers, isWalletConnected, currentUser } = useStore();
+  const { financeRequests, financeHistory, fetchPendingRequests, fetchFinanceHistory, fetchMembers, currentUser } = useStore();
+  const isOfficialMember = currentUser?.memberType === 'member';
+  const canModerateFinance =
+    isOfficialMember &&
+    ['President', 'Vice-President'].includes(currentUser?.role || '');
+  const visibleTabs = canModerateFinance
+    ? ['submit', 'direct', 'pending', 'history']
+    : ['submit', 'direct', 'history'];
 
   // Fetch members on mount (needed for bank info lookup in ApprovalModal)
   useEffect(() => {
-    if (isWalletConnected && currentUser) {
+    if (isOfficialMember) {
       fetchMembers();
     }
-  }, [isWalletConnected, currentUser, fetchMembers]);
+  }, [isOfficialMember, fetchMembers]);
 
   // Fetch pending requests when tab changes to pending (for admin)
   useEffect(() => {
-    if (activeTab === 'pending' && isWalletConnected && currentUser) {
+    if (activeTab === 'pending' && canModerateFinance) {
       fetchPendingRequests();
     }
-  }, [activeTab, isWalletConnected, currentUser, fetchPendingRequests]);
+  }, [activeTab, canModerateFinance, fetchPendingRequests]);
 
   // Fetch finance history when tab changes to history
   useEffect(() => {
-    if (activeTab === 'history' && isWalletConnected && currentUser) {
+    if (activeTab === 'history' && isOfficialMember) {
       fetchFinanceHistory();
     }
-  }, [activeTab, isWalletConnected, currentUser, fetchFinanceHistory]);
+  }, [activeTab, isOfficialMember, fetchFinanceHistory]);
 
-  // Lock Finance page if wallet not connected
-  if (!isWalletConnected) {
+  useEffect(() => {
+    if (activeTab === 'pending' && !canModerateFinance) {
+      setActiveTab('submit');
+    }
+  }, [activeTab, canModerateFinance]);
+
+  if (!currentUser || !isOfficialMember) {
     return (
       <div className="max-w-5xl mx-auto space-y-8">
         <div className="flex flex-col items-center justify-center min-h-[500px] space-y-6">
           <div className="text-6xl">🔒</div>
           <h2 className="text-3xl font-display font-bold text-white">RESTRICTED ACCESS</h2>
           <p className="text-cyber-blue font-mono text-sm text-center max-w-md">
-            Please connect your wallet to access the Finance module.
+            Please sign in with your DSUC account to access the Finance module.
           </p>
           <div className="text-white/40 font-mono text-xs text-center max-w-lg">
-            This section is only available to club members with verified wallet addresses.
+            This section is only available to official DSUC members.
           </div>
         </div>
       </div>
@@ -58,7 +70,7 @@ export function Finance() {
           <p className="text-cyber-blue font-mono text-sm">View transactions and payment history.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {['submit', 'direct', 'pending', 'history'].map(tab => (
+          {visibleTabs.map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab as any)}
@@ -85,7 +97,7 @@ export function Finance() {
 }
 
 function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
-  const { submitFinanceRequest, currentUser, isWalletConnected } = useStore();
+  const { submitFinanceRequest, currentUser } = useStore();
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
   const [date, setDate] = useState('');
@@ -108,8 +120,8 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!isWalletConnected || !currentUser) {
-      alert('Please connect your wallet first!');
+    if (!currentUser) {
+      alert('Please sign in first!');
       return;
     }
 
@@ -209,7 +221,9 @@ function DirectTransferTool() {
   const [showQR, setShowQR] = useState(false);
 
   // Filter members who have bank info
-  const eligibleMembers = members.filter(m => m.bankInfo || m.bank_info);
+  const eligibleMembers = members.filter(
+    (m) => (m.memberType !== 'community' && m.member_type !== 'community') && (m.bankInfo || m.bank_info)
+  );
 
   // Get normalized bank info - support both camelCase and snake_case
   const getBankInfo = (member: Member) => {

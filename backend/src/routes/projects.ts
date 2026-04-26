@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../index';
-import { authenticateWallet } from '../middleware/auth';
+import { authenticateUser, requireOfficialMember } from '../middleware/auth';
 import { uploadBase64ToSupabase } from '../middleware/upload';
 
 const router = Router();
@@ -13,6 +13,7 @@ router.get('/', async (req: Request, res: Response) => {
     let query = db
       .from('projects')
       .select('*')
+      .eq('status', 'Published')
       .order('created_at', { ascending: false });
 
     // Filter by category if provided
@@ -53,6 +54,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       .from('projects')
       .select('*')
       .eq('id', id)
+      .eq('status', 'Published')
       .single();
 
     if (error || !project) {
@@ -76,7 +78,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST /api/projects - Create new project (requires authentication)
-router.post('/', authenticateWallet as any, async (req: Request, res: Response) => {
+router.post('/', authenticateUser as any, requireOfficialMember, async (req: Request, res: Response) => {
   try {
     const { name, description, category, builders, link, repo_link, image_url } = req.body;
 
@@ -91,6 +93,7 @@ router.post('/', authenticateWallet as any, async (req: Request, res: Response) 
       name,
       description,
       category,
+      status: 'Published',
       builders: builders || [],
       link,
       repo_link,
@@ -142,7 +145,7 @@ router.post('/', authenticateWallet as any, async (req: Request, res: Response) 
 });
 
 // PUT /api/projects/:id - Update project (requires authentication)
-router.put('/:id', authenticateWallet as any, async (req: Request, res: Response) => {
+router.put('/:id', authenticateUser as any, requireOfficialMember, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name, description, category, builders, link, repo_link, image_url } = req.body;
@@ -225,7 +228,7 @@ router.put('/:id', authenticateWallet as any, async (req: Request, res: Response
 });
 
 // DELETE /api/projects/:id - Delete project (Admin only)
-router.delete('/:id', authenticateWallet as any, async (req: Request, res: Response) => {
+router.delete('/:id', authenticateUser as any, requireOfficialMember, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 

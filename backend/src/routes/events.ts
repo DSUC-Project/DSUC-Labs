@@ -1,6 +1,6 @@
 import { Router, Request, Response, RequestHandler } from 'express';
 import { db } from '../index';
-import { authenticateWallet } from '../middleware/auth';
+import { authenticateUser, requireOfficialMember } from '../middleware/auth';
 
 const router = Router();
 
@@ -11,7 +11,8 @@ router.get('/', async (req: Request, res: Response) => {
 
     let query = db
       .from('events')
-      .select('*');
+      .select('*')
+      .eq('status', 'Published');
 
     // Filter upcoming events only
     if (upcoming === 'true') {
@@ -59,6 +60,7 @@ router.get('/recent', async (req: Request, res: Response) => {
     const { data: events, error } = await db
       .from('events')
       .select('*')
+      .eq('status', 'Published')
       .gte('date', today)
       .order('date', { ascending: true })
       .limit(3);
@@ -94,6 +96,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       .from('events')
       .select('*')
       .eq('id', id)
+      .eq('status', 'Published')
       .single();
 
     if (error || !event) {
@@ -117,7 +120,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST /api/events - Create new event (requires authentication)
-router.post('/', authenticateWallet as any, (async (req: Request, res: Response) => {
+router.post('/', authenticateUser as any, requireOfficialMember, (async (req: Request, res: Response) => {
   try {
     const { title, date, time, type, location } = req.body;
 
@@ -135,6 +138,7 @@ router.post('/', authenticateWallet as any, (async (req: Request, res: Response)
       type: type || 'Workshop',
       location,
       attendees: 0,
+      status: 'Published',
       created_by: req.user!.id,
     };
 
@@ -167,7 +171,7 @@ router.post('/', authenticateWallet as any, (async (req: Request, res: Response)
 }) as RequestHandler);
 
 // PUT /api/events/:id - Update event (requires authentication)
-router.put('/:id', authenticateWallet as any, (async (req: Request, res: Response) => {
+router.put('/:id', authenticateUser as any, requireOfficialMember, (async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { title, date, time, type, location, attendees } = req.body;
@@ -234,7 +238,7 @@ router.put('/:id', authenticateWallet as any, (async (req: Request, res: Respons
 }) as RequestHandler);
 
 // DELETE /api/events/:id - Delete event (Admin only)
-router.delete('/:id', authenticateWallet as any, (async (req: Request, res: Response) => {
+router.delete('/:id', authenticateUser as any, requireOfficialMember, (async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -274,7 +278,7 @@ router.delete('/:id', authenticateWallet as any, (async (req: Request, res: Resp
 }) as RequestHandler);
 
 // POST /api/events/:id/register - Register for event (increment attendees)
-router.post('/:id/register', authenticateWallet as any, (async (req: Request, res: Response) => {
+router.post('/:id/register', authenticateUser as any, (async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 

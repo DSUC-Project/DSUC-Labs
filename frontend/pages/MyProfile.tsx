@@ -6,7 +6,7 @@ import { Save, Upload, X, Github, Twitter, Send, LogOut, CreditCard, Mail, Link2
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import { useStore } from '../store/useStore';
-import { ROLES, BANKS } from '../data/mockData';
+import { BANKS } from '../data/mockData';
 import { SkillInput } from '../components/SkillInput';
 import { clsx } from 'clsx';
 import { GoogleUserInfo } from '../types';
@@ -21,13 +21,13 @@ interface GoogleJWTPayload {
 }
 
 export function MyProfile() {
-  const { currentUser, isWalletConnected, updateCurrentUser, disconnectWallet, linkGoogleAccount, logout, authMethod } = useStore();
+  const { currentUser, updateCurrentUser, linkGoogleAccount, logout, authMethod, reconnectWallet } = useStore();
   const navigate = useNavigate();
   const [isLinkingGoogle, setIsLinkingGoogle] = useState(false);
+  const [isReconnectingWallet, setIsReconnectingWallet] = useState(false);
 
   // Local state for form
   const [name, setName] = useState('');
-  const [role, setRole] = useState('');
   const [avatar, setAvatar] = useState('');
   const [skills, setSkills] = useState<string[]>([]);
   const [github, setGithub] = useState('');
@@ -40,13 +40,12 @@ export function MyProfile() {
   const [accountName, setAccountName] = useState('');
 
   useEffect(() => {
-    if (!isWalletConnected || !currentUser) {
+    if (!currentUser) {
       navigate('/');
       return;
     }
     // Load current data
     setName(currentUser.name || '');
-    setRole(currentUser.role || '');
     setAvatar(currentUser.avatar || '');
     setSkills(currentUser.skills || []);
     setGithub(currentUser.socials?.github || '');
@@ -55,7 +54,7 @@ export function MyProfile() {
     setBankId(currentUser.bankInfo?.bankId || '');
     setAccountNo(currentUser.bankInfo?.accountNo || '');
     setAccountName(currentUser.bankInfo?.accountName || currentUser.name || '');
-  }, [currentUser, isWalletConnected, navigate]);
+  }, [currentUser, navigate]);
 
   // Skills are now managed by SkillInput component
 
@@ -75,7 +74,6 @@ export function MyProfile() {
     try {
       await updateCurrentUser({
         name,
-        role,
         avatar,
         skills,
         socials: {
@@ -99,6 +97,15 @@ export function MyProfile() {
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const handleReconnectWallet = async () => {
+    setIsReconnectingWallet(true);
+    try {
+      await reconnectWallet();
+    } finally {
+      setIsReconnectingWallet(false);
+    }
   };
 
   // Handle linking Google account
@@ -175,7 +182,9 @@ export function MyProfile() {
 
           <div className="w-full text-center">
             <span className="text-[10px] text-white/40 font-mono uppercase tracking-wider block mb-1">Current Clearance</span>
-            <span className="text-cyber-blue font-bold font-display">{role || 'UNASSIGNED'}</span>
+            <span className="text-cyber-blue font-bold font-display">
+              {currentUser.memberType === 'community' ? 'COMMUNITY' : currentUser.role || 'UNASSIGNED'}
+            </span>
           </div>
         </motion.div>
 
@@ -201,20 +210,39 @@ export function MyProfile() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-mono text-cyber-yellow uppercase tracking-wider">Assigned Role</label>
-                <select
-                  value={role}
-                  onChange={e => setRole(e.target.value)}
-                  className="w-full bg-black/30 border border-white/10 p-3 text-white focus:border-cyber-blue outline-none font-mono text-sm appearance-none"
-                >
-                  <option value="" disabled>Select Rank</option>
-                  {ROLES.map(r => (
-                    <option key={r} value={r} className="bg-black text-white">{r}</option>
-                  ))}
-                </select>
+                <label className="text-xs font-mono text-cyber-yellow uppercase tracking-wider">Account Type</label>
+                <div className="w-full bg-black/30 border border-white/10 p-3 text-white font-mono text-sm uppercase tracking-wider">
+                  {currentUser.memberType === 'community' ? 'People In Community' : currentUser.role}
+                </div>
               </div>
             </div>
           </div>
+
+          {currentUser.wallet_address && (
+            <div className="cyber-card p-8 bg-surface/50 border border-cyber-blue/20">
+              <h3 className="text-xl font-display font-bold text-cyber-blue mb-6 flex items-center gap-2">
+                <span className="w-2 h-6 bg-cyber-blue block" />
+                WALLET CONNECTION
+              </h3>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <div className="text-xs font-mono text-white/40 uppercase tracking-wider mb-2">
+                    Linked Wallet
+                  </div>
+                  <div className="text-white font-mono break-all">
+                    {currentUser.wallet_address}
+                  </div>
+                </div>
+                <button
+                  onClick={handleReconnectWallet}
+                  disabled={isReconnectingWallet}
+                  className="bg-cyber-blue text-white hover:bg-white hover:text-black font-display font-bold text-sm px-6 py-3 cyber-button transition-all uppercase tracking-widest disabled:opacity-60"
+                >
+                  {isReconnectingWallet ? 'Reconnecting...' : 'Reconnect Wallet'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Financial Protocol */}
           <div className="cyber-card p-8 bg-surface/50 border border-cyber-blue/20">

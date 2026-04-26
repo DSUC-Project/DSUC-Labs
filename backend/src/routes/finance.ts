@@ -1,8 +1,10 @@
 import { Router, Request, Response } from "express";
 import { db } from "../index";
 import {
-  authenticateWallet,
+  authenticateUser,
   requireAdmin,
+  requireExecutiveAdmin,
+  requireOfficialMember,
 } from "../middleware/auth";
 import {
   uploadBase64ToSupabase,
@@ -14,7 +16,8 @@ const router = Router();
 // POST /api/finance/request - Submit new finance request
 router.post(
   "/request",
-  authenticateWallet as any,
+  authenticateUser as any,
+  requireOfficialMember,
   async (req: Request, res: Response) => {
     try {
       const { amount, reason, date, bill_image } = req.body;
@@ -114,8 +117,9 @@ router.post(
 // GET /api/finance/pending - Get all pending requests (Admin view)
 router.get(
   "/pending",
-  authenticateWallet as any,
-  requireAdmin,
+  authenticateUser as any,
+  requireOfficialMember,
+  requireExecutiveAdmin,
   async (req: Request, res: Response) => {
     try {
       const { data: requests, error } = await db
@@ -150,7 +154,8 @@ router.get(
 // GET /api/finance/history - Get all completed/rejected requests
 router.get(
   "/history",
-  authenticateWallet as any,
+  authenticateUser as any,
+  requireOfficialMember,
   async (req: Request, res: Response) => {
     try {
       const { data: requests, error } = await db
@@ -185,7 +190,8 @@ router.get(
 // GET /api/finance/my-requests - Get current user's requests
 router.get(
   "/my-requests",
-  authenticateWallet as any,
+  authenticateUser as any,
+  requireOfficialMember,
   async (req: Request, res: Response) => {
     try {
       const { data: requests, error } = await db
@@ -220,7 +226,8 @@ router.get(
 // GET /api/finance/request/:id - Get request details with requester bank info
 router.get(
   "/request/:id",
-  authenticateWallet as any,
+  authenticateUser as any,
+  requireOfficialMember,
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -273,8 +280,9 @@ router.get(
 // POST /api/finance/approve/:id - Approve and complete request (Admin only)
 router.post(
   "/approve/:id",
-  authenticateWallet as any,
-  requireAdmin,
+  authenticateUser as any,
+  requireOfficialMember,
+  requireExecutiveAdmin,
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -361,8 +369,9 @@ router.post(
 // POST /api/finance/reject/:id - Reject request (Admin only)
 router.post(
   "/reject/:id",
-  authenticateWallet as any,
-  requireAdmin,
+  authenticateUser as any,
+  requireOfficialMember,
+  requireExecutiveAdmin,
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -449,13 +458,15 @@ router.post(
 // GET /api/finance/members-with-bank - Get members who have bank info (for Direct Transfer)
 router.get(
   "/members-with-bank",
-  authenticateWallet as any,
+  authenticateUser as any,
+  requireOfficialMember,
   async (req: Request, res: Response) => {
     try {
       const { data: members, error } = await db
         .from("members")
         .select("id, name, avatar, role, bank_info")
         .eq("is_active", true)
+        .eq("member_type", "member")
         .not("bank_info", "is", null);
 
       if (error) {

@@ -17,6 +17,7 @@ import authRoutes from "./routes/auth";
 import financeHistoryRoutes from "./routes/finance-history";
 import contactRoutes from "./routes/contact";
 import academyRoutes from "./routes/academy";
+import adminRoutes from "./routes/admin";
 
 // Load environment variables
 dotenv.config();
@@ -40,17 +41,20 @@ export const supabase = USE_MOCK_DB
 export const db = (USE_MOCK_DB ? mockDb : supabase) as any;
 
 // Middleware
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:5173",
+  "https://dsuc.fun",
+  "https://www.dsuc.fun",
+  "https://dsuc-labs-xmxl.onrender.com",
+  "https://www.dsuc-labs-xmxl.onrender.com",
+  process.env.ADMIN_FRONTEND_URL,
+].filter((origin): origin is string => typeof origin === "string");
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:3000",
-      "http://127.0.0.1:5173",
-      "https://dsuc.fun",
-      "https://www.dsuc.fun",
-      "https://dsuc-labs-xmxl.onrender.com",
-      "https://www.dsuc-labs-xmxl.onrender.com",
-    ],
+    origin: allowedOrigins,
     credentials: true,
   })
 );
@@ -89,6 +93,7 @@ app.use("/api/resources", resourceRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/academy", academyRoutes);
+app.use("/api/admin", adminRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

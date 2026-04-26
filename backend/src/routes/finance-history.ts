@@ -1,8 +1,8 @@
 import { Router, Request, Response } from "express";
 import { db } from "../index";
 import {
-  authenticateWallet,
-  requireAdmin,
+  authenticateUser,
+  requireExecutiveAdmin,
 } from "../middleware/auth";
 
 const router = Router();
@@ -41,8 +41,8 @@ router.get("/", async (req: Request, res: Response) => {
 // This should be called by admin when processing finance requests
 router.post(
   "/",
-  authenticateWallet as any,
-  requireAdmin,
+  authenticateUser as any,
+  requireExecutiveAdmin,
   async (req: Request, res: Response) => {
     try {
       const {

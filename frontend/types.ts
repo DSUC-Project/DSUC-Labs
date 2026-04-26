@@ -4,6 +4,11 @@ export interface Member {
   role: string;
   avatar: string;
   skills: string[];
+  memberType?: 'member' | 'community';
+  member_type?: 'member' | 'community';
+  academyAccess?: boolean;
+  academy_access?: boolean;
+  is_active?: boolean;
   socials: {
     github?: string;
     twitter?: string;
@@ -26,7 +31,7 @@ export interface Member {
   google_id?: string;
   auth_provider?: 'wallet' | 'google' | 'both';
   email_verified?: boolean;
-  wallet_address?: string;
+  wallet_address?: string | null;
 }
 
 // Auth method type
@@ -48,8 +53,11 @@ export interface Event {
   type: "Workshop" | "Hackathon" | "Social";
   location: string;
   attendees: number;
+  status?: PublishStatus;
   luma_link?: string; // Backend snake_case
 }
+
+export type PublishStatus = "Draft" | "Published" | "Archived";
 
 export interface Bounty {
   id: string;
@@ -57,7 +65,7 @@ export interface Bounty {
   reward: string;
   difficulty: "Easy" | "Medium" | "Hard";
   tags: string[];
-  status: "Open" | "In Progress" | "Closed";
+  status: "Open" | "In Progress" | "Completed" | "Closed";
   submitLink?: string; // Optional link to submit bounty solution
 }
 
@@ -68,6 +76,7 @@ export interface Repo {
   language: string;
   stars: number;
   forks: number;
+  status?: PublishStatus;
   repoLink?: string; // GitHub/GitLab repo URL
 }
 
@@ -84,6 +93,7 @@ export interface Resource {
   type: "Drive" | "Doc" | "Link";
   url: string;
   size?: string;
+  status?: PublishStatus;
   category: ResourceCategory;
 }
 
@@ -113,6 +123,40 @@ export interface Project {
   description: string;
   category: string;
   builders: string[];
+  status?: PublishStatus;
   link: string;
   repoLink?: string;
+}
+
+export interface AcademyOverview {
+  user_id: string;
+  name: string;
+  role: string;
+  member_type: 'member' | 'community';
+  academy_access: boolean;
+  xp: number;
+  completed_lessons: number;
+  quiz_passed: number;
+  last_activity: string | null;
+}
+
+export interface AcademyActivity {
+  id: string;
+  user_id: string;
+  user_name: string;
+  role: string;
+  member_type: 'member' | 'community';
+  track: 'genin' | 'chunin' | 'jonin';
+  lesson_id: string;
+  action:
+    | 'started'
+    | 'checklist_updated'
+    | 'lesson_completed'
+    | 'quiz_passed'
+    | 'progress_updated';
+  lesson_completed: boolean;
+  quiz_passed: boolean;
+  checklist: boolean[];
+  xp_snapshot: number;
+  recorded_at: string;
 }

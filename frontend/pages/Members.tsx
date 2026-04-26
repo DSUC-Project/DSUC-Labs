@@ -8,6 +8,12 @@ import { Member } from '../types';
 
 export function Members() {
   const { members } = useStore(); // Get members from store
+  const officialMembers = members.filter(
+    (member) => member.memberType !== 'community'
+  );
+  const communityMembers = members.filter(
+    (member) => member.memberType === 'community'
+  );
 
   return (
     <div className="space-y-10">
@@ -18,11 +24,37 @@ export function Members() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {members.map((member) => (
-          <MemberCard key={member.id} member={member} />
-        ))}
-      </div>
+      <section className="space-y-5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-display font-bold text-white uppercase">
+            DSUC Members
+          </h3>
+          <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-cyber-blue">
+            {officialMembers.length} official
+          </span>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {officialMembers.map((member) => (
+            <MemberCard key={member.id} member={member} />
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-display font-bold text-white uppercase">
+            People In Community
+          </h3>
+          <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-cyber-yellow">
+            {communityMembers.length} learners
+          </span>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {communityMembers.map((member) => (
+            <MemberCard key={member.id} member={member} />
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
@@ -41,7 +73,9 @@ function MemberCard({ member }: { member: Member; key?: React.Key }) {
 
           <div className="mb-4">
             <h3 className="text-lg font-display font-bold leading-none mb-1 text-white group-hover:text-cyber-yellow transition-colors">{member.name}</h3>
-            <p className="text-[10px] font-mono text-cyber-blue uppercase tracking-wider">{member.role}</p>
+            <p className="text-[10px] font-mono text-cyber-blue uppercase tracking-wider">
+              {member.memberType === 'community' ? 'Community' : member.role}
+            </p>
           </div>
 
           <div className="flex flex-wrap justify-center gap-1 mb-4 w-full">

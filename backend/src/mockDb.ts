@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 // Types (simplified)
 export interface Member {
   id: string;
-  wallet_address: string;
+  wallet_address?: string | null;
   name: string;
   role: string;
   avatar: string;
@@ -11,6 +11,12 @@ export interface Member {
   socials: any;
   bank_info: any;
   is_active?: boolean;
+  member_type?: 'member' | 'community';
+  academy_access?: boolean;
+  email?: string | null;
+  google_id?: string | null;
+  auth_provider?: 'wallet' | 'google' | 'both';
+  email_verified?: boolean;
 }
 
 export interface Project {
@@ -37,6 +43,19 @@ export interface AcademyProgress {
   updated_at: string;
 }
 
+export interface AcademyActivity {
+  id: string;
+  user_id: string;
+  track: 'genin' | 'chunin' | 'jonin';
+  lesson_id: string;
+  action: 'started' | 'checklist_updated' | 'lesson_completed' | 'quiz_passed' | 'progress_updated';
+  lesson_completed: boolean;
+  quiz_passed: boolean;
+  checklist: boolean[];
+  xp_snapshot: number;
+  recorded_at: string;
+}
+
 // Initial Data - Minimal mock data for local development
 export const MOCK_DB = {
   members: [
@@ -50,7 +69,11 @@ export const MOCK_DB = {
       skills: ['Web3', 'Rust', 'Design'],
       socials: { github: "https://github.com/lilzahs", twitter: "https://x.com/doandanh_zah", telegram: "https://t.me/doandanh_zah" },
       bank_info: { bankId: "970422", accountNo: "06271099999", accountName: "DOAN DO THANH DANH" },
-      is_active: true
+      is_active: true,
+      member_type: 'member',
+      academy_access: true,
+      auth_provider: 'wallet',
+      email_verified: false
     },
     // VICE-PRESIDENT
     {
@@ -62,7 +85,11 @@ export const MOCK_DB = {
       skills: ['Marketing', 'Operations'],
       socials: { github: "https://github.com/jerry-ici", twitter: "https://x.com/jerryiciii", telegram: "https://t.me/jerryiciii" },
       bank_info: { bankId: "970436", accountNo: "1028328959", accountName: "LE THI THANH THAI" },
-      is_active: true
+      is_active: true,
+      member_type: 'member',
+      academy_access: true,
+      auth_provider: 'wallet',
+      email_verified: false
     },
     {
       id: '101240060',
@@ -73,7 +100,11 @@ export const MOCK_DB = {
       skills: ['HR Management', 'Event Planning', 'Community', 'Partnership'],
       socials: { github: "https://github.com/Th0dium", twitter: "https://x.com/Th0rdium", telegram: "https://t.me/Thodium04" },
       bank_info: { bankId: "970422", accountNo: "0347373213", accountName: "NGO VAN NHAT DUY" },
-      is_active: true
+      is_active: true,
+      member_type: 'member',
+      academy_access: true,
+      auth_provider: 'wallet',
+      email_verified: false
     },
     // TECH-LEAD
     {
@@ -85,7 +116,11 @@ export const MOCK_DB = {
       skills: ['Solana', 'Rust', 'React', 'TypeScript', 'System Design'],
       socials: { github: "https://github.com/thanhnhat23", twitter: "https://x.com/ThanhNhat06", telegram: "https://t.me/ThanhNhat23" },
       bank_info: { bankId: "970422", accountNo: "0905700494", accountName: "LUONG THANH NHAT" },
-      is_active: true
+      is_active: true,
+      member_type: 'member',
+      academy_access: true,
+      auth_provider: 'wallet',
+      email_verified: false
     },
     // MEDIA-LEAD
     {
@@ -97,7 +132,11 @@ export const MOCK_DB = {
       skills: ['Content Creation', 'Social Media', 'Copywriting'],
       socials: { github: "https://github.com/Kunsosad", twitter: "https://x.com/darksans10", telegram: "https://t.me/Phanconghuy" },
       bank_info: { bankId: "970422", accountNo: "0987520146", accountName: "PHAN CONG HUY" },
-      is_active: true
+      is_active: true,
+      member_type: 'member',
+      academy_access: true,
+      auth_provider: 'wallet',
+      email_verified: false
     },
     // MEMBERS
     {
@@ -109,7 +148,11 @@ export const MOCK_DB = {
       skills: ['Editor', 'Media'],
       socials: { github: "https://github.com/dainghiax17-hub", twitter: "https://x.com/dainghiaaa17", telegram: "https://t.me/dainghiaaa17" },
       bank_info: { bankId: "970422", accountNo: "0356041438", accountName: "HUYNH DAI NGHIA" },
-      is_active: true
+      is_active: true,
+      member_type: 'member',
+      academy_access: true,
+      auth_provider: 'wallet',
+      email_verified: false
     },
     {
       id: '123250208',
@@ -120,7 +163,11 @@ export const MOCK_DB = {
       skills: ['Python', 'AI/ML', 'Data Science'],
       socials: { github: "https://github.com/truongphu103", telegram: "https://t.me/TruongPhu103" },
       bank_info: { bankId: "970422", accountNo: "9100320079", accountName: "NGUYEN NGOC TRUONG PHU" },
-      is_active: true
+      is_active: true,
+      member_type: 'member',
+      academy_access: true,
+      auth_provider: 'wallet',
+      email_verified: false
     },
     {
       id: '106250128',
@@ -131,7 +178,11 @@ export const MOCK_DB = {
       skills: ['Solana', 'Anchor', 'Rust'],
       socials: { github: "https://github.com/d-hiern", twitter: "https://x.com/D_Hiern", telegram: "https://t.me/D_Hiern" },
       bank_info: { bankId: "970422", accountNo: "0812017500", accountName: "PHAN DUY HIEN" },
-      is_active: true
+      is_active: true,
+      member_type: 'member',
+      academy_access: true,
+      auth_provider: 'wallet',
+      email_verified: false
     },
     {
       id: '102230313',
@@ -142,7 +193,11 @@ export const MOCK_DB = {
       skills: ['C++', 'Node.js', 'Next.js'],
       socials: { github: "https://github.com/dhtphu05", twitter: "https://x.com/dhtphu05", telegram: "https://t.me/dhtphu05" },
       bank_info: { bankId: "970436", accountNo: "1041537741", accountName: "DOAN HOANG THIEN PHU" },
-      is_active: true
+      is_active: true,
+      member_type: 'member',
+      academy_access: true,
+      auth_provider: 'wallet',
+      email_verified: false
     },
     {
       id: '102240127',
@@ -153,7 +208,11 @@ export const MOCK_DB = {
       skills: ['C++'],
       socials: { github: "https://github.com/Cuongkudo", twitter: "https://x.com/Cuongkudo123", telegram: "https://t.me/KuWongg" },
       bank_info: { bankId: "970415", accountNo: "100882221015", accountName: "NGUYEN MANH CUONG" },
-      is_active: true
+      is_active: true,
+      member_type: 'member',
+      academy_access: true,
+      auth_provider: 'wallet',
+      email_verified: false
     },
     {
       id: '102240286',
@@ -164,7 +223,11 @@ export const MOCK_DB = {
       skills: ['Smart Contracts', 'Backend', 'C++'],
       socials: { github: "https://github.com/lacachua", twitter: "https://x.com/sh_jessica", telegram: "https://t.me/cachuane" },
       bank_info: { bankId: "970436", accountNo: "1024557336", accountName: "NGUYEN THI CAM TUYEN" },
-      is_active: true
+      is_active: true,
+      member_type: 'member',
+      academy_access: true,
+      auth_provider: 'wallet',
+      email_verified: false
     },
     {
       id: '102230323',
@@ -175,7 +238,11 @@ export const MOCK_DB = {
       skills: ['Backend', 'PostgreSQL', 'Express'],
       socials: { github: "https://github.com/ntthuy29", twitter: "https://x.com/Thuy292005", telegram: "https://t.me/thuy2905" },
       bank_info: { bankId: "970415", accountNo: "0334105228", accountName: "NGUYEN THI THUY" },
-      is_active: true
+      is_active: true,
+      member_type: 'member',
+      academy_access: true,
+      auth_provider: 'wallet',
+      email_verified: false
     },
     {
       id: '102240170',
@@ -208,7 +275,28 @@ export const MOCK_DB = {
       skills: ['Design', 'Next.js', 'TypeScript'],
       socials: { github: "https://github.com/Liinh-Git", twitter: "https://x.com/NguynLinh298772", telegram: "https://t.me/Kaslynna" },
       bank_info: { bankId: "970422", accountNo: "0865371670", accountName: "NGUYEN DO KHANH LINH" },
-      is_active: true
+      is_active: true,
+      member_type: 'member',
+      academy_access: true,
+      auth_provider: 'wallet',
+      email_verified: false
+    },
+    {
+      id: 'community-001',
+      wallet_address: null,
+      name: 'Lan Community',
+      role: 'Community',
+      avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=LanCommunity',
+      skills: ['UI/UX', 'Community'],
+      socials: { github: "https://github.com/community-lan", twitter: "https://x.com/community_lan" },
+      bank_info: {},
+      is_active: true,
+      member_type: 'community',
+      academy_access: true,
+      auth_provider: 'google',
+      email: 'lan.community@example.com',
+      google_id: 'google-community-001',
+      email_verified: true
     }
   ] as Member[],
 
@@ -221,7 +309,7 @@ export const MOCK_DB = {
       builders: ["Thodium", "NekoNora"],
       link: "https://dsuc.fun",
       repo_link: "https://github.com/dsuc-labs/portal",
-      status: "Active"
+      status: "Published"
     },
     {
       id: 'proj-002',
@@ -231,7 +319,7 @@ export const MOCK_DB = {
       builders: ["NekoNora"],
       link: "",
       repo_link: "https://github.com/dsuc-labs/discord-bot",
-      status: "Active"
+      status: "Published"
     }
   ] as Project[],
 
@@ -302,6 +390,7 @@ export const MOCK_DB = {
       type: 'Workshop',
       location: 'HCMC Tech Hub, District 1',
       attendees: 25,
+      status: 'Published',
       created_by: '102240386',
       luma_link: 'https://lu.ma/dsuc-solana-workshop',
       created_at: '2025-12-01T09:00:00Z'
@@ -314,6 +403,7 @@ export const MOCK_DB = {
       type: 'Hackathon',
       location: 'Online',
       attendees: 42,
+      status: 'Published',
       created_by: '101240060',
       luma_link: 'https://lu.ma/dsuc-hackathon-2025',
       created_at: '2025-12-01T11:00:00Z'
@@ -353,6 +443,7 @@ export const MOCK_DB = {
       name: 'DSUC Portal',
       description: 'Main portal for DSUC members',
       language: 'TypeScript/React',
+      status: 'Published',
       url: 'https://github.com/dsuc-labs/portal',
       stars: 42,
       forks: 12,
@@ -364,6 +455,7 @@ export const MOCK_DB = {
       name: 'Discord Bot',
       description: 'Community management bot',
       language: 'TypeScript/Discord.js',
+      status: 'Published',
       url: 'https://github.com/dsuc-labs/discord-bot',
       stars: 18,
       forks: 5,
@@ -375,16 +467,19 @@ export const MOCK_DB = {
   resources: [
     {
       id: 'res-001',
-      title: 'Solana Development Guide',
-      description: 'Complete guide to building on Solana',
+      name: 'Solana Development Guide',
+      type: 'Document',
       url: 'https://docs.solana.com',
-      category: 'Documentation',
+      size: 'Docs',
+      status: 'Published',
+      category: 'Learning',
       created_by: '102240386',
       created_at: '2025-11-01T10:00:00Z'
     }
   ] as any[],
 
-  academy_progress: [] as AcademyProgress[]
+  academy_progress: [] as AcademyProgress[],
+  academy_activity: [] as AcademyActivity[]
 };
 
 // Helper to create chainable query builder
@@ -400,6 +495,11 @@ const createBuilder = (data: any[]) => {
       return createBuilder(filtered);
     },
 
+    neq: (column: string, value: any) => {
+      const filtered = data.filter((item: any) => item[column] !== value);
+      return createBuilder(filtered);
+    },
+
     in: (column: string, values: any[]) => {
       const filtered = data.filter((item: any) => values.includes(item[column]));
       return createBuilder(filtered);
@@ -410,6 +510,33 @@ const createBuilder = (data: any[]) => {
         if (operator === 'is') return item[column] !== value;
         return true;
       });
+      return createBuilder(filtered);
+    },
+
+    or: (expression: string) => {
+      const clauses = expression
+        .split(',')
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .map((part) => {
+          const [column, operator, ...rest] = part.split('.');
+          return {
+            column,
+            operator,
+            value: rest.join('.'),
+          };
+        });
+
+      const filtered = data.filter((item: any) =>
+        clauses.some((clause) => {
+          if (clause.operator === 'eq') {
+            return String(item[clause.column] || '') === clause.value;
+          }
+
+          return false;
+        })
+      );
+
       return createBuilder(filtered);
     },
 

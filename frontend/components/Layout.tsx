@@ -2,7 +2,7 @@ import React, { useState, useEffect, createContext, useContext } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
-import { Home, Users, Calendar, Calculator, Briefcase, Folder, Wallet, Menu, X, Terminal, User, Rocket, Mail, HelpCircle, ExternalLink, GraduationCap } from 'lucide-react';
+import { Home, Users, Calendar, Calculator, Briefcase, Folder, Menu, X, Terminal, User, Rocket, HelpCircle, GraduationCap } from 'lucide-react';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import { useStore } from '../store/useStore';
@@ -28,20 +28,21 @@ export function Layout({ children }: { children?: React.ReactNode }) {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [showLoginNotification, setShowLoginNotification] = useState(false);
   const [lastLoginInfo, setLastLoginInfo] = useState<{ name?: string; method?: 'wallet' | 'google' }>({});
-  const { isWalletConnected, currentUser, authMethod } = useStore();
-  const previousConnectionRef = React.useRef(isWalletConnected);
+  const { currentUser, authMethod } = useStore();
+  const previousUserIdRef = React.useRef<string | null>(currentUser?.id || null);
+  const isAuthenticated = !!currentUser;
 
   // Show notification when user logs in
   useEffect(() => {
-    if (isWalletConnected && !previousConnectionRef.current) {
+    if (currentUser?.id && previousUserIdRef.current !== currentUser.id) {
       setLastLoginInfo({
         name: currentUser?.name || currentUser?.email || 'User',
-        method: (authMethod as 'wallet' | 'google') || 'wallet'
+        method: (authMethod as 'wallet' | 'google') || 'google'
       });
       setShowLoginNotification(true);
     }
-    previousConnectionRef.current = isWalletConnected;
-  }, [isWalletConnected, currentUser?.name, currentUser?.email, authMethod]);
+    previousUserIdRef.current = currentUser?.id || null;
+  }, [currentUser?.id, currentUser?.name, currentUser?.email, authMethod]);
 
   return (
     <ContactModalContext.Provider value={{ openContactModal: () => setIsContactModalOpen(true) }}>
@@ -84,10 +85,17 @@ function Background() {
 }
 
 function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
-  const { isWalletConnected, disconnectWallet, currentUser } = useStore();
+  const { currentUser } = useStore();
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isAuthenticated = !!currentUser;
+  const isOfficialMember = currentUser?.memberType === 'member';
+  const isAdmin =
+    isOfficialMember &&
+    ['President', 'Vice-President'].includes(
+      currentUser?.role || ''
+    );
 
   // All navigation links (visible in navbar)
   const allLinks = [
@@ -96,9 +104,10 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
     { name: 'Members', path: '/members', icon: Users },
     { name: 'Events', path: '/events', icon: Calendar },
     { name: 'Projects', path: '/projects', icon: Rocket },
-    { name: 'Finance', path: '/finance', icon: Calculator, locked: !currentUser },
-    { name: 'Work', path: '/work', icon: Briefcase, locked: !currentUser },
+    { name: 'Finance', path: '/finance', icon: Calculator, locked: !isOfficialMember },
+    { name: 'Work', path: '/work', icon: Briefcase },
     { name: 'Resources', path: '/resources', icon: Folder },
+    ...(isAdmin ? [{ name: 'Admin', path: '/admin', icon: HelpCircle }] : []),
   ];
 
   return (
@@ -189,7 +198,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
               </button>
 
               {/* Wallet / Profile Button */}
-              {isWalletConnected && currentUser ? (
+              {isAuthenticated && currentUser ? (
                 <button
                   onClick={() => navigate('/profile')}
                   className="flex items-center gap-2.5 pl-2 pr-4 py-2 bg-cyber-dark/50 border border-cyber-blue/50 rounded-lg hover:bg-cyber-blue/10 hover:border-cyber-blue transition-all duration-300 group"
@@ -213,9 +222,9 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                   </button>
                   {/* Improved tooltip */}
                   <div className="absolute right-0 top-full mt-3 bg-surface/98 border border-cyber-blue/50 rounded-lg px-4 py-3 text-xs text-white/90 whitespace-nowrap z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-[0_8px_32px_rgba(41,121,255,0.2)] min-w-[240px]">
-                    <div className="font-bold text-cyber-blue mb-1.5 text-sm">For Team Members</div>
-                    <div className="text-white/70 mb-1">Sign in to access exclusive features</div>
-                    <div className="text-cyber-yellow mt-2 text-[11px]">Not a member? Contact us for collaboration</div>
+                    <div className="font-bold text-cyber-blue mb-1.5 text-sm">DSUC Account Access</div>
+                    <div className="text-white/70 mb-1">Sign in with Google to create your DSUC account</div>
+                    <div className="text-cyber-yellow mt-2 text-[11px]">Wallet linking stays optional inside your profile</div>
                     {/* Arrow */}
                     <div className="absolute -top-1 right-4 w-2 h-2 bg-surface border-t border-l border-cyber-blue/50 rotate-45" />
                   </div>
@@ -265,33 +274,40 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
               {/* Navigation Links */}
               <div className="flex flex-col gap-2 p-6 flex-1 overflow-y-auto">
                 {allLinks.map((link) => (
-                  <NavLink
-                    key={link.path}
-                    to={link.path}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={({ isActive }) =>
-                      twMerge(
-                        "text-lg font-display font-bold uppercase flex items-center gap-4 p-4 rounded-lg transition-all duration-300",
-                        isActive
-                          ? "text-cyber-blue bg-cyber-blue/10 border border-cyber-blue/30 translate-x-2"
-                          : "text-white/60 hover:text-white hover:bg-white/5 border border-transparent",
-                        link.locked && "opacity-40 cursor-not-allowed"
-                      )
-                    }
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <link.icon size={22} className={isActive ? "text-cyber-blue" : "text-white/40"} />
-                        <span className="flex-1">{link.name}</span>
-                        {link.locked && (
-                          <span className="text-[10px] text-white/40 uppercase tracking-wider">Locked</span>
-                        )}
-                      </>
-                    )}
-                  </NavLink>
+                  link.locked ? (
+                    <div
+                      key={link.path}
+                      className="text-lg font-display font-bold uppercase flex items-center gap-4 p-4 rounded-lg opacity-40 cursor-not-allowed border border-transparent"
+                    >
+                      <link.icon size={22} className="text-white/40" />
+                      <span className="flex-1">{link.name}</span>
+                      <span className="text-[10px] text-white/40 uppercase tracking-wider">Locked</span>
+                    </div>
+                  ) : (
+                    <NavLink
+                      key={link.path}
+                      to={link.path}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={({ isActive }) =>
+                        twMerge(
+                          "text-lg font-display font-bold uppercase flex items-center gap-4 p-4 rounded-lg transition-all duration-300",
+                          isActive
+                            ? "text-cyber-blue bg-cyber-blue/10 border border-cyber-blue/30 translate-x-2"
+                            : "text-white/60 hover:text-white hover:bg-white/5 border border-transparent"
+                        )
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <link.icon size={22} className={isActive ? "text-cyber-blue" : "text-white/40"} />
+                          <span className="flex-1">{link.name}</span>
+                        </>
+                      )}
+                    </NavLink>
+                  )
                 ))}
 
-                {isWalletConnected && currentUser && (
+                {isAuthenticated && currentUser && (
                   <NavLink
                     to="/profile"
                     onClick={() => setMobileMenuOpen(false)}
@@ -315,7 +331,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
               </div>
 
               {/* Footer - Sign In Button for mobile */}
-              {!isWalletConnected && (
+              {!isAuthenticated && (
                 <div className="p-6 border-t border-cyber-blue/20">
                   <button
                     onClick={() => {
@@ -328,8 +344,8 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                     <span>Sign In</span>
                   </button>
                   <p className="text-[11px] text-white/40 text-center mt-3 leading-relaxed">
-                    For team members only. Not a member?<br />
-                    <span className="text-cyber-yellow">Contact us for collaboration</span>
+                    Sign in to create your DSUC account.<br />
+                    <span className="text-cyber-yellow">Community users can join with Google</span>
                   </p>
                 </div>
               )}
@@ -342,7 +358,7 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
 }
 
 function WalletModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
-  const { connectWallet, loginWithGoogle } = useStore();
+  const { loginWithGoogle } = useStore();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
@@ -397,8 +413,10 @@ function WalletModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void
         </button>
         <div className="mb-6 text-center">
           <Terminal size={40} className="mx-auto text-cyber-blue mb-2" />
-          <h3 className="text-xl font-display font-bold text-white uppercase tracking-wider">Member Sign In</h3>
-
+          <h3 className="text-xl font-display font-bold text-white uppercase tracking-wider">DSUC Account</h3>
+          <p className="mt-2 text-xs text-white/50">
+            Sign in with Google. Official members keep elevated permissions after admin approval.
+          </p>
         </div>
 
         <div className="space-y-3">
@@ -424,33 +442,10 @@ function WalletModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void
             )}
           </div>
 
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-4">
-            <div className="flex-1 h-[1px] bg-white/10"></div>
-            <span className="text-white/30 text-xs uppercase tracking-wider">or</span>
-            <div className="flex-1 h-[1px] bg-white/10"></div>
-          </div>
-
-          {/* Wallet Buttons with better labels */}
-          <div className="bg-white/5 border border-white/10 rounded p-3 mb-3">
-            <p className="text-xs text-white/60 mb-3 font-mono">
-              Sign in with your Solana wallet:
+          <div className="bg-white/5 border border-white/10 rounded p-4">
+            <p className="text-xs text-white/60 font-mono text-center leading-relaxed">
+              Google is now the primary sign-in method for DSUC and community users.
             </p>
-            <button
-              onClick={() => { connectWallet('Phantom'); onClose(); }}
-              className="w-full p-3 border border-white/10 bg-white/5 hover:bg-cyber-blue/10 hover:border-cyber-blue transition-all flex items-center justify-between group cyber-button mb-2"
-            >
-              <span className="font-mono font-bold group-hover:text-cyber-blue transition-colors text-sm">Phantom Wallet</span>
-              <div className="w-2 h-2 bg-purple-500 rounded-full shadow-[0_0_5px_purple]" />
-            </button>
-
-            <button
-              onClick={() => { connectWallet('Solflare'); onClose(); }}
-              className="w-full p-3 border border-white/10 bg-white/5 hover:bg-cyber-yellow/10 hover:border-cyber-yellow transition-all flex items-center justify-between group cyber-button"
-            >
-              <span className="font-mono font-bold group-hover:text-cyber-yellow transition-colors text-sm">Solflare</span>
-              <div className="w-2 h-2 bg-orange-500 rounded-full shadow-[0_0_5px_orange]" />
-            </button>
           </div>
         </div>
       </motion.div>

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { v4 as uuidv4 } from "uuid";
 import { db } from "../index";
 import { generateToken, verifyToken, AuthRequest, authenticateWallet } from "../middleware/auth";
 
@@ -12,6 +13,62 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
 const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL || "http://localhost:3001/api/auth/google/callback";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
+function buildCommunityMemberId() {
+  return `community-${uuidv4().slice(0, 8)}`;
+}
+
+function buildAuthProvider(member: any): 'wallet' | 'google' | 'both' {
+  const hasWallet = !!member?.wallet_address;
+  const hasGoogle = !!member?.google_id || !!member?.email;
+
+  if (hasWallet && hasGoogle) {
+    return 'both';
+  }
+
+  return hasWallet ? 'wallet' : 'google';
+}
+
+async function createCommunityAccount(params: {
+  email: string;
+  googleId: string;
+  name?: string;
+  avatar?: string;
+}) {
+  const communityData = {
+    id: buildCommunityMemberId(),
+    wallet_address: null,
+    name: params.name || params.email.split("@")[0],
+    role: "Community",
+    member_type: "community",
+    avatar:
+      params.avatar ||
+      `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(
+        params.email
+      )}`,
+    skills: [],
+    socials: {},
+    bank_info: {},
+    email: params.email,
+    google_id: params.googleId,
+    auth_provider: "google",
+    email_verified: true,
+    academy_access: true,
+    is_active: true,
+  };
+
+  const { data: created, error: createError } = await db
+    .from("members")
+    .insert([communityData])
+    .select()
+    .single();
+
+  if (createError) {
+    throw createError;
+  }
+
+  return created;
+}
+
 // Configure Passport Google Strategy
 if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
   passport.use(
@@ -21,7 +78,12 @@ if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
         clientSecret: GOOGLE_CLIENT_SECRET,
         callbackURL: GOOGLE_CALLBACK_URL,
       },
-      async (accessToken, refreshToken, profile, done) => {
+      async (
+        accessToken: string,
+        refreshToken: string,
+        profile: any,
+        done: any
+      ) => {
         try {
           const email = profile.emails?.[0]?.value;
           const googleId = profile.id;
@@ -52,8 +114,15 @@ if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
             return done(null, existingMember);
           }
 
-          // No existing member found
-          return done(null, false);
+          // No existing member found -> create a DSUC community account
+          const createdCommunity = await createCommunityAccount({
+            email,
+            googleId,
+            name: profile.displayName,
+            avatar: profile.photos?.[0]?.value,
+          });
+
+          return done(null, createdCommunity);
         } catch (error) {
           return done(error as Error, undefined);
         }
@@ -63,11 +132,11 @@ if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
 }
 
 // Serialize/deserialize user for session
-passport.serializeUser((user: any, done) => {
+passport.serializeUser((user: any, done: any) => {
   done(null, user.id);
 });
 
-passport.deserializeUser(async (id: string, done) => {
+passport.deserializeUser(async (id: string, done: any) => {
   try {
     const { data: member, error } = await db
       .from("members")
@@ -103,7 +172,7 @@ router.post("/wallet", async (req: Request, res: Response) => {
       return res.status(404).json({
         error: "Not Found",
         message:
-          "Wallet address not registered. Only pre-registered members can access.",
+          "Wallet address not registered. Please sign in with Google first or ask an admin to approve your wallet.",
       });
     }
 
@@ -141,9 +210,9 @@ router.get(
     session: false,
     failureRedirect: `${FRONTEND_URL}?error=auth_failed`,
   }),
-  async (req: Request, res: Response) => {
+  async (req: AuthRequest, res: Response) => {
     try {
-      const user = req.user as any;
+      const user = req.user;
 
       if (!user) {
         return res.redirect(
@@ -155,7 +224,7 @@ router.get(
       const token = generateToken({
         userId: user.id,
         email: user.email,
-        wallet_address: user.wallet_address,
+        wallet_address: user.wallet_address || undefined,
       });
 
       // Set token as HTTP-only cookie
@@ -272,15 +341,24 @@ router.post("/google/login", async (req: Request, res: Response) => {
     if (byEmail) {
       member = byEmail;
       // Update google_id if not set
-      if (!member.google_id) {
-        await db
+      if (!member.google_id || member.google_id !== google_id) {
+        const { data: refreshedMember } = await db
           .from("members")
           .update({
             google_id,
             email_verified: true,
-            auth_provider: member.wallet_address ? 'both' : 'google'
+            auth_provider: buildAuthProvider({
+              ...member,
+              google_id,
+            }),
           })
-          .eq("id", member.id);
+          .eq("id", member.id)
+          .select()
+          .single();
+
+        if (refreshedMember) {
+          member = refreshedMember;
+        }
       }
     } else {
       // Try by google_id
@@ -297,9 +375,11 @@ router.post("/google/login", async (req: Request, res: Response) => {
     }
 
     if (!member) {
-      return res.status(404).json({
-        error: "Not Found",
-        message: "Email is not registered in the system. Only registered members can access.",
+      member = await createCommunityAccount({
+        email,
+        googleId: google_id,
+        name,
+        avatar,
       });
     }
 
@@ -307,7 +387,7 @@ router.post("/google/login", async (req: Request, res: Response) => {
     const token = generateToken({
       userId: member.id,
       email: member.email,
-      wallet_address: member.wallet_address,
+      wallet_address: member.wallet_address || undefined,
     });
 
     res.json({

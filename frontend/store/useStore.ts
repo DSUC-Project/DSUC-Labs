@@ -18,6 +18,7 @@ import {
   MEMBERS,
   PROJECTS,
 } from "../data/mockData";
+import { readCache, writeCache } from "../lib/cache";
 
 declare global {
   interface Window {
@@ -39,6 +40,7 @@ interface AppState {
   warmupBackend: () => Promise<void>;
 
   connectWallet: (provider: "Phantom" | "Solflare") => void;
+  reconnectWallet: () => Promise<void>;
   disconnectWallet: () => void;
   loginWithGoogle: (googleUserInfo: GoogleUserInfo) => Promise<boolean>;
   linkGoogleAccount: (googleUserInfo: GoogleUserInfo) => Promise<boolean>;
@@ -77,6 +79,63 @@ interface AppState {
   updateCurrentUser: (updates: Partial<Member>) => void;
 }
 
+const PUBLIC_CACHE_TTL_MS = 1000 * 60 * 30;
+
+function normalizeMember(raw: any): Member {
+  const rawBankInfo = raw?.bank_info || raw?.bankInfo;
+  const memberType = raw?.member_type === "community" ? "community" : "member";
+
+  return {
+    ...raw,
+    memberType,
+    academyAccess: raw?.academy_access !== false,
+    bankInfo: rawBankInfo
+      ? {
+          bankId: rawBankInfo.bankId || rawBankInfo.bank_id,
+          accountNo: rawBankInfo.accountNo || rawBankInfo.account_no,
+          accountName: rawBankInfo.accountName || rawBankInfo.account_name,
+        }
+      : null,
+  };
+}
+
+function normalizeBounty(raw: any): Bounty {
+  return {
+    ...raw,
+    submitLink: raw?.submitLink || raw?.submit_link || undefined,
+  };
+}
+
+function normalizeRepo(raw: any): Repo {
+  return {
+    ...raw,
+    repoLink: raw?.repoLink || raw?.url || undefined,
+  };
+}
+
+function getAuthHeaders(
+  state: Pick<AppState, "walletAddress" | "authToken">,
+  includeJson = false
+) {
+  const headers: Record<string, string> = {};
+
+  if (includeJson) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  if (state.authToken) {
+    headers.Authorization = `Bearer ${state.authToken}`;
+  } else if (state.walletAddress) {
+    headers["x-wallet-address"] = state.walletAddress;
+  }
+
+  return headers;
+}
+
+function canManageClubData(state: Pick<AppState, "currentUser">) {
+  return state.currentUser?.memberType === "member";
+}
+
 export const useStore = create<AppState>((set, get) => ({
   isWalletConnected: false,
   walletAddress: null,
@@ -86,14 +145,16 @@ export const useStore = create<AppState>((set, get) => ({
   authToken: null,
   backendStatus: 'connecting',
 
-  members: [], // Initialize empty, will be fetched from backend
-  events: EVENTS,
-  bounties: BOUNTIES,
-  repos: REPOS,
-  resources: RESOURCES,
-  projects: PROJECTS,
+  members: readCache<Member[]>("members", PUBLIC_CACHE_TTL_MS) || [],
+  events: readCache<Event[]>("events", PUBLIC_CACHE_TTL_MS) || EVENTS,
+  bounties: readCache<Bounty[]>("bounties", PUBLIC_CACHE_TTL_MS) || BOUNTIES,
+  repos: readCache<Repo[]>("repos", PUBLIC_CACHE_TTL_MS) || REPOS,
+  resources:
+    readCache<Resource[]>("resources", PUBLIC_CACHE_TTL_MS) || RESOURCES,
+  projects: readCache<Project[]>("projects", PUBLIC_CACHE_TTL_MS) || PROJECTS,
   financeRequests: [],
-  financeHistory: [],
+  financeHistory:
+    readCache<FinanceRequest[]>("financeHistory", PUBLIC_CACHE_TTL_MS) || [],
 
   // Warmup backend - ping to wake it up logic
   warmupBackend: async () => {
@@ -162,23 +223,10 @@ export const useStore = create<AppState>((set, get) => ({
         console.log("[fetchMembers] Result:", result);
 
         if (result && result.success && result.data) {
-          // Normalize backend data: map bank_info to bankInfo with camelCase fields
-          const members = result.data.map((m: any) => {
-            const rawBankInfo = m.bank_info || m.bankInfo;
-            return {
-              ...m,
-              bankInfo: rawBankInfo
-                ? {
-                  bankId: rawBankInfo.bankId || rawBankInfo.bank_id,
-                  accountNo: rawBankInfo.accountNo || rawBankInfo.account_no,
-                  accountName:
-                    rawBankInfo.accountName || rawBankInfo.account_name,
-                }
-                : null,
-            };
-          });
+          const members = result.data.map(normalizeMember);
           console.log("[fetchMembers] Setting members:", members.length);
           set({ members });
+          writeCache("members", members);
         }
       } else {
         console.error(
@@ -190,7 +238,7 @@ export const useStore = create<AppState>((set, get) => ({
     } catch (e) {
       console.error("Failed to fetch members from backend", e);
       // Fallback to mock data if backend fails
-      set({ members: MEMBERS });
+      set({ members: MEMBERS.map(normalizeMember) });
     }
   },
 
@@ -216,6 +264,7 @@ export const useStore = create<AppState>((set, get) => ({
           }));
           console.log("[fetchFinanceHistory] Normalized history:", history);
           set({ financeHistory: history });
+          writeCache("financeHistory", history);
         }
       }
     } catch (e) {
@@ -240,6 +289,7 @@ export const useStore = create<AppState>((set, get) => ({
           }));
           console.log("[fetchEvents] Normalized events:", events);
           set({ events });
+          writeCache("events", events);
         }
       }
     } catch (e) {
@@ -259,6 +309,7 @@ export const useStore = create<AppState>((set, get) => ({
         console.log("[fetchProjects] Result:", result);
         if (result && result.success && result.data) {
           set({ projects: result.data });
+          writeCache("projects", result.data);
         }
       }
     } catch (e) {
@@ -278,6 +329,7 @@ export const useStore = create<AppState>((set, get) => ({
         console.log("[fetchResources] Result:", result);
         if (result && result.success && result.data) {
           set({ resources: result.data });
+          writeCache("resources", result.data);
         }
       }
     } catch (e) {
@@ -299,12 +351,9 @@ export const useStore = create<AppState>((set, get) => ({
         const result = await res.json();
         console.log("[fetchBounties] Result:", result);
         if (result && result.success && result.data) {
-          // Normalize snake_case to camelCase
-          const normalized = result.data.map((bounty: any) => ({
-            ...bounty,
-            submitLink: bounty.submit_link || bounty.submitLink,
-          }));
+          const normalized = result.data.map(normalizeBounty);
           set({ bounties: normalized });
+          writeCache("bounties", normalized);
         }
       }
     } catch (e) {
@@ -323,12 +372,9 @@ export const useStore = create<AppState>((set, get) => ({
         const result = await res.json();
         console.log("[fetchRepos] Result:", result);
         if (result && result.success && result.data) {
-          // Normalize url to repoLink
-          const normalized = result.data.map((repo: any) => ({
-            ...repo,
-            repoLink: repo.url || repo.repoLink,
-          }));
+          const normalized = result.data.map(normalizeRepo);
           set({ repos: normalized });
+          writeCache("repos", normalized);
         }
       }
     } catch (e) {
@@ -396,14 +442,21 @@ export const useStore = create<AppState>((set, get) => ({
         if (res.ok) {
           const result = await res.json();
           if (result && result.success && result.data) {
-            const profile = result.data;
+            const profile = normalizeMember(result.data);
             // if backend returns member, ensure it's in members list
             set((state) => ({
               currentUser: profile,
               authMethod: "wallet",
-              members: state.members.some((m) => m.id === profile.id)
-                ? state.members
-                : [profile, ...state.members],
+              authToken: null,
+              members: (() => {
+                const members = state.members.some((m) => m.id === profile.id)
+                  ? state.members.map((member) =>
+                      member.id === profile.id ? profile : member
+                    )
+                  : [profile, ...state.members];
+                writeCache("members", members);
+                return members;
+              })(),
             }));
             return;
           } else {
@@ -458,6 +511,15 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
+  reconnectWallet: async () => {
+    const state = get();
+    if (!state.walletProvider) {
+      return;
+    }
+
+    await state.connectWallet(state.walletProvider);
+  },
+
   disconnectWallet: () =>
     set({
       isWalletConnected: false,
@@ -490,15 +552,22 @@ export const useStore = create<AppState>((set, get) => ({
       console.log("[loginWithGoogle] Result:", result);
 
       if (res.ok && result.success) {
-        const profile = result.data;
+        const profile = normalizeMember(result.data);
         set((state) => ({
-          isWalletConnected: true,
+          isWalletConnected: false,
+          walletProvider: null,
           currentUser: profile,
           authMethod: "google",
           authToken: result.token,
-          members: state.members.some((m) => m.id === profile.id)
-            ? state.members
-            : [profile, ...state.members],
+          members: (() => {
+            const members = state.members.some((m) => m.id === profile.id)
+              ? state.members.map((member) =>
+                  member.id === profile.id ? profile : member
+                )
+              : [profile, ...state.members];
+            writeCache("members", members);
+            return members;
+          })(),
         }));
 
         // Store token in localStorage for persistence
@@ -550,9 +619,17 @@ export const useStore = create<AppState>((set, get) => ({
       console.log("[linkGoogleAccount] Result:", result);
 
       if (res.ok && result.success) {
+        const updatedProfile = normalizeMember(result.data);
         // Update current user with new Google info
-        set({
-          currentUser: result.data,
+        set((state) => {
+          const members = state.members.map((member) =>
+            member.id === updatedProfile.id ? updatedProfile : member
+          );
+          writeCache("members", members);
+          return {
+            currentUser: updatedProfile,
+            members,
+          };
         });
         alert("✅ Account linked successfully!\n\nYou can now login with either Google or Wallet.");
         return true;
@@ -585,14 +662,23 @@ export const useStore = create<AppState>((set, get) => ({
       console.log("[checkSession] Result:", result);
 
       if (result.success && result.authenticated && result.data) {
+        const profile = normalizeMember(result.data);
+        const sessionAuthMethod =
+          profile.auth_provider === 'wallet' ? 'wallet' : 'google';
         set((state) => ({
-          isWalletConnected: true,
-          currentUser: result.data,
-          authMethod: result.data.auth_provider === 'wallet' ? 'wallet' : 'google',
+          isWalletConnected: sessionAuthMethod === 'wallet',
+          currentUser: profile,
+          authMethod: sessionAuthMethod,
           authToken: token,
-          members: state.members.some((m) => m.id === result.data.id)
-            ? state.members
-            : [result.data, ...state.members],
+          members: (() => {
+            const members = state.members.some((m) => m.id === profile.id)
+              ? state.members.map((member) =>
+                  member.id === profile.id ? profile : member
+                )
+              : [profile, ...state.members];
+            writeCache("members", members);
+            return members;
+          })(),
         }));
       } else {
         // Invalid token, clear it
@@ -628,10 +714,14 @@ export const useStore = create<AppState>((set, get) => ({
   addEvent: async (event) => {
     const state = get();
 
-    // Check wallet connection
-    if (!state.isWalletConnected || !state.walletAddress) {
-      console.error("[addEvent] Wallet not connected");
-      alert("Please connect your wallet first!");
+    if (!state.currentUser) {
+      console.error("[addEvent] User not authenticated");
+      alert("Please sign in first!");
+      return;
+    }
+
+    if (!canManageClubData(state)) {
+      alert("Community accounts cannot create club events.");
       return;
     }
 
@@ -642,10 +732,7 @@ export const useStore = create<AppState>((set, get) => ({
 
       const res = await fetch(`${base}/api/events`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-wallet-address": state.walletAddress || "",
-        },
+        headers: getAuthHeaders(state, true),
         body: JSON.stringify({
           title: event.title,
           date: event.date,
@@ -663,7 +750,11 @@ export const useStore = create<AppState>((set, get) => ({
         const result = await res.json();
         console.log("[addEvent] Success:", result);
         // Add to local state
-        set((state) => ({ events: [...state.events, result.data] }));
+        set((state) => {
+          const events = [...state.events, result.data];
+          writeCache("events", events);
+          return { events };
+        });
       } else {
         const error = await res.json();
         console.error("[addEvent] Failed:", error);
@@ -678,10 +769,14 @@ export const useStore = create<AppState>((set, get) => ({
   addBounty: async (bounty) => {
     const state = get();
 
-    // Check wallet connection
-    if (!state.isWalletConnected || !state.walletAddress) {
-      console.error("[addBounty] Wallet not connected");
-      alert("Please connect your wallet first!");
+    if (!state.currentUser) {
+      console.error("[addBounty] User not authenticated");
+      alert("Please sign in first!");
+      return;
+    }
+
+    if (!canManageClubData(state)) {
+      alert("Community accounts cannot create bounties.");
       return;
     }
 
@@ -692,10 +787,7 @@ export const useStore = create<AppState>((set, get) => ({
 
       const res = await fetch(`${base}/api/work/bounties`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-wallet-address": state.walletAddress || "",
-        },
+        headers: getAuthHeaders(state, true),
         body: JSON.stringify({
           title: bounty.title,
           reward: bounty.reward,
@@ -711,7 +803,12 @@ export const useStore = create<AppState>((set, get) => ({
       if (res.ok) {
         const result = await res.json();
         console.log("[addBounty] Success:", result);
-        set((state) => ({ bounties: [...state.bounties, result.data] }));
+        const nextBounty = normalizeBounty(result.data);
+        set((state) => {
+          const bounties = [...state.bounties, nextBounty];
+          writeCache("bounties", bounties);
+          return { bounties };
+        });
       } else {
         const error = await res.json();
         console.error("[addBounty] Failed:", error);
@@ -725,10 +822,14 @@ export const useStore = create<AppState>((set, get) => ({
   addRepo: async (repo) => {
     const state = get();
 
-    // Check wallet connection
-    if (!state.isWalletConnected || !state.walletAddress) {
-      console.error("[addRepo] Wallet not connected");
-      alert("Please connect your wallet first!");
+    if (!state.currentUser) {
+      console.error("[addRepo] User not authenticated");
+      alert("Please sign in first!");
+      return;
+    }
+
+    if (!canManageClubData(state)) {
+      alert("Community accounts cannot create repositories.");
       return;
     }
 
@@ -739,10 +840,7 @@ export const useStore = create<AppState>((set, get) => ({
 
       const res = await fetch(`${base}/api/work/repos`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-wallet-address": state.walletAddress || "",
-        },
+        headers: getAuthHeaders(state, true),
         body: JSON.stringify({
           name: repo.name,
           description: repo.description || "",
@@ -758,7 +856,12 @@ export const useStore = create<AppState>((set, get) => ({
       if (res.ok) {
         const result = await res.json();
         console.log("[addRepo] Success:", result);
-        set((state) => ({ repos: [...state.repos, result.data] }));
+        const nextRepo = normalizeRepo(result.data);
+        set((state) => {
+          const repos = [...state.repos, nextRepo];
+          writeCache("repos", repos);
+          return { repos };
+        });
       } else {
         const error = await res.json();
         console.error("[addRepo] Failed:", error);
@@ -771,10 +874,14 @@ export const useStore = create<AppState>((set, get) => ({
   addResource: async (resource) => {
     const state = get();
 
-    // Check wallet connection
-    if (!state.isWalletConnected || !state.walletAddress) {
-      console.error("[addResource] Wallet not connected");
-      alert("Please connect your wallet first!");
+    if (!state.currentUser) {
+      console.error("[addResource] User not authenticated");
+      alert("Please sign in first!");
+      return;
+    }
+
+    if (!canManageClubData(state)) {
+      alert("Community accounts cannot create resources.");
       return;
     }
 
@@ -785,10 +892,7 @@ export const useStore = create<AppState>((set, get) => ({
 
       const res = await fetch(`${base}/api/resources`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-wallet-address": state.walletAddress || "",
-        },
+        headers: getAuthHeaders(state, true),
         body: JSON.stringify({
           name: resource.name,
           type: resource.type,
@@ -803,7 +907,11 @@ export const useStore = create<AppState>((set, get) => ({
         const result = await res.json();
         console.log("[addResource] Success:", result);
         // Add to local state
-        set((state) => ({ resources: [...state.resources, result.data] }));
+        set((state) => {
+          const resources = [...state.resources, result.data];
+          writeCache("resources", resources);
+          return { resources };
+        });
       } else {
         const error = await res.json();
         console.error("[addResource] Failed:", error);
@@ -817,10 +925,14 @@ export const useStore = create<AppState>((set, get) => ({
   addProject: async (project) => {
     const state = get();
 
-    // Check wallet connection
-    if (!state.isWalletConnected || !state.walletAddress) {
-      console.error("[addProject] Wallet not connected");
-      alert("Please connect your wallet first!");
+    if (!state.currentUser) {
+      console.error("[addProject] User not authenticated");
+      alert("Please sign in first!");
+      return;
+    }
+
+    if (!canManageClubData(state)) {
+      alert("Community accounts cannot create projects.");
       return;
     }
 
@@ -831,10 +943,7 @@ export const useStore = create<AppState>((set, get) => ({
 
       const res = await fetch(`${base}/api/projects`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-wallet-address": state.walletAddress || "",
-        },
+        headers: getAuthHeaders(state, true),
         body: JSON.stringify({
           name: project.name,
           description: project.description,
@@ -851,7 +960,11 @@ export const useStore = create<AppState>((set, get) => ({
         const result = await res.json();
         console.log("[addProject] Success:", result);
         // Add to local state
-        set((state) => ({ projects: [...state.projects, result.data] }));
+        set((state) => {
+          const projects = [...state.projects, result.data];
+          writeCache("projects", projects);
+          return { projects };
+        });
       } else {
         const error = await res.json();
         console.error("[addProject] Failed:", error);
@@ -869,9 +982,13 @@ export const useStore = create<AppState>((set, get) => ({
       const base = (import.meta as any).env.VITE_API_BASE_URL || "";
       const state = get();
 
-      if (!state.currentUser || !state.walletAddress) {
+      if (!state.currentUser) {
         console.error("[submitFinanceRequest] User not authenticated");
         throw new Error("User not authenticated");
+      }
+
+      if (!canManageClubData(state)) {
+        throw new Error("Community accounts cannot access finance.");
       }
 
       console.log("[submitFinanceRequest] Submitting:", {
@@ -884,10 +1001,7 @@ export const useStore = create<AppState>((set, get) => ({
 
       const res = await fetch(`${base}/api/finance/request`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-wallet-address": state.walletAddress,
-        },
+        headers: getAuthHeaders(state, true),
         body: JSON.stringify({
           amount: req.amount,
           reason: req.reason,
@@ -926,7 +1040,12 @@ export const useStore = create<AppState>((set, get) => ({
       const base = (import.meta as any).env.VITE_API_BASE_URL || "";
       const state = get();
 
-      if (!state.currentUser || !state.walletAddress) {
+      if (!state.currentUser) {
+        return;
+      }
+
+      if (!canManageClubData(state)) {
+        set({ financeRequests: [] });
         return;
       }
 
@@ -940,9 +1059,7 @@ export const useStore = create<AppState>((set, get) => ({
         : "/api/finance/my-requests";
 
       const res = await fetch(`${base}${endpoint}`, {
-        headers: {
-          "x-wallet-address": state.walletAddress,
-        },
+        headers: getAuthHeaders(state),
       });
 
       if (res.ok) {
@@ -983,17 +1100,14 @@ export const useStore = create<AppState>((set, get) => ({
       const base = (import.meta as any).env.VITE_API_BASE_URL || "";
       const state = get();
 
-      if (!state.currentUser || !state.walletAddress) {
+      if (!state.currentUser) {
         console.error("User not authenticated");
         return;
       }
 
       const res = await fetch(`${base}/api/finance/approve/${id}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-wallet-address": state.walletAddress,
-        },
+        headers: getAuthHeaders(state, true),
       });
 
       if (res.ok) {
@@ -1017,17 +1131,14 @@ export const useStore = create<AppState>((set, get) => ({
       const base = (import.meta as any).env.VITE_API_BASE_URL || "";
       const state = get();
 
-      if (!state.currentUser || !state.walletAddress) {
+      if (!state.currentUser) {
         console.error("User not authenticated");
         return;
       }
 
       const res = await fetch(`${base}/api/finance/reject/${id}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-wallet-address": state.walletAddress,
-        },
+        headers: getAuthHeaders(state, true),
       });
 
       if (res.ok) {
@@ -1048,8 +1159,8 @@ export const useStore = create<AppState>((set, get) => ({
   updateCurrentUser: async (updates) => {
     const state = get();
 
-    if (!state.currentUser || !state.walletAddress) {
-      console.error("[updateCurrentUser] No current user or wallet");
+    if (!state.currentUser) {
+      console.error("[updateCurrentUser] No current user");
       return;
     }
 
@@ -1064,10 +1175,7 @@ export const useStore = create<AppState>((set, get) => ({
 
       const res = await fetch(`${base}/api/members/${state.currentUser.id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "x-wallet-address": state.walletAddress,
-        },
+        headers: getAuthHeaders(state, true),
         body: JSON.stringify(updates),
       });
 
@@ -1077,7 +1185,11 @@ export const useStore = create<AppState>((set, get) => ({
         const result = await res.json();
         console.log("[updateCurrentUser] Success:", result);
 
-        const updatedUser = { ...state.currentUser, ...updates };
+        const updatedUser = normalizeMember({
+          ...state.currentUser,
+          ...result.data,
+          ...updates,
+        });
 
         // Update members list
         const updatedMembers = state.members.map((m) =>
@@ -1088,6 +1200,7 @@ export const useStore = create<AppState>((set, get) => ({
           currentUser: updatedUser,
           members: updatedMembers,
         });
+        writeCache("members", updatedMembers);
       } else {
         const error = await res.json();
         console.error("[updateCurrentUser] Failed:", error);

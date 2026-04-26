@@ -9,15 +9,20 @@ import { Resource, ResourceCategory } from '../types';
 const CATEGORIES: ResourceCategory[] = ['Learning', 'Training', 'Document', 'Media', 'Hackathon'];
 
 export function Resources() {
-  const { resources, addResource, isWalletConnected } = useStore();
+  const { resources, addResource, currentUser } = useStore();
   const [filter, setFilter] = useState<ResourceCategory | 'All'>('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const canManage = currentUser?.memberType === 'member';
 
   const filteredResources = filter === 'All' ? resources : resources.filter(r => r.category === filter);
 
   const handleAddClick = () => {
-    if (!isWalletConnected) {
-      alert('Please connect your wallet first!');
+    if (!currentUser) {
+      alert('Please sign in first!');
+      return;
+    }
+    if (!canManage) {
+      alert('Community accounts cannot create resources.');
       return;
     }
     setIsModalOpen(true);
@@ -48,9 +53,9 @@ export function Resources() {
            ))}
            <button 
              onClick={handleAddClick}
-             disabled={!isWalletConnected}
+             disabled={!canManage}
              className={`ml-4 px-4 py-2 font-bold font-display text-xs cyber-button flex items-center gap-2 ${
-               isWalletConnected 
+               canManage
                  ? 'bg-cyber-yellow text-black hover:bg-white' 
                  : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
              }`}
@@ -66,7 +71,7 @@ export function Resources() {
         ))}
       </div>
 
-      <AddResourceModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onAdd={addResource} />
+      <AddResourceModal isOpen={isModalOpen && canManage} onClose={() => setIsModalOpen(false)} onAdd={addResource} />
     </div>
   );
 }

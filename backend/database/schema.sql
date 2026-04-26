@@ -7,13 +7,19 @@
 -- - wallet_address là duy nhất và dùng để authentication
 CREATE TABLE members (
   id TEXT PRIMARY KEY, -- Mã số sinh viên (Student ID)
-  wallet_address TEXT UNIQUE NOT NULL, -- Solana wallet address (Phantom/Solflare)
+  wallet_address TEXT UNIQUE, -- Solana wallet address (Phantom/Solflare)
   name TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('President', 'Vice-President', 'Tech-Lead', 'Media-Lead', 'Member')),
+  role TEXT NOT NULL CHECK (role IN ('President', 'Vice-President', 'Tech-Lead', 'Media-Lead', 'Member', 'Community')),
+  member_type TEXT NOT NULL DEFAULT 'member' CHECK (member_type IN ('member', 'community')),
   avatar TEXT, -- Lưu URL ảnh
   skills TEXT[] DEFAULT '{}', -- Mảng chuỗi: ['React', 'Rust']
   socials JSONB DEFAULT '{}', -- { "github": "...", "twitter": "...", "telegram": "..." }
   bank_info JSONB DEFAULT '{}', -- { "bankId": "970422", "accountNo": "000...", "accountName": "..." }
+  email TEXT UNIQUE,
+  google_id TEXT UNIQUE,
+  auth_provider TEXT DEFAULT 'wallet' CHECK (auth_provider IN ('wallet', 'google', 'both')),
+  email_verified BOOLEAN DEFAULT false,
+  academy_access BOOLEAN DEFAULT true,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -32,6 +38,7 @@ CREATE TABLE events (
   type TEXT DEFAULT 'Workshop',
   location TEXT,
   attendees INT DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'Published' CHECK (status IN ('Draft', 'Published', 'Archived')),
   luma_link TEXT, -- Link to Luma event registration
   created_by TEXT REFERENCES members(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -45,6 +52,7 @@ CREATE TABLE projects (
   name TEXT NOT NULL,
   description TEXT,
   category TEXT,
+  status TEXT NOT NULL DEFAULT 'Published' CHECK (status IN ('Draft', 'Published', 'Archived')),
   builders TEXT[] DEFAULT '{}', -- Mảng tên người làm
   link TEXT, -- Demo link
   repo_link TEXT, -- GitHub repo
@@ -113,6 +121,7 @@ CREATE TABLE repos (
   name TEXT NOT NULL,
   description TEXT,
   language TEXT,
+  status TEXT NOT NULL DEFAULT 'Published' CHECK (status IN ('Draft', 'Published', 'Archived')),
   stars INT DEFAULT 0,
   forks INT DEFAULT 0,
   url TEXT, -- GitHub repo URL
@@ -127,6 +136,7 @@ CREATE TABLE resources (
   type TEXT CHECK (type IN ('Link', 'Document', 'Video')),
   url TEXT NOT NULL,
   size TEXT,
+  status TEXT NOT NULL DEFAULT 'Published' CHECK (status IN ('Draft', 'Published', 'Archived')),
   category TEXT CHECK (category IN ('Learning', 'Media', 'Tools', 'Research')),
   created_by TEXT REFERENCES members(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -151,6 +161,23 @@ CREATE TABLE academy_progress (
 
 CREATE INDEX idx_academy_progress_user ON academy_progress(user_id);
 CREATE INDEX idx_academy_progress_track ON academy_progress(track);
+
+-- 9. Bảng Academy Activity (detailed learning history)
+CREATE TABLE academy_activity (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id TEXT REFERENCES members(id) ON DELETE CASCADE,
+  track TEXT NOT NULL CHECK (track IN ('genin', 'chunin', 'jonin')),
+  lesson_id TEXT NOT NULL,
+  action TEXT NOT NULL CHECK (action IN ('started', 'checklist_updated', 'lesson_completed', 'quiz_passed', 'progress_updated')),
+  lesson_completed BOOLEAN DEFAULT false,
+  quiz_passed BOOLEAN DEFAULT false,
+  checklist BOOLEAN[] DEFAULT '{}',
+  xp_snapshot INT DEFAULT 0,
+  recorded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_academy_activity_user ON academy_activity(user_id);
+CREATE INDEX idx_academy_activity_recorded_at ON academy_activity(recorded_at DESC);
 
 -- Function để tự động update updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()

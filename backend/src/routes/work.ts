@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { db } from "../index";
-import { authenticateWallet } from "../middleware/auth";
+import { authenticateUser, requireOfficialMember } from "../middleware/auth";
 
 const router = Router();
 
@@ -79,7 +79,8 @@ router.get("/bounties/:id", async (req: Request, res: Response) => {
 // POST /api/work/bounties - Create new bounty (requires authentication)
 router.post(
   "/bounties",
-  authenticateWallet as any,
+  authenticateUser as any,
+  requireOfficialMember,
   async (req: Request, res: Response) => {
     try {
       const { title, description, reward, difficulty, tags, submitLink } =
@@ -135,7 +136,8 @@ router.post(
 // PUT /api/work/bounties/:id - Update bounty
 router.put(
   "/bounties/:id",
-  authenticateWallet as any,
+  authenticateUser as any,
+  requireOfficialMember,
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -209,7 +211,8 @@ router.put(
 // DELETE /api/work/bounties/:id - Delete bounty (Admin only)
 router.delete(
   "/bounties/:id",
-  authenticateWallet as any,
+  authenticateUser as any,
+  requireOfficialMember,
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -255,6 +258,7 @@ router.get("/repos", async (req: Request, res: Response) => {
     const { data: repos, error } = await db
       .from("repos")
       .select("*")
+      .eq("status", "Published")
       .order("stars", { ascending: false });
 
     if (error) {
@@ -288,6 +292,7 @@ router.get("/repos/:id", async (req: Request, res: Response) => {
       .from("repos")
       .select("*")
       .eq("id", id)
+      .eq("status", "Published")
       .single();
 
     if (error || !repo) {
@@ -313,7 +318,8 @@ router.get("/repos/:id", async (req: Request, res: Response) => {
 // POST /api/work/repos - Create new repo (requires authentication)
 router.post(
   "/repos",
-  authenticateWallet as any,
+  authenticateUser as any,
+  requireOfficialMember,
   async (req: Request, res: Response) => {
     try {
       const { name, description, language, url, stars, forks } = req.body;
@@ -329,6 +335,7 @@ router.post(
         name,
         description,
         language,
+        status: "Published",
         url,
         stars: stars || 0,
         forks: forks || 0,
@@ -367,7 +374,8 @@ router.post(
 // PUT /api/work/repos/:id - Update repo
 router.put(
   "/repos/:id",
-  authenticateWallet as any,
+  authenticateUser as any,
+  requireOfficialMember,
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -441,7 +449,8 @@ router.put(
 // DELETE /api/work/repos/:id - Delete repo (Admin only)
 router.delete(
   "/repos/:id",
-  authenticateWallet as any,
+  authenticateUser as any,
+  requireOfficialMember,
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;

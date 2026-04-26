@@ -10,7 +10,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dsuc-lab-jwt-secret-change-in-prod
 // Custom user object type
 interface UserInfo {
   id: string;
-  wallet_address: string;
+  wallet_address?: string | null;
   name: string;
   role: string;
   avatar?: string;
@@ -20,6 +20,8 @@ interface UserInfo {
   email?: string;
   google_id?: string;
   auth_provider?: 'wallet' | 'google' | 'both';
+  member_type?: 'member' | 'community';
+  academy_access?: boolean;
 }
 
 // Extend Express Request to include user info
@@ -30,6 +32,10 @@ export interface AuthRequest extends Request {
 // Declare module to override Express User type
 declare global {
   namespace Express {
+    interface Request {
+      user?: UserInfo;
+    }
+
     interface User extends UserInfo { }
   }
 }
@@ -41,6 +47,40 @@ export interface JWTPayload {
   wallet_address?: string;
   iat?: number;
   exp?: number;
+}
+
+export function getMemberType(user?: UserInfo | null): 'member' | 'community' {
+  return user?.member_type === 'community' ? 'community' : 'member';
+}
+
+export function hasAdminRole(user?: UserInfo | null): boolean {
+  if (!user) {
+    return false;
+  }
+
+  return ['President', 'Vice-President', 'Tech-Lead', 'Media-Lead'].includes(
+    user.role
+  );
+}
+
+export function hasExecutiveAdminRole(user?: UserInfo | null): boolean {
+  if (!user) {
+    return false;
+  }
+
+  return ['President', 'Vice-President'].includes(user.role);
+}
+
+export function isOfficialMember(user?: UserInfo | null): boolean {
+  return !!user && getMemberType(user) === 'member';
+}
+
+export function hasAcademyAccess(user?: UserInfo | null): boolean {
+  if (!user) {
+    return false;
+  }
+
+  return user.academy_access !== false;
 }
 
 // Middleware to authenticate wallet address
@@ -116,11 +156,76 @@ export function requireAdmin(req: AuthRequest, res: Response, next: NextFunction
     });
   }
 
-  const adminRoles = ['President', 'Vice-President', 'Tech-Lead'];
-  if (!adminRoles.includes(req.user.role)) {
+  if (!isOfficialMember(req.user) || !hasAdminRole(req.user)) {
     return res.status(403).json({
       error: 'Forbidden',
       message: 'Admin access required',
+    });
+  }
+
+  next();
+}
+
+export function requireExecutiveAdmin(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  if (!req.user) {
+    return res.status(401).json({
+      error: 'Unauthorized',
+      message: 'Authentication required',
+    });
+  }
+
+  if (!isOfficialMember(req.user) || !hasExecutiveAdminRole(req.user)) {
+    return res.status(403).json({
+      error: 'Forbidden',
+      message: 'President or Vice-President access required',
+    });
+  }
+
+  next();
+}
+
+export function requireOfficialMember(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  if (!req.user) {
+    return res.status(401).json({
+      error: 'Unauthorized',
+      message: 'Authentication required',
+    });
+  }
+
+  if (!isOfficialMember(req.user)) {
+    return res.status(403).json({
+      error: 'Forbidden',
+      message: 'Official member access required',
+    });
+  }
+
+  next();
+}
+
+export function requireAcademyAccess(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  if (!req.user) {
+    return res.status(401).json({
+      error: 'Unauthorized',
+      message: 'Authentication required',
+    });
+  }
+
+  if (!hasAcademyAccess(req.user)) {
+    return res.status(403).json({
+      error: 'Forbidden',
+      message: 'Academy access is disabled for this account',
     });
   }
 

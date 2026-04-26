@@ -10,11 +10,17 @@ import { clsx } from 'clsx';
 export function Work() {
   const [activeTab, setActiveTab] = useState<'bounties' | 'repos'>('bounties');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { isWalletConnected } = useStore();
+  const { currentUser } = useStore();
+  const canManage = currentUser?.memberType === 'member';
 
   const handleAddClick = () => {
-    if (!isWalletConnected) {
-      alert('Please connect your wallet first!');
+    if (!currentUser) {
+      alert('Please sign in first!');
+      return;
+    }
+
+    if (!canManage) {
+      alert('Community accounts cannot create work items.');
       return;
     }
     setIsModalOpen(true);
@@ -26,15 +32,15 @@ export function Work() {
          <h2 className="text-4xl font-display font-bold text-white uppercase">Operations</h2>
          <button 
            onClick={handleAddClick}
-           disabled={!isWalletConnected}
+           disabled={!canManage}
            className={`font-display font-bold text-sm px-4 py-2 cyber-button flex items-center gap-2 ${
-             isWalletConnected 
+             canManage
                ? 'bg-cyber-yellow text-black hover:bg-white' 
                : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
            }`}
          >
            <Plus size={16} /> ADD {activeTab === 'bounties' ? 'BOUNTY' : 'REPO'}
-           {!isWalletConnected && <span className="text-[10px] ml-2">(Connect Wallet)</span>}
+           {!canManage && <span className="text-[10px] ml-2">(Members Only)</span>}
          </button>
       </div>
 
@@ -49,7 +55,7 @@ export function Work() {
 
       {activeTab === 'bounties' ? <BountyBoard /> : <RepoList />}
       
-      {isModalOpen && <AddItemModal type={activeTab} onClose={() => setIsModalOpen(false)} />}
+      {isModalOpen && canManage && <AddItemModal type={activeTab} onClose={() => setIsModalOpen(false)} />}
     </div>
   );
 }
@@ -70,7 +76,7 @@ function TabButton({ children, active, onClick }: { children?: React.ReactNode, 
 
 function BountyBoard() {
   const { bounties } = useStore();
-  const columns = ['Open', 'In Progress', 'Closed'];
+  const columns = ['Open', 'In Progress', 'Completed', 'Closed'];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -100,19 +106,11 @@ function BountyBoard() {
 }
 
 function BountyCard({ bounty }: { bounty: Bounty; key?: React.Key }) {
-  const handleSubmit = () => {
-    if (bounty.submitLink) {
-      window.open(bounty.submitLink, '_blank', 'noopener,noreferrer');
-    } else {
-      alert('Submit link not available for this bounty');
-    }
-  };
+  const cardClassName =
+    "cyber-card p-5 group border border-cyber-blue/20 hover:border-cyber-blue transition-all bg-surface/50 relative block";
 
-  return (
-    <motion.div
-      whileHover={{ scale: 1.02 }}
-      className="cyber-card p-5 group border border-cyber-blue/20 hover:border-cyber-blue transition-all bg-surface/50 relative"
-    >
+  const content = (
+    <>
       <div className="flex justify-between items-start mb-3">
          <span className={clsx("text-[10px] font-bold px-2 py-0.5 font-mono uppercase border",
             bounty.difficulty === 'Easy' ? 'text-green-400 border-green-400/20' :
@@ -129,37 +127,43 @@ function BountyCard({ bounty }: { bounty: Bounty; key?: React.Key }) {
         ))}
       </div>
       {bounty.submitLink && (
-        <button
-          onClick={handleSubmit}
-          className="relative z-50 pointer-events-auto w-full py-2 bg-cyber-blue/10 hover:bg-cyber-blue hover:text-white text-cyber-blue font-bold font-display text-xs transition-all flex items-center justify-center gap-2 border border-cyber-blue/20 hover:border-cyber-blue group/btn"
-        >
+        <div className="relative z-10 w-full py-2 bg-cyber-blue/10 group-hover:bg-cyber-blue group-hover:text-white text-cyber-blue font-bold font-display text-xs transition-all flex items-center justify-center gap-2 border border-cyber-blue/20 group-hover:border-cyber-blue group/btn">
           SUBMIT BOUNTY
           <ExternalLink size={12} className="group-hover/btn:translate-x-0.5 transition-transform" />
-        </button>
+        </div>
       )}
+    </>
+  );
+
+  if (bounty.submitLink) {
+    return (
+      <motion.a
+        whileHover={{ scale: 1.02 }}
+        href={bounty.submitLink}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cardClassName}
+      >
+        {content}
+      </motion.a>
+    );
+  }
+
+  return (
+    <motion.div whileHover={{ scale: 1.02 }} className={cardClassName}>
+      {content}
     </motion.div>
   );
 }
 
 function RepoList() {
   const { repos } = useStore();
-  
-  const handleRepoClick = (repoLink?: string) => {
-    if (repoLink) {
-      window.open(repoLink, '_blank', 'noopener,noreferrer');
-    } else {
-      alert('Repository link not available');
-    }
-  };
 
   return (
     <div className="grid grid-cols-1 gap-4">
-      {repos.map((repo) => (
-        <motion.div
-          key={repo.id}
-          whileHover={{ x: 5 }}
-          className="cyber-card p-6 flex items-center justify-between group border-l-2 border-transparent hover:border-l-cyber-blue transition-all bg-surface/50 relative"
-        >
+      {repos.map((repo) => {
+        const content = (
+          <>
           <div className="flex items-center gap-6">
             <div className="w-10 h-10 bg-cyber-blue/5 flex items-center justify-center text-cyber-blue group-hover:text-white group-hover:bg-cyber-blue transition-colors border border-cyber-blue/20">
               <Code size={20} />
@@ -179,16 +183,41 @@ function RepoList() {
                 <div className="flex items-center gap-1"><Star size={12} className="text-cyber-yellow" /> {repo.stars}</div>
                 <div className="flex items-center gap-1"><GitBranch size={12} /> {repo.forks}</div>
              </div>
-             <button
-               onClick={() => handleRepoClick(repo.repoLink)}
-               disabled={!repo.repoLink}
-               className="relative z-50 pointer-events-auto p-2 hover:bg-white/10 text-white/40 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-             >
+             <div className="relative z-10 p-2 text-white/40 group-hover:text-white transition-colors">
                <ExternalLink size={18} />
-             </button>
+             </div>
           </div>
-        </motion.div>
-      ))}
+          </>
+        );
+
+        const className = clsx(
+          "cyber-card p-6 flex items-center justify-between group border-l-2 border-transparent transition-all bg-surface/50 relative",
+          repo.repoLink
+            ? "hover:border-l-cyber-blue cursor-pointer"
+            : "opacity-70 cursor-default"
+        );
+
+        if (repo.repoLink) {
+          return (
+            <motion.a
+              key={repo.id}
+              whileHover={{ x: 5 }}
+              href={repo.repoLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={className}
+            >
+              {content}
+            </motion.a>
+          );
+        }
+
+        return (
+          <motion.div key={repo.id} whileHover={{ x: 5 }} className={className}>
+            {content}
+          </motion.div>
+        );
+      })}
     </div>
   );
 }

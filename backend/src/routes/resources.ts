@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../index';
-import { authenticateWallet } from '../middleware/auth';
+import { authenticateUser, requireOfficialMember } from '../middleware/auth';
 
 const router = Router();
 
@@ -12,6 +12,7 @@ router.get('/', async (req: Request, res: Response) => {
     let query = db
       .from('resources')
       .select('*')
+      .eq('status', 'Published')
       .order('created_at', { ascending: false });
 
     // Filter by category if provided
@@ -54,7 +55,8 @@ router.get('/categories', async (req: Request, res: Response) => {
     // Get all resources grouped by category
     const { data: resources, error } = await db
       .from('resources')
-      .select('category');
+      .select('category')
+      .eq('status', 'Published');
 
     if (error) {
       console.error('Supabase error:', error);
@@ -98,6 +100,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       .from('resources')
       .select('*')
       .eq('id', id)
+      .eq('status', 'Published')
       .single();
 
     if (error || !resource) {
@@ -121,7 +124,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST /api/resources - Create new resource (requires authentication)
-router.post('/', authenticateWallet as any, async (req: Request, res: Response) => {
+router.post('/', authenticateUser as any, requireOfficialMember, async (req: Request, res: Response) => {
   try {
     const { name, type, url, size, category } = req.body;
 
@@ -137,6 +140,7 @@ router.post('/', authenticateWallet as any, async (req: Request, res: Response) 
       type: type || 'Link',
       url,
       size,
+      status: 'Published',
       category: category || 'Learning',
       created_by: req.user!.id,
     };
@@ -170,7 +174,7 @@ router.post('/', authenticateWallet as any, async (req: Request, res: Response) 
 });
 
 // PUT /api/resources/:id - Update resource
-router.put('/:id', authenticateWallet as any, async (req: Request, res: Response) => {
+router.put('/:id', authenticateUser as any, requireOfficialMember, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name, type, url, size, category } = req.body;
@@ -236,7 +240,7 @@ router.put('/:id', authenticateWallet as any, async (req: Request, res: Response
 });
 
 // DELETE /api/resources/:id - Delete resource (Admin only)
-router.delete('/:id', authenticateWallet as any, async (req: Request, res: Response) => {
+router.delete('/:id', authenticateUser as any, requireOfficialMember, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 

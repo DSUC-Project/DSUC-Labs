@@ -7,15 +7,20 @@ import { useStore } from '../store/useStore';
 import { Event } from '../types';
 
 export function Events() {
-  const { events, addEvent, isWalletConnected } = useStore();
+  const { events, addEvent, currentUser } = useStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const canManage = currentUser?.memberType === 'member';
 
   // Sort by date descending - newest first
   const sortedEvents = [...events].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const handleAddClick = () => {
-    if (!isWalletConnected) {
-      alert('Please connect your wallet first!');
+    if (!currentUser) {
+      alert('Please sign in first!');
+      return;
+    }
+    if (!canManage) {
+      alert('Community accounts cannot create events.');
       return;
     }
     setIsModalOpen(true);
@@ -30,15 +35,15 @@ export function Events() {
         </div>
         <button
           onClick={handleAddClick}
-          disabled={!isWalletConnected}
-          className={`font-display font-bold text-sm px-6 py-3 cyber-button transition-all flex items-center gap-2 ${isWalletConnected
+          disabled={!canManage}
+          className={`font-display font-bold text-sm px-6 py-3 cyber-button transition-all flex items-center gap-2 ${canManage
               ? 'bg-cyber-yellow text-black hover:bg-white'
               : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
             }`}
         >
           <Plus size={16} />
           INITIATE EVENT
-          {!isWalletConnected && <span className="text-[10px] ml-2">(Connect Wallet)</span>}
+          {!canManage && <span className="text-[10px] ml-2">(Members Only)</span>}
         </button>
       </div>
 
@@ -53,7 +58,7 @@ export function Events() {
         </div>
       </div>
 
-      <AddEventModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onAdd={addEvent} />
+      <AddEventModal isOpen={isModalOpen && canManage} onClose={() => setIsModalOpen(false)} onAdd={addEvent} />
     </div>
   );
 }

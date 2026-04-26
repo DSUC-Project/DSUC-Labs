@@ -11,6 +11,7 @@ export function MemberDetail() {
   const { members } = useStore();
 
   const member = members.find(m => m.id === id);
+  const isCommunity = member?.memberType === 'community';
 
   if (!member) {
     return <div className="text-white text-center pt-20">Member not found</div>;
@@ -75,10 +76,10 @@ export function MemberDetail() {
               className="flex items-center gap-4"
             >
               <span className="text-xl font-mono text-cyber-blue uppercase tracking-widest border-b border-cyber-blue/30 pb-1">
-                {member.role}
+                {isCommunity ? 'Community' : member.role}
               </span>
               <span className="flex items-center gap-1 text-[10px] bg-white/10 px-2 py-0.5 rounded-full text-white/60 font-bold border border-white/5">
-                <Shield size={10} /> VERIFIED
+                <Shield size={10} /> {isCommunity ? 'COMMUNITY' : 'OFFICIAL'}
               </span>
             </motion.div>
           </div>

@@ -1,9 +1,10 @@
 import { Router, Request, Response } from "express";
+import { v4 as uuidv4 } from "uuid";
 import { db } from "../index";
 import {
-  authenticateWallet,
+  authenticateUser,
   AuthRequest,
-  requireAdmin,
+  requireExecutiveAdmin,
 } from "../middleware/auth";
 import {
   upload,
@@ -20,7 +21,39 @@ const ROLE_PRIORITY: { [key: string]: number } = {
   "Tech-Lead": 3,
   "Media-Lead": 3,
   "Member": 4,
+  "Community": 5,
 };
+
+function buildMemberId(memberType: string) {
+  return `${memberType}-${uuidv4().slice(0, 8)}`;
+}
+
+function normalizeMemberType(value: unknown): "member" | "community" {
+  return value === "community" ? "community" : "member";
+}
+
+function normalizeRole(memberType: "member" | "community", role?: string) {
+  if (memberType === "community") {
+    return "Community";
+  }
+
+  return role || "Member";
+}
+
+function sortMembers(list: any[]) {
+  return [...list].sort((a: any, b: any) => {
+    const typePriorityA = normalizeMemberType(a.member_type) === "member" ? 0 : 1;
+    const typePriorityB = normalizeMemberType(b.member_type) === "member" ? 0 : 1;
+
+    if (typePriorityA !== typePriorityB) {
+      return typePriorityA - typePriorityB;
+    }
+
+    const priorityA = ROLE_PRIORITY[a.role] || 99;
+    const priorityB = ROLE_PRIORITY[b.role] || 99;
+    return priorityA - priorityB;
+  });
+}
 
 // GET /api/members - Get all members
 router.get("/", async (req: Request, res: Response) => {
@@ -38,17 +71,21 @@ router.get("/", async (req: Request, res: Response) => {
       });
     }
 
-    // Sort by role priority
-    const sortedMembers = (members || []).sort((a: any, b: any) => {
-      const priorityA = ROLE_PRIORITY[a.role] || 5;
-      const priorityB = ROLE_PRIORITY[b.role] || 5;
-      return priorityA - priorityB;
-    });
+    const sortedMembers = sortMembers(members || []);
 
     res.json({
       success: true,
       data: sortedMembers,
       count: sortedMembers?.length || 0,
+      meta: {
+        members: sortedMembers.filter(
+          (member: any) => normalizeMemberType(member.member_type) === "member"
+        ).length,
+        community: sortedMembers.filter(
+          (member: any) =>
+            normalizeMemberType(member.member_type) === "community"
+        ).length,
+      },
     });
   } catch (error: any) {
     console.error("Error fetching members:", error);
@@ -58,6 +95,186 @@ router.get("/", async (req: Request, res: Response) => {
     });
   }
 });
+
+// GET /api/members/admin/list - Get all users for admin management
+router.get(
+  "/admin/list",
+  authenticateUser as any,
+  requireExecutiveAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { data: members, error } = await db
+        .from("members")
+        .select("*");
+
+      if (error) {
+        return res.status(500).json({
+          error: "Database Error",
+          message: error.message,
+        });
+      }
+
+      const sortedMembers = sortMembers(members || []);
+
+      res.json({
+        success: true,
+        data: sortedMembers,
+        count: sortedMembers.length,
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        error: "Internal Server Error",
+        message: error.message,
+      });
+    }
+  }
+);
+
+// POST /api/members/admin/users - Create member/community user from admin
+router.post(
+  "/admin/users",
+  authenticateUser as any,
+  requireExecutiveAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const memberType = normalizeMemberType(req.body?.member_type);
+      const role = normalizeRole(memberType, req.body?.role);
+      const name = String(req.body?.name || "").trim();
+      const email = req.body?.email ? String(req.body.email).trim() : null;
+      const walletAddress = req.body?.wallet_address
+        ? String(req.body.wallet_address).trim()
+        : null;
+
+      if (!name) {
+        return res.status(400).json({
+          error: "Bad Request",
+          message: "name is required",
+        });
+      }
+
+      const userData = {
+        id: String(req.body?.id || buildMemberId(memberType)).trim(),
+        name,
+        role,
+        member_type: memberType,
+        email,
+        wallet_address: walletAddress,
+        avatar:
+          req.body?.avatar ||
+          `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(
+            name
+          )}`,
+        skills: Array.isArray(req.body?.skills) ? req.body.skills : [],
+        socials: req.body?.socials || {},
+        bank_info: req.body?.bank_info || {},
+        academy_access: req.body?.academy_access !== false,
+        is_active: req.body?.is_active !== false,
+        email_verified: req.body?.email_verified === true,
+        auth_provider: walletAddress && email ? "both" : walletAddress ? "wallet" : "google",
+      };
+
+      const { data: createdUser, error } = await db
+        .from("members")
+        .insert([userData])
+        .select()
+        .single();
+
+      if (error) {
+        return res.status(500).json({
+          error: "Database Error",
+          message: error.message,
+        });
+      }
+
+      res.status(201).json({
+        success: true,
+        data: createdUser,
+        message: "User created successfully",
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        error: "Internal Server Error",
+        message: error.message,
+      });
+    }
+  }
+);
+
+// PATCH /api/members/admin/users/:id - Update user access, type, role
+router.patch(
+  "/admin/users/:id",
+  authenticateUser as any,
+  requireExecutiveAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const { data: existingMember, error: fetchError } = await db
+        .from("members")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (fetchError || !existingMember) {
+        return res.status(404).json({
+          error: "Not Found",
+          message: "User not found",
+        });
+      }
+
+      const memberType = normalizeMemberType(
+        req.body?.member_type ?? existingMember.member_type
+      );
+
+      const updateData: any = {
+        updated_at: new Date().toISOString(),
+        member_type: memberType,
+        role: normalizeRole(memberType, req.body?.role ?? existingMember.role),
+      };
+
+      if (req.body?.name !== undefined) updateData.name = req.body.name;
+      if (req.body?.email !== undefined) updateData.email = req.body.email || null;
+      if (req.body?.wallet_address !== undefined) {
+        updateData.wallet_address = req.body.wallet_address || null;
+      }
+      if (req.body?.academy_access !== undefined) {
+        updateData.academy_access = req.body.academy_access === true;
+      }
+      if (req.body?.is_active !== undefined) {
+        updateData.is_active = req.body.is_active === true;
+      }
+
+      const nextWallet = updateData.wallet_address ?? existingMember.wallet_address;
+      const nextEmail = updateData.email ?? existingMember.email;
+      updateData.auth_provider = nextWallet && nextEmail ? "both" : nextWallet ? "wallet" : "google";
+
+      const { data: updatedMember, error } = await db
+        .from("members")
+        .update(updateData)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) {
+        return res.status(500).json({
+          error: "Database Error",
+          message: error.message,
+        });
+      }
+
+      res.json({
+        success: true,
+        data: updatedMember,
+        message: "User updated successfully",
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        error: "Internal Server Error",
+        message: error.message,
+      });
+    }
+  }
+);
 
 // GET /api/members/:id - Get member by ID
 router.get("/:id", async (req: Request, res: Response) => {
@@ -114,7 +331,7 @@ router.post("/auth", async (req: Request, res: Response) => {
       return res.status(404).json({
         error: "Not Found",
         message:
-          "Wallet address not registered. Only 15 pre-registered members can access.",
+          "Wallet address not registered. Please sign in with Google first or ask an admin to add your wallet.",
       });
     }
 
@@ -135,11 +352,11 @@ router.post("/auth", async (req: Request, res: Response) => {
 // PUT /api/members/:id - Update member profile (requires authentication)
 router.put(
   "/:id",
-  authenticateWallet,
+  authenticateUser as any,
   async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;
-      const { name, role, avatar, skills, socials, bankInfo, bank_info } =
+      const { name, avatar, skills, socials, bankInfo, bank_info } =
         req.body;
 
       console.log(
@@ -167,7 +384,6 @@ router.put(
       };
 
       if (name !== undefined) updateData.name = name;
-      if (role !== undefined) updateData.role = role;
       if (skills !== undefined) updateData.skills = skills;
       if (socials !== undefined) updateData.socials = socials;
       // Support both camelCase and snake_case
@@ -224,22 +440,6 @@ router.put(
         message: error.message,
       });
     }
-  }
-);
-
-// PATCH /api/members/:id/role - Update member role (Admin only)
-// Role changes are ONLY allowed through direct database access
-// This endpoint is disabled to enforce security
-router.patch(
-  "/:id/role",
-  authenticateWallet,
-  requireAdmin,
-  async (req: AuthRequest, res: Response) => {
-    return res.status(403).json({
-      error: "Forbidden",
-      message:
-        "Role changes are not allowed through API. Please access database directly.",
-    });
   }
 );
 

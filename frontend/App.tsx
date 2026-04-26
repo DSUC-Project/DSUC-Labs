@@ -17,6 +17,7 @@ import { ProjectDetail } from './pages/ProjectDetail';
 import { AcademyHome } from './pages/AcademyHome';
 import { AcademyTrack } from './pages/AcademyTrack';
 import { AcademyLesson } from './pages/AcademyLesson';
+import { Admin } from './pages/Admin';
 import { AcademyLayout } from './components/academy/layout/AcademyLayout';
 import { useStore } from './store/useStore';
 
@@ -27,6 +28,13 @@ function AnimatedRoutes() {
   const location = useLocation();
 
   const { currentUser } = useStore();
+  const isOfficialMember = currentUser?.memberType === 'member';
+  const canAccessAcademy = !!currentUser && currentUser.academyAccess !== false;
+  const isAdmin =
+    isOfficialMember &&
+    ['President', 'Vice-President'].includes(
+      currentUser?.role || ''
+    );
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -45,14 +53,15 @@ function AnimatedRoutes() {
           <Route path="/projects" element={<Projects />} />
           <Route path="/project/:id" element={<ProjectDetail />} />
           <Route path="/events" element={<Events />} />
-          <Route path="/finance" element={currentUser ? <Finance /> : <Navigate to="/home" replace />} />
-          <Route path="/work" element={currentUser ? <Work /> : <Navigate to="/home" replace />} />
+          <Route path="/finance" element={isOfficialMember ? <Finance /> : <Navigate to="/home" replace />} />
+          <Route path="/work" element={<Work />} />
           <Route path="/resources" element={<Resources />} />
+          <Route path="/admin" element={isAdmin ? <Admin /> : <Navigate to="/home" replace />} />
           <Route
             path="/academy"
             element={
               <AcademyLayout>
-                <AcademyHome />
+                {canAccessAcademy ? <AcademyHome /> : <AcademyAccessGate />}
               </AcademyLayout>
             }
           />
@@ -60,7 +69,7 @@ function AnimatedRoutes() {
             path="/academy/track/:track"
             element={
               <AcademyLayout>
-                <AcademyTrack />
+                {canAccessAcademy ? <AcademyTrack /> : <AcademyAccessGate />}
               </AcademyLayout>
             }
           />
@@ -68,13 +77,31 @@ function AnimatedRoutes() {
             path="/academy/learn/:track/:lesson"
             element={
               <AcademyLayout>
-                <AcademyLesson />
+                {canAccessAcademy ? <AcademyLesson /> : <AcademyAccessGate />}
               </AcademyLayout>
             }
           />
         </Routes>
       </motion.div>
     </AnimatePresence>
+  );
+}
+
+function AcademyAccessGate() {
+  return (
+    <div className="max-w-3xl mx-auto py-16 text-center space-y-4">
+      <div className="text-xs font-mono uppercase tracking-[0.3em] text-cyber-blue">
+        DSUC Account Required
+      </div>
+      <h1 className="text-4xl font-display font-bold text-white">
+        Sign in to access DSUC Academy
+      </h1>
+      <p className="text-white/60 max-w-xl mx-auto">
+        Learning progress is now tied to your DSUC account so the academy can
+        track who is learning, what they completed, and how they progress over
+        time.
+      </p>
+    </div>
   );
 }
 
@@ -88,23 +115,44 @@ export default function App() {
   const fetchBounties = useStore((state) => state.fetchBounties);
   const fetchRepos = useStore((state) => state.fetchRepos);
   const checkSession = useStore((state) => state.checkSession);
+  const membersCount = useStore((state) => state.members.length);
+  const financeHistoryCount = useStore((state) => state.financeHistory.length);
+  const eventsCount = useStore((state) => state.events.length);
+  const projectsCount = useStore((state) => state.projects.length);
+  const resourcesCount = useStore((state) => state.resources.length);
+  const bountiesCount = useStore((state) => state.bounties.length);
+  const reposCount = useStore((state) => state.repos.length);
 
-  // Fetch data when app loads
   useEffect(() => {
     console.log('[App] Initializing...');
-    // Warmup backend FIRST - this starts the wake-up process
     warmupBackend();
-    // Check for existing session
     checkSession();
-    // Fetch data
-    fetchMembers();
-    fetchFinanceHistory();
-    fetchEvents();
-    fetchProjects();
-    fetchResources();
-    fetchBounties();
-    fetchRepos();
-  }, [warmupBackend, fetchMembers, fetchFinanceHistory, fetchEvents, fetchProjects, fetchResources, fetchBounties, fetchRepos, checkSession]);
+  }, [warmupBackend, checkSession]);
+
+  useEffect(() => {
+    if (membersCount === 0) fetchMembers();
+    if (financeHistoryCount === 0) fetchFinanceHistory();
+    if (eventsCount === 0) fetchEvents();
+    if (projectsCount === 0) fetchProjects();
+    if (resourcesCount === 0) fetchResources();
+    if (bountiesCount === 0) fetchBounties();
+    if (reposCount === 0) fetchRepos();
+  }, [
+    fetchMembers,
+    fetchFinanceHistory,
+    fetchEvents,
+    fetchProjects,
+    fetchResources,
+    fetchBounties,
+    fetchRepos,
+    membersCount,
+    financeHistoryCount,
+    eventsCount,
+    projectsCount,
+    resourcesCount,
+    bountiesCount,
+    reposCount,
+  ]);
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>

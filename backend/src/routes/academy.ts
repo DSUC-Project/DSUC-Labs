@@ -1,6 +1,11 @@
 import { Router, Response } from 'express';
 import { db } from '../index';
-import { authenticateUser, AuthRequest } from '../middleware/auth';
+import {
+  authenticateUser,
+  AuthRequest,
+  requireAcademyAccess,
+  requireExecutiveAdmin,
+} from '../middleware/auth';
 
 const router = Router();
 
@@ -31,8 +36,160 @@ function isNotFoundLookupError(error: any): boolean {
   return code === '404' || code === 'PGRST116' || message.includes('no rows') || details.includes('0 rows');
 }
 
+function checklistEquals(a: unknown, b: unknown) {
+  const left = Array.isArray(a) ? a.map((item) => normalizeBoolean(item)) : [];
+  const right = Array.isArray(b) ? b.map((item) => normalizeBoolean(item)) : [];
+
+  return (
+    left.length === right.length &&
+    left.every((value, index) => value === right[index])
+  );
+}
+
+function buildAcademyAction(existing: any, payload: any) {
+  if (!existing) {
+    return 'started';
+  }
+
+  if (!existing.lesson_completed && payload.lesson_completed) {
+    return 'lesson_completed';
+  }
+
+  if (!existing.quiz_passed && payload.quiz_passed) {
+    return 'quiz_passed';
+  }
+
+  if (!checklistEquals(existing.checklist, payload.checklist)) {
+    return 'checklist_updated';
+  }
+
+  if (Number(existing.xp_awarded || 0) !== Number(payload.xp_awarded || 0)) {
+    return 'progress_updated';
+  }
+
+  return null;
+}
+
+// GET /api/academy/admin/overview - aggregated learner progress for admin
+router.get(
+  '/admin/overview',
+  authenticateUser as any,
+  requireExecutiveAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const [{ data: members, error: membersError }, { data: rows, error: rowsError }] =
+        await Promise.all([
+          db.from('members').select('*'),
+          db.from('academy_progress').select('*'),
+        ]);
+
+      if (membersError || rowsError) {
+        return res.status(500).json({
+          error: 'Database Error',
+          message: membersError?.message || rowsError?.message,
+        });
+      }
+
+      const rowsByUser = new Map<string, any[]>();
+      for (const row of rows || []) {
+        const userRows = rowsByUser.get(row.user_id) || [];
+        userRows.push(row);
+        rowsByUser.set(row.user_id, userRows);
+      }
+
+      const overview = (members || []).map((member: any) => {
+        const userRows = rowsByUser.get(member.id) || [];
+        const xp = userRows.reduce(
+          (sum: number, row: any) => sum + Number(row.xp_awarded || 0),
+          0
+        );
+        const completedLessons = userRows.filter(
+          (row: any) => row.lesson_completed
+        ).length;
+        const quizPassed = userRows.filter((row: any) => row.quiz_passed).length;
+        const lastActivity = userRows
+          .map((row: any) => row.updated_at)
+          .filter(Boolean)
+          .sort()
+          .pop() || null;
+
+        return {
+          user_id: member.id,
+          name: member.name,
+          role: member.role,
+          member_type: member.member_type || 'member',
+          academy_access: member.academy_access !== false,
+          xp,
+          completed_lessons: completedLessons,
+          quiz_passed: quizPassed,
+          last_activity: lastActivity,
+        };
+      });
+
+      res.json({
+        success: true,
+        data: overview,
+        count: overview.length,
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: error.message,
+      });
+    }
+  }
+);
+
+router.get(
+  '/admin/history',
+  authenticateUser as any,
+  requireExecutiveAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const [{ data: members, error: membersError }, { data: rows, error: rowsError }] =
+        await Promise.all([
+          db.from('members').select('*'),
+          db.from('academy_activity').select('*').order('recorded_at', { ascending: false }),
+        ]);
+
+      if (membersError || rowsError) {
+        return res.status(500).json({
+          error: 'Database Error',
+          message: membersError?.message || rowsError?.message,
+        });
+      }
+
+      const memberMap = new Map<string, any>(
+        (members || []).map((member: any) => [member.id, member])
+      );
+
+      const history = (rows || []).map((row: any) => {
+        const member = memberMap.get(row.user_id);
+
+        return {
+          ...row,
+          user_name: member?.name || row.user_id,
+          role: member?.role || 'Unknown',
+          member_type: member?.member_type || 'member',
+        };
+      });
+
+      res.json({
+        success: true,
+        data: history,
+        count: history.length,
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: error.message,
+      });
+    }
+  }
+);
+
 // GET /api/academy/progress - get all progress rows for current user
-router.get('/progress', authenticateUser as any, async (req: AuthRequest, res: Response) => {
+router.get('/progress', authenticateUser as any, requireAcademyAccess, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -77,7 +234,7 @@ router.get('/progress', authenticateUser as any, async (req: AuthRequest, res: R
 });
 
 // POST /api/academy/progress - upsert progress row for current user
-router.post('/progress', authenticateUser as any, async (req: AuthRequest, res: Response) => {
+router.post('/progress', authenticateUser as any, requireAcademyAccess, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -137,6 +294,16 @@ router.post('/progress', authenticateUser as any, async (req: AuthRequest, res: 
       });
     }
 
+    const activityAction = buildAcademyAction(existing, payload);
+
+    if (existing?.id && !activityAction) {
+      return res.json({
+        success: true,
+        data: existing,
+        message: 'Progress already up to date',
+      });
+    }
+
     if (existing?.id) {
       const { data: updated, error: updateError } = await db
         .from('academy_progress')
@@ -151,6 +318,20 @@ router.post('/progress', authenticateUser as any, async (req: AuthRequest, res: 
           error: 'Database Error',
           message: updateError.message,
         });
+      }
+
+      if (activityAction) {
+        await db.from('academy_activity').insert([{
+          user_id: userId,
+          track,
+          lesson_id,
+          action: activityAction,
+          lesson_completed: updated.lesson_completed,
+          quiz_passed: updated.quiz_passed,
+          checklist: updated.checklist || [],
+          xp_snapshot: updated.xp_awarded || 0,
+          recorded_at: new Date().toISOString(),
+        }]);
       }
 
       return res.json({
@@ -172,6 +353,20 @@ router.post('/progress', authenticateUser as any, async (req: AuthRequest, res: 
         error: 'Database Error',
         message: insertError.message,
       });
+    }
+
+    if (activityAction) {
+      await db.from('academy_activity').insert([{
+        user_id: userId,
+        track,
+        lesson_id,
+        action: activityAction,
+        lesson_completed: created.lesson_completed,
+        quiz_passed: created.quiz_passed,
+        checklist: created.checklist || [],
+        xp_snapshot: created.xp_awarded || 0,
+        recorded_at: new Date().toISOString(),
+      }]);
     }
 
     res.json({
