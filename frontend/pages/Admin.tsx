@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import {
+  AdminApiKey,
   AcademyActivity,
   AcademyOverview,
   Bounty,
@@ -91,19 +92,38 @@ function formatAmount(value: string | number | undefined) {
   return numeric.toLocaleString('vi-VN');
 }
 
+function parseScopes(text: string): string[] {
+  const values = String(text || '')
+    .split(/[,\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return values.length > 0 ? values : ['*'];
+}
+
 export function Admin() {
   const { currentUser, authToken, walletAddress, fetchMembers } = useStore();
   const [users, setUsers] = useState<Member[]>([]);
   const [academyOverview, setAcademyOverview] = useState<AcademyOverview[]>([]);
   const [academyHistory, setAcademyHistory] = useState<AcademyActivity[]>([]);
+  const [agentKeys, setAgentKeys] = useState<AdminApiKey[]>([]);
   const [contentData, setContentData] = useState<AdminContentData>(EMPTY_CONTENT_DATA);
   const [contentDrafts, setContentDrafts] = useState<Record<string, string>>({});
   const [drafts, setDrafts] = useState<Record<string, EditableUser>>({});
+  const [agentKeyDrafts, setAgentKeyDrafts] = useState<
+    Record<string, { name: string; scopesText: string; is_active: boolean }>
+  >({});
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [statusSavingKey, setStatusSavingKey] = useState<string | null>(null);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
   const [financeActionId, setFinanceActionId] = useState<string | null>(null);
+  const [agentKeySaving, setAgentKeySaving] = useState(false);
+  const [agentKeyActionId, setAgentKeyActionId] = useState<string | null>(null);
+  const [newAgentKeyName, setNewAgentKeyName] = useState('');
+  const [newAgentKeyScopes, setNewAgentKeyScopes] = useState('*');
+  const [lastCreatedAgentKey, setLastCreatedAgentKey] = useState('');
+  const [rotatedAgentKey, setRotatedAgentKey] = useState('');
   const [createForm, setCreateForm] = useState<EditableUser>({
     id: '',
     name: '',
@@ -182,11 +202,33 @@ export function Admin() {
     setContentDrafts(nextDrafts);
   };
 
+  const applyAgentKeys = (rows: AdminApiKey[]) => {
+    const normalized = [...rows].sort((a, b) => {
+      const left = String(a.created_at || '');
+      const right = String(b.created_at || '');
+      return left < right ? 1 : left > right ? -1 : 0;
+    });
+
+    setAgentKeys(normalized);
+    setAgentKeyDrafts(
+      Object.fromEntries(
+        normalized.map((row) => [
+          row.id,
+          {
+            name: row.name || '',
+            scopesText: (row.scopes || ['*']).join(', '),
+            is_active: row.is_active !== false,
+          },
+        ])
+      )
+    );
+  };
+
   const refresh = async () => {
     setLoading(true);
     try {
       const base = (import.meta as any).env.VITE_API_BASE_URL || '';
-      const [usersRes, academyRes, historyRes, contentRes] = await Promise.all([
+      const [usersRes, academyRes, historyRes, contentRes, agentKeysRes] = await Promise.all([
         fetch(`${base}/api/members/admin/list`, {
           headers,
           credentials: 'include',
@@ -203,17 +245,23 @@ export function Admin() {
           headers,
           credentials: 'include',
         }),
+        fetch(`${base}/api/admin/agent-keys`, {
+          headers,
+          credentials: 'include',
+        }),
       ]);
 
       const usersResult = await usersRes.json();
       const academyResult = await academyRes.json();
       const historyResult = await historyRes.json();
       const contentResult = await contentRes.json();
+      const agentKeysResult = await agentKeysRes.json();
 
       applyUsers(usersResult?.data || []);
       setAcademyOverview(academyResult?.data || []);
       setAcademyHistory(historyResult?.data || []);
       applyContentData(contentResult?.data || EMPTY_CONTENT_DATA);
+      applyAgentKeys(agentKeysResult?.data || []);
       await fetchMembers();
     } finally {
       setLoading(false);
@@ -414,6 +462,162 @@ export function Admin() {
       alert(error.message || 'Finance action failed');
     } finally {
       setFinanceActionId(null);
+    }
+  };
+
+  const updateAgentKeyDraft = (
+    id: string,
+    patch: Partial<{ name: string; scopesText: string; is_active: boolean }>
+  ) => {
+    setAgentKeyDrafts((prev) => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        ...patch,
+      },
+    }));
+  };
+
+  const createAgentKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAgentKeyName.trim()) {
+      alert('Key name is required');
+      return;
+    }
+
+    setAgentKeySaving(true);
+    setLastCreatedAgentKey('');
+    setRotatedAgentKey('');
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || '';
+      const res = await fetch(`${base}/api/admin/agent-keys`, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify({
+          name: newAgentKeyName.trim(),
+          scopes: parseScopes(newAgentKeyScopes),
+        }),
+      });
+      const result = await res.json().catch(() => ({}));
+
+      if (!res.ok || !result?.success) {
+        throw new Error(result?.message || 'Failed to create agent key');
+      }
+
+      setLastCreatedAgentKey(result?.key || '');
+      setNewAgentKeyName('');
+      setNewAgentKeyScopes('*');
+      await refresh();
+    } catch (error: any) {
+      alert(error.message || 'Failed to create agent key');
+    } finally {
+      setAgentKeySaving(false);
+    }
+  };
+
+  const saveAgentKey = async (id: string) => {
+    const draft = agentKeyDrafts[id];
+    if (!draft) {
+      return;
+    }
+
+    setAgentKeyActionId(`save:${id}`);
+    setRotatedAgentKey('');
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || '';
+      const res = await fetch(`${base}/api/admin/agent-keys/${id}`, {
+        method: 'PATCH',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify({
+          name: draft.name.trim(),
+          scopes: parseScopes(draft.scopesText),
+          is_active: draft.is_active,
+        }),
+      });
+      const result = await res.json().catch(() => ({}));
+
+      if (!res.ok || !result?.success) {
+        throw new Error(result?.message || 'Failed to update agent key');
+      }
+
+      await refresh();
+    } catch (error: any) {
+      alert(error.message || 'Failed to update agent key');
+    } finally {
+      setAgentKeyActionId(null);
+    }
+  };
+
+  const rotateAgentKey = async (id: string) => {
+    if (!window.confirm('Rotate this key now? Old key will stop working immediately.')) {
+      return;
+    }
+
+    setAgentKeyActionId(`rotate:${id}`);
+    setRotatedAgentKey('');
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || '';
+      const res = await fetch(`${base}/api/admin/agent-keys/${id}`, {
+        method: 'PATCH',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify({ rotate: true }),
+      });
+      const result = await res.json().catch(() => ({}));
+
+      if (!res.ok || !result?.success) {
+        throw new Error(result?.message || 'Failed to rotate agent key');
+      }
+
+      setRotatedAgentKey(result?.key || '');
+      await refresh();
+    } catch (error: any) {
+      alert(error.message || 'Failed to rotate agent key');
+    } finally {
+      setAgentKeyActionId(null);
+    }
+  };
+
+  const deleteAgentKey = async (id: string, name: string) => {
+    if (!window.confirm(`Delete agent key "${name}"?`)) {
+      return;
+    }
+
+    setAgentKeyActionId(`delete:${id}`);
+    setRotatedAgentKey('');
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || '';
+      const res = await fetch(`${base}/api/admin/agent-keys/${id}`, {
+        method: 'DELETE',
+        headers,
+        credentials: 'include',
+      });
+      const result = await res.json().catch(() => ({}));
+
+      if (!res.ok || result?.success === false) {
+        throw new Error(result?.message || 'Failed to delete agent key');
+      }
+
+      await refresh();
+    } catch (error: any) {
+      alert(error.message || 'Failed to delete agent key');
+    } finally {
+      setAgentKeyActionId(null);
+    }
+  };
+
+  const copyText = async (value: string) => {
+    if (!value) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(value);
+      alert('Copied to clipboard');
+    } catch {
+      alert('Copy failed. Please copy manually.');
     }
   };
 
@@ -763,6 +967,141 @@ export function Admin() {
               </div>
             ))
           )}
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-xl font-display font-bold text-white uppercase">Agent API Keys</h2>
+          <p className="text-white/40 font-mono text-xs mt-1">
+            Create keys for automation agents. Use header x-dsuc-agent-key or Authorization: Agent {'<key>'}.
+          </p>
+        </div>
+
+        <div className="cyber-card p-5 bg-surface/50 border border-white/10 space-y-4">
+          <form onSubmit={createAgentKey} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr),minmax(0,1fr),220px] gap-3">
+            <input
+              value={newAgentKeyName}
+              onChange={(e) => setNewAgentKeyName(e.target.value)}
+              placeholder="Key name (e.g. academy-bot-prod)"
+              required
+              className="bg-black/30 border border-white/10 p-3 text-white outline-none"
+            />
+            <input
+              value={newAgentKeyScopes}
+              onChange={(e) => setNewAgentKeyScopes(e.target.value)}
+              placeholder="Scopes, comma separated (default: *)"
+              className="bg-black/30 border border-white/10 p-3 text-white outline-none"
+            />
+            <button
+              type="submit"
+              disabled={agentKeySaving}
+              className="bg-cyber-yellow text-black hover:bg-white font-display font-bold py-3 cyber-button uppercase tracking-widest disabled:opacity-60"
+            >
+              {agentKeySaving ? 'Creating...' : 'Create Key'}
+            </button>
+          </form>
+
+          {lastCreatedAgentKey && (
+            <div className="border border-cyber-yellow/40 bg-cyber-yellow/10 p-4 space-y-2">
+              <div className="text-xs font-mono uppercase tracking-[0.2em] text-cyber-yellow">
+                New key (shown once)
+              </div>
+              <div className="text-sm font-mono text-white break-all">{lastCreatedAgentKey}</div>
+              <button
+                onClick={() => void copyText(lastCreatedAgentKey)}
+                className="bg-black/30 border border-cyber-yellow/40 text-cyber-yellow px-3 py-2 text-xs font-display font-bold uppercase tracking-widest hover:bg-cyber-yellow hover:text-black"
+              >
+                Copy
+              </button>
+            </div>
+          )}
+
+          {rotatedAgentKey && (
+            <div className="border border-cyber-blue/40 bg-cyber-blue/10 p-4 space-y-2">
+              <div className="text-xs font-mono uppercase tracking-[0.2em] text-cyber-blue">
+                Rotated key (shown once)
+              </div>
+              <div className="text-sm font-mono text-white break-all">{rotatedAgentKey}</div>
+              <button
+                onClick={() => void copyText(rotatedAgentKey)}
+                className="bg-black/30 border border-cyber-blue/40 text-cyber-blue px-3 py-2 text-xs font-display font-bold uppercase tracking-widest hover:bg-cyber-blue hover:text-black"
+              >
+                Copy
+              </button>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {agentKeys.length === 0 ? (
+              <div className="text-white/40 font-mono text-sm">No agent keys yet.</div>
+            ) : (
+              agentKeys.map((keyRow) => {
+                const draft = agentKeyDrafts[keyRow.id];
+                const busySave = agentKeyActionId === `save:${keyRow.id}`;
+                const busyRotate = agentKeyActionId === `rotate:${keyRow.id}`;
+                const busyDelete = agentKeyActionId === `delete:${keyRow.id}`;
+                return (
+                  <div
+                    key={keyRow.id}
+                    className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr),minmax(0,1fr),120px,360px] gap-3 items-center border border-white/10 bg-black/20 p-3"
+                  >
+                    <input
+                      value={draft?.name || ''}
+                      onChange={(e) => updateAgentKeyDraft(keyRow.id, { name: e.target.value })}
+                      className="bg-black/30 border border-white/10 p-3 text-white outline-none"
+                    />
+                    <input
+                      value={draft?.scopesText || ''}
+                      onChange={(e) =>
+                        updateAgentKeyDraft(keyRow.id, { scopesText: e.target.value })
+                      }
+                      className="bg-black/30 border border-white/10 p-3 text-white outline-none font-mono text-sm"
+                    />
+                    <label className="flex items-center gap-2 text-xs font-mono text-white/60">
+                      <input
+                        type="checkbox"
+                        checked={draft?.is_active !== false}
+                        onChange={(e) =>
+                          updateAgentKeyDraft(keyRow.id, { is_active: e.target.checked })
+                        }
+                      />
+                      Active
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        onClick={() => void saveAgentKey(keyRow.id)}
+                        disabled={busySave || busyRotate || busyDelete}
+                        className="bg-cyber-blue text-white hover:bg-white hover:text-black font-display font-bold py-2 uppercase tracking-widest text-xs disabled:opacity-60"
+                      >
+                        {busySave ? 'Saving...' : 'Save'}
+                      </button>
+                      <button
+                        onClick={() => void rotateAgentKey(keyRow.id)}
+                        disabled={busySave || busyRotate || busyDelete}
+                        className="bg-cyber-yellow/20 border border-cyber-yellow/30 text-cyber-yellow hover:bg-cyber-yellow hover:text-black font-display font-bold py-2 uppercase tracking-widest text-xs disabled:opacity-60"
+                      >
+                        {busyRotate ? 'Rotating...' : 'Rotate'}
+                      </button>
+                      <button
+                        onClick={() => void deleteAgentKey(keyRow.id, keyRow.name)}
+                        disabled={busySave || busyRotate || busyDelete}
+                        className="bg-red-500/20 border border-red-500/30 text-red-300 hover:bg-red-500 hover:text-white font-display font-bold py-2 uppercase tracking-widest text-xs disabled:opacity-60"
+                      >
+                        {busyDelete ? 'Deleting...' : 'Delete'}
+                      </button>
+                    </div>
+                    <div className="lg:col-span-4 text-[11px] font-mono text-white/45">
+                      ID: {keyRow.id} • Last used:{' '}
+                      {keyRow.last_used_at
+                        ? new Date(keyRow.last_used_at).toLocaleString()
+                        : 'never'}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       </section>
 
