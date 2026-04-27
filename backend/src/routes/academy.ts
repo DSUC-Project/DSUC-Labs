@@ -49,6 +49,18 @@ function checklistEquals(a: unknown, b: unknown) {
 
 function buildAcademyAction(existing: any, payload: any) {
   if (!existing) {
+    if (payload.quiz_passed) {
+      return 'quiz_passed';
+    }
+
+    if (payload.lesson_completed) {
+      return 'lesson_completed';
+    }
+
+    if (Array.isArray(payload.checklist) && payload.checklist.some(Boolean)) {
+      return 'checklist_updated';
+    }
+
     return 'started';
   }
 
@@ -69,6 +81,22 @@ function buildAcademyAction(existing: any, payload: any) {
   }
 
   return null;
+}
+
+async function recordAcademyActivity(row: any, action: string) {
+  const { error } = await db.from('academy_activity').insert([{
+    user_id: row.user_id,
+    track: row.track,
+    lesson_id: row.lesson_id,
+    action,
+    lesson_completed: row.lesson_completed,
+    quiz_passed: row.quiz_passed,
+    checklist: row.checklist || [],
+    xp_snapshot: row.xp_awarded || 0,
+    recorded_at: new Date().toISOString(),
+  }]);
+
+  return error;
 }
 
 // GET /api/academy/admin/overview - aggregated learner progress for admin
@@ -337,17 +365,15 @@ router.post('/progress', authenticateUser as any, requireAcademyAccess, async (r
       }
 
       if (activityAction) {
-        await db.from('academy_activity').insert([{
-          user_id: userId,
-          track,
-          lesson_id,
-          action: activityAction,
-          lesson_completed: updated.lesson_completed,
-          quiz_passed: updated.quiz_passed,
-          checklist: updated.checklist || [],
-          xp_snapshot: updated.xp_awarded || 0,
-          recorded_at: new Date().toISOString(),
-        }]);
+        const activityError = await recordAcademyActivity(updated, activityAction);
+
+        if (activityError) {
+          console.error('[academy/upsert-progress] Activity insert error:', activityError);
+          return res.status(500).json({
+            error: 'Database Error',
+            message: activityError.message,
+          });
+        }
       }
 
       return res.json({
@@ -372,17 +398,15 @@ router.post('/progress', authenticateUser as any, requireAcademyAccess, async (r
     }
 
     if (activityAction) {
-      await db.from('academy_activity').insert([{
-        user_id: userId,
-        track,
-        lesson_id,
-        action: activityAction,
-        lesson_completed: created.lesson_completed,
-        quiz_passed: created.quiz_passed,
-        checklist: created.checklist || [],
-        xp_snapshot: created.xp_awarded || 0,
-        recorded_at: new Date().toISOString(),
-      }]);
+      const activityError = await recordAcademyActivity(created, activityAction);
+
+      if (activityError) {
+        console.error('[academy/upsert-progress] Activity insert error:', activityError);
+        return res.status(500).json({
+          error: 'Database Error',
+          message: activityError.message,
+        });
+      }
     }
 
     res.json({

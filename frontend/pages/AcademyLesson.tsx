@@ -20,21 +20,46 @@ import { useStore } from '@/store/useStore';
 const CELEBRATION_AUDIO_SRC = '/theme-submit.mp3';
 
 const FIREWORK_PARTICLES = [
-  { left: 8, top: 18, x: 54, y: -42, delay: 0.05, color: 'bg-cyber-yellow' },
-  { left: 12, top: 78, x: 72, y: 38, delay: 0.18, color: 'bg-cyber-blue' },
-  { left: 20, top: 36, x: -48, y: 54, delay: 0.28, color: 'bg-white' },
-  { left: 28, top: 16, x: 36, y: 68, delay: 0.36, color: 'bg-cyber-blue' },
-  { left: 36, top: 84, x: -58, y: -50, delay: 0.12, color: 'bg-cyber-yellow' },
-  { left: 44, top: 24, x: 76, y: -28, delay: 0.42, color: 'bg-white' },
-  { left: 52, top: 68, x: -72, y: 44, delay: 0.22, color: 'bg-cyber-blue' },
-  { left: 60, top: 12, x: 62, y: 64, delay: 0.31, color: 'bg-cyber-yellow' },
-  { left: 68, top: 80, x: -42, y: -70, delay: 0.48, color: 'bg-white' },
-  { left: 76, top: 30, x: 56, y: 52, delay: 0.15, color: 'bg-cyber-blue' },
-  { left: 84, top: 62, x: -76, y: -36, delay: 0.38, color: 'bg-cyber-yellow' },
-  { left: 92, top: 20, x: -58, y: 62, delay: 0.26, color: 'bg-white' },
-  { left: 14, top: 52, x: 86, y: -16, delay: 0.62, color: 'bg-cyber-yellow' },
-  { left: 88, top: 88, x: -82, y: -58, delay: 0.58, color: 'bg-cyber-blue' },
+  { left: 8, top: 18, x: 54, y: -42, delay: 0.05, color: 'bg-cyber-yellow', size: 'h-2 w-2' },
+  { left: 12, top: 78, x: 72, y: 38, delay: 0.18, color: 'bg-pink-400', size: 'h-3 w-3' },
+  { left: 20, top: 36, x: -48, y: 54, delay: 0.28, color: 'bg-white', size: 'h-2 w-2' },
+  { left: 28, top: 16, x: 36, y: 68, delay: 0.36, color: 'bg-cyber-blue', size: 'h-2.5 w-2.5' },
+  { left: 36, top: 84, x: -58, y: -50, delay: 0.12, color: 'bg-lime-300', size: 'h-3 w-3' },
+  { left: 44, top: 24, x: 76, y: -28, delay: 0.42, color: 'bg-white', size: 'h-2 w-2' },
+  { left: 52, top: 68, x: -72, y: 44, delay: 0.22, color: 'bg-cyan-300', size: 'h-2.5 w-2.5' },
+  { left: 60, top: 12, x: 62, y: 64, delay: 0.31, color: 'bg-cyber-yellow', size: 'h-3 w-3' },
+  { left: 68, top: 80, x: -42, y: -70, delay: 0.48, color: 'bg-fuchsia-400', size: 'h-2.5 w-2.5' },
+  { left: 76, top: 30, x: 56, y: 52, delay: 0.15, color: 'bg-cyber-blue', size: 'h-2 w-2' },
+  { left: 84, top: 62, x: -76, y: -36, delay: 0.38, color: 'bg-orange-300', size: 'h-3 w-3' },
+  { left: 92, top: 20, x: -58, y: 62, delay: 0.26, color: 'bg-white', size: 'h-2 w-2' },
+  { left: 14, top: 52, x: 86, y: -16, delay: 0.62, color: 'bg-pink-300', size: 'h-2.5 w-2.5' },
+  { left: 88, top: 88, x: -82, y: -58, delay: 0.58, color: 'bg-cyan-300', size: 'h-3 w-3' },
+  { left: 6, top: 44, x: 114, y: 8, delay: 0.7, color: 'bg-violet-300', size: 'h-2 w-2' },
+  { left: 96, top: 48, x: -118, y: -6, delay: 0.74, color: 'bg-lime-300', size: 'h-2 w-2' },
 ];
+
+const CONFETTI_PIECES = Array.from({ length: 36 }, (_, index) => ({
+  left: (index * 17) % 100,
+  delay: (index % 12) * 0.08,
+  duration: 1.7 + (index % 5) * 0.18,
+  rotate: index % 2 === 0 ? 180 : -180,
+  color:
+    index % 5 === 0
+      ? 'bg-cyber-yellow'
+      : index % 5 === 1
+        ? 'bg-pink-400'
+        : index % 5 === 2
+          ? 'bg-cyber-blue'
+          : index % 5 === 3
+            ? 'bg-lime-300'
+            : 'bg-white',
+}));
+
+const TRACK_GRADUATION_LABEL: Record<TrackId, string> = {
+  genin: 'Genin',
+  chunin: 'Chunin',
+  jonin: 'Jonin',
+};
 
 function rowsToProgressState(rows: any[]): ProgressState {
   const completedLessons: Record<string, boolean> = {};
@@ -100,25 +125,30 @@ export function AcademyLesson() {
   const [submittedQ, setSubmittedQ] = useState<Record<string, boolean>>({});
   const [currentStep, setCurrentStep] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [completionSaveStatus, setCompletionSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const celebrationAudioRef = useRef<HTMLAudioElement | null>(null);
+  const completionPromiseRef = useRef<Promise<boolean> | null>(null);
 
   const apiBase = (import.meta as any).env.VITE_API_BASE_URL || '';
+  const storedAuthToken =
+    typeof window !== 'undefined' ? window.localStorage.getItem('auth_token') : null;
+  const effectiveAuthToken = authToken || storedAuthToken;
 
   const requestHeaders = useMemo(() => {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 
-    if (authToken) {
-      headers.Authorization = `Bearer ${authToken}`;
+    if (effectiveAuthToken) {
+      headers.Authorization = `Bearer ${effectiveAuthToken}`;
     } else if (walletAddress) {
       headers['x-wallet-address'] = walletAddress;
     }
 
     return headers;
-  }, [authToken, walletAddress]);
+  }, [effectiveAuthToken, walletAddress]);
 
-  const canSyncRemote = !!currentUser && (!!authToken || !!walletAddress);
+  const canSyncRemote = !!currentUser;
 
   const syncMissingRows = useCallback(
     async (baseline: ProgressState, merged: ProgressState) => {
@@ -187,6 +217,8 @@ export function AcademyLesson() {
     setSubmittedQ({});
     setErr('');
     setShowCelebration(false);
+    setCompletionSaveStatus('idle');
+    completionPromiseRef.current = null;
     setCurrentStep(0); // Reset step on lesson change
   }, [identity, track, lessonId]);
 
@@ -240,14 +272,15 @@ export function AcademyLesson() {
   const syncCurrentLesson = useCallback(
     async (next: ProgressState) => {
       if (!canSyncRemote) {
-        return;
+        console.error('[academy/progress] Cannot sync without a DSUC account session.');
+        return false;
       }
 
       const progressKey = `${track}:${lessonId}`;
       const checklistForLesson = next.checklist?.[progressKey] || [];
 
       try {
-        await fetch(`${apiBase}/api/academy/progress`, {
+        const response = await fetch(`${apiBase}/api/academy/progress`, {
           method: 'POST',
           headers: requestHeaders,
           credentials: 'include',
@@ -260,8 +293,16 @@ export function AcademyLesson() {
             xp_awarded: next.completedLessons[progressKey] ? 100 : 0,
           }),
         });
-      } catch {
-        // Local storage remains source of truth when sync fails.
+
+        if (!response.ok) {
+          const result = await response.json().catch(() => null);
+          throw new Error(result?.message || `Academy progress sync failed (${response.status})`);
+        }
+
+        return true;
+      } catch (error) {
+        console.error('[academy/progress] Failed to sync progress:', error);
+        return false;
       }
     },
     [apiBase, canSyncRemote, lessonId, requestHeaders, track]
@@ -313,6 +354,47 @@ export function AcademyLesson() {
   const allCorrect = lesson.quiz.every((item) => isCorrect(item.id));
   const isFinalQuizStep = lesson.quiz.length > 0 && currentStep === totalSteps - 1;
 
+  const persistCompletedLesson = useCallback(async () => {
+    if (completionPromiseRef.current) {
+      return completionPromiseRef.current;
+    }
+
+    const run = async () => {
+      setCompletionSaveStatus('saving');
+      setBusyFinish(true);
+
+      try {
+        const completedQuiz = markQuizPassed(state, track, lessonId);
+        const completedLesson = markLessonComplete(completedQuiz, track, lessonId);
+        const completedWithChecklist = setChecklist(completedLesson, track, lessonId, [
+          cl0,
+          true,
+          true,
+        ]);
+
+        setState(completedWithChecklist);
+        saveProgress(identity, completedWithChecklist);
+
+        const synced = await syncCurrentLesson(completedWithChecklist);
+
+        if (!synced) {
+          setCompletionSaveStatus('error');
+          setErr('SYNC_ERROR: Academy progress was saved locally but not written to database. Please retry while signed in.');
+          completionPromiseRef.current = null;
+          return false;
+        }
+
+        setCompletionSaveStatus('saved');
+        return true;
+      } finally {
+        setBusyFinish(false);
+      }
+    };
+
+    completionPromiseRef.current = run();
+    return completionPromiseRef.current;
+  }, [cl0, identity, lessonId, state, syncCurrentLesson, track]);
+
   useEffect(() => {
     const nextChecklist = [cl0, allSubmitted, allCorrect || lessonDone];
     const previousChecklist = getChecklist(state, track, lessonId);
@@ -329,15 +411,22 @@ export function AcademyLesson() {
   function submitQuestion(questionId: string) {
     setErr('');
     const correct = isCorrect(questionId);
-    setSubmittedQ((prevSubmitted) => ({ ...prevSubmitted, [questionId]: true }));
+    const nextSubmittedQ = { ...submittedQ, [questionId]: true };
+    setSubmittedQ(nextSubmittedQ);
 
     if (!correct) {
       setErr('SYS_ERROR: INCORRECT_DATA. RECALIBRATE AND RETRY.');
       return;
     }
 
-    if (isFinalQuizStep) {
+    const finalAnswersCorrect = lesson.quiz.every((item) =>
+      item.id === questionId ? correct : answers[item.id] === item.correctChoiceId
+    );
+    const finalQuestionsSubmitted = lesson.quiz.every((item) => nextSubmittedQ[item.id]);
+
+    if (isFinalQuizStep && finalQuestionsSubmitted && finalAnswersCorrect) {
       setShowCelebration(true);
+      void persistCompletedLesson();
       const audio = celebrationAudioRef.current;
       if (audio) {
         audio.currentTime = 0;
@@ -350,7 +439,7 @@ export function AcademyLesson() {
   async function completeLesson(onComplete?: () => void) {
     setErr('');
 
-    if (lessonDone) {
+    if (lessonDone || completionSaveStatus === 'saved') {
       onComplete?.();
       return true;
     }
@@ -367,14 +456,15 @@ export function AcademyLesson() {
     }
 
     try {
-      setBusyFinish(true);
-      const updatedQuiz = markQuizPassed(state, track, lessonId);
-      const updatedLesson = markLessonComplete(updatedQuiz, track, lessonId);
-      persistProgress(updatedLesson);
+      const saved = await persistCompletedLesson();
+      if (!saved) {
+        return false;
+      }
+
       onComplete?.();
       return true;
-    } finally {
-      setBusyFinish(false);
+    } catch {
+      return false;
     }
   }
 
@@ -412,6 +502,8 @@ export function AcademyLesson() {
         open={showCelebration}
         busy={busyFinish}
         lessonTitle={lesson.title}
+        graduationLabel={TRACK_GRADUATION_LABEL[track]}
+        saveStatus={completionSaveStatus}
         trackTitle={trackTitle}
         onFinalize={() => void finishLesson()}
         onExit={() => void exitToAcademy()}
@@ -629,6 +721,8 @@ function CompletionCelebration({
   open,
   busy,
   lessonTitle,
+  graduationLabel,
+  saveStatus,
   trackTitle,
   onFinalize,
   onExit,
@@ -636,6 +730,8 @@ function CompletionCelebration({
   open: boolean;
   busy: boolean;
   lessonTitle: string;
+  graduationLabel: string;
+  saveStatus: 'idle' | 'saving' | 'saved' | 'error';
   trackTitle: string;
   onFinalize: () => void;
   onExit: () => void;
@@ -674,10 +770,32 @@ function CompletionCelebration({
 
           {!reduceMotion && (
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
+              {CONFETTI_PIECES.map((piece, index) => (
+                <motion.span
+                  key={`confetti-${index}`}
+                  className={`absolute h-4 w-2 rounded-sm ${piece.color} shadow-[0_0_14px_currentColor]`}
+                  style={{ left: `${piece.left}%`, top: '-8%' }}
+                  initial={{ y: -40, opacity: 0, rotate: 0 }}
+                  animate={{
+                    y: ['0vh', '112vh'],
+                    x: index % 2 === 0 ? [0, 22, -14, 12] : [0, -18, 20, -10],
+                    opacity: [0, 1, 1, 0],
+                    rotate: [0, piece.rotate, piece.rotate * 1.7],
+                  }}
+                  transition={{
+                    duration: piece.duration,
+                    delay: piece.delay,
+                    repeat: Infinity,
+                    repeatDelay: 0.55,
+                    ease: 'easeInOut',
+                  }}
+                />
+              ))}
+
               {FIREWORK_PARTICLES.map((particle, index) => (
                 <motion.span
                   key={`${particle.left}-${particle.top}-${index}`}
-                  className={`absolute h-2 w-2 rounded-full ${particle.color} shadow-[0_0_18px_currentColor]`}
+                  className={`absolute rounded-full ${particle.size} ${particle.color} shadow-[0_0_22px_currentColor]`}
                   style={{ left: `${particle.left}%`, top: `${particle.top}%` }}
                   initial={{ opacity: 0, scale: 0.2, x: 0, y: 0 }}
                   animate={{
@@ -687,26 +805,32 @@ function CompletionCelebration({
                     y: particle.y,
                   }}
                   transition={{
-                    duration: 1.1,
+                    duration: 0.95,
                     delay: particle.delay,
                     repeat: Infinity,
-                    repeatDelay: 0.8,
+                    repeatDelay: 0.45,
                     ease: 'easeOut',
                   }}
                 />
               ))}
 
               <motion.div
-                className="absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyber-blue/20"
+                className="absolute left-1/2 top-1/2 h-[38rem] w-[38rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-pink-300/25"
                 initial={{ opacity: 0, scale: 0.7 }}
-                animate={{ opacity: [0.15, 0.45, 0.15], scale: [0.7, 1.04, 0.7] }}
-                transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+                animate={{ opacity: [0.2, 0.7, 0.2], scale: [0.72, 1.08, 0.72], rotate: [0, 8, 0] }}
+                transition={{ duration: 1.25, repeat: Infinity, ease: 'easeInOut' }}
               />
               <motion.div
-                className="absolute left-1/2 top-1/2 h-[24rem] w-[24rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyber-yellow/30"
+                className="absolute left-1/2 top-1/2 h-[25rem] w-[25rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyber-yellow/50"
                 initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: [0.2, 0.65, 0.2], scale: [0.8, 1.08, 0.8] }}
-                transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+                animate={{ opacity: [0.35, 0.85, 0.35], scale: [0.75, 1.12, 0.75], rotate: [0, -10, 0] }}
+                transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }}
+              />
+              <motion.div
+                className="absolute left-1/2 top-1/2 h-[16rem] w-[16rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-300/45"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: [0.25, 0.75, 0.25], scale: [0.8, 1.18, 0.8], rotate: [0, 14, 0] }}
+                transition={{ duration: 0.82, repeat: Infinity, ease: 'easeInOut' }}
               />
             </div>
           )}
@@ -716,10 +840,22 @@ function CompletionCelebration({
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={reduceMotion ? { opacity: 0 } : { y: 12, opacity: 0, scale: 0.98 }}
             transition={{ duration: reduceMotion ? 0 : 0.34, ease: 'easeOut' }}
-            className="relative z-10 w-full max-w-2xl cyber-card bg-surface/95 border border-cyber-yellow/50 p-6 sm:p-8 text-center shadow-[0_0_40px_rgba(255,214,0,0.16)]"
+            className="relative z-10 w-full max-w-2xl overflow-hidden cyber-card bg-surface/95 border border-cyber-yellow/60 p-6 sm:p-8 text-center shadow-[0_0_60px_rgba(255,214,0,0.24)]"
           >
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center border border-cyber-yellow/50 bg-cyber-yellow/10 text-cyber-yellow">
-              <Sparkles size={30} aria-hidden="true" />
+            <div className="pointer-events-none absolute -left-16 -top-16 h-36 w-36 rounded-full bg-pink-400/20 blur-3xl" />
+            <div className="pointer-events-none absolute -right-16 -bottom-16 h-40 w-40 rounded-full bg-cyan-300/20 blur-3xl" />
+
+            <motion.div
+              animate={reduceMotion ? undefined : { rotate: [-6, 6, -6], scale: [1, 1.08, 1] }}
+              transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
+              className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-cyber-yellow/60 bg-gradient-to-br from-cyber-yellow/25 via-pink-400/20 to-cyber-blue/20 text-cyber-yellow shadow-[0_0_30px_rgba(255,214,0,0.25)]"
+            >
+              <Sparkles size={34} aria-hidden="true" />
+            </motion.div>
+
+            <div className="relative mx-auto mb-4 flex w-fit items-center gap-2 rounded-full border border-pink-300/40 bg-pink-300/10 px-4 py-1.5 text-[10px] font-mono font-bold uppercase tracking-[0.28em] text-pink-200">
+              <span className="h-1.5 w-1.5 rounded-full bg-pink-300 shadow-[0_0_10px_rgba(249,168,212,0.8)]" />
+              Graduation Unlocked
             </div>
 
             <div className="mb-3 text-[10px] font-mono font-bold uppercase tracking-[0.35em] text-cyber-blue">
@@ -727,23 +863,30 @@ function CompletionCelebration({
             </div>
             <h2
               id="academy-completion-title"
-              className="font-display text-3xl font-black uppercase tracking-widest text-white sm:text-5xl"
+              className="relative font-display text-3xl font-black uppercase tracking-widest text-white sm:text-5xl"
             >
-              Module Complete
+              Bạn đã tốt nghiệp {graduationLabel}
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-white/70 sm:text-base">
-              You answered the final query for <span className="text-cyber-yellow">{lessonTitle}</span>.
-              Finalize the module to save progress, or exit back to the Academy hub.
+              Hoàn thành xuất sắc <span className="text-cyber-yellow">{lessonTitle}</span>.
+              Đừng quên ôn bài mỗi ngày để giữ streak và làm kiến thức Solana chắc hơn.
             </p>
 
-            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+            <div className="mx-auto mt-5 w-fit rounded-full border border-cyber-blue/30 bg-cyber-blue/10 px-4 py-2 text-xs font-mono uppercase tracking-widest text-cyber-blue">
+              {saveStatus === 'saving' && 'Đang lưu tiến độ vào DSUC Academy...'}
+              {saveStatus === 'saved' && 'Tiến độ đã được lưu vào Academy.'}
+              {saveStatus === 'error' && 'Chưa lưu được vào database. Bấm Finalize để thử lại.'}
+              {saveStatus === 'idle' && 'Chuẩn bị lưu tiến độ Academy.'}
+            </div>
+
+            <div className="relative mt-8 grid gap-3 sm:grid-cols-2">
               <button
                 type="button"
                 onClick={onFinalize}
                 disabled={busy}
                 className="min-h-12 bg-cyber-yellow px-6 py-3 font-display text-sm font-bold uppercase tracking-widest text-black transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {busy ? 'SAVING...' : 'FINALIZE MODULE'}
+                {busy || saveStatus === 'saving' ? 'SAVING...' : 'FINALIZE MODULE'}
               </button>
               <button
                 type="button"
