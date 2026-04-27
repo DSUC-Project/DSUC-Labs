@@ -8,6 +8,7 @@ import {
   Member,
   Project,
   AuthMethod,
+  AuthIntent,
   GoogleUserInfo,
 } from "../types";
 import {
@@ -42,7 +43,10 @@ interface AppState {
   connectWallet: (provider: "Phantom" | "Solflare") => void;
   reconnectWallet: () => Promise<void>;
   disconnectWallet: () => void;
-  loginWithGoogle: (googleUserInfo: GoogleUserInfo) => Promise<boolean>;
+  loginWithGoogle: (
+    googleUserInfo: GoogleUserInfo,
+    intent?: AuthIntent
+  ) => Promise<boolean>;
   linkGoogleAccount: (googleUserInfo: GoogleUserInfo) => Promise<boolean>;
   checkSession: () => Promise<void>;
   logout: () => void;
@@ -89,6 +93,7 @@ function normalizeMember(raw: any): Member {
     ...raw,
     memberType,
     academyAccess: raw?.academy_access !== false,
+    profile_completed: raw?.profile_completed !== false,
     bankInfo: rawBankInfo
       ? {
           bankId: rawBankInfo.bankId || rawBankInfo.bank_id,
@@ -531,7 +536,10 @@ export const useStore = create<AppState>((set, get) => ({
     }),
 
   // Login with Google - for users who have email pre-registered
-  loginWithGoogle: async (googleUserInfo: GoogleUserInfo) => {
+  loginWithGoogle: async (
+    googleUserInfo: GoogleUserInfo,
+    intent: AuthIntent = "login"
+  ) => {
     try {
       const base = (import.meta as any).env.VITE_API_BASE_URL || "";
       console.log("[loginWithGoogle] Attempting login with:", googleUserInfo.email);
@@ -545,6 +553,7 @@ export const useStore = create<AppState>((set, get) => ({
           google_id: googleUserInfo.google_id,
           name: googleUserInfo.name,
           avatar: googleUserInfo.avatar,
+          intent,
         }),
       });
 

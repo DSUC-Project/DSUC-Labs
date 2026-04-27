@@ -77,7 +77,7 @@ export function renderMd(md: string) {
       // consume closing ```
       i++;
       out.push(
-        <pre key={`code-${out.length}`} className="mt-3 rounded-2xl border border-white/10 bg-black/30 p-4 overflow-x-auto text-xs text-slate-200">
+        <pre key={`code-${out.length}`} className="mt-3 rounded-md border border-cyber-blue/20 bg-black/60 p-4 overflow-x-auto text-xs text-cyber-blue font-mono shadow-[0_0_15px_rgba(41,121,255,0.05)]">
           <code>{buf.join('\n')}</code>
         </pre>
       );
@@ -86,7 +86,7 @@ export function renderMd(md: string) {
 
     if (line.startsWith('# ')) {
       out.push(
-        <h1 key={`h1-${out.length}`} className="text-2xl font-black tracking-tight text-white font-display">
+        <h1 key={`h1-${out.length}`} className="text-2xl font-black tracking-widest uppercase text-cyber-yellow font-display drop-shadow-[0_0_10px_rgba(255,214,0,0.5)]">
           {renderInline(line.slice(2))}
         </h1>
       );
@@ -96,7 +96,7 @@ export function renderMd(md: string) {
 
     if (line.startsWith('## ')) {
       out.push(
-        <h2 key={`h2-${out.length}`} className="mt-6 text-lg font-extrabold text-white font-display">
+        <h2 key={`h2-${out.length}`} className="mt-6 text-xl tracking-wider font-bold text-white font-display border-l-4 border-cyber-blue pl-3">
           {renderInline(line.slice(3))}
         </h2>
       );
@@ -111,7 +111,7 @@ export function renderMd(md: string) {
         i++;
       }
       out.push(
-        <ul key={`ul-${out.length}`} className="mt-3 list-disc pl-5 space-y-1 text-sm text-slate-300">
+        <ul key={`ul-${out.length}`} className="mt-3 list-disc pl-5 space-y-2 text-sm text-white/70 font-mono marker:text-cyber-blue">
           {items.map((t, idx) => (
             <li key={`${idx}-${t}`}>{renderInline(t)}</li>
           ))}
@@ -134,7 +134,7 @@ export function renderMd(md: string) {
     }
 
     out.push(
-      <p key={`p-${out.length}`} className="mt-3 text-sm leading-6 text-slate-300">
+      <p key={`p-${out.length}`} className="mt-3 text-sm leading-relaxed text-white/80 font-mono">
         {renderInline(para.join(' '))}
       </p>
     );

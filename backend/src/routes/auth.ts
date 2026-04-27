@@ -4,6 +4,7 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../index";
 import { generateToken, verifyToken, AuthRequest, authenticateWallet } from "../middleware/auth";
+import { attachAcademyStatsToMember } from "../utils/academyStats";
 
 const router = Router();
 
@@ -53,6 +54,7 @@ async function createCommunityAccount(params: {
     auth_provider: "google",
     email_verified: true,
     academy_access: true,
+    profile_completed: false,
     is_active: true,
   };
 
@@ -66,7 +68,7 @@ async function createCommunityAccount(params: {
     throw createError;
   }
 
-  return created;
+  return attachAcademyStatsToMember(created);
 }
 
 // Configure Passport Google Strategy
@@ -176,9 +178,11 @@ router.post("/wallet", async (req: Request, res: Response) => {
       });
     }
 
+    const memberWithStats = await attachAcademyStatsToMember(member);
+
     res.json({
       success: true,
-      data: member,
+      data: memberWithStats,
       message: "Authentication successful",
     });
   } catch (error: any) {
@@ -303,9 +307,11 @@ router.post("/google/link", async (req: Request, res: Response) => {
       throw updateError;
     }
 
+    const updatedMemberWithStats = await attachAcademyStatsToMember(updatedMember);
+
     res.json({
       success: true,
-      data: updatedMember,
+      data: updatedMemberWithStats,
       message: "Google account linked successfully",
     });
   } catch (error: any) {
@@ -320,7 +326,8 @@ router.post("/google/link", async (req: Request, res: Response) => {
 // POST /api/auth/google/login - Login with Google token (alternative to OAuth redirect)
 router.post("/google/login", async (req: Request, res: Response) => {
   try {
-    const { email, google_id, name, avatar } = req.body;
+    const { email, google_id, name, avatar, intent } = req.body;
+    const authIntent = intent === "signup" ? "signup" : "login";
 
     if (!email || !google_id) {
       return res.status(400).json({
@@ -375,6 +382,15 @@ router.post("/google/login", async (req: Request, res: Response) => {
     }
 
     if (!member) {
+      if (authIntent === "login") {
+        return res.status(404).json({
+          success: false,
+          error: "Not Found",
+          message:
+            "No DSUC account was found for this Google email. Please register first.",
+        });
+      }
+
       member = await createCommunityAccount({
         email,
         googleId: google_id,
@@ -390,9 +406,11 @@ router.post("/google/login", async (req: Request, res: Response) => {
       wallet_address: member.wallet_address || undefined,
     });
 
+    const memberWithStats = await attachAcademyStatsToMember(member);
+
     res.json({
       success: true,
-      data: member,
+      data: memberWithStats,
       token: token,
       message: "Login successful",
     });
@@ -443,10 +461,12 @@ router.get("/session", async (req: Request, res: Response) => {
       });
     }
 
+    const memberWithStats = await attachAcademyStatsToMember(member);
+
     res.json({
       success: true,
       authenticated: true,
-      data: member,
+      data: memberWithStats,
     });
   } catch (error: any) {
     console.error("Session check error:", error);

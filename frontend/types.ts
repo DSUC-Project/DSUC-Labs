@@ -32,10 +32,15 @@ export interface Member {
   auth_provider?: 'wallet' | 'google' | 'both';
   email_verified?: boolean;
   wallet_address?: string | null;
+  profile_completed?: boolean;
+  streak?: number;
+  builds?: number;
+  academyRank?: string;
 }
 
 // Auth method type
 export type AuthMethod = 'wallet' | 'google';
+export type AuthIntent = 'login' | 'signup';
 
 // Google user info from OAuth
 export interface GoogleUserInfo {
@@ -90,7 +95,7 @@ export type ResourceCategory =
 export interface Resource {
   id: string;
   name: string;
-  type: "Drive" | "Doc" | "Link";
+  type: "Drive" | "Doc" | "Link" | "Document" | "Video";
   url: string;
   size?: string;
   status?: PublishStatus;
@@ -137,6 +142,7 @@ export interface AcademyOverview {
   xp: number;
   completed_lessons: number;
   quiz_passed: number;
+  streak?: number;
   last_activity: string | null;
 }
 

@@ -2,11 +2,11 @@ import React, { useState, useEffect, createContext, useContext } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
-import { Home, Users, Calendar, Calculator, Briefcase, Folder, Menu, X, Terminal, User, Rocket, HelpCircle, GraduationCap } from 'lucide-react';
+import { Home, Users, Calendar, Calculator, Briefcase, Folder, Menu, X, Terminal, User, Rocket, HelpCircle, GraduationCap, Trophy, Video } from 'lucide-react';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import { useStore } from '../store/useStore';
-import { GoogleUserInfo } from '../types';
+import { AuthIntent, GoogleUserInfo } from '../types';
 import { LoginNotification } from './LoginNotification';
 import { ContactModal } from './ContactModal';
 
@@ -25,12 +25,17 @@ interface GoogleJWTPayload {
 
 export function Layout({ children }: { children?: React.ReactNode }) {
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<AuthIntent>('login');
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [showLoginNotification, setShowLoginNotification] = useState(false);
   const [lastLoginInfo, setLastLoginInfo] = useState<{ name?: string; method?: 'wallet' | 'google' }>({});
   const { currentUser, authMethod } = useStore();
+  const navigate = useNavigate();
+  const location = useLocation();
   const previousUserIdRef = React.useRef<string | null>(currentUser?.id || null);
   const isAuthenticated = !!currentUser;
+  const requiresProfileCompletion =
+    !!currentUser && currentUser.profile_completed === false;
 
   // Show notification when user logs in
   useEffect(() => {
@@ -44,15 +49,31 @@ export function Layout({ children }: { children?: React.ReactNode }) {
     previousUserIdRef.current = currentUser?.id || null;
   }, [currentUser?.id, currentUser?.name, currentUser?.email, authMethod]);
 
+  useEffect(() => {
+    if (requiresProfileCompletion && location.pathname !== '/profile') {
+      navigate('/profile?onboarding=1', { replace: true });
+    }
+  }, [location.pathname, navigate, requiresProfileCompletion]);
+
+  const openAuthModal = (mode: AuthIntent) => {
+    setAuthMode(mode);
+    setIsWalletModalOpen(true);
+  };
+
   return (
     <ContactModalContext.Provider value={{ openContactModal: () => setIsContactModalOpen(true) }}>
       <div className="min-h-screen font-sans text-white selection:bg-cyber-yellow selection:text-black">
         <Background />
-        <Navbar onConnectClick={() => setIsWalletModalOpen(true)} />
+        <Navbar onAuthClick={openAuthModal} />
         <main className="pt-32 pb-20 px-4 md:px-8 max-w-7xl mx-auto">
           {children}
         </main>
-        <WalletModal isOpen={isWalletModalOpen} onClose={() => setIsWalletModalOpen(false)} />
+        <WalletModal
+          isOpen={isWalletModalOpen}
+          mode={authMode}
+          onModeChange={setAuthMode}
+          onClose={() => setIsWalletModalOpen(false)}
+        />
         <ContactModal isOpen={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} />
         <LoginNotification
           isVisible={showLoginNotification}
@@ -84,7 +105,14 @@ function Background() {
   );
 }
 
-function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
+type NavItem = {
+  name: string;
+  path: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  locked?: boolean;
+};
+
+function Navbar({ onAuthClick }: { onAuthClick: (mode: AuthIntent) => void }) {
   const { currentUser } = useStore();
   const location = useLocation();
   const navigate = useNavigate();
@@ -97,18 +125,25 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
       currentUser?.role || ''
     );
 
-  // All navigation links (visible in navbar)
-  const allLinks = [
+  const standardLinks: NavItem[] = [
     { name: 'Home', path: '/home', icon: Home },
     { name: 'Academy', path: '/academy', icon: GraduationCap },
     { name: 'Members', path: '/members', icon: Users },
     { name: 'Events', path: '/events', icon: Calendar },
     { name: 'Projects', path: '/projects', icon: Rocket },
-    { name: 'Finance', path: '/finance', icon: Calculator, locked: !isOfficialMember },
-    { name: 'Work', path: '/work', icon: Briefcase },
     { name: 'Resources', path: '/resources', icon: Folder },
+  ];
+
+  const workspaceLinks: NavItem[] = [
+    { name: 'Leaderboard', path: '/leaderboard', icon: Trophy },
+    { name: 'Meet', path: '/meet', icon: Video },
+    { name: 'Work', path: '/work', icon: Briefcase },
+    { name: 'Finance', path: '/finance', icon: Calculator, locked: !isOfficialMember },
     ...(isAdmin ? [{ name: 'Admin', path: '/admin', icon: HelpCircle }] : []),
   ];
+
+  const allLinks = [...standardLinks, ...workspaceLinks];
+  const [workspaceOpen, setWorkspaceOpen] = useState(false);
 
   return (
     <>
@@ -138,52 +173,114 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
             </div>
 
             {/* Desktop Nav - Improved spacing and sizing */}
-            <div className="hidden lg:flex items-center gap-1 flex-1 justify-center max-w-3xl">
-              {allLinks.map((link) => (
-                link.locked ? (
-                  <div
-                    key={link.path}
-                    className={twMerge(
-                      "relative px-3 py-2 text-xs font-display font-bold uppercase tracking-wider transition-all duration-300 group cursor-not-allowed opacity-40",
-                      "hover:text-white/60"
-                    )}
-                    title="Login to access"
-                  >
-                    <span className="relative z-10 flex items-center gap-2">
-                      <link.icon size={14} className="opacity-60" />
-                      {link.name}
-                    </span>
-                  </div>
-                ) : (
-                  <NavLink
-                    key={link.path}
-                    to={link.path}
-                    className={({ isActive }) =>
-                      twMerge(
-                        "relative px-3 py-2 text-xs font-display font-bold uppercase tracking-wider transition-all duration-300 hover:text-cyber-yellow group rounded-md",
-                        isActive ? "text-cyber-blue" : "text-white/70 hover:text-white"
-                      )
-                    }
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <span className="relative z-10 flex items-center gap-2">
-                          <link.icon size={14} className={isActive ? "text-cyber-blue" : "text-white/50 group-hover:text-cyber-yellow"} />
-                          {link.name}
-                        </span>
-                        {isActive && (
-                          <motion.div
-                            layoutId="nav-glow"
-                            className="absolute -bottom-1 left-2 right-2 h-[2px] bg-cyber-blue shadow-[0_0_10px_#2979FF]"
-                            transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                          />
-                        )}
-                        <div className="absolute inset-0 bg-cyber-blue/5 scale-95 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-300 rounded-md pointer-events-none" />
-                      </>
-                    )}
-                  </NavLink>
-                )
+            <div className="hidden lg:flex items-center gap-1 flex-1 justify-center max-w-3xl relative">
+              {standardLinks.map((link) => (
+                <NavLink
+                  key={link.path}
+                  to={link.path}
+                  className={({ isActive }) =>
+                    twMerge(
+                      "relative px-3 py-2 text-xs font-display font-bold uppercase tracking-wider transition-all duration-300 hover:text-cyber-yellow group rounded-md",
+                      isActive ? "text-cyber-blue" : "text-white/70 hover:text-white"
+                    )
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <span className="relative z-10 flex items-center gap-2">
+                        <link.icon size={14} className={isActive ? "text-cyber-blue" : "text-white/50 group-hover:text-cyber-yellow"} />
+                        {link.name}
+                      </span>
+                      {isActive && (
+                        <motion.div
+                          layoutId="nav-glow"
+                          className="absolute -bottom-1 left-2 right-2 h-[2px] bg-cyber-blue shadow-[0_0_10px_#2979FF]"
+                          transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                        />
+                      )}
+                      <div className="absolute inset-0 bg-cyber-blue/5 scale-95 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-300 rounded-md pointer-events-none" />
+                    </>
+                  )}
+                </NavLink>
               ))}
+
+              <div
+                className="relative group"
+                onMouseEnter={() => setWorkspaceOpen(true)}
+                onMouseLeave={() => setWorkspaceOpen(false)}
+              >
+                <div
+                  className={twMerge(
+                    "relative px-3 py-2 text-xs font-display font-bold uppercase tracking-wider transition-all duration-300 hover:text-cyber-yellow group rounded-md cursor-pointer",
+                    workspaceLinks.some((link) => location.pathname.startsWith(link.path))
+                      ? "text-cyber-blue"
+                      : "text-white/70 hover:text-white"
+                  )}
+                >
+                  <span className="relative z-10 flex items-center gap-2">
+                    <Terminal
+                      size={14}
+                      className={
+                        workspaceLinks.some((link) => location.pathname.startsWith(link.path))
+                          ? "text-cyber-blue"
+                          : "text-white/50 group-hover:text-cyber-yellow"
+                      }
+                    />
+                    Operations
+                  </span>
+                  {workspaceLinks.some((link) => location.pathname.startsWith(link.path)) && (
+                    <motion.div
+                      layoutId="nav-glow"
+                      className="absolute -bottom-1 left-2 right-2 h-[2px] bg-cyber-blue shadow-[0_0_10px_#2979FF]"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-cyber-blue/5 scale-95 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-300 rounded-md pointer-events-none" />
+                </div>
+
+                <AnimatePresence>
+                  {workspaceOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute top-full left-0 mt-2 w-52 bg-surface/98 backdrop-blur-xl border border-cyber-blue/30 rounded-lg p-2 shadow-[0_8px_32px_rgba(41,121,255,0.15)] flex flex-col gap-1 z-50 overflow-hidden"
+                    >
+                      {workspaceLinks.map((link) => (
+                        link.locked ? (
+                          <div
+                            key={link.path}
+                            className="flex items-center gap-2 px-3 py-2 text-xs font-display font-bold uppercase tracking-wider text-white/40 cursor-not-allowed rounded-md relative"
+                            title="Member account required"
+                          >
+                            <link.icon size={14} className="opacity-60" />
+                            {link.name} (Locked)
+                          </div>
+                        ) : (
+                          <NavLink
+                            key={link.path}
+                            to={link.path}
+                            className={({ isActive }) =>
+                              twMerge(
+                                "flex items-center gap-2 px-3 py-2 text-xs font-display font-bold uppercase tracking-wider transition-all duration-300 hover:text-cyber-yellow hover:bg-cyber-blue/10 rounded-md relative group",
+                                isActive ? "text-cyber-blue bg-cyber-blue/5" : "text-white/70 hover:text-white"
+                              )
+                            }
+                          >
+                            {({ isActive }) => (
+                              <>
+                                <link.icon size={14} className={isActive ? "text-cyber-blue" : "text-white/50 group-hover:text-cyber-yellow"} />
+                                {link.name}
+                              </>
+                            )}
+                          </NavLink>
+                        )
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
 
             {/* Right side actions - Better alignment */}
@@ -211,23 +308,19 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                   </span>
                 </button>
               ) : (
-                <div className="relative group hidden lg:block">
+                <div className="hidden lg:flex items-center gap-2">
                   <button
-                    onClick={onConnectClick}
-                    className="px-4 py-2 text-xs font-bold font-display uppercase tracking-widest transition-all duration-300 flex items-center gap-2 border border-cyber-blue/50 text-white hover:border-cyber-blue hover:bg-cyber-blue/10 hover:shadow-[0_0_20px_rgba(41,121,255,0.3)] rounded-lg relative overflow-hidden"
+                    onClick={() => onAuthClick('login')}
+                    className="px-4 py-2 text-xs font-bold font-display uppercase tracking-widest transition-all duration-300 border border-cyber-blue/50 text-white hover:border-cyber-blue hover:bg-cyber-blue/10 rounded-lg"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-cyber-blue/0 via-cyber-blue/10 to-cyber-blue/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-
-                    <span className="relative z-10">Sign In</span>
+                    Log In
                   </button>
-                  {/* Improved tooltip */}
-                  <div className="absolute right-0 top-full mt-3 bg-surface/98 border border-cyber-blue/50 rounded-lg px-4 py-3 text-xs text-white/90 whitespace-nowrap z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-[0_8px_32px_rgba(41,121,255,0.2)] min-w-[240px]">
-                    <div className="font-bold text-cyber-blue mb-1.5 text-sm">DSUC Account Access</div>
-                    <div className="text-white/70 mb-1">Sign in with Google to create your DSUC account</div>
-                    <div className="text-cyber-yellow mt-2 text-[11px]">Wallet linking stays optional inside your profile</div>
-                    {/* Arrow */}
-                    <div className="absolute -top-1 right-4 w-2 h-2 bg-surface border-t border-l border-cyber-blue/50 rotate-45" />
-                  </div>
+                  <button
+                    onClick={() => onAuthClick('signup')}
+                    className="px-4 py-2 text-xs font-bold font-display uppercase tracking-widest transition-all duration-300 border border-cyber-yellow/60 bg-cyber-yellow text-black hover:bg-white hover:border-white rounded-lg"
+                  >
+                    Register
+                  </button>
                 </div>
               )}
             </div>
@@ -336,16 +429,24 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
                   <button
                     onClick={() => {
                       setMobileMenuOpen(false);
-                      onConnectClick();
+                      onAuthClick('login');
                     }}
                     className="w-full px-5 py-3.5 text-sm font-bold font-display uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-3 border border-cyber-blue/50 text-white hover:border-cyber-blue hover:bg-cyber-blue/10 rounded-lg shadow-[0_4px_16px_rgba(41,121,255,0.2)]"
                   >
-
-                    <span>Sign In</span>
+                    <span>Log In</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      onAuthClick('signup');
+                    }}
+                    className="w-full mt-3 px-5 py-3.5 text-sm font-bold font-display uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-3 border border-cyber-yellow/60 bg-cyber-yellow text-black hover:bg-white hover:border-white rounded-lg"
+                  >
+                    <span>Register</span>
                   </button>
                   <p className="text-[11px] text-white/40 text-center mt-3 leading-relaxed">
-                    Sign in to create your DSUC account.<br />
-                    <span className="text-cyber-yellow">Community users can join with Google</span>
+                    Use your Google email to join or access DSUC.<br />
+                    <span className="text-cyber-yellow">New accounts must complete profile setup on first entry</span>
                   </p>
                 </div>
               )}
@@ -357,7 +458,17 @@ function Navbar({ onConnectClick }: { onConnectClick: () => void }) {
   );
 }
 
-function WalletModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
+function WalletModal({
+  isOpen,
+  mode,
+  onModeChange,
+  onClose,
+}: {
+  isOpen: boolean,
+  mode: AuthIntent,
+  onModeChange: (mode: AuthIntent) => void,
+  onClose: () => void,
+}) {
   const { loginWithGoogle } = useStore();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -380,7 +491,7 @@ function WalletModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void
         avatar: decoded.picture,
       };
 
-      const success = await loginWithGoogle(googleUserInfo);
+      const success = await loginWithGoogle(googleUserInfo, mode);
       if (success) {
         onClose();
       }
@@ -413,13 +524,39 @@ function WalletModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void
         </button>
         <div className="mb-6 text-center">
           <Terminal size={40} className="mx-auto text-cyber-blue mb-2" />
-          <h3 className="text-xl font-display font-bold text-white uppercase tracking-wider">DSUC Account</h3>
+          <h3 className="text-xl font-display font-bold text-white uppercase tracking-wider">
+            {mode === 'signup' ? 'Register DSUC Account' : 'Log In To DSUC'}
+          </h3>
           <p className="mt-2 text-xs text-white/50">
-            Sign in with Google. Official members keep elevated permissions after admin approval.
+            {mode === 'signup'
+              ? 'Create your account with Google first. You will complete your profile before using the app.'
+              : 'Log in with the Google email already attached to your DSUC account.'}
           </p>
         </div>
 
         <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => onModeChange('signup')}
+              className={`py-2 text-xs font-bold font-display uppercase tracking-widest border rounded ${
+                mode === 'signup'
+                  ? 'border-cyber-yellow bg-cyber-yellow text-black'
+                  : 'border-white/10 text-white/60 hover:text-white'
+              }`}
+            >
+              Register
+            </button>
+            <button
+              onClick={() => onModeChange('login')}
+              className={`py-2 text-xs font-bold font-display uppercase tracking-widest border rounded ${
+                mode === 'login'
+                  ? 'border-cyber-blue bg-cyber-blue text-white'
+                  : 'border-white/10 text-white/60 hover:text-white'
+              }`}
+            >
+              Log In
+            </button>
+          </div>
           {/* Google Login Button */}
           <div className="flex justify-center">
             {isLoading ? (
@@ -435,7 +572,7 @@ function WalletModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void
                   theme="filled_black"
                   size="large"
                   width="100%"
-                  text="signin_with"
+                  text={mode === 'signup' ? 'signup_with' : 'signin_with'}
                   shape="rectangular"
                 />
               </div>
@@ -444,7 +581,9 @@ function WalletModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void
 
           <div className="bg-white/5 border border-white/10 rounded p-4">
             <p className="text-xs text-white/60 font-mono text-center leading-relaxed">
-              Google is now the primary sign-in method for DSUC and community users.
+              {mode === 'signup'
+                ? 'Registration creates a DSUC community account first. Official member permissions are still granted by admin.'
+                : 'If this email has no DSUC account yet, switch to Register first.'}
             </p>
           </div>
         </div>

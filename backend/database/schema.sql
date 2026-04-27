@@ -13,13 +13,14 @@ CREATE TABLE members (
   member_type TEXT NOT NULL DEFAULT 'member' CHECK (member_type IN ('member', 'community')),
   avatar TEXT, -- Lưu URL ảnh
   skills TEXT[] DEFAULT '{}', -- Mảng chuỗi: ['React', 'Rust']
-  socials JSONB DEFAULT '{}', -- { "github": "...", "twitter": "...", "telegram": "..." }
+  socials JSONB DEFAULT '{}', -- { "github": "...", "twitter": "...", "telegram": "...", "facebook": "..." }
   bank_info JSONB DEFAULT '{}', -- { "bankId": "970422", "accountNo": "000...", "accountName": "..." }
   email TEXT UNIQUE,
   google_id TEXT UNIQUE,
   auth_provider TEXT DEFAULT 'wallet' CHECK (auth_provider IN ('wallet', 'google', 'both')),
   email_verified BOOLEAN DEFAULT false,
   academy_access BOOLEAN DEFAULT true,
+  profile_completed BOOLEAN DEFAULT true,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -109,6 +110,7 @@ CREATE TABLE bounties (
   difficulty TEXT CHECK (difficulty IN ('Easy', 'Medium', 'Hard')),
   tags TEXT[] DEFAULT '{}',
   status TEXT DEFAULT 'Open' CHECK (status IN ('Open', 'In Progress', 'Completed', 'Closed')),
+  submit_link TEXT,
   created_by TEXT REFERENCES members(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -133,11 +135,11 @@ CREATE TABLE repos (
 CREATE TABLE resources (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
-  type TEXT CHECK (type IN ('Link', 'Document', 'Video')),
+  type TEXT CHECK (type IN ('Drive', 'Doc', 'Link', 'Document', 'Video')),
   url TEXT NOT NULL,
   size TEXT,
   status TEXT NOT NULL DEFAULT 'Published' CHECK (status IN ('Draft', 'Published', 'Archived')),
-  category TEXT CHECK (category IN ('Learning', 'Media', 'Tools', 'Research')),
+  category TEXT CHECK (category IN ('Learning', 'Training', 'Document', 'Media', 'Hackathon', 'Tools', 'Research')),
   created_by TEXT REFERENCES members(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

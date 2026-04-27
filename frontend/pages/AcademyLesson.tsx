@@ -1,14 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, CheckCircle2, Trophy } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Trophy, Terminal, Info, Code } from 'lucide-react';
 
 import { TRACKS, lessonsByTrack, findLesson, type TrackId } from '@/lib/academy/curriculum';
 import { renderMd } from '@/lib/academy/md';
-import LessonAnimation from '@/components/academy/LessonAnimation';
-import { Card } from '@/components/academy/ui/Card';
-import { Badge } from '@/components/academy/ui/Badge';
-import { Button } from '@/components/academy/ui/Button';
-import { trackStyle } from '@/components/academy/ui/trackStyle';
 import {
   loadProgress,
   saveProgress,
@@ -65,7 +60,7 @@ export function AcademyLesson() {
   const { currentUser, walletAddress, authMethod, authToken } = useStore();
 
   if (!isTrackId(params.track) || !params.lesson) {
-    return <div className="text-center py-20 text-slate-400">Lesson not found</div>;
+    return <div className="text-center py-20 text-white/40 font-mono tracking-widest uppercase">Lesson not found</div>;
   }
 
   const track = params.track;
@@ -84,6 +79,7 @@ export function AcademyLesson() {
   const [err, setErr] = useState('');
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submittedQ, setSubmittedQ] = useState<Record<string, boolean>>({});
+  const [currentStep, setCurrentStep] = useState(0);
 
   const apiBase = (import.meta as any).env.VITE_API_BASE_URL || '';
 
@@ -169,6 +165,7 @@ export function AcademyLesson() {
     setAnswers({});
     setSubmittedQ({});
     setErr('');
+    setCurrentStep(0); // Reset step on lesson change
   }, [identity, track, lessonId]);
 
   useEffect(() => {
@@ -265,8 +262,11 @@ export function AcademyLesson() {
   const next = idx >= 0 && idx < list.length - 1 ? list[idx + 1] : null;
 
   if (!lesson) {
-    return <div className="text-center py-20 text-slate-400">Lesson not found</div>;
+    return <div className="text-center py-20 text-white/40 font-mono tracking-widest uppercase">Lesson not found</div>;
   }
+
+  const totalSteps = 1 + (lesson.quiz ? lesson.quiz.length : 0);
+  const progressPercentage = totalSteps > 1 ? (currentStep / (totalSteps - 1)) * 100 : 100;
 
   const quizPassed = isQuizPassed(state, track, lessonId);
   const lessonDone = isLessonCompleted(state, track, lessonId);
@@ -303,7 +303,7 @@ export function AcademyLesson() {
     setErr('');
     setSubmittedQ((prevSubmitted) => ({ ...prevSubmitted, [questionId]: true }));
     if (!isCorrect(questionId)) {
-      setErr('Incorrect answer highlighted in red. Fix it and resubmit.');
+      setErr('SYS_ERROR: INCORRECT_DATA. RECALIBRATE AND RETRY.');
     }
   }
 
@@ -311,17 +311,19 @@ export function AcademyLesson() {
     setErr('');
 
     if (lessonDone) {
+      if (next) navigate(`/academy/learn/${track}/${next.id}`);
       return;
     }
 
-    if (!allSubmitted) {
-      setErr('Submit each question first.');
-      return;
-    }
-
-    if (!allCorrect) {
-      setErr('Some answers are still incorrect. Fix them and resubmit.');
-      return;
+    if (lesson.quiz.length > 0) {
+      if (!allSubmitted) {
+        setErr('ERROR: PENDING_SUBMISSIONS_DETECTED.');
+        return;
+      }
+      if (!allCorrect) {
+        setErr('ERROR: INVALID_PARAMETERS. FIX BEFORE CONTINUING.');
+        return;
+      }
     }
 
     try {
@@ -329,207 +331,219 @@ export function AcademyLesson() {
       const updatedQuiz = markQuizPassed(state, track, lessonId);
       const updatedLesson = markLessonComplete(updatedQuiz, track, lessonId);
       persistProgress(updatedLesson);
+      if (next) navigate(`/academy/learn/${track}/${next.id}`);
     } finally {
       setBusyFinish(false);
     }
   }
 
-  const style = trackStyle(track);
   const trackTitle = TRACKS.find((item) => item.id === track)?.title || track;
+  const currentQuizData = currentStep > 0 ? lesson.quiz[currentStep - 1] : null;
 
   return (
-    <div className="space-y-6 academy-scope">
-      <div className="flex items-center gap-2 text-sm text-slate-400">
-        <Link to={`/academy/track/${track}`} className="flex items-center hover:text-white transition-colors">
-          <ArrowLeft className="w-4 h-4 mr-1" /> Back to {trackTitle}
-        </Link>
-        <span className="text-slate-600">/</span>
-        <span className="text-slate-200 font-medium truncate">{lesson.title}</span>
+    <div className="space-y-8 pb-32 max-w-4xl mx-auto px-4 mt-8">
+      {/* Progress Bar & Header */}
+      <div className="flex flex-col gap-4 sticky top-4 z-50 bg-black/80 backdrop-blur-md p-4 border border-cyber-blue/30 rounded-lg cyber-clip-bottom shadow-[0_0_20px_rgba(41,121,255,0.1)]">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => navigate(`/academy/track/${track}`)}
+            className="flex items-center justify-center w-10 h-10 border border-cyber-blue/50 text-cyber-blue hover:bg-cyber-blue hover:text-black transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+
+          {/* Progress Bar */}
+          <div className="flex-1 mx-6 h-2 bg-black border border-cyber-blue/20 overflow-hidden relative">
+            <div
+              className="absolute top-0 left-0 h-full bg-cyber-blue transition-all duration-500 ease-out shadow-[0_0_10px_rgba(41,121,255,1)]"
+              style={{ width: `${progressPercentage}%` }}
+            />
+          </div>
+
+          <div className="text-cyber-blue font-mono font-bold tracking-widest text-xs flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-cyber-yellow" />
+            <span className="hidden sm:inline">STREAK: </span>{currentUser?.streak || 0}
+          </div>
+        </div>
+        <div className="flex justify-between items-center text-[10px] font-mono text-white/50 uppercase tracking-widest px-2">
+          <span>{trackTitle}</span>
+          <span>PHASE {currentStep + 1}/{totalSteps}</span>
+        </div>
       </div>
 
-      <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-4 py-3 text-xs text-slate-300">
-        {currentUser
-          ? `Synced account: ${currentUser.name} (${currentUser.id}) via ${authMethod || 'wallet'}`
-          : 'Guest mode active: your progress stays on this browser until you sign in.'}
-        {walletAddress ? ` Wallet: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}.` : ''}
-      </div>
+      <div className="bg-[#050B14]/90 backdrop-blur-xl border border-white/20 p-6 sm:p-10 shadow-[0_0_30px_rgba(41,121,255,0.05)] relative min-h-[60vh] flex flex-col">
+        {err && (
+          <div className="mb-6 border border-red-500/50 bg-red-500/10 px-5 py-4 text-red-500 text-xs font-mono font-bold uppercase tracking-widest flex items-center gap-3 animate-pulse">
+            <Terminal size={14} className="shrink-0" /> {err}
+          </div>
+        )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-8 space-y-8">
-          <Card hoverEffect={false} className="bg-[#1a1d2d]/90">
-            {['m1-blockchain-as-a-computer', 'm2-identity-and-authentication', 'm3-consensus-input-not-memory', 'm4-account-file', 'm5-program-library', 'm7-coding-with-claude'].includes(lessonId) ? (
-              <div className="mb-8">
-                <LessonAnimation lessonId={lessonId} />
-              </div>
-            ) : null}
+        {/* Step 0: Theory */}
+        {currentStep === 0 && (
+          <div className="flex-grow animate-in slide-in-from-right-8 duration-500 fade-in">
+            <h1 className="text-3xl sm:text-5xl font-display font-bold text-white mb-6 tracking-widest leading-tight uppercase drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+              {lesson.title}
+            </h1>
 
-            <h1 className="text-3xl font-bold font-display text-white mb-4">{lesson.title}</h1>
-
-            <div className="flex flex-wrap gap-2 mb-8">
-              <Badge variant="outline" className="border-slate-600 text-slate-300">
-                {lesson.minutes} min
-              </Badge>
-              <Badge className={`border ${style.badge} bg-transparent`}>Level: {trackTitle}</Badge>
-              <Badge variant="neutral">{lesson.quiz.length} Questions</Badge>
-              {quizPassed ? <Badge variant="neutral">Quiz passed</Badge> : <Badge variant="neutral">Quiz pending</Badge>}
+            <div className="prose prose-invert prose-p:text-white/80 prose-headings:font-display prose-headings:font-bold prose-headings:tracking-wider prose-headings:uppercase prose-a:text-cyber-blue prose-a:no-underline hover:prose-a:underline max-w-none text-base sm:text-lg leading-relaxed font-sans mb-8">
+              {renderMd(lesson.content.md)}
             </div>
 
-            <div className="space-y-2">{renderMd(lesson.content.md)}</div>
-
             {lesson.content.callouts?.length ? (
-              <div className="mt-8 grid grid-cols-1 gap-3">
+              <div className="mt-8 mb-8 grid grid-cols-1 gap-4">
                 {lesson.content.callouts.map((callout) => (
-                  <div key={callout.title} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                    <div className="font-bold text-white font-display">{callout.title}</div>
-                    <div className="mt-1 text-sm text-slate-300">{callout.body}</div>
+                  <div key={callout.title} className="bg-cyber-blue/5 border-l-4 border-cyber-blue p-5 relative overflow-hidden">
+                    <div className="font-display font-bold text-cyber-blue uppercase tracking-widest text-sm flex items-center gap-2 mb-2">
+                       <Terminal size={14} /> {callout.title}
+                    </div>
+                    <div className="text-sm sm:text-base text-white/70 leading-relaxed font-mono relative z-10">{callout.body}</div>
                   </div>
                 ))}
               </div>
             ) : null}
-          </Card>
-
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold font-display text-white flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-amber-500" /> Knowledge Check
-            </h2>
-
-            {lesson.quiz.map((question) => {
-              const submitted = !!submittedQ[question.id];
-              const correct = answers[question.id] === question.correctChoiceId;
-
-              return (
-                <Card key={question.id} hoverEffect={false} className="border-l-4 border-l-slate-700 overflow-hidden bg-[#1a1d2d]/80">
-                  <h3 className="font-bold text-lg mb-4 text-white font-display">{question.prompt}</h3>
-
-                  <div className="space-y-2 mb-6">
-                    {question.choices.map((choice) => {
-                      const selected = answers[question.id] === choice.id;
-                      const isChoiceCorrect = choice.id === question.correctChoiceId;
-
-                      let className = 'border-slate-700 hover:bg-slate-700/50 text-slate-300';
-                      if (submitted) {
-                        if (isChoiceCorrect) {
-                          className = 'bg-emerald-500/10 border-emerald-500/50 ring-1 ring-emerald-500/50 text-emerald-300';
-                        } else if (selected && !isChoiceCorrect) {
-                          className = 'bg-rose-500/10 border-rose-500/50 ring-1 ring-rose-500/50 text-rose-300 opacity-80';
-                        } else {
-                          className = 'opacity-40 bg-slate-800/50 border-slate-700';
-                        }
-                      } else if (selected) {
-                        className = 'border-indigo-500 ring-1 ring-indigo-500 bg-indigo-500/10 text-indigo-200';
-                      }
-
-                      return (
-                        <button
-                          key={choice.id}
-                          onClick={() => {
-                            setErr('');
-                            setAnswers((prevAnswers) => ({ ...prevAnswers, [question.id]: choice.id }));
-                            if (submittedQ[question.id]) {
-                              setSubmittedQ((prevSubmitted) => ({ ...prevSubmitted, [question.id]: false }));
-                            }
-                          }}
-                          className={`w-full text-left p-3 rounded-xl border cursor-pointer transition-all flex items-center ${className}`}
-                        >
-                          <div
-                            className={`w-4 h-4 rounded-full border mr-3 flex items-center justify-center flex-shrink-0 ${
-                              submitted && isChoiceCorrect
-                                ? 'border-emerald-500 bg-emerald-500'
-                                : selected && !submitted
-                                  ? 'border-indigo-500'
-                                  : 'border-slate-500'
-                            }`}
-                          >
-                            {submitted && isChoiceCorrect ? <CheckCircle2 className="w-3 h-3 text-white" /> : null}
-                          </div>
-                          <span className="text-sm font-medium">{choice.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {!submitted ? (
-                    <Button onClick={() => submitQuestion(question.id)} disabled={!answers[question.id]} size="sm" variant="primary">
-                      Submit Answer
-                    </Button>
-                  ) : (
-                    <div
-                      className={`p-4 rounded-xl text-sm ${
-                        correct
-                          ? 'bg-emerald-500/10 text-emerald-200 border border-emerald-500/20'
-                          : 'bg-rose-500/10 text-rose-200 border border-rose-500/20'
-                      }`}
-                    >
-                      <p className="font-bold mb-1">{correct ? 'Correct!' : 'Incorrect'}</p>
-                      <p>{question.explanation}</p>
-                    </div>
-                  )}
-                </Card>
-              );
-            })}
-
-            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between pt-2">
-              <div className="flex gap-2">
-                {prev ? (
-                  <Button variant="outline" size="sm" onClick={() => navigate(`/academy/learn/${track}/${prev.id}`)}>
-                    <ArrowLeft className="w-4 h-4 mr-1" /> Prev
-                  </Button>
-                ) : null}
-                {next ? (
-                  <Button variant="outline" size="sm" onClick={() => navigate(`/academy/learn/${track}/${next.id}`)}>
-                    Next <ArrowRight className="w-4 h-4 ml-1" />
-                  </Button>
-                ) : null}
-              </div>
-
-              <Button onClick={finishLesson} disabled={lessonDone || busyFinish || !allSubmitted || !allCorrect} variant="primary" size="sm">
-                {lessonDone ? 'Lesson completed' : busyFinish ? 'Finishing...' : 'Finish lesson'} <ArrowRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
-
-            {err ? (
-              <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-rose-200 text-sm break-words">
-                {err}
-              </div>
-            ) : null}
           </div>
-        </div>
+        )}
 
-        <div className="lg:col-span-4 space-y-6">
-          <Card className="sticky top-28 border-indigo-500/20 bg-indigo-900/10 backdrop-blur-md" hoverEffect={false}>
-            <h3 className="font-bold text-white font-display mb-4 flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-indigo-400" /> Lesson Checklist
-            </h3>
+        {/* Step N: Quiz Questions */}
+        {currentStep > 0 && currentQuizData && (() => {
+          const submitted = !!submittedQ[currentQuizData.id];
+          const correct = answers[currentQuizData.id] === currentQuizData.correctChoiceId;
 
-            <ul className="space-y-3 mb-6">
-              {[
-                { label: 'Read the lesson', done: cl0 },
-                { label: 'Submit all quiz questions', done: allSubmitted },
-                { label: 'Get all answers correct (to finish)', done: allCorrect || lessonDone },
-              ].map((item) => (
-                <li key={item.label} className="flex items-start gap-3 text-sm text-slate-300">
-                  <div
-                    className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 border ${
-                      item.done
-                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-                        : 'bg-white/5 border-slate-700 text-slate-600'
-                    }`}
-                  >
-                    <CheckCircle2 className="w-3 h-3" />
-                  </div>
-                  <span className={item.done ? 'text-slate-200' : 'text-slate-400'}>{item.label}</span>
-                </li>
-              ))}
-            </ul>
+          return (
+            <div className="flex-grow animate-in slide-in-from-right-8 duration-500 fade-in flex flex-col justify-center">
+              <h2 className="text-2xl font-display font-bold text-white uppercase tracking-widest flex items-center gap-3 border-b border-cyber-blue/20 pb-4 mb-8">
+                <Code className="w-5 h-5 text-cyber-blue" /> EXAM_QUERY [{currentStep}/{lesson.quiz.length}]
+              </h2>
 
-            <div className="text-xs text-slate-500 mb-6">
-              Finish is enabled only after you submit every question and all answers are correct.
+              <h3 className="font-mono font-bold text-lg mb-8 text-white leading-relaxed">
+                {currentQuizData.prompt}
+              </h3>
+
+              <div className="space-y-4 mb-8 font-mono text-sm">
+                {currentQuizData.choices.map((choice) => {
+                  const selected = answers[currentQuizData.id] === choice.id;
+                  const isChoiceCorrect = choice.id === currentQuizData.correctChoiceId;
+
+                  let className = 'border-white/10 hover:border-cyber-blue/50 text-white/70 bg-black/40';
+                  if (submitted) {
+                    if (isChoiceCorrect) {
+                      className = 'bg-cyber-blue/20 border-cyber-blue text-cyber-blue shadow-[0_0_15px_rgba(41,121,255,0.2)]';
+                    } else if (selected && !isChoiceCorrect) {
+                      className = 'bg-cyber-yellow/10 border-cyber-yellow text-cyber-yellow shadow-[0_0_15px_rgba(255,214,0,0.2)]';
+                    } else {
+                      className = 'opacity-40 bg-black/60 border-white/5';
+                    }
+                  } else if (selected) {
+                    className = 'border-cyber-blue bg-cyber-blue/10 text-white shadow-[0_0_10px_rgba(41,121,255,0.2)]';
+                  }
+
+                  return (
+                    <button
+                      key={choice.id}
+                      onClick={() => {
+                        setErr('');
+                        setAnswers((prevAnswers) => ({ ...prevAnswers, [currentQuizData.id]: choice.id }));
+                        if (submittedQ[currentQuizData.id]) {
+                          setSubmittedQ((prevSubmitted) => ({ ...prevSubmitted, [currentQuizData.id]: false }));
+                        }
+                      }}
+                      className={`w-full text-left p-5 border cursor-pointer transition-all flex items-start sm:items-center text-base ${className}`}
+                    >
+                      <div
+                        className={`w-5 h-5 mt-0.5 sm:mt-0 font-bold border mr-4 flex items-center justify-center flex-shrink-0 transition-colors ${
+                          submitted && isChoiceCorrect
+                            ? 'border-cyber-blue bg-cyber-blue'
+                            : selected && !submitted
+                              ? 'border-cyber-blue bg-cyber-blue'
+                              : 'border-white/20'
+                        }`}
+                      >
+                      </div>
+                      <span className="leading-relaxed">{choice.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {submitted && (
+                <div
+                  className={`p-6 text-sm font-mono border animate-in zoom-in-95 duration-300 ${
+                    correct
+                      ? 'bg-cyber-blue/10 text-cyber-blue border-cyber-blue shadow-[inset_0_0_20px_rgba(41,121,255,0.1)]'
+                      : 'bg-cyber-yellow/10 text-cyber-yellow border-cyber-yellow shadow-[inset_0_0_20px_rgba(255,214,0,0.1)]'
+                  }`}
+                >
+                  <p className="font-bold uppercase tracking-widest mb-2 flex items-center gap-2 text-lg">
+                    <Terminal size={20} />
+                    {correct ? 'VALID_RESPONSE' : 'INVALID_RESPONSE'}
+                  </p>
+                  <p className="opacity-90 leading-relaxed text-sm text-white/80">{currentQuizData.explanation}</p>
+                </div>
+              )}
             </div>
+          );
+        })()}
 
-            <Button fullWidth variant="primary" onClick={finishLesson} disabled={lessonDone || busyFinish || !allSubmitted || !allCorrect}>
-              {lessonDone ? 'Lesson completed' : busyFinish ? 'Finishing...' : 'Finish Lesson'}
-            </Button>
-          </Card>
+        {/* Action Bottom Bar */}
+        <div className="mt-auto pt-8 border-t border-cyber-blue/20 flex justify-end">
+          {currentStep === 0 ? (
+            <button
+              onClick={() => {
+                if (lesson.quiz.length > 0) {
+                  setCurrentStep(1);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                  finishLesson();
+                }
+              }}
+              className="w-full sm:w-auto px-8 py-4 bg-cyber-blue text-black font-display font-bold uppercase tracking-widest text-sm hover:bg-white transition-all shadow-[0_0_15px_rgba(41,121,255,0.4)] flex justify-center items-center gap-2"
+            >
+              {lesson.quiz.length > 0 ? 'START EXAM MODULE' : 'FINALIZE MODULE'} <ArrowRight className="w-5 h-5" />
+            </button>
+          ) : currentQuizData && (
+            (() => {
+              const submitted = !!submittedQ[currentQuizData.id];
+              const correct = answers[currentQuizData.id] === currentQuizData.correctChoiceId;
+              const hasSelected = !!answers[currentQuizData.id];
+
+              if (!submitted || !correct) {
+                return (
+                  <button
+                    onClick={() => submitQuestion(currentQuizData.id)}
+                    disabled={!hasSelected}
+                    className="w-full sm:w-auto px-8 py-4 bg-black border border-cyber-blue text-cyber-blue font-display font-bold uppercase tracking-widest text-sm hover:bg-cyber-blue hover:text-black transition-all shadow-[0_0_10px_rgba(41,121,255,0.2)] disabled:opacity-50 disabled:hover:bg-black disabled:hover:text-cyber-blue disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                  >
+                    EXECUTE QUERY
+                  </button>
+                );
+              } else {
+                // Submitted array correct
+                if (currentStep < totalSteps - 1) {
+                  return (
+                    <button
+                      onClick={() => {
+                        setCurrentStep(prev => prev + 1);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="w-full sm:w-auto px-8 py-4 bg-cyber-blue text-black font-display font-bold uppercase tracking-widest text-sm hover:bg-white transition-all shadow-[0_0_15px_rgba(41,121,255,0.4)] flex justify-center items-center gap-2"
+                    >
+                      NEXT QUERY <ArrowRight className="w-5 h-5" />
+                    </button>
+                  );
+                } else {
+                  return (
+                    <button
+                      onClick={finishLesson}
+                      disabled={busyFinish}
+                      className="w-full sm:w-auto px-8 py-4 bg-cyber-blue text-black font-display font-bold uppercase tracking-widest text-sm hover:bg-white transition-all shadow-[0_0_15px_rgba(41,121,255,0.4)] disabled:opacity-50 flex justify-center items-center gap-2"
+                    >
+                      {busyFinish ? 'SAVING...' : 'FINALIZE MODULE'} <CheckCircle2 className="w-5 h-5" />
+                    </button>
+                  );
+                }
+              }
+            })()
+          )}
         </div>
       </div>
     </div>

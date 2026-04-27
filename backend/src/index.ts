@@ -3,7 +3,6 @@ import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import passport from "passport";
-import { createClient } from "@supabase/supabase-js";
 import { mockDb } from "./mockDb";
 
 // Import routes
@@ -29,13 +28,19 @@ const PORT = process.env.PORT || 3001;
 // Initialize Supabase client (only if not using mock DB)
 const USE_MOCK_DB = process.env.USE_MOCK_DB === 'true';
 
-// Only create Supabase client when not in mock mode
-export const supabase = USE_MOCK_DB
-  ? null
-  : createClient(
+let supabaseClient: any = null;
+
+// Only load and create Supabase client when not in mock mode.
+// This keeps local mock development independent from Supabase SDK startup.
+if (!USE_MOCK_DB) {
+  const { createClient } = require("@supabase/supabase-js") as typeof import("@supabase/supabase-js");
+  supabaseClient = createClient(
     process.env.SUPABASE_URL || "",
     process.env.SUPABASE_ANON_KEY || ""
   );
+}
+
+export const supabase = supabaseClient;
 
 // Export db that switches between mockDb and supabase based on environment
 export const db = (USE_MOCK_DB ? mockDb : supabase) as any;

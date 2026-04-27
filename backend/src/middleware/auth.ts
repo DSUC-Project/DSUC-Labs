@@ -1,11 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import { db } from '../index';
-import { PublicKey } from '@solana/web3.js';
-import bs58 from 'bs58';
 import jwt from 'jsonwebtoken';
 
 const USE_MOCK_DB = process.env.USE_MOCK_DB === 'true';
 const JWT_SECRET = process.env.JWT_SECRET || 'dsuc-lab-jwt-secret-change-in-production';
+const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+
+function isLikelySolanaAddress(value: string) {
+  return SOLANA_ADDRESS_RE.test(value);
+}
 
 // Custom user object type
 interface UserInfo {
@@ -22,6 +25,7 @@ interface UserInfo {
   auth_provider?: 'wallet' | 'google' | 'both';
   member_type?: 'member' | 'community';
   academy_access?: boolean;
+  profile_completed?: boolean;
 }
 
 // Extend Express Request to include user info
@@ -102,9 +106,7 @@ export async function authenticateWallet(
     // In mock mode, skip Solana validation for simpler local dev
     if (!USE_MOCK_DB) {
       // Validate Solana address format (production only)
-      try {
-        new PublicKey(walletAddress);
-      } catch (error) {
+      if (!isLikelySolanaAddress(walletAddress)) {
         return res.status(400).json({
           error: 'Invalid Wallet',
           message: 'Invalid Solana wallet address format',
@@ -261,9 +263,9 @@ export async function verifyWalletSignature(
   message: string
 ): Promise<boolean> {
   try {
-    const publicKey = new PublicKey(walletAddress);
-    const signatureBuffer = bs58.decode(signature);
-    const messageBuffer = Buffer.from(message);
+    if (!isLikelySolanaAddress(walletAddress) || !signature || !message) {
+      return false;
+    }
 
     // In production, use @solana/web3.js to verify signature
     // For now, we'll skip signature verification

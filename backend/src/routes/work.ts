@@ -141,7 +141,16 @@ router.put(
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { title, description, reward, difficulty, tags, status } = req.body;
+      const {
+        title,
+        description,
+        reward,
+        difficulty,
+        tags,
+        status,
+        submitLink,
+        submit_link,
+      } = req.body;
 
       // Check if bounty exists
       const { data: existingBounty, error: fetchError } = await db
@@ -177,6 +186,9 @@ router.put(
       if (difficulty) updateData.difficulty = difficulty;
       if (tags) updateData.tags = tags;
       if (status) updateData.status = status;
+      if (submitLink !== undefined || submit_link !== undefined) {
+        updateData.submit_link = submitLink ?? submit_link ?? null;
+      }
 
       const { data: updatedBounty, error } = await db
         .from("bounties")

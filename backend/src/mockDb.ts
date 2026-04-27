@@ -17,6 +17,7 @@ export interface Member {
   google_id?: string | null;
   auth_provider?: 'wallet' | 'google' | 'both';
   email_verified?: boolean;
+  profile_completed?: boolean;
 }
 
 export interface Project {

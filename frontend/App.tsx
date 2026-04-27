@@ -11,6 +11,8 @@ import { MyProfile } from './pages/MyProfile';
 import { Events } from './pages/Events';
 import { Finance } from './pages/Finance';
 import { Work } from './pages/Work';
+import { Leaderboard } from './pages/Leaderboard';
+import { Meet } from './pages/Meet';
 import { Resources } from './pages/Resources';
 import { Projects } from './pages/Projects';
 import { ProjectDetail } from './pages/ProjectDetail';
@@ -55,6 +57,8 @@ function AnimatedRoutes() {
           <Route path="/events" element={<Events />} />
           <Route path="/finance" element={isOfficialMember ? <Finance /> : <Navigate to="/home" replace />} />
           <Route path="/work" element={<Work />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/meet" element={<Meet />} />
           <Route path="/resources" element={<Resources />} />
           <Route path="/admin" element={isAdmin ? <Admin /> : <Navigate to="/home" replace />} />
           <Route

@@ -11,6 +11,10 @@ import {
   uploadBase64ToSupabase,
   uploadBase64ToImageBB,
 } from "../middleware/upload";
+import {
+  attachAcademyStatsToMember,
+  attachAcademyStatsToMembers,
+} from "../utils/academyStats";
 
 const router = Router();
 
@@ -71,7 +75,9 @@ router.get("/", async (req: Request, res: Response) => {
       });
     }
 
-    const sortedMembers = sortMembers(members || []);
+    const sortedMembers = await attachAcademyStatsToMembers(
+      sortMembers(members || [])
+    );
 
     res.json({
       success: true,
@@ -114,7 +120,9 @@ router.get(
         });
       }
 
-      const sortedMembers = sortMembers(members || []);
+      const sortedMembers = await attachAcademyStatsToMembers(
+        sortMembers(members || [])
+      );
 
       res.json({
         success: true,
@@ -168,6 +176,8 @@ router.post(
         socials: req.body?.socials || {},
         bank_info: req.body?.bank_info || {},
         academy_access: req.body?.academy_access !== false,
+        profile_completed:
+          req.body?.profile_completed === true ? true : !email,
         is_active: req.body?.is_active !== false,
         email_verified: req.body?.email_verified === true,
         auth_provider: walletAddress && email ? "both" : walletAddress ? "wallet" : "google",
@@ -186,9 +196,11 @@ router.post(
         });
       }
 
+      const createdUserWithStats = await attachAcademyStatsToMember(createdUser);
+
       res.status(201).json({
         success: true,
-        data: createdUser,
+        data: createdUserWithStats,
         message: "User created successfully",
       });
     } catch (error: any) {
@@ -240,6 +252,9 @@ router.patch(
       if (req.body?.academy_access !== undefined) {
         updateData.academy_access = req.body.academy_access === true;
       }
+      if (req.body?.profile_completed !== undefined) {
+        updateData.profile_completed = req.body.profile_completed === true;
+      }
       if (req.body?.is_active !== undefined) {
         updateData.is_active = req.body.is_active === true;
       }
@@ -262,10 +277,70 @@ router.patch(
         });
       }
 
+      const updatedMemberWithStats = await attachAcademyStatsToMember(updatedMember);
+
       res.json({
         success: true,
-        data: updatedMember,
+        data: updatedMemberWithStats,
         message: "User updated successfully",
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        error: "Internal Server Error",
+        message: error.message,
+      });
+    }
+  }
+);
+
+router.delete(
+  "/admin/users/:id",
+  authenticateUser as any,
+  requireExecutiveAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      if (req.user?.id === id) {
+        return res.status(400).json({
+          error: "Bad Request",
+          message: "You cannot delete your own account from admin",
+        });
+      }
+
+      const { data: existingMember, error: fetchError } = await db
+        .from("members")
+        .select("id")
+        .eq("id", id)
+        .single();
+
+      if (fetchError || !existingMember) {
+        return res.status(404).json({
+          error: "Not Found",
+          message: "User not found",
+        });
+      }
+
+      await Promise.all([
+        db.from("events").update({ created_by: null }).eq("created_by", id),
+        db.from("projects").update({ created_by: null }).eq("created_by", id),
+        db.from("resources").update({ created_by: null }).eq("created_by", id),
+        db.from("bounties").update({ created_by: null }).eq("created_by", id),
+        db.from("repos").update({ created_by: null }).eq("created_by", id),
+      ]);
+
+      const { error } = await db.from("members").delete().eq("id", id);
+
+      if (error) {
+        return res.status(500).json({
+          error: "Database Error",
+          message: error.message,
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "User deleted successfully",
       });
     } catch (error: any) {
       res.status(500).json({
@@ -295,9 +370,11 @@ router.get("/:id", async (req: Request, res: Response) => {
       });
     }
 
+    const memberWithStats = await attachAcademyStatsToMember(member);
+
     res.json({
       success: true,
-      data: member,
+      data: memberWithStats,
     });
   } catch (error: any) {
     console.error("Error fetching member:", error);
@@ -335,9 +412,11 @@ router.post("/auth", async (req: Request, res: Response) => {
       });
     }
 
+    const memberWithStats = await attachAcademyStatsToMember(member);
+
     res.json({
       success: true,
-      data: member,
+      data: memberWithStats,
       message: "Authentication successful",
     });
   } catch (error: any) {
@@ -356,7 +435,15 @@ router.put(
   async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;
-      const { name, avatar, skills, socials, bankInfo, bank_info } =
+      const {
+        name,
+        avatar,
+        skills,
+        socials,
+        bankInfo,
+        bank_info,
+        profile_completed,
+      } =
         req.body;
 
       console.log(
@@ -386,6 +473,9 @@ router.put(
       if (name !== undefined) updateData.name = name;
       if (skills !== undefined) updateData.skills = skills;
       if (socials !== undefined) updateData.socials = socials;
+      if (profile_completed !== undefined) {
+        updateData.profile_completed = profile_completed === true;
+      }
       // Support both camelCase and snake_case
       if (bankInfo !== undefined) updateData.bank_info = bankInfo;
       if (bank_info !== undefined) updateData.bank_info = bank_info;
@@ -428,9 +518,11 @@ router.put(
         });
       }
 
+      const updatedMemberWithStats = await attachAcademyStatsToMember(updatedMember);
+
       res.json({
         success: true,
-        data: updatedMember,
+        data: updatedMemberWithStats,
         message: "Profile updated successfully",
       });
     } catch (error: any) {
@@ -462,9 +554,11 @@ router.get("/wallet/:wallet_address", async (req: Request, res: Response) => {
       });
     }
 
+    const memberWithStats = await attachAcademyStatsToMember(member);
+
     res.json({
       success: true,
-      data: member,
+      data: memberWithStats,
     });
   } catch (error: any) {
     console.error("Error fetching member:", error);

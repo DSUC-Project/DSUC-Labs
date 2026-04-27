@@ -16,6 +16,14 @@ const CONTENT_STATUS_OPTIONS: Record<string, string[]> = {
   bounties: ["Open", "In Progress", "Completed", "Closed"],
 };
 
+const DELETABLE_CONTENT_ENTITIES = new Set([
+  "events",
+  "projects",
+  "resources",
+  "repos",
+  "bounties",
+]);
+
 function sortByCreatedAtDesc(list: any[]) {
   return [...list].sort((a: any, b: any) => {
     const left = String(a.created_at || "");
@@ -127,6 +135,43 @@ router.patch(
         success: true,
         data: updatedRow,
         message: "Status updated successfully",
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        error: "Internal Server Error",
+        message: error.message,
+      });
+    }
+  }
+);
+
+router.delete(
+  "/content/:entity/:id",
+  authenticateUser as any,
+  requireExecutiveAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { entity, id } = req.params;
+
+      if (!DELETABLE_CONTENT_ENTITIES.has(entity)) {
+        return res.status(400).json({
+          error: "Bad Request",
+          message: "Unsupported entity for deletion",
+        });
+      }
+
+      const { error } = await db.from(entity as any).delete().eq("id", id);
+
+      if (error) {
+        return res.status(500).json({
+          error: "Database Error",
+          message: error.message,
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Record deleted successfully",
       });
     } catch (error: any) {
       res.status(500).json({

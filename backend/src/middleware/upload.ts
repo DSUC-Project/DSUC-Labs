@@ -1,12 +1,14 @@
-import multer from "multer";
+import type multer from "multer";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { supabase } from "../index";
 
 const USE_MOCK_DB = process.env.USE_MOCK_DB === 'true';
 
-// Configure multer for memory storage
-const storage = multer.memoryStorage();
+function getMulter(): typeof import("multer") {
+  const multerModule = require("multer") as typeof import("multer");
+  return (multerModule as any).default || multerModule;
+}
 
 // File filter
 const fileFilter = (
@@ -27,13 +29,25 @@ const fileFilter = (
   }
 };
 
-// Multer upload instance
-export const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+function createUpload() {
+  const multerInstance = getMulter();
+
+  return multerInstance({
+    storage: multerInstance.memoryStorage(),
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
+    fileFilter: fileFilter,
+  });
+}
+
+// Lazily initialize multer so JSON/base64 flows do not block local mock startup.
+export const upload = new Proxy({} as ReturnType<typeof createUpload>, {
+  get(_target, prop) {
+    const instance = createUpload() as any;
+    const value = instance[prop as keyof typeof instance];
+    return typeof value === "function" ? value.bind(instance) : value;
   },
-  fileFilter: fileFilter,
 });
 
 // Helper function to upload file to Supabase Storage

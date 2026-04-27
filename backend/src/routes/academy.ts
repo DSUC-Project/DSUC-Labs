@@ -6,6 +6,7 @@ import {
   requireAcademyAccess,
   requireExecutiveAdmin,
 } from '../middleware/auth';
+import { calculateLearningStreak } from '../utils/academyStats';
 
 const router = Router();
 
@@ -77,16 +78,21 @@ router.get(
   requireExecutiveAdmin,
   async (req: AuthRequest, res: Response) => {
     try {
-      const [{ data: members, error: membersError }, { data: rows, error: rowsError }] =
+      const [
+        { data: members, error: membersError },
+        { data: rows, error: rowsError },
+        { data: activityRows, error: activityError },
+      ] =
         await Promise.all([
           db.from('members').select('*'),
           db.from('academy_progress').select('*'),
+          db.from('academy_activity').select('*'),
         ]);
 
-      if (membersError || rowsError) {
+      if (membersError || rowsError || activityError) {
         return res.status(500).json({
           error: 'Database Error',
-          message: membersError?.message || rowsError?.message,
+          message: membersError?.message || rowsError?.message || activityError?.message,
         });
       }
 
@@ -97,8 +103,16 @@ router.get(
         rowsByUser.set(row.user_id, userRows);
       }
 
+      const activityByUser = new Map<string, any[]>();
+      for (const row of activityRows || []) {
+        const userRows = activityByUser.get(row.user_id) || [];
+        userRows.push(row);
+        activityByUser.set(row.user_id, userRows);
+      }
+
       const overview = (members || []).map((member: any) => {
         const userRows = rowsByUser.get(member.id) || [];
+        const userActivity = activityByUser.get(member.id) || [];
         const xp = userRows.reduce(
           (sum: number, row: any) => sum + Number(row.xp_awarded || 0),
           0
@@ -109,6 +123,7 @@ router.get(
         const quizPassed = userRows.filter((row: any) => row.quiz_passed).length;
         const lastActivity = userRows
           .map((row: any) => row.updated_at)
+          .concat(userActivity.map((row: any) => row.recorded_at))
           .filter(Boolean)
           .sort()
           .pop() || null;
@@ -122,6 +137,7 @@ router.get(
           xp,
           completed_lessons: completedLessons,
           quiz_passed: quizPassed,
+          streak: calculateLearningStreak(userActivity),
           last_activity: lastActivity,
         };
       });

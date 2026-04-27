@@ -5,6 +5,7 @@ import {
   Plus,
   RefreshCw,
   ShieldCheck,
+  Trash2,
   Users,
   XCircle,
 } from 'lucide-react';
@@ -107,6 +108,7 @@ export function Admin() {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [statusSavingKey, setStatusSavingKey] = useState<string | null>(null);
+  const [deletingKey, setDeletingKey] = useState<string | null>(null);
   const [financeActionId, setFinanceActionId] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState<EditableUser>({
     id: '',
@@ -308,6 +310,33 @@ export function Admin() {
     }
   };
 
+  const deleteUser = async (id: string, name: string) => {
+    if (!window.confirm(`Delete user "${name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingKey(`user:${id}`);
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || '';
+      const res = await fetch(`${base}/api/members/admin/users/${id}`, {
+        method: 'DELETE',
+        headers,
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error?.message || 'Failed to delete user');
+      }
+
+      await refresh();
+    } catch (error: any) {
+      alert(error.message || 'Failed to delete user');
+    } finally {
+      setDeletingKey(null);
+    }
+  };
+
   const updateContentDraft = (entity: ContentEntity, id: string, status: string) => {
     setContentDrafts((prev) => ({
       ...prev,
@@ -341,6 +370,33 @@ export function Admin() {
       alert(error.message || 'Failed to update status');
     } finally {
       setStatusSavingKey(null);
+    }
+  };
+
+  const deleteContent = async (entity: ContentEntity, id: string, label: string) => {
+    if (!window.confirm(`Delete "${label}" from ${entity}? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingKey(`content:${entity}:${id}`);
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || '';
+      const res = await fetch(`${base}/api/admin/content/${entity}/${id}`, {
+        method: 'DELETE',
+        headers,
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error?.message || 'Failed to delete content');
+      }
+
+      await refresh();
+    } catch (error: any) {
+      alert(error.message || 'Failed to delete content');
+    } finally {
+      setDeletingKey(null);
     }
   };
 
@@ -529,13 +585,22 @@ export function Admin() {
                       ))
                     )}
                   </select>
-                  <button
-                    onClick={() => void saveUser(user.id)}
-                    disabled={savingId === user.id}
-                    className="bg-cyber-blue text-white hover:bg-white hover:text-black font-display font-bold py-3 cyber-button uppercase tracking-widest disabled:opacity-60"
-                  >
-                    {savingId === user.id ? 'Saving...' : 'Save'}
-                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => void saveUser(user.id)}
+                      disabled={savingId === user.id || deletingKey === `user:${user.id}`}
+                      className="bg-cyber-blue text-white hover:bg-white hover:text-black font-display font-bold py-3 cyber-button uppercase tracking-widest disabled:opacity-60"
+                    >
+                      {savingId === user.id ? 'Saving...' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => void deleteUser(user.id, draft?.name || user.name)}
+                      disabled={deletingKey === `user:${user.id}` || currentUser.id === user.id}
+                      className="bg-red-500/20 border border-red-500/30 text-red-300 hover:bg-red-500 hover:text-white font-display font-bold py-3 uppercase tracking-widest disabled:opacity-40"
+                    >
+                      {deletingKey === `user:${user.id}` ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-white/60">
@@ -560,6 +625,7 @@ export function Admin() {
                     Active
                   </label>
                   <span>ID: {user.id}</span>
+                  <span>Streak: {overview?.streak || user.streak || 0}</span>
                   <span>XP: {overview?.xp || 0}</span>
                   <span>Lessons: {overview?.completed_lessons || 0}</span>
                   <span>Quizzes: {overview?.quiz_passed || 0}</span>
@@ -592,8 +658,10 @@ export function Admin() {
           getTitle={(item) => `${item.title} • ${item.date}`}
           drafts={contentDrafts}
           savingKey={statusSavingKey}
+          deletingKey={deletingKey}
           onDraftChange={updateContentDraft}
           onSave={saveContentStatus}
+          onDelete={deleteContent}
         />
         <StatusSection
           title="Projects"
@@ -603,8 +671,10 @@ export function Admin() {
           getTitle={(item) => item.name}
           drafts={contentDrafts}
           savingKey={statusSavingKey}
+          deletingKey={deletingKey}
           onDraftChange={updateContentDraft}
           onSave={saveContentStatus}
+          onDelete={deleteContent}
         />
         <StatusSection
           title="Resources"
@@ -614,8 +684,10 @@ export function Admin() {
           getTitle={(item) => item.name}
           drafts={contentDrafts}
           savingKey={statusSavingKey}
+          deletingKey={deletingKey}
           onDraftChange={updateContentDraft}
           onSave={saveContentStatus}
+          onDelete={deleteContent}
         />
         <StatusSection
           title="Bounties"
@@ -625,8 +697,10 @@ export function Admin() {
           getTitle={(item) => item.title}
           drafts={contentDrafts}
           savingKey={statusSavingKey}
+          deletingKey={deletingKey}
           onDraftChange={updateContentDraft}
           onSave={saveContentStatus}
+          onDelete={deleteContent}
         />
         <StatusSection
           title="Open Source Repos"
@@ -636,8 +710,10 @@ export function Admin() {
           getTitle={(item) => item.name}
           drafts={contentDrafts}
           savingKey={statusSavingKey}
+          deletingKey={deletingKey}
           onDraftChange={updateContentDraft}
           onSave={saveContentStatus}
+          onDelete={deleteContent}
         />
       </section>
 
@@ -766,8 +842,10 @@ function StatusSection<T extends { id: string; status?: string }>({
   getTitle,
   drafts,
   savingKey,
+  deletingKey,
   onDraftChange,
   onSave,
+  onDelete,
 }: {
   title: string;
   entity: ContentEntity;
@@ -776,8 +854,10 @@ function StatusSection<T extends { id: string; status?: string }>({
   getTitle: (item: T) => string;
   drafts: Record<string, string>;
   savingKey: string | null;
+  deletingKey: string | null;
   onDraftChange: (entity: ContentEntity, id: string, status: string) => void;
   onSave: (entity: ContentEntity, id: string) => Promise<void>;
+  onDelete: (entity: ContentEntity, id: string, label: string) => Promise<void>;
 }) {
   return (
     <div className="cyber-card p-5 bg-surface/50 border border-white/10 space-y-4">
@@ -799,7 +879,7 @@ function StatusSection<T extends { id: string; status?: string }>({
             return (
               <div
                 key={item.id}
-                className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr),220px,120px] gap-3 items-center border border-white/10 bg-black/20 px-4 py-3"
+                className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr),220px,240px] gap-3 items-center border border-white/10 bg-black/20 px-4 py-3"
               >
                 <div className="min-w-0">
                   <div className="text-white font-display font-bold truncate">
@@ -820,13 +900,22 @@ function StatusSection<T extends { id: string; status?: string }>({
                   ))}
                 </select>
 
-                <button
-                  onClick={() => void onSave(entity, item.id)}
-                  disabled={savingKey === draftKey}
-                  className="bg-cyber-blue text-white hover:bg-white hover:text-black font-display font-bold py-3 cyber-button uppercase tracking-widest disabled:opacity-60"
-                >
-                  {savingKey === draftKey ? 'Saving...' : 'Save'}
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => void onSave(entity, item.id)}
+                    disabled={savingKey === draftKey || deletingKey === `content:${entity}:${item.id}`}
+                    className="bg-cyber-blue text-white hover:bg-white hover:text-black font-display font-bold py-3 cyber-button uppercase tracking-widest disabled:opacity-60"
+                  >
+                    {savingKey === draftKey ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => void onDelete(entity, item.id, getTitle(item))}
+                    disabled={deletingKey === `content:${entity}:${item.id}`}
+                    className="bg-red-500/20 border border-red-500/30 text-red-300 hover:bg-red-500 hover:text-white font-display font-bold py-3 uppercase tracking-widest disabled:opacity-40"
+                  >
+                    {deletingKey === `content:${entity}:${item.id}` ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
               </div>
             );
           })}
