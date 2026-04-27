@@ -22,7 +22,6 @@ import {
   Resource,
 } from '../types';
 import { useStore } from '../store/useStore';
-import { findLesson } from '../lib/academy/curriculum';
 
 type EditableUser = {
   id: string;
@@ -76,12 +75,7 @@ function buildAuthHeaders(token: string | null, walletAddress: string | null) {
 }
 
 function formatLessonLabel(activity: AcademyActivity) {
-  try {
-    const lesson = findLesson(activity.track as any, activity.lesson_id);
-    return lesson.title;
-  } catch {
-    return `${activity.track.toUpperCase()} / ${activity.lesson_id}`;
-  }
+  return `${String(activity.track || '').toUpperCase()} / ${activity.lesson_id}`;
 }
 
 function formatRequesterName(row: any) {

@@ -34,7 +34,7 @@ export interface Project {
 export interface AcademyProgress {
   id: string;
   user_id: string;
-  track: 'genin' | 'chunin' | 'jonin';
+  track: string;
   lesson_id: string;
   lesson_completed: boolean;
   quiz_passed: boolean;
@@ -47,7 +47,7 @@ export interface AcademyProgress {
 export interface AcademyActivity {
   id: string;
   user_id: string;
-  track: 'genin' | 'chunin' | 'jonin';
+  track: string;
   lesson_id: string;
   action: 'started' | 'checklist_updated' | 'lesson_completed' | 'quiz_passed' | 'progress_updated' | 'lesson_reviewed';
   lesson_completed: boolean;
@@ -59,7 +59,7 @@ export interface AcademyActivity {
 
 export interface AcademyQuestion {
   id: string;
-  track: 'genin' | 'chunin' | 'jonin';
+  track: string;
   lesson_id: string;
   prompt: string;
   choices: { id: string; label: string }[];
@@ -68,6 +68,45 @@ export interface AcademyQuestion {
   sort_order: number;
   status: 'Draft' | 'Published' | 'Archived';
   created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AcademyTrack {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  status: 'Draft' | 'Published' | 'Archived';
+  sort_order: number;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AcademyLesson {
+  id: string;
+  track: string;
+  lesson_id: string;
+  title: string;
+  minutes: number;
+  content_md: string;
+  callouts: any[];
+  status: 'Draft' | 'Published' | 'Archived';
+  sort_order: number;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminApiKey {
+  id: string;
+  name: string;
+  key_hash: string;
+  scopes: string[];
+  is_active: boolean;
+  created_by: string;
+  last_used_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -496,7 +535,10 @@ export const MOCK_DB = {
 
   academy_progress: [] as AcademyProgress[],
   academy_activity: [] as AcademyActivity[],
-  academy_questions: [] as AcademyQuestion[]
+  academy_questions: [] as AcademyQuestion[],
+  academy_tracks: [] as AcademyTrack[],
+  academy_lessons: [] as AcademyLesson[],
+  admin_api_keys: [] as AdminApiKey[]
 };
 
 // Helper to create chainable query builder

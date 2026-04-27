@@ -150,7 +150,7 @@ CREATE INDEX idx_resources_category ON resources(category);
 CREATE TABLE academy_progress (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id TEXT REFERENCES members(id) ON DELETE CASCADE,
-  track TEXT NOT NULL CHECK (track IN ('genin', 'chunin', 'jonin')),
+  track TEXT NOT NULL,
   lesson_id TEXT NOT NULL,
   lesson_completed BOOLEAN DEFAULT false,
   quiz_passed BOOLEAN DEFAULT false,
@@ -168,7 +168,7 @@ CREATE INDEX idx_academy_progress_track ON academy_progress(track);
 CREATE TABLE academy_activity (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id TEXT REFERENCES members(id) ON DELETE CASCADE,
-  track TEXT NOT NULL CHECK (track IN ('genin', 'chunin', 'jonin')),
+  track TEXT NOT NULL,
   lesson_id TEXT NOT NULL,
   action TEXT NOT NULL CHECK (action IN ('started', 'checklist_updated', 'lesson_completed', 'quiz_passed', 'progress_updated', 'lesson_reviewed')),
   lesson_completed BOOLEAN DEFAULT false,
@@ -184,7 +184,7 @@ CREATE INDEX idx_academy_activity_recorded_at ON academy_activity(recorded_at DE
 -- 10. Bảng Academy Questions (admin-managed quiz bank)
 CREATE TABLE academy_questions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  track TEXT NOT NULL CHECK (track IN ('genin', 'chunin', 'jonin')),
+  track TEXT NOT NULL,
   lesson_id TEXT NOT NULL,
   prompt TEXT NOT NULL,
   choices JSONB NOT NULL DEFAULT '[]'::jsonb,
@@ -199,6 +199,55 @@ CREATE TABLE academy_questions (
 
 CREATE INDEX idx_academy_questions_lesson ON academy_questions(track, lesson_id, status, sort_order);
 CREATE INDEX idx_academy_questions_status ON academy_questions(status);
+
+-- 11. Bảng Academy Tracks (dynamic, admin-managed)
+CREATE TABLE academy_tracks (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  subtitle TEXT DEFAULT '',
+  description TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'Published' CHECK (status IN ('Draft', 'Published', 'Archived')),
+  sort_order INT DEFAULT 0,
+  created_by TEXT REFERENCES members(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_academy_tracks_status_sort ON academy_tracks(status, sort_order);
+
+-- 12. Bảng Academy Lessons (dynamic, admin-managed)
+CREATE TABLE academy_lessons (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  track TEXT NOT NULL REFERENCES academy_tracks(id) ON DELETE CASCADE,
+  lesson_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  minutes INT DEFAULT 10,
+  content_md TEXT DEFAULT '',
+  callouts JSONB NOT NULL DEFAULT '[]'::jsonb,
+  status TEXT NOT NULL DEFAULT 'Published' CHECK (status IN ('Draft', 'Published', 'Archived')),
+  sort_order INT DEFAULT 0,
+  created_by TEXT REFERENCES members(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(track, lesson_id)
+);
+
+CREATE INDEX idx_academy_lessons_track_sort ON academy_lessons(track, status, sort_order);
+
+-- 13. Bảng Agent API Keys (admin-controlled automation access)
+CREATE TABLE admin_api_keys (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  key_hash TEXT NOT NULL UNIQUE,
+  scopes TEXT[] DEFAULT ARRAY['*']::TEXT[],
+  is_active BOOLEAN DEFAULT true,
+  created_by TEXT REFERENCES members(id),
+  last_used_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_admin_api_keys_active ON admin_api_keys(is_active);
 
 -- Function để tự động update updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -219,4 +268,16 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Trigger cho bảng academy_questions
 CREATE TRIGGER update_academy_questions_updated_at BEFORE UPDATE ON academy_questions
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Trigger cho bảng academy_tracks
+CREATE TRIGGER update_academy_tracks_updated_at BEFORE UPDATE ON academy_tracks
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Trigger cho bảng academy_lessons
+CREATE TRIGGER update_academy_lessons_updated_at BEFORE UPDATE ON academy_lessons
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Trigger cho bảng admin_api_keys
+CREATE TRIGGER update_admin_api_keys_updated_at BEFORE UPDATE ON admin_api_keys
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

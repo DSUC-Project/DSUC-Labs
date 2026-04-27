@@ -1,6 +1,4 @@
-import type { TrackId } from '@/lib/academy/curriculum';
-
-export function trackStyle(track: TrackId) {
+export function trackStyle(track: string) {
   if (track === 'genin') {
     return {
       gradient: 'from-emerald-400 via-cyan-400 to-indigo-400',

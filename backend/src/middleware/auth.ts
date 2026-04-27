@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { db } from '../index';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
 const USE_MOCK_DB = process.env.USE_MOCK_DB === 'true';
 const JWT_SECRET = process.env.JWT_SECRET || 'dsuc-lab-jwt-secret-change-in-production';
@@ -26,11 +27,13 @@ interface UserInfo {
   member_type?: 'member' | 'community';
   academy_access?: boolean;
   profile_completed?: boolean;
+  is_agent?: boolean;
 }
 
 // Extend Express Request to include user info
 export interface AuthRequest extends Request {
   user?: UserInfo;
+  agent_api_key_id?: string;
 }
 
 // Declare module to override Express User type
@@ -51,6 +54,26 @@ export interface JWTPayload {
   wallet_address?: string;
   iat?: number;
   exp?: number;
+}
+
+const AGENT_KEY_HEADER = 'x-dsuc-agent-key';
+
+function hashApiKey(rawKey: string) {
+  return crypto.createHash('sha256').update(rawKey).digest('hex');
+}
+
+function extractAgentApiKey(req: AuthRequest) {
+  const headerKey = String(req.headers[AGENT_KEY_HEADER] || '').trim();
+  if (headerKey) {
+    return headerKey;
+  }
+
+  const authHeader = String(req.headers.authorization || '').trim();
+  if (authHeader.startsWith('Agent ')) {
+    return authHeader.slice('Agent '.length).trim();
+  }
+
+  return '';
 }
 
 export function getMemberType(user?: UserInfo | null): 'member' | 'community' {
@@ -349,6 +372,75 @@ export async function authenticateUser(
   res: Response,
   next: NextFunction
 ) {
+  // Method 0: Agent API key (for automated admin operations)
+  const agentApiKey = extractAgentApiKey(req);
+  if (agentApiKey) {
+    try {
+      const keyHash = hashApiKey(agentApiKey);
+      const { data: keys, error } = await db
+        .from('admin_api_keys')
+        .select('*')
+        .eq('is_active', true);
+
+      if (error) {
+        return res.status(500).json({
+          error: 'Database Error',
+          message: error.message,
+        });
+      }
+
+      const keyRow = (keys || []).find(
+        (candidate: any) => String(candidate.key_hash || '') === keyHash
+      );
+
+      if (!keyRow) {
+        return res.status(401).json({
+          error: 'Unauthorized',
+          message: 'Invalid or inactive agent API key',
+        });
+      }
+
+      let agentUser: any = null;
+      if (keyRow.created_by) {
+        const query = db
+          .from('members')
+          .select('*')
+          .eq('id', keyRow.created_by);
+        const { data: member, error: memberError } = await (USE_MOCK_DB
+          ? query
+          : query.single());
+        if (!memberError) {
+          agentUser = USE_MOCK_DB
+            ? (Array.isArray(member) ? member[0] : member)
+            : member;
+        }
+      }
+
+      req.user = agentUser || {
+        id: keyRow.created_by || `agent-${keyRow.id}`,
+        name: keyRow.name || 'Agent Admin',
+        role: 'President',
+        member_type: 'member',
+        academy_access: true,
+        is_agent: true,
+      };
+      req.agent_api_key_id = keyRow.id;
+
+      // Non-blocking usage bookkeeping.
+      void db
+        .from('admin_api_keys')
+        .update({ last_used_at: new Date().toISOString() })
+        .eq('id', keyRow.id);
+
+      return next();
+    } catch (error: any) {
+      return res.status(500).json({
+        error: 'Authentication Failed',
+        message: error.message,
+      });
+    }
+  }
+
   // Method 1: Check wallet header (existing Solana wallet auth)
   const walletAddress = req.headers['x-wallet-address'] as string;
   if (walletAddress) {

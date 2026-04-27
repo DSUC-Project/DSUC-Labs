@@ -3,7 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, CheckCircle2, Code, Home, Sparkles, Trophy, Terminal } from 'lucide-react';
 
-import { TRACKS, lessonsByTrack, findLesson, type TrackId } from '@/lib/academy/curriculum';
+import type { AcademyTrackCatalog } from '@/types';
+import { normalizeAcademyCatalogTrack } from '@/lib/academy/catalog';
 import { renderMd } from '@/lib/academy/md';
 import {
   loadProgress,
@@ -56,12 +57,6 @@ const CONFETTI_PIECES = Array.from({ length: 36 }, (_, index) => ({
             : 'bg-white',
 }));
 
-const TRACK_GRADUATION_LABEL: Record<TrackId, string> = {
-  genin: 'Genin',
-  chunin: 'Chunin',
-  jonin: 'Jonin',
-};
-
 function rowsToProgressState(rows: any[]): ProgressState {
   const completedLessons: Record<string, boolean> = {};
   const quizPassed: Record<string, boolean> = {};
@@ -80,7 +75,6 @@ function rowsToProgressState(rows: any[]): ProgressState {
     }
 
     xp += Number(row.xp_awarded || 0);
-
     if (row.updated_at && String(row.updated_at) > updatedAt) {
       updatedAt = String(row.updated_at);
     }
@@ -95,8 +89,19 @@ function rowsToProgressState(rows: any[]): ProgressState {
   };
 }
 
-function isTrackId(value: string | undefined): value is TrackId {
-  return value === 'genin' || value === 'chunin' || value === 'jonin';
+function buildAuthHeaders(token: string | null, walletAddress: string | null, includeJson = false) {
+  const headers: Record<string, string> = {};
+  if (includeJson) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  } else if (walletAddress) {
+    headers['x-wallet-address'] = walletAddress;
+  }
+
+  return headers;
 }
 
 export function AcademyLesson() {
@@ -104,12 +109,15 @@ export function AcademyLesson() {
   const navigate = useNavigate();
   const { currentUser, walletAddress, authToken, fetchMembers, checkSession } = useStore();
 
-  if (!isTrackId(params.track) || !params.lesson) {
-    return <div className="text-center py-20 text-white/40 font-mono tracking-widest uppercase">Lesson not found</div>;
+  const track = String(params.track || '').trim();
+  const lessonId = String(params.lesson || '').trim();
+  if (!track || !lessonId) {
+    return (
+      <div className="py-20 text-center font-mono text-white/40 uppercase tracking-widest">
+        Lesson not found
+      </div>
+    );
   }
-
-  const track = params.track;
-  const lessonId = params.lesson;
 
   const identity = useMemo(
     () => ({
@@ -119,38 +127,56 @@ export function AcademyLesson() {
     [currentUser?.id, walletAddress]
   );
 
+  const apiBase = (import.meta as any).env.VITE_API_BASE_URL || '';
+  const storedAuthToken =
+    typeof window !== 'undefined' ? window.localStorage.getItem('auth_token') : null;
+  const effectiveAuthToken = authToken || storedAuthToken;
+  const authHeaders = useMemo(
+    () => buildAuthHeaders(effectiveAuthToken, walletAddress),
+    [effectiveAuthToken, walletAddress]
+  );
+  const jsonHeaders = useMemo(
+    () => buildAuthHeaders(effectiveAuthToken, walletAddress, true),
+    [effectiveAuthToken, walletAddress]
+  );
+  const canSyncRemote = !!currentUser;
+
   const [state, setState] = useState<ProgressState>(() => loadProgress(identity));
+  const [trackInfo, setTrackInfo] = useState<AcademyTrackCatalog | null>(null);
+  const [loadingCatalog, setLoadingCatalog] = useState(true);
   const [busyFinish, setBusyFinish] = useState(false);
   const [err, setErr] = useState('');
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submittedQ, setSubmittedQ] = useState<Record<string, boolean>>({});
   const [currentStep, setCurrentStep] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
-  const [dbQuestions, setDbQuestions] = useState<ReturnType<typeof rowsToQuizQuestions> | null>(null);
-  const [completionSaveStatus, setCompletionSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [dbQuestions, setDbQuestions] = useState<ReturnType<typeof rowsToQuizQuestions>>([]);
+  const [completionSaveStatus, setCompletionSaveStatus] =
+    useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
   const celebrationAudioRef = useRef<HTMLAudioElement | null>(null);
   const completionPromiseRef = useRef<Promise<boolean> | null>(null);
 
-  const apiBase = (import.meta as any).env.VITE_API_BASE_URL || '';
-  const storedAuthToken =
-    typeof window !== 'undefined' ? window.localStorage.getItem('auth_token') : null;
-  const effectiveAuthToken = authToken || storedAuthToken;
+  const lessons = trackInfo?.lessons || [];
+  const lesson = useMemo(
+    () => lessons.find((item) => item.id === lessonId) || null,
+    [lessonId, lessons]
+  );
+  const idx = lessons.findIndex((item) => item.id === lessonId);
+  const nextLesson = idx >= 0 && idx < lessons.length - 1 ? lessons[idx + 1] : null;
+  const isFinalLessonInTrack = idx >= 0 && idx === lessons.length - 1;
+  const trackTitle = trackInfo?.title || track;
 
-  const requestHeaders = useMemo(() => {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-
-    if (effectiveAuthToken) {
-      headers.Authorization = `Bearer ${effectiveAuthToken}`;
-    } else if (walletAddress) {
-      headers['x-wallet-address'] = walletAddress;
-    }
-
-    return headers;
-  }, [effectiveAuthToken, walletAddress]);
-
-  const canSyncRemote = !!currentUser;
+  const quiz = dbQuestions;
+  const totalSteps = 1 + quiz.length;
+  const progressPercentage = totalSteps > 1 ? (currentStep / (totalSteps - 1)) * 100 : 100;
+  const lessonDone = isLessonCompleted(state, track, lessonId);
+  const checklist = getChecklist(state, track, lessonId);
+  const cl0 = checklist[0] ?? true;
+  const currentQuizData = currentStep > 0 ? quiz[currentStep - 1] : null;
+  const allSubmitted = quiz.every((item) => submittedQ[item.id]);
+  const allCorrect = quiz.every((item) => answers[item.id] === item.correctChoiceId);
+  const isFinalQuizStep = quiz.length > 0 && currentStep === totalSteps - 1;
 
   const syncMissingRows = useCallback(
     async (baseline: ProgressState, merged: ProgressState) => {
@@ -159,7 +185,6 @@ export function AcademyLesson() {
       }
 
       let synced = true;
-
       const keys = new Set<string>([
         ...Object.keys(merged.completedLessons || {}),
         ...Object.keys(merged.quizPassed || {}),
@@ -196,7 +221,7 @@ export function AcademyLesson() {
         try {
           const response = await fetch(`${apiBase}/api/academy/progress`, {
             method: 'POST',
-            headers: requestHeaders,
+            headers: jsonHeaders,
             credentials: 'include',
             body: JSON.stringify({
               track: rowTrack,
@@ -218,26 +243,181 @@ export function AcademyLesson() {
 
       return synced;
     },
-    [apiBase, canSyncRemote, requestHeaders]
+    [apiBase, canSyncRemote, jsonHeaders]
   );
+
+  const syncCurrentLesson = useCallback(
+    async (next: ProgressState, options?: { recordReview?: boolean }) => {
+      if (!canSyncRemote) {
+        return false;
+      }
+
+      const progressKey = `${track}:${lessonId}`;
+      const checklistForLesson = next.checklist?.[progressKey] || [];
+
+      try {
+        const response = await fetch(`${apiBase}/api/academy/progress`, {
+          method: 'POST',
+          headers: jsonHeaders,
+          credentials: 'include',
+          body: JSON.stringify({
+            track,
+            lesson_id: lessonId,
+            lesson_completed: !!next.completedLessons[progressKey],
+            quiz_passed: !!next.quizPassed[progressKey],
+            checklist: checklistForLesson,
+            xp_awarded: next.completedLessons[progressKey] ? 100 : 0,
+            record_review: options?.recordReview === true,
+          }),
+        });
+
+        if (!response.ok) {
+          const result = await response.json().catch(() => null);
+          throw new Error(result?.message || `Academy progress sync failed (${response.status})`);
+        }
+
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [apiBase, canSyncRemote, jsonHeaders, lessonId, track]
+  );
+
+  const persistProgress = useCallback(
+    (next: ProgressState) => {
+      setState(next);
+      saveProgress(identity, next);
+      void syncCurrentLesson(next);
+    },
+    [identity, syncCurrentLesson]
+  );
+
+  const persistCompletedLesson = useCallback(async () => {
+    if (completionPromiseRef.current) {
+      return completionPromiseRef.current;
+    }
+
+    const run = async () => {
+      setCompletionSaveStatus('saving');
+      setBusyFinish(true);
+
+      try {
+        const completedQuiz = markQuizPassed(state, track, lessonId);
+        const completedLesson = markLessonComplete(completedQuiz, track, lessonId);
+        const completedWithChecklist = setChecklist(completedLesson, track, lessonId, [
+          cl0,
+          true,
+          true,
+        ]);
+
+        const synced = await syncCurrentLesson(completedWithChecklist, {
+          recordReview: true,
+        });
+
+        if (!synced) {
+          setCompletionSaveStatus('error');
+          setErr(
+            'SYNC_ERROR: Academy progress was not written to the database. Please stay signed in and retry.'
+          );
+          completionPromiseRef.current = null;
+          return false;
+        }
+
+        setState(completedWithChecklist);
+        saveProgress(identity, completedWithChecklist);
+        void fetchMembers();
+        if (effectiveAuthToken) {
+          void checkSession();
+        }
+        setCompletionSaveStatus('saved');
+        return true;
+      } finally {
+        setBusyFinish(false);
+      }
+    };
+
+    completionPromiseRef.current = run();
+    return completionPromiseRef.current;
+  }, [
+    checkSession,
+    cl0,
+    effectiveAuthToken,
+    fetchMembers,
+    identity,
+    lessonId,
+    state,
+    syncCurrentLesson,
+    track,
+  ]);
 
   useEffect(() => {
     setState(loadProgress(identity));
     setAnswers({});
     setSubmittedQ({});
     setErr('');
-    setDbQuestions(null);
     setShowCelebration(false);
     setCompletionSaveStatus('idle');
     completionPromiseRef.current = null;
-    setCurrentStep(0); // Reset step on lesson change
-  }, [identity, track, lessonId]);
+    setCurrentStep(0);
+  }, [identity, lessonId, track]);
 
   useEffect(() => {
     return () => {
       celebrationAudioRef.current?.pause();
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchCatalog() {
+      if (!canSyncRemote) {
+        setTrackInfo(null);
+        setLoadingCatalog(false);
+        setErr('Please sign in with a DSUC account to use Academy.');
+        return;
+      }
+
+      setLoadingCatalog(true);
+      try {
+        const response = await fetch(`${apiBase}/api/academy/catalog`, {
+          headers: authHeaders,
+          credentials: 'include',
+        });
+        const result = await response.json().catch(() => null);
+
+        if (!response.ok || !result?.success) {
+          throw new Error(result?.message || 'Failed to load academy catalog.');
+        }
+
+        const tracks = (result.data || []).map(normalizeAcademyCatalogTrack);
+        const foundTrack = tracks.find((item) => item.id === track) || null;
+        const foundLesson = foundTrack?.lessons.find((item) => item.id === lessonId) || null;
+
+        if (!cancelled) {
+          setTrackInfo(foundTrack);
+          if (!foundTrack || !foundLesson) {
+            setErr('Lesson not found in academy catalog.');
+          }
+        }
+      } catch (error: any) {
+        if (!cancelled) {
+          setErr(error.message || 'Failed to load academy catalog.');
+          setTrackInfo(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingCatalog(false);
+        }
+      }
+    }
+
+    void fetchCatalog();
+    return () => {
+      cancelled = true;
+    };
+  }, [apiBase, authHeaders, canSyncRemote, lessonId, track]);
 
   useEffect(() => {
     if (!canSyncRemote) {
@@ -249,7 +429,7 @@ export function AcademyLesson() {
     async function fetchRemoteProgress() {
       try {
         const response = await fetch(`${apiBase}/api/academy/progress`, {
-          headers: requestHeaders,
+          headers: authHeaders,
           credentials: 'include',
         });
 
@@ -276,23 +456,24 @@ export function AcademyLesson() {
         saveProgress(identity, authoritativeState);
 
         if (!backfilled) {
-          setErr('SYNC_ERROR: Local academy progress could not be written to the database. Remote database progress is being shown instead.');
+          setErr(
+            'SYNC_ERROR: Local academy progress could not be written to the database. Remote progress is shown instead.'
+          );
         }
       } catch {
-        // Keep local progress as fallback when backend is unavailable.
+        // Keep local progress as fallback.
       }
     }
 
     void fetchRemoteProgress();
-
     return () => {
       cancelled = true;
     };
-  }, [apiBase, canSyncRemote, identity, requestHeaders, syncMissingRows]);
+  }, [apiBase, authHeaders, canSyncRemote, identity, syncMissingRows]);
 
   useEffect(() => {
-    if (!canSyncRemote) {
-      setDbQuestions(null);
+    if (!canSyncRemote || !lesson) {
+      setDbQuestions([]);
       return;
     }
 
@@ -305,12 +486,12 @@ export function AcademyLesson() {
           lesson_id: lessonId,
         });
         const response = await fetch(`${apiBase}/api/academy/questions?${query.toString()}`, {
-          headers: requestHeaders,
+          headers: authHeaders,
           credentials: 'include',
         });
 
         if (!response.ok) {
-          return;
+          throw new Error('Failed to load lesson questions.');
         }
 
         const result = await response.json();
@@ -319,161 +500,19 @@ export function AcademyLesson() {
         }
       } catch {
         if (!cancelled) {
-          setDbQuestions(null);
+          setDbQuestions([]);
         }
       }
     }
 
     void fetchLessonQuestions();
-
     return () => {
       cancelled = true;
     };
-  }, [apiBase, canSyncRemote, lessonId, requestHeaders, track]);
-
-  const syncCurrentLesson = useCallback(
-    async (next: ProgressState, options?: { recordReview?: boolean }) => {
-      if (!canSyncRemote) {
-        console.error('[academy/progress] Cannot sync without a DSUC account session.');
-        return false;
-      }
-
-      const progressKey = `${track}:${lessonId}`;
-      const checklistForLesson = next.checklist?.[progressKey] || [];
-
-      try {
-        const response = await fetch(`${apiBase}/api/academy/progress`, {
-          method: 'POST',
-          headers: requestHeaders,
-          credentials: 'include',
-          body: JSON.stringify({
-            track,
-            lesson_id: lessonId,
-            lesson_completed: !!next.completedLessons[progressKey],
-            quiz_passed: !!next.quizPassed[progressKey],
-            checklist: checklistForLesson,
-            xp_awarded: next.completedLessons[progressKey] ? 100 : 0,
-            record_review: options?.recordReview === true,
-          }),
-        });
-
-        if (!response.ok) {
-          const result = await response.json().catch(() => null);
-          throw new Error(result?.message || `Academy progress sync failed (${response.status})`);
-        }
-
-        return true;
-      } catch (error) {
-        console.error('[academy/progress] Failed to sync progress:', error);
-        return false;
-      }
-    },
-    [apiBase, canSyncRemote, lessonId, requestHeaders, track]
-  );
-
-  const persistProgress = useCallback(
-    (next: ProgressState) => {
-      setState(next);
-      saveProgress(identity, next);
-      void syncCurrentLesson(next);
-    },
-    [identity, syncCurrentLesson]
-  );
-
-  const lesson = useMemo(() => {
-    try {
-      const hardcodedLesson = findLesson(track, lessonId);
-      if (dbQuestions && dbQuestions.length > 0) {
-        return {
-          ...hardcodedLesson,
-          quiz: dbQuestions,
-        };
-      }
-
-      return hardcodedLesson;
-    } catch {
-      return null;
-    }
-  }, [dbQuestions, track, lessonId]);
-
-  const list = useMemo(() => lessonsByTrack(track), [track]);
-  const idx = list.findIndex((item) => item.id === lessonId);
-  const next = idx >= 0 && idx < list.length - 1 ? list[idx + 1] : null;
-  const isFinalLessonInTrack = idx >= 0 && idx === list.length - 1;
-
-  if (!lesson) {
-    return <div className="text-center py-20 text-white/40 font-mono tracking-widest uppercase">Lesson not found</div>;
-  }
-
-  const totalSteps = 1 + (lesson.quiz ? lesson.quiz.length : 0);
-  const progressPercentage = totalSteps > 1 ? (currentStep / (totalSteps - 1)) * 100 : 100;
-
-  const lessonDone = isLessonCompleted(state, track, lessonId);
-
-  const checklist = getChecklist(state, track, lessonId);
-  const cl0 = checklist[0] ?? true;
-
-  function isCorrect(questionId: string): boolean {
-    const question = lesson.quiz.find((item) => item.id === questionId);
-    if (!question) {
-      return false;
-    }
-
-    return answers[questionId] === question.correctChoiceId;
-  }
-
-  const allSubmitted = lesson.quiz.every((item) => submittedQ[item.id]);
-  const allCorrect = lesson.quiz.every((item) => isCorrect(item.id));
-  const isFinalQuizStep = lesson.quiz.length > 0 && currentStep === totalSteps - 1;
-
-  const persistCompletedLesson = useCallback(async () => {
-    if (completionPromiseRef.current) {
-      return completionPromiseRef.current;
-    }
-
-    const run = async () => {
-      setCompletionSaveStatus('saving');
-      setBusyFinish(true);
-
-      try {
-        const completedQuiz = markQuizPassed(state, track, lessonId);
-        const completedLesson = markLessonComplete(completedQuiz, track, lessonId);
-        const completedWithChecklist = setChecklist(completedLesson, track, lessonId, [
-          cl0,
-          true,
-          true,
-        ]);
-
-        const synced = await syncCurrentLesson(completedWithChecklist, {
-          recordReview: true,
-        });
-
-        if (!synced) {
-          setCompletionSaveStatus('error');
-          setErr('SYNC_ERROR: Academy progress was not written to the database. Please stay signed in and retry.');
-          completionPromiseRef.current = null;
-          return false;
-        }
-
-        setState(completedWithChecklist);
-        saveProgress(identity, completedWithChecklist);
-        void fetchMembers();
-        if (effectiveAuthToken) {
-          void checkSession();
-        }
-        setCompletionSaveStatus('saved');
-        return true;
-      } finally {
-        setBusyFinish(false);
-      }
-    };
-
-    completionPromiseRef.current = run();
-    return completionPromiseRef.current;
-  }, [checkSession, cl0, effectiveAuthToken, fetchMembers, identity, lessonId, state, syncCurrentLesson, track]);
+  }, [apiBase, authHeaders, canSyncRemote, lesson, lessonId, track]);
 
   useEffect(() => {
-    const nextChecklist = [cl0, allSubmitted, allCorrect || lessonDone];
+    const nextChecklist = [cl0, quiz.length === 0 ? true : allSubmitted, quiz.length === 0 ? true : allCorrect || lessonDone];
     const previousChecklist = getChecklist(state, track, lessonId);
     const same =
       previousChecklist.length === nextChecklist.length &&
@@ -483,7 +522,26 @@ export function AcademyLesson() {
       const updated = setChecklist(state, track, lessonId, nextChecklist);
       persistProgress(updated);
     }
-  }, [allSubmitted, allCorrect, cl0, lessonDone, lessonId, persistProgress, state, track]);
+  }, [
+    allCorrect,
+    allSubmitted,
+    cl0,
+    lessonDone,
+    lessonId,
+    persistProgress,
+    quiz.length,
+    state,
+    track,
+  ]);
+
+  function isCorrect(questionId: string): boolean {
+    const question = quiz.find((item) => item.id === questionId);
+    if (!question) {
+      return false;
+    }
+
+    return answers[questionId] === question.correctChoiceId;
+  }
 
   function submitQuestion(questionId: string) {
     setErr('');
@@ -496,10 +554,10 @@ export function AcademyLesson() {
       return;
     }
 
-    const finalAnswersCorrect = lesson.quiz.every((item) =>
+    const finalAnswersCorrect = quiz.every((item) =>
       item.id === questionId ? correct : answers[item.id] === item.correctChoiceId
     );
-    const finalQuestionsSubmitted = lesson.quiz.every((item) => nextSubmittedQ[item.id]);
+    const finalQuestionsSubmitted = quiz.every((item) => nextSubmittedQ[item.id]);
 
     if (isFinalQuizStep && finalQuestionsSubmitted && finalAnswersCorrect) {
       const completion = persistCompletedLesson();
@@ -530,7 +588,7 @@ export function AcademyLesson() {
       return true;
     }
 
-    if (lesson.quiz.length > 0) {
+    if (quiz.length > 0) {
       if (!allSubmitted) {
         setErr('ERROR: PENDING_SUBMISSIONS_DETECTED.');
         return false;
@@ -560,9 +618,10 @@ export function AcademyLesson() {
       celebrationAudioRef.current.currentTime = 0;
     }
     setShowCelebration(false);
+
     await completeLesson(() => {
-      if (next) {
-        navigate(`/academy/learn/${track}/${next.id}`);
+      if (nextLesson) {
+        navigate(`/academy/learn/${track}/${nextLesson.id}`);
       } else {
         navigate(`/academy/track/${track}`);
       }
@@ -578,8 +637,21 @@ export function AcademyLesson() {
     await completeLesson(() => navigate('/academy'));
   }
 
-  const trackTitle = TRACKS.find((item) => item.id === track)?.title || track;
-  const currentQuizData = currentStep > 0 ? lesson.quiz[currentStep - 1] : null;
+  if (loadingCatalog) {
+    return (
+      <div className="py-20 text-center font-mono text-white/40 uppercase tracking-widest">
+        Loading lesson...
+      </div>
+    );
+  }
+
+  if (!lesson || !trackInfo) {
+    return (
+      <div className="py-20 text-center font-mono text-white/40 uppercase tracking-widest">
+        {err || 'Lesson not found'}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 pb-20 max-w-4xl mx-auto">
@@ -588,68 +660,74 @@ export function AcademyLesson() {
         open={showCelebration && isFinalLessonInTrack}
         busy={busyFinish}
         lessonTitle={lesson.title}
-        graduationLabel={TRACK_GRADUATION_LABEL[track]}
+        graduationLabel={trackTitle}
         saveStatus={completionSaveStatus}
         trackTitle={trackTitle}
         onFinalize={() => void finishLesson()}
         onExit={() => void exitToAcademy()}
       />
 
-      {/* Progress Bar & Header */}
-      <div className="flex flex-col gap-4 sticky top-24 z-50 bg-surface/85 backdrop-blur-md p-4 border border-cyber-blue/30 rounded-lg cyber-clip-bottom shadow-[0_0_20px_rgba(41,121,255,0.1)]">
+      <div className="sticky top-24 z-50 flex flex-col gap-4 rounded-lg border border-cyber-blue/30 bg-surface/85 p-4 backdrop-blur-md cyber-clip-bottom shadow-[0_0_20px_rgba(41,121,255,0.1)]">
         <div className="flex items-center justify-between">
           <button
             onClick={() => navigate(`/academy/track/${track}`)}
-            className="flex items-center justify-center w-10 h-10 border border-cyber-blue/50 text-cyber-blue hover:bg-cyber-blue hover:text-black transition-colors"
+            className="flex h-10 w-10 items-center justify-center border border-cyber-blue/50 text-cyber-blue transition-colors hover:bg-cyber-blue hover:text-black"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="h-5 w-5" />
           </button>
 
-          {/* Progress Bar */}
-          <div className="flex-1 mx-6 h-2 bg-black border border-cyber-blue/20 overflow-hidden relative">
+          <div className="relative mx-6 h-2 flex-1 overflow-hidden border border-cyber-blue/20 bg-black">
             <div
-              className="absolute top-0 left-0 h-full bg-cyber-blue transition-all duration-500 ease-out shadow-[0_0_10px_rgba(41,121,255,1)]"
+              className="absolute left-0 top-0 h-full bg-cyber-blue transition-all duration-500 ease-out shadow-[0_0_10px_rgba(41,121,255,1)]"
               style={{ width: `${progressPercentage}%` }}
             />
           </div>
 
-          <div className="text-cyber-blue font-mono font-bold tracking-widest text-xs flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-cyber-yellow" />
-            <span className="hidden sm:inline">STREAK: </span>{currentUser?.streak || 0}
+          <div className="flex items-center gap-2 font-mono text-xs font-bold tracking-widest text-cyber-blue">
+            <Trophy className="h-4 w-4 text-cyber-yellow" />
+            <span className="hidden sm:inline">STREAK: </span>
+            {currentUser?.streak || 0}
           </div>
         </div>
-        <div className="flex justify-between items-center text-[10px] font-mono text-white/50 uppercase tracking-widest px-2">
+
+        <div className="flex items-center justify-between px-2 font-mono text-[10px] uppercase tracking-widest text-white/50">
           <span>{trackTitle}</span>
-          <span>PHASE {currentStep + 1}/{totalSteps}</span>
+          <span>
+            PHASE {currentStep + 1}/{totalSteps}
+          </span>
         </div>
       </div>
 
-      <div className="bg-surface/70 backdrop-blur-xl border border-white/20 p-6 sm:p-10 shadow-[0_0_30px_rgba(41,121,255,0.05)] relative min-h-[60vh] flex flex-col">
+      <div className="relative flex min-h-[60vh] flex-col border border-white/20 bg-surface/70 p-6 shadow-[0_0_30px_rgba(41,121,255,0.05)] backdrop-blur-xl sm:p-10">
         {err && (
-          <div className="mb-6 border border-red-500/50 bg-red-500/10 px-5 py-4 text-red-500 text-xs font-mono font-bold uppercase tracking-widest flex items-center gap-3 animate-pulse">
+          <div className="mb-6 flex animate-pulse items-center gap-3 border border-red-500/50 bg-red-500/10 px-5 py-4 font-mono text-xs font-bold uppercase tracking-widest text-red-500">
             <Terminal size={14} className="shrink-0" /> {err}
           </div>
         )}
 
-        {/* Step 0: Theory */}
         {currentStep === 0 && (
-          <div className="flex-grow animate-in slide-in-from-right-8 duration-500 fade-in">
-            <h1 className="text-3xl sm:text-5xl font-display font-bold text-white mb-6 tracking-widest leading-tight uppercase drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+          <div className="animate-in slide-in-from-right-8 duration-500 fade-in flex-grow">
+            <h1 className="mb-6 text-3xl font-display font-bold uppercase tracking-widest text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)] sm:text-5xl">
               {lesson.title}
             </h1>
 
-            <div className="prose prose-invert prose-p:text-white/80 prose-headings:font-display prose-headings:font-bold prose-headings:tracking-wider prose-headings:uppercase prose-a:text-cyber-blue prose-a:no-underline hover:prose-a:underline max-w-none text-base sm:text-lg leading-relaxed font-sans mb-8">
-              {renderMd(lesson.content.md)}
+            <div className="prose prose-invert prose-p:text-white/80 prose-headings:font-display prose-headings:font-bold prose-headings:tracking-wider prose-headings:uppercase prose-a:text-cyber-blue prose-a:no-underline hover:prose-a:underline mb-8 max-w-none text-base font-sans leading-relaxed sm:text-lg">
+              {renderMd(lesson.content_md)}
             </div>
 
-            {lesson.content.callouts?.length ? (
-              <div className="mt-8 mb-8 grid grid-cols-1 gap-4">
-                {lesson.content.callouts.map((callout) => (
-                  <div key={callout.title} className="bg-cyber-blue/5 border-l-4 border-cyber-blue p-5 relative overflow-hidden">
-                    <div className="font-display font-bold text-cyber-blue uppercase tracking-widest text-sm flex items-center gap-2 mb-2">
-                       <Terminal size={14} /> {callout.title}
+            {lesson.callouts?.length ? (
+              <div className="mb-8 mt-8 grid grid-cols-1 gap-4">
+                {lesson.callouts.map((callout, index) => (
+                  <div
+                    key={`${callout.title}-${index}`}
+                    className="relative overflow-hidden border-l-4 border-cyber-blue bg-cyber-blue/5 p-5"
+                  >
+                    <div className="mb-2 flex items-center gap-2 font-display text-sm font-bold uppercase tracking-widest text-cyber-blue">
+                      <Terminal size={14} /> {callout.title || 'NOTE'}
                     </div>
-                    <div className="text-sm sm:text-base text-white/70 leading-relaxed font-mono relative z-10">{callout.body}</div>
+                    <div className="relative z-10 font-mono text-sm leading-relaxed text-white/70 sm:text-base">
+                      {callout.body}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -657,22 +735,21 @@ export function AcademyLesson() {
           </div>
         )}
 
-        {/* Step N: Quiz Questions */}
         {currentStep > 0 && currentQuizData && (() => {
           const submitted = !!submittedQ[currentQuizData.id];
           const correct = answers[currentQuizData.id] === currentQuizData.correctChoiceId;
 
           return (
-            <div className="flex-grow animate-in slide-in-from-right-8 duration-500 fade-in flex flex-col justify-center">
-              <h2 className="text-2xl font-display font-bold text-white uppercase tracking-widest flex items-center gap-3 border-b border-cyber-blue/20 pb-4 mb-8">
-                <Code className="w-5 h-5 text-cyber-blue" /> EXAM_QUERY [{currentStep}/{lesson.quiz.length}]
+            <div className="animate-in slide-in-from-right-8 duration-500 fade-in flex flex-grow flex-col justify-center">
+              <h2 className="mb-8 flex items-center gap-3 border-b border-cyber-blue/20 pb-4 font-display text-2xl font-bold uppercase tracking-widest text-white">
+                <Code className="h-5 w-5 text-cyber-blue" /> EXAM_QUERY [{currentStep}/{quiz.length}]
               </h2>
 
-              <h3 className="font-mono font-bold text-lg mb-8 text-white leading-relaxed">
+              <h3 className="mb-8 font-mono text-lg font-bold leading-relaxed text-white">
                 {currentQuizData.prompt}
               </h3>
 
-              <div className="space-y-4 mb-8 font-mono text-sm">
+              <div className="mb-8 space-y-4 font-mono text-sm">
                 {currentQuizData.choices.map((choice) => {
                   const selected = answers[currentQuizData.id] === choice.id;
                   const isChoiceCorrect = choice.id === currentQuizData.correctChoiceId;
@@ -680,9 +757,11 @@ export function AcademyLesson() {
                   let className = 'border-white/10 hover:border-cyber-blue/50 text-white/70 bg-black/40';
                   if (submitted) {
                     if (isChoiceCorrect) {
-                      className = 'bg-cyber-blue/20 border-cyber-blue text-cyber-blue shadow-[0_0_15px_rgba(41,121,255,0.2)]';
+                      className =
+                        'bg-cyber-blue/20 border-cyber-blue text-cyber-blue shadow-[0_0_15px_rgba(41,121,255,0.2)]';
                     } else if (selected && !isChoiceCorrect) {
-                      className = 'bg-cyber-yellow/10 border-cyber-yellow text-cyber-yellow shadow-[0_0_15px_rgba(255,214,0,0.2)]';
+                      className =
+                        'bg-cyber-yellow/10 border-cyber-yellow text-cyber-yellow shadow-[0_0_15px_rgba(255,214,0,0.2)]';
                     } else {
                       className = 'opacity-40 bg-black/60 border-white/5';
                     }
@@ -700,18 +779,17 @@ export function AcademyLesson() {
                           setSubmittedQ((prevSubmitted) => ({ ...prevSubmitted, [currentQuizData.id]: false }));
                         }
                       }}
-                      className={`w-full text-left p-5 border cursor-pointer transition-all flex items-start sm:items-center text-base ${className}`}
+                      className={`flex w-full cursor-pointer items-start border p-5 text-left text-base transition-all sm:items-center ${className}`}
                     >
                       <div
-                        className={`w-5 h-5 mt-0.5 sm:mt-0 font-bold border mr-4 flex items-center justify-center flex-shrink-0 transition-colors ${
+                        className={`mr-4 mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border font-bold transition-colors sm:mt-0 ${
                           submitted && isChoiceCorrect
                             ? 'border-cyber-blue bg-cyber-blue'
                             : selected && !submitted
                               ? 'border-cyber-blue bg-cyber-blue'
                               : 'border-white/20'
                         }`}
-                      >
-                      </div>
+                      />
                       <span className="leading-relaxed">{choice.label}</span>
                     </button>
                   );
@@ -720,40 +798,44 @@ export function AcademyLesson() {
 
               {submitted && (
                 <div
-                  className={`p-6 text-sm font-mono border animate-in zoom-in-95 duration-300 ${
+                  className={`animate-in zoom-in-95 border p-6 font-mono text-sm duration-300 ${
                     correct
                       ? 'bg-cyber-blue/10 text-cyber-blue border-cyber-blue shadow-[inset_0_0_20px_rgba(41,121,255,0.1)]'
                       : 'bg-cyber-yellow/10 text-cyber-yellow border-cyber-yellow shadow-[inset_0_0_20px_rgba(255,214,0,0.1)]'
                   }`}
                 >
-                  <p className="font-bold uppercase tracking-widest mb-2 flex items-center gap-2 text-lg">
+                  <p className="mb-2 flex items-center gap-2 text-lg font-bold uppercase tracking-widest">
                     <Terminal size={20} />
                     {correct ? 'VALID_RESPONSE' : 'INVALID_RESPONSE'}
                   </p>
-                  <p className="opacity-90 leading-relaxed text-sm text-white/80">{currentQuizData.explanation}</p>
+                  <p className="text-sm leading-relaxed text-white/80 opacity-90">{currentQuizData.explanation}</p>
                 </div>
               )}
             </div>
           );
         })()}
 
-        {/* Action Bottom Bar */}
-        <div className="mt-auto pt-8 border-t border-cyber-blue/20 flex justify-end">
+        <div className="mt-auto flex justify-end border-t border-cyber-blue/20 pt-8">
           {currentStep === 0 ? (
             <button
               onClick={() => {
-                if (lesson.quiz.length > 0) {
+                if (quiz.length > 0) {
                   setCurrentStep(1);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 } else {
-                  finishLesson();
+                  void finishLesson();
                 }
               }}
-              className="w-full sm:w-auto px-8 py-4 bg-cyber-blue text-black font-display font-bold uppercase tracking-widest text-sm hover:bg-white transition-all shadow-[0_0_15px_rgba(41,121,255,0.4)] flex justify-center items-center gap-2"
+              className="flex w-full items-center justify-center gap-2 bg-cyber-blue px-8 py-4 font-display text-sm font-bold uppercase tracking-widest text-black shadow-[0_0_15px_rgba(41,121,255,0.4)] transition-all hover:bg-white sm:w-auto"
             >
-              {lesson.quiz.length > 0 ? 'START EXAM MODULE' : 'FINALIZE MODULE'} <ArrowRight className="w-5 h-5" />
+              {quiz.length > 0
+                ? 'START EXAM MODULE'
+                : isFinalLessonInTrack
+                  ? 'FINALIZE TRACK'
+                  : 'FINALIZE MODULE'}{' '}
+              <ArrowRight className="h-5 w-5" />
             </button>
-          ) : currentQuizData && (
+          ) : currentQuizData ? (
             (() => {
               const submitted = !!submittedQ[currentQuizData.id];
               const correct = answers[currentQuizData.id] === currentQuizData.correctChoiceId;
@@ -764,39 +846,43 @@ export function AcademyLesson() {
                   <button
                     onClick={() => submitQuestion(currentQuizData.id)}
                     disabled={!hasSelected}
-                    className="w-full sm:w-auto px-8 py-4 bg-black border border-cyber-blue text-cyber-blue font-display font-bold uppercase tracking-widest text-sm hover:bg-cyber-blue hover:text-black transition-all shadow-[0_0_10px_rgba(41,121,255,0.2)] disabled:opacity-50 disabled:hover:bg-black disabled:hover:text-cyber-blue disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                    className="flex w-full items-center justify-center gap-2 border border-cyber-blue bg-black px-8 py-4 font-display text-sm font-bold uppercase tracking-widest text-cyber-blue shadow-[0_0_10px_rgba(41,121,255,0.2)] transition-all hover:bg-cyber-blue hover:text-black disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-black disabled:hover:text-cyber-blue sm:w-auto"
                   >
                     EXECUTE QUERY
                   </button>
                 );
-              } else {
-                // Submitted array correct
-                if (currentStep < totalSteps - 1) {
-                  return (
-                    <button
-                      onClick={() => {
-                        setCurrentStep(prev => prev + 1);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className="w-full sm:w-auto px-8 py-4 bg-cyber-blue text-black font-display font-bold uppercase tracking-widest text-sm hover:bg-white transition-all shadow-[0_0_15px_rgba(41,121,255,0.4)] flex justify-center items-center gap-2"
-                    >
-                      NEXT QUERY <ArrowRight className="w-5 h-5" />
-                    </button>
-                  );
-                } else {
-                  return (
-                    <button
-                      onClick={finishLesson}
-                      disabled={busyFinish}
-                      className="w-full sm:w-auto px-8 py-4 bg-cyber-blue text-black font-display font-bold uppercase tracking-widest text-sm hover:bg-white transition-all shadow-[0_0_15px_rgba(41,121,255,0.4)] disabled:opacity-50 flex justify-center items-center gap-2"
-                    >
-                      {busyFinish ? 'SAVING...' : 'FINALIZE MODULE'} <CheckCircle2 className="w-5 h-5" />
-                    </button>
-                  );
-                }
               }
+
+              if (currentStep < totalSteps - 1) {
+                return (
+                  <button
+                    onClick={() => {
+                      setCurrentStep((prev) => prev + 1);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="flex w-full items-center justify-center gap-2 bg-cyber-blue px-8 py-4 font-display text-sm font-bold uppercase tracking-widest text-black shadow-[0_0_15px_rgba(41,121,255,0.4)] transition-all hover:bg-white sm:w-auto"
+                  >
+                    NEXT QUERY <ArrowRight className="h-5 w-5" />
+                  </button>
+                );
+              }
+
+              return (
+                <button
+                  onClick={() => void finishLesson()}
+                  disabled={busyFinish}
+                  className="flex w-full items-center justify-center gap-2 bg-cyber-blue px-8 py-4 font-display text-sm font-bold uppercase tracking-widest text-black shadow-[0_0_15px_rgba(41,121,255,0.4)] transition-all hover:bg-white disabled:opacity-50 sm:w-auto"
+                >
+                  {busyFinish
+                    ? 'SAVING...'
+                    : isFinalLessonInTrack
+                      ? 'FINALIZE TRACK'
+                      : 'FINALIZE MODULE'}{' '}
+                  <CheckCircle2 className="h-5 w-5" />
+                </button>
+              );
             })()
-          )}
+          ) : null}
         </div>
       </div>
     </div>
@@ -926,10 +1012,10 @@ function CompletionCelebration({
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={reduceMotion ? { opacity: 0 } : { y: 12, opacity: 0, scale: 0.98 }}
             transition={{ duration: reduceMotion ? 0 : 0.34, ease: 'easeOut' }}
-            className="relative z-10 w-full max-w-2xl overflow-hidden cyber-card bg-surface/95 border border-cyber-yellow/60 p-6 sm:p-8 text-center shadow-[0_0_60px_rgba(255,214,0,0.24)]"
+            className="relative z-10 w-full max-w-2xl overflow-hidden cyber-card border border-cyber-yellow/60 bg-surface/95 p-6 text-center shadow-[0_0_60px_rgba(255,214,0,0.24)] sm:p-8"
           >
             <div className="pointer-events-none absolute -left-16 -top-16 h-36 w-36 rounded-full bg-pink-400/20 blur-3xl" />
-            <div className="pointer-events-none absolute -right-16 -bottom-16 h-40 w-40 rounded-full bg-cyan-300/20 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-16 -right-16 h-40 w-40 rounded-full bg-cyan-300/20 blur-3xl" />
 
             <motion.div
               animate={reduceMotion ? undefined : { rotate: [-6, 6, -6], scale: [1, 1.08, 1] }}
@@ -939,12 +1025,12 @@ function CompletionCelebration({
               <Sparkles size={34} aria-hidden="true" />
             </motion.div>
 
-            <div className="relative mx-auto mb-4 flex w-fit items-center gap-2 rounded-full border border-pink-300/40 bg-pink-300/10 px-4 py-1.5 text-[10px] font-mono font-bold uppercase tracking-[0.28em] text-pink-200">
+            <div className="relative mx-auto mb-4 flex w-fit items-center gap-2 rounded-full border border-pink-300/40 bg-pink-300/10 px-4 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.28em] text-pink-200">
               <span className="h-1.5 w-1.5 rounded-full bg-pink-300 shadow-[0_0_10px_rgba(249,168,212,0.8)]" />
               Graduation Unlocked
             </div>
 
-            <div className="mb-3 text-[10px] font-mono font-bold uppercase tracking-[0.35em] text-cyber-blue">
+            <div className="mb-3 font-mono text-[10px] font-bold uppercase tracking-[0.35em] text-cyber-blue">
               {trackTitle} cleared
             </div>
             <h2
@@ -954,11 +1040,11 @@ function CompletionCelebration({
               {graduationLabel} Graduate
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-white/70 sm:text-base">
-              You completed <span className="text-cyber-yellow">{lessonTitle}</span> and cleared the full {graduationLabel} track.
-              Review a little every day to protect your streak and make your Solana fundamentals stick.
+              You have graduated <span className="text-cyber-yellow">{graduationLabel}</span> by completing{' '}
+              <span className="text-cyber-yellow">{lessonTitle}</span>. Do not forget to review every day to protect your streak and keep your Solana skills sharp.
             </p>
 
-            <div className="mx-auto mt-5 w-fit rounded-full border border-cyber-blue/30 bg-cyber-blue/10 px-4 py-2 text-xs font-mono uppercase tracking-widest text-cyber-blue">
+            <div className="mx-auto mt-5 w-fit rounded-full border border-cyber-blue/30 bg-cyber-blue/10 px-4 py-2 font-mono text-xs uppercase tracking-widest text-cyber-blue">
               {saveStatus === 'saving' && 'Saving progress to DSUC Academy...'}
               {saveStatus === 'saved' && 'Progress saved to Academy.'}
               {saveStatus === 'error' && 'Database save failed. Press Finalize to retry.'}

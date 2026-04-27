@@ -152,7 +152,7 @@ export interface AcademyActivity {
   user_name: string;
   role: string;
   member_type: 'member' | 'community';
-  track: 'genin' | 'chunin' | 'jonin';
+  track: string;
   lesson_id: string;
   action:
     | 'started'
@@ -175,7 +175,7 @@ export interface AcademyQuestionChoice {
 
 export interface AcademyQuestion {
   id: string;
-  track: 'genin' | 'chunin' | 'jonin';
+  track: string;
   lesson_id: string;
   prompt: string;
   choices: AcademyQuestionChoice[];
@@ -184,6 +184,62 @@ export interface AcademyQuestion {
   sort_order: number;
   status: PublishStatus;
   created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AcademyTrackCatalogLesson {
+  id: string;
+  title: string;
+  minutes: number;
+  content_md: string;
+  callouts: { title: string; body: string }[];
+  sort_order: number;
+}
+
+export interface AcademyTrackCatalog {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  sort_order: number;
+  lessons: AcademyTrackCatalogLesson[];
+}
+
+export interface AcademyTrackAdmin {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  status: PublishStatus;
+  sort_order: number;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AcademyLessonAdmin {
+  id: string;
+  track: string;
+  lesson_id: string;
+  title: string;
+  minutes: number;
+  content_md: string;
+  callouts: { title: string; body: string }[];
+  status: PublishStatus;
+  sort_order: number;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AdminApiKey {
+  id: string;
+  name: string;
+  scopes: string[];
+  is_active: boolean;
+  created_by?: string;
+  last_used_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }

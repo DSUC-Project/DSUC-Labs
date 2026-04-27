@@ -1,5 +1,3 @@
-import type { TrackId } from './curriculum';
-
 export type ProgressState = {
   // key: `${track}:${lessonId}`
   completedLessons: Record<string, boolean>;
@@ -124,7 +122,7 @@ export function mergeProgressStates(local: ProgressState, remote: ProgressState)
   };
 }
 
-export function markLessonComplete(state: ProgressState, track: TrackId, lessonId: string): ProgressState {
+export function markLessonComplete(state: ProgressState, track: string, lessonId: string): ProgressState {
   const key = `${track}:${lessonId}`;
   const alreadyCompleted = !!state.completedLessons[key];
 
@@ -136,7 +134,7 @@ export function markLessonComplete(state: ProgressState, track: TrackId, lessonI
   };
 }
 
-export function markQuizPassed(state: ProgressState, track: TrackId, lessonId: string): ProgressState {
+export function markQuizPassed(state: ProgressState, track: string, lessonId: string): ProgressState {
   const key = `${track}:${lessonId}`;
   return {
     ...state,
@@ -145,10 +143,10 @@ export function markQuizPassed(state: ProgressState, track: TrackId, lessonId: s
   };
 }
 
-export function isQuizPassed(state: ProgressState, track: TrackId, lessonId: string): boolean {
+export function isQuizPassed(state: ProgressState, track: string, lessonId: string): boolean {
   return !!state.quizPassed[`${track}:${lessonId}`];
 }
 
-export function isLessonCompleted(state: ProgressState, track: TrackId, lessonId: string): boolean {
+export function isLessonCompleted(state: ProgressState, track: string, lessonId: string): boolean {
   return !!state.completedLessons[`${track}:${lessonId}`];
 }

@@ -1,5 +1,12 @@
 import type { AcademyQuestion, AcademyQuestionChoice } from '@/types';
-import type { QuizQuestion } from './curriculum';
+
+export type QuizQuestion = {
+  id: string;
+  prompt: string;
+  choices: AcademyQuestionChoice[];
+  correctChoiceId: string;
+  explanation: string;
+};
 
 function normalizeChoices(value: unknown): AcademyQuestionChoice[] {
   const parsed = typeof value === 'string' ? safeJsonParse(value, []) : value;

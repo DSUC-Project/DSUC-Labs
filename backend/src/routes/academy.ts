@@ -10,8 +10,8 @@ import { calculateLearningStreak } from '../utils/academyStats';
 
 const router = Router();
 
-const TRACKS = new Set(['genin', 'chunin', 'jonin']);
 const QUESTION_STATUSES = new Set(['Draft', 'Published', 'Archived']);
+const LESSON_STATUSES = new Set(['Draft', 'Published', 'Archived']);
 
 type AcademyAction =
   | 'started'
@@ -25,6 +25,15 @@ type AcademyQuestionChoice = {
   id: string;
   label: string;
 };
+
+function normalizeTrackId(value: unknown) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
 
 function normalizeBoolean(value: unknown) {
   return value === true || value === 'true' || value === 1 || value === '1';
@@ -124,7 +133,7 @@ function safeJsonParse(value: string, fallback: unknown) {
 }
 
 function questionPayloadFromBody(body: any, userId?: string) {
-  const track = String(body?.track || '').trim();
+  const track = normalizeTrackId(body?.track);
   const lessonId = String(body?.lesson_id || body?.lessonId || '').trim();
   const prompt = String(body?.prompt || '').trim();
   const choices = normalizeQuestionChoices(body?.choices);
@@ -151,7 +160,7 @@ function questionPatchFromBody(body: any) {
   const patch: Record<string, any> = {};
 
   if (body?.track !== undefined) {
-    patch.track = String(body.track || '').trim();
+    patch.track = normalizeTrackId(body.track);
   }
 
   if (body?.lesson_id !== undefined || body?.lessonId !== undefined) {
@@ -190,8 +199,8 @@ function questionPatchFromBody(body: any) {
 }
 
 function validateQuestionPayload(payload: any) {
-  if (!TRACKS.has(payload.track)) {
-    return 'track must be one of genin, chunin, jonin';
+  if (!payload.track) {
+    return 'track is required';
   }
 
   if (!payload.lesson_id) {
@@ -217,6 +226,127 @@ function validateQuestionPayload(payload: any) {
   return null;
 }
 
+function normalizeTrackPayload(body: any, userId?: string) {
+  return {
+    id: normalizeTrackId(body?.id),
+    title: String(body?.title || '').trim(),
+    subtitle: String(body?.subtitle || '').trim(),
+    description: String(body?.description || '').trim(),
+    status: LESSON_STATUSES.has(body?.status) ? body.status : 'Published',
+    sort_order: Number.isFinite(Number(body?.sort_order)) ? Number(body.sort_order) : 0,
+    ...(userId ? { created_by: userId } : {}),
+  };
+}
+
+function normalizeTrackPatch(body: any) {
+  const patch: Record<string, any> = { updated_at: new Date().toISOString() };
+
+  if (body?.title !== undefined) {
+    patch.title = String(body.title || '').trim();
+  }
+  if (body?.subtitle !== undefined) {
+    patch.subtitle = String(body.subtitle || '').trim();
+  }
+  if (body?.description !== undefined) {
+    patch.description = String(body.description || '').trim();
+  }
+  if (body?.status !== undefined) {
+    patch.status = LESSON_STATUSES.has(body.status) ? body.status : 'Draft';
+  }
+  if (body?.sort_order !== undefined) {
+    patch.sort_order = Number.isFinite(Number(body.sort_order)) ? Number(body.sort_order) : 0;
+  }
+
+  return patch;
+}
+
+function validateTrackPayload(payload: any) {
+  if (!payload.id) {
+    return 'track id is required';
+  }
+
+  if (!payload.title) {
+    return 'track title is required';
+  }
+
+  return null;
+}
+
+function normalizeCallouts(value: unknown) {
+  const parsed = typeof value === 'string' ? safeJsonParse(value, []) : value;
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+
+  return parsed
+    .map((item: any) => ({
+      title: String(item?.title || '').trim(),
+      body: String(item?.body || '').trim(),
+    }))
+    .filter((item) => item.title || item.body);
+}
+
+function normalizeLessonPayload(body: any, userId?: string) {
+  return {
+    track: normalizeTrackId(body?.track),
+    lesson_id: String(body?.lesson_id || body?.lessonId || '').trim(),
+    title: String(body?.title || '').trim(),
+    minutes: Number.isFinite(Number(body?.minutes)) ? Number(body.minutes) : 10,
+    content_md: String(body?.content_md || body?.contentMd || '').trim(),
+    callouts: normalizeCallouts(body?.callouts),
+    status: LESSON_STATUSES.has(body?.status) ? body.status : 'Published',
+    sort_order: Number.isFinite(Number(body?.sort_order)) ? Number(body.sort_order) : 0,
+    ...(userId ? { created_by: userId } : {}),
+  };
+}
+
+function normalizeLessonPatch(body: any) {
+  const patch: Record<string, any> = { updated_at: new Date().toISOString() };
+
+  if (body?.track !== undefined) {
+    patch.track = normalizeTrackId(body.track);
+  }
+  if (body?.lesson_id !== undefined || body?.lessonId !== undefined) {
+    patch.lesson_id = String(body.lesson_id || body.lessonId || '').trim();
+  }
+  if (body?.title !== undefined) {
+    patch.title = String(body.title || '').trim();
+  }
+  if (body?.minutes !== undefined) {
+    patch.minutes = Number.isFinite(Number(body.minutes)) ? Number(body.minutes) : 10;
+  }
+  if (body?.content_md !== undefined || body?.contentMd !== undefined) {
+    patch.content_md = String(body.content_md || body.contentMd || '').trim();
+  }
+  if (body?.callouts !== undefined) {
+    patch.callouts = normalizeCallouts(body.callouts);
+  }
+  if (body?.status !== undefined) {
+    patch.status = LESSON_STATUSES.has(body.status) ? body.status : 'Draft';
+  }
+  if (body?.sort_order !== undefined) {
+    patch.sort_order = Number.isFinite(Number(body.sort_order)) ? Number(body.sort_order) : 0;
+  }
+
+  return patch;
+}
+
+function validateLessonPayload(payload: any) {
+  if (!payload.track) {
+    return 'track is required';
+  }
+  if (!payload.lesson_id) {
+    return 'lesson_id is required';
+  }
+  if (!payload.title) {
+    return 'title is required';
+  }
+  if (Number(payload.minutes) <= 0) {
+    return 'minutes must be greater than 0';
+  }
+  return null;
+}
+
 async function recordAcademyActivity(row: any, action: AcademyAction) {
   const { error } = await db.from('academy_activity').insert([{
     user_id: row.user_id,
@@ -233,10 +363,372 @@ async function recordAcademyActivity(row: any, action: AcademyAction) {
   return error;
 }
 
+// GET /api/academy/catalog - published tracks + lessons for learner UI
+router.get('/catalog', authenticateUser as any, requireAcademyAccess, async (req: AuthRequest, res: Response) => {
+  try {
+    const [{ data: tracks, error: tracksError }, { data: lessons, error: lessonsError }] =
+      await Promise.all([
+        db.from('academy_tracks').select('*').eq('status', 'Published').order('sort_order', { ascending: true }),
+        db.from('academy_lessons').select('*').eq('status', 'Published').order('sort_order', { ascending: true }),
+      ]);
+
+    if (tracksError || lessonsError) {
+      return res.status(500).json({
+        error: 'Database Error',
+        message: tracksError?.message || lessonsError?.message,
+      });
+    }
+
+    const lessonMap = new Map<string, any[]>();
+    for (const lesson of lessons || []) {
+      const row = lessonMap.get(lesson.track) || [];
+      row.push({
+        id: lesson.lesson_id,
+        title: lesson.title,
+        minutes: Number(lesson.minutes || 10),
+        content_md: lesson.content_md || '',
+        callouts: Array.isArray(lesson.callouts) ? lesson.callouts : [],
+        sort_order: Number(lesson.sort_order || 0),
+      });
+      lessonMap.set(lesson.track, row);
+    }
+
+    const data = (tracks || []).map((track: any) => ({
+      id: track.id,
+      title: track.title,
+      subtitle: track.subtitle || '',
+      description: track.description || '',
+      sort_order: Number(track.sort_order || 0),
+      lessons: (lessonMap.get(track.id) || []).sort(
+        (a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0)
+      ),
+    }));
+
+    res.json({
+      success: true,
+      data,
+      count: data.length,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
+  }
+});
+
+// GET /api/academy/admin/tracks - all tracks for admin management
+router.get('/admin/tracks', authenticateUser as any, requireExecutiveAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { data, error } = await db
+      .from('academy_tracks')
+      .select('*')
+      .order('sort_order', { ascending: true });
+
+    if (error) {
+      return res.status(500).json({
+        error: 'Database Error',
+        message: error.message,
+      });
+    }
+
+    res.json({
+      success: true,
+      data: data || [],
+      count: data?.length || 0,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
+  }
+});
+
+router.post('/admin/tracks', authenticateUser as any, requireExecutiveAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const payload = normalizeTrackPayload(req.body, req.user?.id);
+    const validationError = validateTrackPayload(payload);
+
+    if (validationError) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: validationError,
+      });
+    }
+
+    const { data, error } = await db
+      .from('academy_tracks')
+      .insert([payload])
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(500).json({
+        error: 'Database Error',
+        message: error.message,
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      data,
+      message: 'Track created',
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
+  }
+});
+
+router.patch('/admin/tracks/:id', authenticateUser as any, requireExecutiveAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const patch = normalizeTrackPatch(req.body);
+    if (patch.title !== undefined && !patch.title) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'title cannot be empty',
+      });
+    }
+
+    const { data, error } = await db
+      .from('academy_tracks')
+      .update(patch)
+      .eq('id', normalizeTrackId(req.params.id))
+      .select()
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'Track not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      data,
+      message: 'Track updated',
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
+  }
+});
+
+router.delete('/admin/tracks/:id', authenticateUser as any, requireExecutiveAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const trackId = normalizeTrackId(req.params.id);
+    const { error } = await db
+      .from('academy_tracks')
+      .delete()
+      .eq('id', trackId);
+
+    if (error) {
+      return res.status(500).json({
+        error: 'Database Error',
+        message: error.message,
+      });
+    }
+
+    // Keep relational consistency for existing progress/activity rows.
+    await db.from('academy_progress').delete().eq('track', trackId);
+    await db.from('academy_activity').delete().eq('track', trackId);
+    await db.from('academy_questions').delete().eq('track', trackId);
+    await db.from('academy_lessons').delete().eq('track', trackId);
+
+    res.json({
+      success: true,
+      message: 'Track deleted',
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
+  }
+});
+
+// GET /api/academy/admin/lessons - all lessons for admin management
+router.get('/admin/lessons', authenticateUser as any, requireExecutiveAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const track = normalizeTrackId(req.query.track);
+    let query = db
+      .from('academy_lessons')
+      .select('*')
+      .order('track', { ascending: true })
+      .order('sort_order', { ascending: true });
+
+    if (track) {
+      query = query.eq('track', track);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      return res.status(500).json({
+        error: 'Database Error',
+        message: error.message,
+      });
+    }
+
+    res.json({
+      success: true,
+      data: data || [],
+      count: data?.length || 0,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
+  }
+});
+
+router.post('/admin/lessons', authenticateUser as any, requireExecutiveAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const payload = normalizeLessonPayload(req.body, req.user?.id);
+    const validationError = validateLessonPayload(payload);
+    if (validationError) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: validationError,
+      });
+    }
+
+    const { data: track, error: trackError } = await db
+      .from('academy_tracks')
+      .select('id')
+      .eq('id', payload.track)
+      .single();
+
+    if (trackError || !track) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'track does not exist',
+      });
+    }
+
+    const { data, error } = await db
+      .from('academy_lessons')
+      .insert([payload])
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(500).json({
+        error: 'Database Error',
+        message: error.message,
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      data,
+      message: 'Lesson created',
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
+  }
+});
+
+router.patch('/admin/lessons/:id', authenticateUser as any, requireExecutiveAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const patch = normalizeLessonPatch(req.body);
+    if (patch.track) {
+      const { data: track, error: trackError } = await db
+        .from('academy_tracks')
+        .select('id')
+        .eq('id', patch.track)
+        .single();
+      if (trackError || !track) {
+        return res.status(400).json({
+          error: 'Bad Request',
+          message: 'track does not exist',
+        });
+      }
+    }
+
+    const { data, error } = await db
+      .from('academy_lessons')
+      .update(patch)
+      .eq('id', req.params.id)
+      .select()
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'Lesson not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      data,
+      message: 'Lesson updated',
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
+  }
+});
+
+router.delete('/admin/lessons/:id', authenticateUser as any, requireExecutiveAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { data: lesson, error: fetchError } = await db
+      .from('academy_lessons')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
+
+    if (fetchError || !lesson) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'Lesson not found',
+      });
+    }
+
+    const { error } = await db
+      .from('academy_lessons')
+      .delete()
+      .eq('id', req.params.id);
+
+    if (error) {
+      return res.status(500).json({
+        error: 'Database Error',
+        message: error.message,
+      });
+    }
+
+    await db.from('academy_questions').delete().eq('track', lesson.track).eq('lesson_id', lesson.lesson_id);
+    await db.from('academy_progress').delete().eq('track', lesson.track).eq('lesson_id', lesson.lesson_id);
+    await db.from('academy_activity').delete().eq('track', lesson.track).eq('lesson_id', lesson.lesson_id);
+
+    res.json({
+      success: true,
+      message: 'Lesson deleted',
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
+  }
+});
+
 // GET /api/academy/questions - published quiz questions for academy lessons
 router.get('/questions', authenticateUser as any, requireAcademyAccess, async (req: AuthRequest, res: Response) => {
   try {
-    const track = String(req.query.track || '').trim();
+    const track = normalizeTrackId(req.query.track);
     const lessonId = String(req.query.lesson_id || req.query.lessonId || '').trim();
 
     let query = db
@@ -326,6 +818,20 @@ router.post(
         });
       }
 
+      const { data: lesson, error: lessonError } = await db
+        .from('academy_lessons')
+        .select('id')
+        .eq('track', payload.track)
+        .eq('lesson_id', payload.lesson_id)
+        .single();
+
+      if (lessonError || !lesson) {
+        return res.status(400).json({
+          error: 'Bad Request',
+          message: 'track/lesson_id does not exist in academy catalog',
+        });
+      }
+
       const { data, error } = await db
         .from('academy_questions')
         .insert([payload])
@@ -360,20 +866,33 @@ router.patch(
   requireExecutiveAdmin,
   async (req: AuthRequest, res: Response) => {
     try {
+      const { data: existingQuestion, error: existingQuestionError } = await db
+        .from('academy_questions')
+        .select('*')
+        .eq('id', req.params.id)
+        .single();
+
+      if (existingQuestionError || !existingQuestion) {
+        return res.status(404).json({
+          error: 'Not Found',
+          message: 'Question not found',
+        });
+      }
+
       const patch = questionPatchFromBody(req.body);
       const mergedForValidation = {
-        track: patch.track || req.body?.track,
-        lesson_id: patch.lesson_id || req.body?.lesson_id || req.body?.lessonId,
+        track: patch.track || existingQuestion.track,
+        lesson_id: patch.lesson_id || existingQuestion.lesson_id,
         prompt: patch.prompt || req.body?.prompt,
         choices: patch.choices || normalizeQuestionChoices(req.body?.choices),
         correct_choice_id:
           patch.correct_choice_id || req.body?.correct_choice_id || req.body?.correctChoiceId,
       };
 
-      if (patch.track && !TRACKS.has(patch.track)) {
+      if (patch.track !== undefined && !patch.track) {
         return res.status(400).json({
           error: 'Bad Request',
-          message: 'track must be one of genin, chunin, jonin',
+          message: 'track is required',
         });
       }
 
@@ -382,6 +901,22 @@ router.patch(
           error: 'Bad Request',
           message: 'at least two choices are required',
         });
+      }
+
+      if (patch.track !== undefined || patch.lesson_id !== undefined) {
+        const { data: lesson, error: lessonError } = await db
+          .from('academy_lessons')
+          .select('id')
+          .eq('track', mergedForValidation.track)
+          .eq('lesson_id', mergedForValidation.lesson_id)
+          .single();
+
+        if (lessonError || !lesson) {
+          return res.status(400).json({
+            error: 'Bad Request',
+            message: 'track/lesson_id does not exist in academy catalog',
+          });
+        }
       }
 
       if (
@@ -664,17 +1199,27 @@ router.post('/progress', authenticateUser as any, requireAcademyAccess, async (r
       });
     }
 
-    if (!TRACKS.has(track)) {
+    const normalizedTrack = normalizeTrackId(track);
+    const normalizedLessonId = String(lesson_id || '').trim();
+
+    const { data: lessonRef, error: lessonRefError } = await db
+      .from('academy_lessons')
+      .select('id')
+      .eq('track', normalizedTrack)
+      .eq('lesson_id', normalizedLessonId)
+      .single();
+
+    if (lessonRefError || !lessonRef) {
       return res.status(400).json({
         error: 'Bad Request',
-        message: 'track must be one of genin, chunin, jonin',
+        message: 'track/lesson_id does not exist in academy catalog',
       });
     }
 
     const payload = {
       user_id: userId,
-      track,
-      lesson_id,
+      track: normalizedTrack,
+      lesson_id: normalizedLessonId,
       lesson_completed: normalizeBoolean(lesson_completed),
       quiz_passed: normalizeBoolean(quiz_passed),
       checklist: normalizeChecklist(checklist),
@@ -686,8 +1231,8 @@ router.post('/progress', authenticateUser as any, requireAcademyAccess, async (r
       .from('academy_progress')
       .select('*')
       .eq('user_id', userId)
-      .eq('track', track)
-      .eq('lesson_id', lesson_id)
+      .eq('track', normalizedTrack)
+      .eq('lesson_id', normalizedLessonId)
       .single();
 
     if (lookupError && !isNotFoundLookupError(lookupError)) {
