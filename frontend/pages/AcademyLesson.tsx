@@ -15,6 +15,7 @@ import {
   type ProgressState,
 } from '@/lib/academy/progress';
 import { getChecklist, setChecklist } from '@/lib/academy/checklist';
+import { rowsToQuizQuestions } from '@/lib/academy/questions';
 import { useStore } from '@/store/useStore';
 
 const CELEBRATION_AUDIO_SRC = '/theme-submit.mp3';
@@ -101,7 +102,7 @@ function isTrackId(value: string | undefined): value is TrackId {
 export function AcademyLesson() {
   const params = useParams<{ track: string; lesson: string }>();
   const navigate = useNavigate();
-  const { currentUser, walletAddress, authToken } = useStore();
+  const { currentUser, walletAddress, authToken, fetchMembers, checkSession } = useStore();
 
   if (!isTrackId(params.track) || !params.lesson) {
     return <div className="text-center py-20 text-white/40 font-mono tracking-widest uppercase">Lesson not found</div>;
@@ -125,6 +126,7 @@ export function AcademyLesson() {
   const [submittedQ, setSubmittedQ] = useState<Record<string, boolean>>({});
   const [currentStep, setCurrentStep] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [dbQuestions, setDbQuestions] = useState<ReturnType<typeof rowsToQuizQuestions> | null>(null);
   const [completionSaveStatus, setCompletionSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const celebrationAudioRef = useRef<HTMLAudioElement | null>(null);
   const completionPromiseRef = useRef<Promise<boolean> | null>(null);
@@ -153,8 +155,10 @@ export function AcademyLesson() {
   const syncMissingRows = useCallback(
     async (baseline: ProgressState, merged: ProgressState) => {
       if (!canSyncRemote) {
-        return;
+        return true;
       }
+
+      let synced = true;
 
       const keys = new Set<string>([
         ...Object.keys(merged.completedLessons || {}),
@@ -190,7 +194,7 @@ export function AcademyLesson() {
         }
 
         try {
-          await fetch(`${apiBase}/api/academy/progress`, {
+          const response = await fetch(`${apiBase}/api/academy/progress`, {
             method: 'POST',
             headers: requestHeaders,
             credentials: 'include',
@@ -203,10 +207,16 @@ export function AcademyLesson() {
               xp_awarded: mergedCompleted ? 100 : 0,
             }),
           });
+
+          if (!response.ok) {
+            synced = false;
+          }
         } catch {
-          // Keep local merged state when backfill requests fail.
+          synced = false;
         }
       }
+
+      return synced;
     },
     [apiBase, canSyncRemote, requestHeaders]
   );
@@ -216,6 +226,7 @@ export function AcademyLesson() {
     setAnswers({});
     setSubmittedQ({});
     setErr('');
+    setDbQuestions(null);
     setShowCelebration(false);
     setCompletionSaveStatus('idle');
     completionPromiseRef.current = null;
@@ -254,9 +265,19 @@ export function AcademyLesson() {
         const remoteState = rowsToProgressState(result.data.rows);
         const localState = loadProgress(identity);
         const mergedState = mergeProgressStates(localState, remoteState);
-        setState(mergedState);
-        saveProgress(identity, mergedState);
-        void syncMissingRows(remoteState, mergedState);
+        const backfilled = await syncMissingRows(remoteState, mergedState);
+
+        if (cancelled) {
+          return;
+        }
+
+        const authoritativeState = backfilled ? mergedState : remoteState;
+        setState(authoritativeState);
+        saveProgress(identity, authoritativeState);
+
+        if (!backfilled) {
+          setErr('SYNC_ERROR: Local academy progress could not be written to the database. Remote database progress is being shown instead.');
+        }
       } catch {
         // Keep local progress as fallback when backend is unavailable.
       }
@@ -269,8 +290,49 @@ export function AcademyLesson() {
     };
   }, [apiBase, canSyncRemote, identity, requestHeaders, syncMissingRows]);
 
+  useEffect(() => {
+    if (!canSyncRemote) {
+      setDbQuestions(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function fetchLessonQuestions() {
+      try {
+        const query = new URLSearchParams({
+          track,
+          lesson_id: lessonId,
+        });
+        const response = await fetch(`${apiBase}/api/academy/questions?${query.toString()}`, {
+          headers: requestHeaders,
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const result = await response.json();
+        if (!cancelled && result?.success && Array.isArray(result.data)) {
+          setDbQuestions(rowsToQuizQuestions(result.data));
+        }
+      } catch {
+        if (!cancelled) {
+          setDbQuestions(null);
+        }
+      }
+    }
+
+    void fetchLessonQuestions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [apiBase, canSyncRemote, lessonId, requestHeaders, track]);
+
   const syncCurrentLesson = useCallback(
-    async (next: ProgressState) => {
+    async (next: ProgressState, options?: { recordReview?: boolean }) => {
       if (!canSyncRemote) {
         console.error('[academy/progress] Cannot sync without a DSUC account session.');
         return false;
@@ -291,6 +353,7 @@ export function AcademyLesson() {
             quiz_passed: !!next.quizPassed[progressKey],
             checklist: checklistForLesson,
             xp_awarded: next.completedLessons[progressKey] ? 100 : 0,
+            record_review: options?.recordReview === true,
           }),
         });
 
@@ -319,15 +382,24 @@ export function AcademyLesson() {
 
   const lesson = useMemo(() => {
     try {
-      return findLesson(track, lessonId);
+      const hardcodedLesson = findLesson(track, lessonId);
+      if (dbQuestions && dbQuestions.length > 0) {
+        return {
+          ...hardcodedLesson,
+          quiz: dbQuestions,
+        };
+      }
+
+      return hardcodedLesson;
     } catch {
       return null;
     }
-  }, [track, lessonId]);
+  }, [dbQuestions, track, lessonId]);
 
   const list = useMemo(() => lessonsByTrack(track), [track]);
   const idx = list.findIndex((item) => item.id === lessonId);
   const next = idx >= 0 && idx < list.length - 1 ? list[idx + 1] : null;
+  const isFinalLessonInTrack = idx >= 0 && idx === list.length - 1;
 
   if (!lesson) {
     return <div className="text-center py-20 text-white/40 font-mono tracking-widest uppercase">Lesson not found</div>;
@@ -372,18 +444,23 @@ export function AcademyLesson() {
           true,
         ]);
 
-        setState(completedWithChecklist);
-        saveProgress(identity, completedWithChecklist);
-
-        const synced = await syncCurrentLesson(completedWithChecklist);
+        const synced = await syncCurrentLesson(completedWithChecklist, {
+          recordReview: true,
+        });
 
         if (!synced) {
           setCompletionSaveStatus('error');
-          setErr('SYNC_ERROR: Academy progress was saved locally but not written to database. Please retry while signed in.');
+          setErr('SYNC_ERROR: Academy progress was not written to the database. Please stay signed in and retry.');
           completionPromiseRef.current = null;
           return false;
         }
 
+        setState(completedWithChecklist);
+        saveProgress(identity, completedWithChecklist);
+        void fetchMembers();
+        if (effectiveAuthToken) {
+          void checkSession();
+        }
         setCompletionSaveStatus('saved');
         return true;
       } finally {
@@ -393,7 +470,7 @@ export function AcademyLesson() {
 
     completionPromiseRef.current = run();
     return completionPromiseRef.current;
-  }, [cl0, identity, lessonId, state, syncCurrentLesson, track]);
+  }, [checkSession, cl0, effectiveAuthToken, fetchMembers, identity, lessonId, state, syncCurrentLesson, track]);
 
   useEffect(() => {
     const nextChecklist = [cl0, allSubmitted, allCorrect || lessonDone];
@@ -425,13 +502,22 @@ export function AcademyLesson() {
     const finalQuestionsSubmitted = lesson.quiz.every((item) => nextSubmittedQ[item.id]);
 
     if (isFinalQuizStep && finalQuestionsSubmitted && finalAnswersCorrect) {
-      setShowCelebration(true);
-      void persistCompletedLesson();
-      const audio = celebrationAudioRef.current;
-      if (audio) {
-        audio.currentTime = 0;
-        audio.volume = 0.72;
-        void audio.play().catch(() => undefined);
+      const completion = persistCompletedLesson();
+
+      if (isFinalLessonInTrack) {
+        void completion.then((saved) => {
+          if (!saved) {
+            return;
+          }
+
+          setShowCelebration(true);
+          const audio = celebrationAudioRef.current;
+          if (audio) {
+            audio.currentTime = 0;
+            audio.volume = 0.72;
+            void audio.play().catch(() => undefined);
+          }
+        });
       }
     }
   }
@@ -439,7 +525,7 @@ export function AcademyLesson() {
   async function completeLesson(onComplete?: () => void) {
     setErr('');
 
-    if (lessonDone || completionSaveStatus === 'saved') {
+    if (completionSaveStatus === 'saved') {
       onComplete?.();
       return true;
     }
@@ -499,7 +585,7 @@ export function AcademyLesson() {
     <div className="space-y-8 pb-20 max-w-4xl mx-auto">
       <audio ref={celebrationAudioRef} src={CELEBRATION_AUDIO_SRC} preload="auto" />
       <CompletionCelebration
-        open={showCelebration}
+        open={showCelebration && isFinalLessonInTrack}
         busy={busyFinish}
         lessonTitle={lesson.title}
         graduationLabel={TRACK_GRADUATION_LABEL[track]}
@@ -865,18 +951,18 @@ function CompletionCelebration({
               id="academy-completion-title"
               className="relative font-display text-3xl font-black uppercase tracking-widest text-white sm:text-5xl"
             >
-              Bạn đã tốt nghiệp {graduationLabel}
+              {graduationLabel} Graduate
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-white/70 sm:text-base">
-              Hoàn thành xuất sắc <span className="text-cyber-yellow">{lessonTitle}</span>.
-              Đừng quên ôn bài mỗi ngày để giữ streak và làm kiến thức Solana chắc hơn.
+              You completed <span className="text-cyber-yellow">{lessonTitle}</span> and cleared the full {graduationLabel} track.
+              Review a little every day to protect your streak and make your Solana fundamentals stick.
             </p>
 
             <div className="mx-auto mt-5 w-fit rounded-full border border-cyber-blue/30 bg-cyber-blue/10 px-4 py-2 text-xs font-mono uppercase tracking-widest text-cyber-blue">
-              {saveStatus === 'saving' && 'Đang lưu tiến độ vào DSUC Academy...'}
-              {saveStatus === 'saved' && 'Tiến độ đã được lưu vào Academy.'}
-              {saveStatus === 'error' && 'Chưa lưu được vào database. Bấm Finalize để thử lại.'}
-              {saveStatus === 'idle' && 'Chuẩn bị lưu tiến độ Academy.'}
+              {saveStatus === 'saving' && 'Saving progress to DSUC Academy...'}
+              {saveStatus === 'saved' && 'Progress saved to Academy.'}
+              {saveStatus === 'error' && 'Database save failed. Press Finalize to retry.'}
+              {saveStatus === 'idle' && 'Preparing Academy progress save.'}
             </div>
 
             <div className="relative mt-8 grid gap-3 sm:grid-cols-2">
@@ -886,7 +972,7 @@ function CompletionCelebration({
                 disabled={busy}
                 className="min-h-12 bg-cyber-yellow px-6 py-3 font-display text-sm font-bold uppercase tracking-widest text-black transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {busy || saveStatus === 'saving' ? 'SAVING...' : 'FINALIZE MODULE'}
+                {busy || saveStatus === 'saving' ? 'SAVING...' : 'FINALIZE TRACK'}
               </button>
               <button
                 type="button"

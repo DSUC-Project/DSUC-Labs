@@ -49,12 +49,27 @@ export interface AcademyActivity {
   user_id: string;
   track: 'genin' | 'chunin' | 'jonin';
   lesson_id: string;
-  action: 'started' | 'checklist_updated' | 'lesson_completed' | 'quiz_passed' | 'progress_updated';
+  action: 'started' | 'checklist_updated' | 'lesson_completed' | 'quiz_passed' | 'progress_updated' | 'lesson_reviewed';
   lesson_completed: boolean;
   quiz_passed: boolean;
   checklist: boolean[];
   xp_snapshot: number;
   recorded_at: string;
+}
+
+export interface AcademyQuestion {
+  id: string;
+  track: 'genin' | 'chunin' | 'jonin';
+  lesson_id: string;
+  prompt: string;
+  choices: { id: string; label: string }[];
+  correct_choice_id: string;
+  explanation: string;
+  sort_order: number;
+  status: 'Draft' | 'Published' | 'Archived';
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // Initial Data - Minimal mock data for local development
@@ -480,7 +495,8 @@ export const MOCK_DB = {
   ] as any[],
 
   academy_progress: [] as AcademyProgress[],
-  academy_activity: [] as AcademyActivity[]
+  academy_activity: [] as AcademyActivity[],
+  academy_questions: [] as AcademyQuestion[]
 };
 
 // Helper to create chainable query builder

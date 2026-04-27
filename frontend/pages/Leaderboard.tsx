@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Trophy, Star, Crown, Activity, Hexagon } from 'lucide-react';
+import { Trophy, Crown, Activity, Hexagon } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { Member } from '../types';
 import { motion } from 'framer-motion';
@@ -12,30 +12,14 @@ export function Leaderboard() {
     setMounted(true);
   }, []);
 
-  // Create a sorted list of members based on streak.
-  const mockMembers: Member[] = [
-    { id: 'mock-1', name: 'Zah', avatar: 'https://i.pravatar.cc/150?img=11', memberType: 'member', role: 'President', skills: [], socials: {}, streak: 99 },
-    { id: 'mock-2', name: 'Neo', avatar: 'https://i.pravatar.cc/150?img=12', memberType: 'member', role: 'Solana Dev', skills: [], socials: {}, streak: 84 },
-    { id: 'mock-3', name: 'Trinity', avatar: 'https://i.pravatar.cc/150?img=13', memberType: 'member', role: 'Security', skills: [], socials: {}, streak: 70 },
-    { id: 'mock-4', name: 'Morpheus', avatar: 'https://i.pravatar.cc/150?img=14', memberType: 'member', role: 'Cmd', skills: [], socials: {}, streak: 62 },
-    { id: 'mock-5', name: 'Cypher', avatar: 'https://i.pravatar.cc/150?img=15', memberType: 'community', role: 'Frontend', skills: [], socials: {}, streak: 55 },
-    { id: 'mock-6', name: 'Tank', avatar: 'https://i.pravatar.cc/150?img=16', memberType: 'community', role: 'Backend', skills: [], socials: {}, streak: 41 },
-    { id: 'mock-7', name: 'Dozer', avatar: 'https://i.pravatar.cc/150?img=17', memberType: 'community', role: 'Sysadmin', skills: [], socials: {}, streak: 30 },
-    { id: 'mock-8', name: 'Apoc', avatar: 'https://i.pravatar.cc/150?img=18', memberType: 'community', role: 'DevOps', skills: [], socials: {}, streak: 22 },
-    { id: 'mock-9', name: 'Switch', avatar: 'https://i.pravatar.cc/150?img=19', memberType: 'community', role: 'Design', skills: [], socials: {}, streak: 15 },
-    { id: 'mock-10', name: 'Mouse', avatar: 'https://i.pravatar.cc/150?img=20', memberType: 'community', role: 'QA', skills: [], socials: {}, streak: 5 },
-  ];
+  const leaderboardSource = currentUser && !members.some((member) => member.id === currentUser.id)
+    ? [currentUser, ...members]
+    : members;
 
-  const mergedMembers = members.length > 2 ? members : [...members, ...mockMembers.filter(m => !members.find(x => x.id === m.id))];
-
-  const leaderboardData = mergedMembers.map(member => {
-    let mockStreak = member.streak;
-    if (mockStreak === undefined) {
-      mockStreak = (member.name.length * 7) % 30;
-    }
+  const leaderboardData = leaderboardSource.map(member => {
     return {
       ...member,
-      streak: mockStreak
+      streak: Math.max(0, Number(member.streak || 0))
     };
   }).sort((a, b) => (b.streak || 0) - (a.streak || 0)).slice(0, 10); // TOP 10!
 
@@ -173,80 +157,94 @@ export function Leaderboard() {
       </header>
 
       {/* Top 3 Board */}
-      <div className="flex flex-col md:flex-row items-center md:items-end justify-center pt-8 mb-20 max-w-4xl mx-auto px-4 relative gap-6 md:gap-4">
-        {/* Podium Base (Desktop) */}
-        <div className="absolute bottom-0 left-[5%] right-[5%] h-4 border-t border-x border-white/20 bg-gradient-to-b from-white/10 to-transparent hidden md:block" />
-
-        {/* We reorder visually so Rank 1 is top/middle, 2 is left, 3 is right */}
-        <div className="order-2 md:order-1 z-10 w-full md:w-[30%]">
-          {top3[1] && renderTop3Card(top3[1], 2)}
+      {leaderboardData.length === 0 ? (
+        <div className="max-w-2xl mx-auto border border-cyber-blue/20 bg-surface/70 p-8 text-center">
+          <Trophy className="mx-auto mb-4 h-10 w-10 text-cyber-blue/60" aria-hidden="true" />
+          <h2 className="font-display text-xl font-bold uppercase tracking-widest text-white">
+            No Academy streaks yet
+          </h2>
+          <p className="mt-3 text-sm text-white/60">
+            Complete a DSUC Academy lesson after signing in to appear on the leaderboard.
+          </p>
         </div>
+      ) : (
+        <div className="flex flex-col md:flex-row items-center md:items-end justify-center pt-8 mb-20 max-w-4xl mx-auto px-4 relative gap-6 md:gap-4">
+          {/* Podium Base (Desktop) */}
+          <div className="absolute bottom-0 left-[5%] right-[5%] h-4 border-t border-x border-white/20 bg-gradient-to-b from-white/10 to-transparent hidden md:block" />
 
-        <div className="order-1 md:order-2 flex-shrink-0 w-full md:w-[35%] z-20 shadow-2xl shadow-black relative mb-2 md:mb-0">
-          {top3[0] && renderTop3Card(top3[0], 1)}
-        </div>
+          {/* We reorder visually so Rank 1 is top/middle, 2 is left, 3 is right */}
+          <div className="order-2 md:order-1 z-10 w-full md:w-[30%]">
+            {top3[1] && renderTop3Card(top3[1], 2)}
+          </div>
 
-        <div className="order-3 md:order-3 z-0 w-full md:w-[30%]">
-          {top3[2] && renderTop3Card(top3[2], 3)}
+          <div className="order-1 md:order-2 flex-shrink-0 w-full md:w-[35%] z-20 shadow-2xl shadow-black relative mb-2 md:mb-0">
+            {top3[0] && renderTop3Card(top3[0], 1)}
+          </div>
+
+          <div className="order-3 md:order-3 z-0 w-full md:w-[30%]">
+            {top3[2] && renderTop3Card(top3[2], 3)}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Rest of the leaderboard */}
-      <div className="space-y-3 max-w-3xl mx-auto relative z-10">
-        <div className="flex items-center justify-between text-[9px] font-mono text-white/30 px-4 mb-2 uppercase tracking-widest">
-           <span>Rank / Operator</span>
-           <span>Streak</span>
-        </div>
+      {leaderboardData.length > 0 && (
+        <div className="space-y-3 max-w-3xl mx-auto relative z-10">
+          <div className="flex items-center justify-between text-[9px] font-mono text-white/30 px-4 mb-2 uppercase tracking-widest">
+            <span>Rank / Operator</span>
+            <span>Streak</span>
+          </div>
 
-        {others.map((member, idx) => {
-          const rank = idx + 4;
-          const isCurrentUser = currentUser?.id === member.id;
+          {others.map((member, idx) => {
+            const rank = idx + 4;
+            const isCurrentUser = currentUser?.id === member.id;
 
-          return (
-            <motion.div
-              initial={{ x: -20, opacity: 0 }}
-              whileInView={{ x: 0, opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: idx * 0.05 }}
-              key={member.id}
-              className={`flex items-center gap-3 sm:gap-4 p-2 sm:p-3 border transition-all ${
-                isCurrentUser
-                  ? 'bg-cyber-blue/10 border-cyber-blue shadow-[0_0_15px_rgba(41,121,255,0.2)]'
-                  : 'bg-[#050B14]/80 backdrop-blur-sm border-white/5 hover:border-white/20'
-              }`}
-            >
-              <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center font-display font-medium text-white/30 text-sm sm:text-base border-r border-white/5 pr-2 sm:pr-4 shrink-0">
-                {rank < 10 ? `0${rank}` : rank}
-              </div>
+            return (
+              <motion.div
+                initial={{ x: -20, opacity: 0 }}
+                whileInView={{ x: 0, opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.05 }}
+                key={member.id}
+                className={`flex items-center gap-3 sm:gap-4 p-2 sm:p-3 border transition-all ${
+                  isCurrentUser
+                    ? 'bg-cyber-blue/10 border-cyber-blue shadow-[0_0_15px_rgba(41,121,255,0.2)]'
+                    : 'bg-[#050B14]/80 backdrop-blur-sm border-white/5 hover:border-white/20'
+                }`}
+              >
+                <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center font-display font-medium text-white/30 text-sm sm:text-base border-r border-white/5 pr-2 sm:pr-4 shrink-0">
+                  {rank < 10 ? `0${rank}` : rank}
+                </div>
 
-              <div className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 relative overflow-hidden border border-white/10">
-                <img src={member.avatar || 'https://via.placeholder.com/50'} alt={member.name} className="w-full h-full object-cover grayscale opacity-80" />
-              </div>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 relative overflow-hidden border border-white/10">
+                  <img src={member.avatar || 'https://via.placeholder.com/50'} alt={member.name} className="w-full h-full object-cover grayscale opacity-80" />
+                </div>
 
-              <div className="flex flex-col flex-grow min-w-0">
-                <div className="flex items-center gap-1 sm:gap-2 truncate">
-                  <span className={`font-display font-bold uppercase tracking-wider text-xs sm:text-sm truncate ${isCurrentUser ? 'text-cyber-blue' : 'text-white'}`}>
-                    {member.name}
-                  </span>
-                  {isCurrentUser && (
-                    <span className="px-1.5 py-0.5 bg-cyber-blue/20 border border-cyber-blue text-cyber-blue text-[8px] font-mono uppercase tracking-widest shrink-0">
-                      YOU
+                <div className="flex flex-col flex-grow min-w-0">
+                  <div className="flex items-center gap-1 sm:gap-2 truncate">
+                    <span className={`font-display font-bold uppercase tracking-wider text-xs sm:text-sm truncate ${isCurrentUser ? 'text-cyber-blue' : 'text-white'}`}>
+                      {member.name}
                     </span>
-                  )}
+                    {isCurrentUser && (
+                      <span className="px-1.5 py-0.5 bg-cyber-blue/20 border border-cyber-blue text-cyber-blue text-[8px] font-mono uppercase tracking-widest shrink-0">
+                        YOU
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[9px] text-white/30 font-mono uppercase tracking-widest truncate">
+                    {member.role || 'Operative'}
+                  </div>
                 </div>
-                <div className="text-[9px] text-white/30 font-mono uppercase tracking-widest truncate">
-                  {member.role || 'Operative'}
-                </div>
-              </div>
 
-              <div className="flex items-center gap-1.5 sm:gap-2 px-2 py-1 bg-black/40 border border-white/5 text-white/80 text-[10px] sm:text-xs font-mono font-bold uppercase tracking-widest shrink-0 min-w-[70px] justify-center">
-                <FlameIcon color="text-white/40" />
-                {member.streak}
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
+                <div className="flex items-center gap-1.5 sm:gap-2 px-2 py-1 bg-black/40 border border-white/5 text-white/80 text-[10px] sm:text-xs font-mono font-bold uppercase tracking-widest shrink-0 min-w-[70px] justify-center">
+                  <FlameIcon color="text-white/40" />
+                  {member.streak}
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

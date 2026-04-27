@@ -159,10 +159,31 @@ export interface AcademyActivity {
     | 'checklist_updated'
     | 'lesson_completed'
     | 'quiz_passed'
-    | 'progress_updated';
+    | 'progress_updated'
+    | 'lesson_reviewed';
   lesson_completed: boolean;
   quiz_passed: boolean;
   checklist: boolean[];
   xp_snapshot: number;
   recorded_at: string;
+}
+
+export interface AcademyQuestionChoice {
+  id: string;
+  label: string;
+}
+
+export interface AcademyQuestion {
+  id: string;
+  track: 'genin' | 'chunin' | 'jonin';
+  lesson_id: string;
+  prompt: string;
+  choices: AcademyQuestionChoice[];
+  correct_choice_id: string;
+  explanation: string;
+  sort_order: number;
+  status: PublishStatus;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
 }

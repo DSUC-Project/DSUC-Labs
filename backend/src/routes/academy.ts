@@ -11,6 +11,20 @@ import { calculateLearningStreak } from '../utils/academyStats';
 const router = Router();
 
 const TRACKS = new Set(['genin', 'chunin', 'jonin']);
+const QUESTION_STATUSES = new Set(['Draft', 'Published', 'Archived']);
+
+type AcademyAction =
+  | 'started'
+  | 'checklist_updated'
+  | 'lesson_completed'
+  | 'quiz_passed'
+  | 'progress_updated'
+  | 'lesson_reviewed';
+
+type AcademyQuestionChoice = {
+  id: string;
+  label: string;
+};
 
 function normalizeBoolean(value: unknown) {
   return value === true || value === 'true' || value === 1 || value === '1';
@@ -47,7 +61,7 @@ function checklistEquals(a: unknown, b: unknown) {
   );
 }
 
-function buildAcademyAction(existing: any, payload: any) {
+function buildAcademyAction(existing: any, payload: any, recordReview = false): AcademyAction | null {
   if (!existing) {
     if (payload.quiz_passed) {
       return 'quiz_passed';
@@ -80,10 +94,130 @@ function buildAcademyAction(existing: any, payload: any) {
     return 'progress_updated';
   }
 
+  if (recordReview && payload.lesson_completed) {
+    return 'lesson_reviewed';
+  }
+
   return null;
 }
 
-async function recordAcademyActivity(row: any, action: string) {
+function normalizeQuestionChoices(value: unknown): AcademyQuestionChoice[] {
+  const raw = typeof value === 'string' ? safeJsonParse(value, []) : value;
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw
+    .map((item: any, index: number) => ({
+      id: String(item?.id || String.fromCharCode(97 + index)).trim(),
+      label: String(item?.label || '').trim(),
+    }))
+    .filter((item) => item.id && item.label);
+}
+
+function safeJsonParse(value: string, fallback: unknown) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+function questionPayloadFromBody(body: any, userId?: string) {
+  const track = String(body?.track || '').trim();
+  const lessonId = String(body?.lesson_id || body?.lessonId || '').trim();
+  const prompt = String(body?.prompt || '').trim();
+  const choices = normalizeQuestionChoices(body?.choices);
+  const correctChoiceId = String(body?.correct_choice_id || body?.correctChoiceId || '').trim();
+  const explanation = String(body?.explanation || '').trim();
+  const status = QUESTION_STATUSES.has(body?.status) ? body.status : 'Published';
+
+  return {
+    track,
+    lesson_id: lessonId,
+    prompt,
+    choices,
+    correct_choice_id: correctChoiceId,
+    explanation,
+    sort_order: Number.isFinite(Number(body?.sort_order))
+      ? Number(body.sort_order)
+      : 0,
+    status,
+    ...(userId ? { created_by: userId } : {}),
+  };
+}
+
+function questionPatchFromBody(body: any) {
+  const patch: Record<string, any> = {};
+
+  if (body?.track !== undefined) {
+    patch.track = String(body.track || '').trim();
+  }
+
+  if (body?.lesson_id !== undefined || body?.lessonId !== undefined) {
+    patch.lesson_id = String(body.lesson_id || body.lessonId || '').trim();
+  }
+
+  if (body?.prompt !== undefined) {
+    patch.prompt = String(body.prompt || '').trim();
+  }
+
+  if (body?.choices !== undefined) {
+    patch.choices = normalizeQuestionChoices(body.choices);
+  }
+
+  if (body?.correct_choice_id !== undefined || body?.correctChoiceId !== undefined) {
+    patch.correct_choice_id = String(body.correct_choice_id || body.correctChoiceId || '').trim();
+  }
+
+  if (body?.explanation !== undefined) {
+    patch.explanation = String(body.explanation || '').trim();
+  }
+
+  if (body?.sort_order !== undefined) {
+    patch.sort_order = Number.isFinite(Number(body.sort_order))
+      ? Number(body.sort_order)
+      : 0;
+  }
+
+  if (body?.status !== undefined) {
+    patch.status = QUESTION_STATUSES.has(body.status) ? body.status : 'Draft';
+  }
+
+  patch.updated_at = new Date().toISOString();
+
+  return patch;
+}
+
+function validateQuestionPayload(payload: any) {
+  if (!TRACKS.has(payload.track)) {
+    return 'track must be one of genin, chunin, jonin';
+  }
+
+  if (!payload.lesson_id) {
+    return 'lesson_id is required';
+  }
+
+  if (!payload.prompt) {
+    return 'prompt is required';
+  }
+
+  if (!Array.isArray(payload.choices) || payload.choices.length < 2) {
+    return 'at least two choices are required';
+  }
+
+  if (!payload.correct_choice_id) {
+    return 'correct_choice_id is required';
+  }
+
+  if (!payload.choices.some((choice: AcademyQuestionChoice) => choice.id === payload.correct_choice_id)) {
+    return 'correct_choice_id must match one of the choices';
+  }
+
+  return null;
+}
+
+async function recordAcademyActivity(row: any, action: AcademyAction) {
   const { error } = await db.from('academy_activity').insert([{
     user_id: row.user_id,
     track: row.track,
@@ -98,6 +232,231 @@ async function recordAcademyActivity(row: any, action: string) {
 
   return error;
 }
+
+// GET /api/academy/questions - published quiz questions for academy lessons
+router.get('/questions', authenticateUser as any, requireAcademyAccess, async (req: AuthRequest, res: Response) => {
+  try {
+    const track = String(req.query.track || '').trim();
+    const lessonId = String(req.query.lesson_id || req.query.lessonId || '').trim();
+
+    let query = db
+      .from('academy_questions')
+      .select('*')
+      .eq('status', 'Published');
+
+    if (track) {
+      query = query.eq('track', track);
+    }
+
+    if (lessonId) {
+      query = query.eq('lesson_id', lessonId);
+    }
+
+    const { data, error } = await query.order('sort_order', { ascending: true });
+
+    if (error) {
+      return res.status(500).json({
+        error: 'Database Error',
+        message: error.message,
+      });
+    }
+
+    res.json({
+      success: true,
+      data: data || [],
+      count: data?.length || 0,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
+  }
+});
+
+// GET /api/academy/admin/questions - all academy questions for admins
+router.get(
+  '/admin/questions',
+  authenticateUser as any,
+  requireExecutiveAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { data, error } = await db
+        .from('academy_questions')
+        .select('*')
+        .order('track', { ascending: true })
+        .order('lesson_id', { ascending: true })
+        .order('sort_order', { ascending: true });
+
+      if (error) {
+        return res.status(500).json({
+          error: 'Database Error',
+          message: error.message,
+        });
+      }
+
+      res.json({
+        success: true,
+        data: data || [],
+        count: data?.length || 0,
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: error.message,
+      });
+    }
+  }
+);
+
+// POST /api/academy/admin/questions - create academy question
+router.post(
+  '/admin/questions',
+  authenticateUser as any,
+  requireExecutiveAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const payload = questionPayloadFromBody(req.body, req.user?.id);
+      const validationError = validateQuestionPayload(payload);
+
+      if (validationError) {
+        return res.status(400).json({
+          error: 'Bad Request',
+          message: validationError,
+        });
+      }
+
+      const { data, error } = await db
+        .from('academy_questions')
+        .insert([payload])
+        .select()
+        .single();
+
+      if (error) {
+        return res.status(500).json({
+          error: 'Database Error',
+          message: error.message,
+        });
+      }
+
+      res.status(201).json({
+        success: true,
+        data,
+        message: 'Question created',
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: error.message,
+      });
+    }
+  }
+);
+
+// PATCH /api/academy/admin/questions/:id - update academy question
+router.patch(
+  '/admin/questions/:id',
+  authenticateUser as any,
+  requireExecutiveAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const patch = questionPatchFromBody(req.body);
+      const mergedForValidation = {
+        track: patch.track || req.body?.track,
+        lesson_id: patch.lesson_id || req.body?.lesson_id || req.body?.lessonId,
+        prompt: patch.prompt || req.body?.prompt,
+        choices: patch.choices || normalizeQuestionChoices(req.body?.choices),
+        correct_choice_id:
+          patch.correct_choice_id || req.body?.correct_choice_id || req.body?.correctChoiceId,
+      };
+
+      if (patch.track && !TRACKS.has(patch.track)) {
+        return res.status(400).json({
+          error: 'Bad Request',
+          message: 'track must be one of genin, chunin, jonin',
+        });
+      }
+
+      if (patch.choices && patch.choices.length < 2) {
+        return res.status(400).json({
+          error: 'Bad Request',
+          message: 'at least two choices are required',
+        });
+      }
+
+      if (
+        mergedForValidation.correct_choice_id &&
+        Array.isArray(mergedForValidation.choices) &&
+        mergedForValidation.choices.length > 0 &&
+        !mergedForValidation.choices.some(
+          (choice: AcademyQuestionChoice) => choice.id === mergedForValidation.correct_choice_id
+        )
+      ) {
+        return res.status(400).json({
+          error: 'Bad Request',
+          message: 'correct_choice_id must match one of the choices',
+        });
+      }
+
+      const { data, error } = await db
+        .from('academy_questions')
+        .update(patch)
+        .eq('id', req.params.id)
+        .select()
+        .single();
+
+      if (error) {
+        return res.status(500).json({
+          error: 'Database Error',
+          message: error.message,
+        });
+      }
+
+      res.json({
+        success: true,
+        data,
+        message: 'Question updated',
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: error.message,
+      });
+    }
+  }
+);
+
+// DELETE /api/academy/admin/questions/:id - delete academy question
+router.delete(
+  '/admin/questions/:id',
+  authenticateUser as any,
+  requireExecutiveAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { error } = await db
+        .from('academy_questions')
+        .delete()
+        .eq('id', req.params.id);
+
+      if (error) {
+        return res.status(500).json({
+          error: 'Database Error',
+          message: error.message,
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Question deleted',
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: error.message,
+      });
+    }
+  }
+);
 
 // GET /api/academy/admin/overview - aggregated learner progress for admin
 router.get(
@@ -295,6 +654,7 @@ router.post('/progress', authenticateUser as any, requireAcademyAccess, async (r
       quiz_passed,
       checklist,
       xp_awarded,
+      record_review,
     } = req.body || {};
 
     if (!track || !lesson_id) {
@@ -338,7 +698,11 @@ router.post('/progress', authenticateUser as any, requireAcademyAccess, async (r
       });
     }
 
-    const activityAction = buildAcademyAction(existing, payload);
+    const activityAction = buildAcademyAction(
+      existing,
+      payload,
+      normalizeBoolean(record_review)
+    );
 
     if (existing?.id && !activityAction) {
       return res.json({

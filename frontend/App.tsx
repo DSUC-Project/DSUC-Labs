@@ -20,6 +20,7 @@ import { AcademyHome } from './pages/AcademyHome';
 import { AcademyTrack } from './pages/AcademyTrack';
 import { AcademyLesson } from './pages/AcademyLesson';
 import { Admin } from './pages/Admin';
+import { AcademyAdmin } from './pages/AcademyAdmin';
 import { useStore } from './store/useStore';
 
 // Google OAuth Client ID - set in environment variable
@@ -60,6 +61,7 @@ function AnimatedRoutes() {
           <Route path="/meet" element={<Meet />} />
           <Route path="/resources" element={<Resources />} />
           <Route path="/admin" element={isAdmin ? <Admin /> : <Navigate to="/home" replace />} />
+          <Route path="/academy-admin" element={isAdmin ? <AcademyAdmin /> : <Navigate to="/home" replace />} />
           <Route
             path="/academy"
             element={canAccessAcademy ? <AcademyHome /> : <AcademyAccessGate />}

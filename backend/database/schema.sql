@@ -170,7 +170,7 @@ CREATE TABLE academy_activity (
   user_id TEXT REFERENCES members(id) ON DELETE CASCADE,
   track TEXT NOT NULL CHECK (track IN ('genin', 'chunin', 'jonin')),
   lesson_id TEXT NOT NULL,
-  action TEXT NOT NULL CHECK (action IN ('started', 'checklist_updated', 'lesson_completed', 'quiz_passed', 'progress_updated')),
+  action TEXT NOT NULL CHECK (action IN ('started', 'checklist_updated', 'lesson_completed', 'quiz_passed', 'progress_updated', 'lesson_reviewed')),
   lesson_completed BOOLEAN DEFAULT false,
   quiz_passed BOOLEAN DEFAULT false,
   checklist BOOLEAN[] DEFAULT '{}',
@@ -180,6 +180,25 @@ CREATE TABLE academy_activity (
 
 CREATE INDEX idx_academy_activity_user ON academy_activity(user_id);
 CREATE INDEX idx_academy_activity_recorded_at ON academy_activity(recorded_at DESC);
+
+-- 10. Bảng Academy Questions (admin-managed quiz bank)
+CREATE TABLE academy_questions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  track TEXT NOT NULL CHECK (track IN ('genin', 'chunin', 'jonin')),
+  lesson_id TEXT NOT NULL,
+  prompt TEXT NOT NULL,
+  choices JSONB NOT NULL DEFAULT '[]'::jsonb,
+  correct_choice_id TEXT NOT NULL,
+  explanation TEXT DEFAULT '',
+  sort_order INT DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'Published' CHECK (status IN ('Draft', 'Published', 'Archived')),
+  created_by TEXT REFERENCES members(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_academy_questions_lesson ON academy_questions(track, lesson_id, status, sort_order);
+CREATE INDEX idx_academy_questions_status ON academy_questions(status);
 
 -- Function để tự động update updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -196,4 +215,8 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Trigger cho bảng academy_progress
 CREATE TRIGGER update_academy_progress_updated_at BEFORE UPDATE ON academy_progress
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Trigger cho bảng academy_questions
+CREATE TRIGGER update_academy_questions_updated_at BEFORE UPDATE ON academy_questions
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

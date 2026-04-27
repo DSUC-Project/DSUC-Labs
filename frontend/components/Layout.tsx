@@ -139,7 +139,10 @@ function Navbar({ onAuthClick }: { onAuthClick: (mode: AuthIntent) => void }) {
     { name: 'Meet', path: '/meet', icon: Video },
     { name: 'Work', path: '/work', icon: Briefcase },
     { name: 'Finance', path: '/finance', icon: Calculator, locked: !isOfficialMember },
-    ...(isAdmin ? [{ name: 'Admin', path: '/admin', icon: HelpCircle }] : []),
+    ...(isAdmin ? [
+      { name: 'Admin', path: '/admin', icon: HelpCircle },
+      { name: 'Academy Admin', path: '/academy-admin', icon: GraduationCap },
+    ] : []),
   ];
 
   const allLinks = [...standardLinks, ...workspaceLinks];
