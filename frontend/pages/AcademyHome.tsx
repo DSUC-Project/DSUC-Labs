@@ -32,11 +32,9 @@ export function AcademyHome() {
   const progressState = useMemo(() => loadProgress(identity), [identity]);
 
   return (
-    <div className="space-y-12 pb-32 max-w-7xl mx-auto px-4">
+    <div className="space-y-12 pb-20">
       {/* Banner & Profile Section */}
-      <div className="pt-10 grid grid-cols-1 lg:grid-cols-12 gap-8 relative">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-cyber-blue/5 rounded-full blur-[100px] pointer-events-none" />
-
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Main Title Area */}
         <div className="lg:col-span-8 flex flex-col justify-center">
           <div className="mb-6 inline-flex items-center gap-2 px-3 py-1 border border-cyber-blue/30 bg-cyber-blue/5 text-cyber-blue text-xs font-mono uppercase tracking-widest w-fit">
@@ -54,11 +52,8 @@ export function AcademyHome() {
 
         {/* Player Stats (Shareable ID Card) */}
         <div className="lg:col-span-4 relative group">
-          {/* Card Glow Effect */}
-          <div className="absolute -inset-1 bg-gradient-to-br from-cyber-yellow/40 via-cyber-blue/20 to-purple-500/30 blur-2xl opacity-50 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl pointer-events-none z-0" />
-
           <div
-            className="bg-[#050B14] border border-white/20 p-6 h-full flex flex-col relative overflow-hidden shadow-[0_0_40px_rgba(41,121,255,0.15)] group-hover:border-cyber-yellow/50 transition-colors duration-500 z-10"
+            className="cyber-card bg-surface/60 border border-white/20 p-6 h-full flex flex-col relative overflow-hidden group-hover:border-cyber-yellow/50 transition-colors duration-500"
           >
             {/* Holographic overlay */}
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none mix-blend-overlay" />
@@ -147,13 +142,14 @@ export function AcademyHome() {
             const isCompleted = isTrackCompleted(progressState, track.id);
 
             return (
-              <div
+              <button
+                type="button"
                 key={track.id}
                 onClick={() => navigate(`/academy/track/${track.id}`)}
-                className={`group cursor-pointer border p-6 flex flex-col transition-all relative shadow-lg overflow-hidden ${
+                className={`group text-left border p-6 flex flex-col transition-all relative shadow-lg overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                   isCompleted
                     ? 'bg-cyber-yellow/10 border-cyber-yellow hover:bg-cyber-yellow/20'
-                    : 'bg-black border-cyber-blue hover:border-cyber-yellow hover:bg-cyber-yellow/5'
+                    : 'bg-surface/50 border-cyber-blue hover:border-cyber-yellow hover:bg-cyber-yellow/5'
                 }`}
               >
                 {/* Completion Background V */}
@@ -214,7 +210,7 @@ export function AcademyHome() {
                   </div>
                 </div>
 
-                <button className={`w-full py-4 font-display font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all relative z-10 border ${
+                <span className={`w-full py-4 font-display font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all relative z-10 border ${
                   isCompleted
                     ? 'bg-cyber-yellow text-black border-cyber-yellow hover:bg-white shadow-[0_0_15px_rgba(255,214,0,0.4)]'
                     : 'bg-cyber-blue/10 border-cyber-blue text-cyber-blue group-hover:border-cyber-yellow group-hover:bg-cyber-yellow group-hover:text-black shadow-[0_0_15px_rgba(41,121,255,0.2)] group-hover:shadow-[0_0_15px_rgba(255,214,0,0.4)]'
@@ -222,8 +218,8 @@ export function AcademyHome() {
                   {isCompleted ? 'TRACK COMPLETED' : 'INITIALIZE BOOTUP'}
                   {!isCompleted && <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />}
                   {isCompleted && <Check size={16} />}
-                </button>
-              </div>
+                </span>
+              </button>
             );
           })}
         </div>

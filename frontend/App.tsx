@@ -20,7 +20,6 @@ import { AcademyHome } from './pages/AcademyHome';
 import { AcademyTrack } from './pages/AcademyTrack';
 import { AcademyLesson } from './pages/AcademyLesson';
 import { Admin } from './pages/Admin';
-import { AcademyLayout } from './components/academy/layout/AcademyLayout';
 import { useStore } from './store/useStore';
 
 // Google OAuth Client ID - set in environment variable
@@ -63,27 +62,15 @@ function AnimatedRoutes() {
           <Route path="/admin" element={isAdmin ? <Admin /> : <Navigate to="/home" replace />} />
           <Route
             path="/academy"
-            element={
-              <AcademyLayout>
-                {canAccessAcademy ? <AcademyHome /> : <AcademyAccessGate />}
-              </AcademyLayout>
-            }
+            element={canAccessAcademy ? <AcademyHome /> : <AcademyAccessGate />}
           />
           <Route
             path="/academy/track/:track"
-            element={
-              <AcademyLayout>
-                {canAccessAcademy ? <AcademyTrack /> : <AcademyAccessGate />}
-              </AcademyLayout>
-            }
+            element={canAccessAcademy ? <AcademyTrack /> : <AcademyAccessGate />}
           />
           <Route
             path="/academy/learn/:track/:lesson"
-            element={
-              <AcademyLayout>
-                {canAccessAcademy ? <AcademyLesson /> : <AcademyAccessGate />}
-              </AcademyLayout>
-            }
+            element={canAccessAcademy ? <AcademyLesson /> : <AcademyAccessGate />}
           />
         </Routes>
       </motion.div>

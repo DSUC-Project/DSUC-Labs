@@ -341,9 +341,9 @@ export function AcademyLesson() {
   const currentQuizData = currentStep > 0 ? lesson.quiz[currentStep - 1] : null;
 
   return (
-    <div className="space-y-8 pb-32 max-w-4xl mx-auto px-4 mt-8">
+    <div className="space-y-8 pb-20 max-w-4xl mx-auto">
       {/* Progress Bar & Header */}
-      <div className="flex flex-col gap-4 sticky top-4 z-50 bg-black/80 backdrop-blur-md p-4 border border-cyber-blue/30 rounded-lg cyber-clip-bottom shadow-[0_0_20px_rgba(41,121,255,0.1)]">
+      <div className="flex flex-col gap-4 sticky top-24 z-50 bg-surface/85 backdrop-blur-md p-4 border border-cyber-blue/30 rounded-lg cyber-clip-bottom shadow-[0_0_20px_rgba(41,121,255,0.1)]">
         <div className="flex items-center justify-between">
           <button
             onClick={() => navigate(`/academy/track/${track}`)}
@@ -371,7 +371,7 @@ export function AcademyLesson() {
         </div>
       </div>
 
-      <div className="bg-[#050B14]/90 backdrop-blur-xl border border-white/20 p-6 sm:p-10 shadow-[0_0_30px_rgba(41,121,255,0.05)] relative min-h-[60vh] flex flex-col">
+      <div className="bg-surface/70 backdrop-blur-xl border border-white/20 p-6 sm:p-10 shadow-[0_0_30px_rgba(41,121,255,0.05)] relative min-h-[60vh] flex flex-col">
         {err && (
           <div className="mb-6 border border-red-500/50 bg-red-500/10 px-5 py-4 text-red-500 text-xs font-mono font-bold uppercase tracking-widest flex items-center gap-3 animate-pulse">
             <Terminal size={14} className="shrink-0" /> {err}

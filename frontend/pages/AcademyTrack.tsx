@@ -52,10 +52,9 @@ export function AcademyTrack() {
   const progressPercent = lessons.length > 0 ? (completedCount / lessons.length) * 100 : 0;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-12 pb-32 relative">
+    <div className="max-w-4xl mx-auto space-y-12 pb-20">
       {/* Top Header Row */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-surface/50 p-4 border border-cyber-blue/20 backdrop-blur-md relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-cyber-blue/10 rounded-full blur-3xl pointer-events-none" />
         <Link to="/academy" className="inline-flex items-center text-xs font-mono font-bold uppercase tracking-widest text-cyber-blue hover:text-white transition-colors relative z-10">
           <ArrowLeft className="w-4 h-4 mr-2" /> BOOT_SEQUENCE
         </Link>
@@ -86,7 +85,7 @@ export function AcademyTrack() {
       {/* Timeline Section */}
       <div className="relative mt-16 px-4 sm:px-8">
         {/* Vertical Path Line */}
-        <div className="absolute left-8 sm:left-12 top-0 bottom-0 w-1 bg-black border-l border-r border-cyber-blue/20">
+        <div className="absolute left-8 sm:left-12 top-0 bottom-0 w-1 bg-surface border-l border-r border-cyber-blue/20">
            {/* Animated progress fill */}
            <div className="w-full bg-cyber-yellow relative shadow-[0_0_10px_rgba(255,214,0,0.8)] transition-all duration-1000" style={{ height: `${progressPercent}%` }}>
              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-[2px] bg-white shadow-[0_0_10px_rgba(255,255,255,1)]" />
@@ -104,13 +103,15 @@ export function AcademyTrack() {
               const isCurrent = !isLocked && !isCompleted;
 
               return (
-                <div
+                <button
+                  type="button"
                   key={lesson.id}
-                  className={`relative flex items-center gap-6 sm:gap-8 group ${isLocked ? 'cursor-default opacity-50' : 'cursor-pointer'}`}
+                  className={`relative flex w-full text-left items-center gap-6 sm:gap-8 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${isLocked ? 'cursor-default opacity-50' : 'cursor-pointer'}`}
                   onClick={() => !isLocked && navigate(`/academy/learn/${track}/${lesson.id}`)}
+                  disabled={isLocked}
                 >
                   {/* Timeline Node Connector */}
-                  <div className={`relative flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-none border-2 bg-black transition-colors ${
+                  <div className={`relative flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-none border-2 bg-surface transition-colors ${
                     isLocked
                       ? 'border-white/20'
                       : isCompleted
@@ -170,7 +171,7 @@ export function AcademyTrack() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </button>
               );
             })
           ) : (
@@ -180,7 +181,7 @@ export function AcademyTrack() {
           {/* End of Track Element */}
           {lessons.length > 0 && progressPercent === 100 && (
             <div className="relative flex items-center gap-6 sm:gap-8 group mt-12">
-              <div className="relative flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-none border-2 bg-black transition-colors border-cyber-yellow shadow-[0_0_15px_rgba(255,214,0,0.6)]">
+              <div className="relative flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-none border-2 bg-surface transition-colors border-cyber-yellow shadow-[0_0_15px_rgba(255,214,0,0.6)]">
                 <Star size={16} className="fill-cyber-yellow text-cyber-yellow animate-pulse" />
               </div>
               <div className="relative flex-grow p-8 bg-cyber-yellow border border-cyber-yellow text-black flex flex-col sm:flex-row items-center justify-between gap-6 shadow-[0_0_30px_rgba(255,214,0,0.3)]">
