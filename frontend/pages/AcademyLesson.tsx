@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, CheckCircle2, Trophy, Terminal, Info, Code } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { ArrowLeft, ArrowRight, CheckCircle2, Code, Home, Sparkles, Trophy, Terminal } from 'lucide-react';
 
 import { TRACKS, lessonsByTrack, findLesson, type TrackId } from '@/lib/academy/curriculum';
 import { renderMd } from '@/lib/academy/md';
@@ -10,12 +11,30 @@ import {
   mergeProgressStates,
   markLessonComplete,
   markQuizPassed,
-  isQuizPassed,
   isLessonCompleted,
   type ProgressState,
 } from '@/lib/academy/progress';
 import { getChecklist, setChecklist } from '@/lib/academy/checklist';
 import { useStore } from '@/store/useStore';
+
+const CELEBRATION_AUDIO_SRC = '/theme-submit.mp3';
+
+const FIREWORK_PARTICLES = [
+  { left: 8, top: 18, x: 54, y: -42, delay: 0.05, color: 'bg-cyber-yellow' },
+  { left: 12, top: 78, x: 72, y: 38, delay: 0.18, color: 'bg-cyber-blue' },
+  { left: 20, top: 36, x: -48, y: 54, delay: 0.28, color: 'bg-white' },
+  { left: 28, top: 16, x: 36, y: 68, delay: 0.36, color: 'bg-cyber-blue' },
+  { left: 36, top: 84, x: -58, y: -50, delay: 0.12, color: 'bg-cyber-yellow' },
+  { left: 44, top: 24, x: 76, y: -28, delay: 0.42, color: 'bg-white' },
+  { left: 52, top: 68, x: -72, y: 44, delay: 0.22, color: 'bg-cyber-blue' },
+  { left: 60, top: 12, x: 62, y: 64, delay: 0.31, color: 'bg-cyber-yellow' },
+  { left: 68, top: 80, x: -42, y: -70, delay: 0.48, color: 'bg-white' },
+  { left: 76, top: 30, x: 56, y: 52, delay: 0.15, color: 'bg-cyber-blue' },
+  { left: 84, top: 62, x: -76, y: -36, delay: 0.38, color: 'bg-cyber-yellow' },
+  { left: 92, top: 20, x: -58, y: 62, delay: 0.26, color: 'bg-white' },
+  { left: 14, top: 52, x: 86, y: -16, delay: 0.62, color: 'bg-cyber-yellow' },
+  { left: 88, top: 88, x: -82, y: -58, delay: 0.58, color: 'bg-cyber-blue' },
+];
 
 function rowsToProgressState(rows: any[]): ProgressState {
   const completedLessons: Record<string, boolean> = {};
@@ -57,7 +76,7 @@ function isTrackId(value: string | undefined): value is TrackId {
 export function AcademyLesson() {
   const params = useParams<{ track: string; lesson: string }>();
   const navigate = useNavigate();
-  const { currentUser, walletAddress, authMethod, authToken } = useStore();
+  const { currentUser, walletAddress, authToken } = useStore();
 
   if (!isTrackId(params.track) || !params.lesson) {
     return <div className="text-center py-20 text-white/40 font-mono tracking-widest uppercase">Lesson not found</div>;
@@ -80,6 +99,8 @@ export function AcademyLesson() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submittedQ, setSubmittedQ] = useState<Record<string, boolean>>({});
   const [currentStep, setCurrentStep] = useState(0);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const celebrationAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const apiBase = (import.meta as any).env.VITE_API_BASE_URL || '';
 
@@ -165,8 +186,15 @@ export function AcademyLesson() {
     setAnswers({});
     setSubmittedQ({});
     setErr('');
+    setShowCelebration(false);
     setCurrentStep(0); // Reset step on lesson change
   }, [identity, track, lessonId]);
+
+  useEffect(() => {
+    return () => {
+      celebrationAudioRef.current?.pause();
+    };
+  }, []);
 
   useEffect(() => {
     if (!canSyncRemote) {
@@ -258,7 +286,6 @@ export function AcademyLesson() {
 
   const list = useMemo(() => lessonsByTrack(track), [track]);
   const idx = list.findIndex((item) => item.id === lessonId);
-  const prev = idx > 0 ? list[idx - 1] : null;
   const next = idx >= 0 && idx < list.length - 1 ? list[idx + 1] : null;
 
   if (!lesson) {
@@ -268,7 +295,6 @@ export function AcademyLesson() {
   const totalSteps = 1 + (lesson.quiz ? lesson.quiz.length : 0);
   const progressPercentage = totalSteps > 1 ? (currentStep / (totalSteps - 1)) * 100 : 100;
 
-  const quizPassed = isQuizPassed(state, track, lessonId);
   const lessonDone = isLessonCompleted(state, track, lessonId);
 
   const checklist = getChecklist(state, track, lessonId);
@@ -285,6 +311,7 @@ export function AcademyLesson() {
 
   const allSubmitted = lesson.quiz.every((item) => submittedQ[item.id]);
   const allCorrect = lesson.quiz.every((item) => isCorrect(item.id));
+  const isFinalQuizStep = lesson.quiz.length > 0 && currentStep === totalSteps - 1;
 
   useEffect(() => {
     const nextChecklist = [cl0, allSubmitted, allCorrect || lessonDone];
@@ -301,28 +328,41 @@ export function AcademyLesson() {
 
   function submitQuestion(questionId: string) {
     setErr('');
+    const correct = isCorrect(questionId);
     setSubmittedQ((prevSubmitted) => ({ ...prevSubmitted, [questionId]: true }));
-    if (!isCorrect(questionId)) {
+
+    if (!correct) {
       setErr('SYS_ERROR: INCORRECT_DATA. RECALIBRATE AND RETRY.');
+      return;
+    }
+
+    if (isFinalQuizStep) {
+      setShowCelebration(true);
+      const audio = celebrationAudioRef.current;
+      if (audio) {
+        audio.currentTime = 0;
+        audio.volume = 0.72;
+        void audio.play().catch(() => undefined);
+      }
     }
   }
 
-  async function finishLesson() {
+  async function completeLesson(onComplete?: () => void) {
     setErr('');
 
     if (lessonDone) {
-      if (next) navigate(`/academy/learn/${track}/${next.id}`);
-      return;
+      onComplete?.();
+      return true;
     }
 
     if (lesson.quiz.length > 0) {
       if (!allSubmitted) {
         setErr('ERROR: PENDING_SUBMISSIONS_DETECTED.');
-        return;
+        return false;
       }
       if (!allCorrect) {
         setErr('ERROR: INVALID_PARAMETERS. FIX BEFORE CONTINUING.');
-        return;
+        return false;
       }
     }
 
@@ -331,10 +371,35 @@ export function AcademyLesson() {
       const updatedQuiz = markQuizPassed(state, track, lessonId);
       const updatedLesson = markLessonComplete(updatedQuiz, track, lessonId);
       persistProgress(updatedLesson);
-      if (next) navigate(`/academy/learn/${track}/${next.id}`);
+      onComplete?.();
+      return true;
     } finally {
       setBusyFinish(false);
     }
+  }
+
+  async function finishLesson() {
+    celebrationAudioRef.current?.pause();
+    if (celebrationAudioRef.current) {
+      celebrationAudioRef.current.currentTime = 0;
+    }
+    setShowCelebration(false);
+    await completeLesson(() => {
+      if (next) {
+        navigate(`/academy/learn/${track}/${next.id}`);
+      } else {
+        navigate(`/academy/track/${track}`);
+      }
+    });
+  }
+
+  async function exitToAcademy() {
+    celebrationAudioRef.current?.pause();
+    if (celebrationAudioRef.current) {
+      celebrationAudioRef.current.currentTime = 0;
+    }
+    setShowCelebration(false);
+    await completeLesson(() => navigate('/academy'));
   }
 
   const trackTitle = TRACKS.find((item) => item.id === track)?.title || track;
@@ -342,6 +407,16 @@ export function AcademyLesson() {
 
   return (
     <div className="space-y-8 pb-20 max-w-4xl mx-auto">
+      <audio ref={celebrationAudioRef} src={CELEBRATION_AUDIO_SRC} preload="auto" />
+      <CompletionCelebration
+        open={showCelebration}
+        busy={busyFinish}
+        lessonTitle={lesson.title}
+        trackTitle={trackTitle}
+        onFinalize={() => void finishLesson()}
+        onExit={() => void exitToAcademy()}
+      />
+
       {/* Progress Bar & Header */}
       <div className="flex flex-col gap-4 sticky top-24 z-50 bg-surface/85 backdrop-blur-md p-4 border border-cyber-blue/30 rounded-lg cyber-clip-bottom shadow-[0_0_20px_rgba(41,121,255,0.1)]">
         <div className="flex items-center justify-between">
@@ -547,5 +622,144 @@ export function AcademyLesson() {
         </div>
       </div>
     </div>
+  );
+}
+
+function CompletionCelebration({
+  open,
+  busy,
+  lessonTitle,
+  trackTitle,
+  onFinalize,
+  onExit,
+}: {
+  open: boolean;
+  busy: boolean;
+  lessonTitle: string;
+  trackTitle: string;
+  onFinalize: () => void;
+  onExit: () => void;
+}) {
+  const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onExit();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onExit, open]);
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
+          transition={{ duration: reduceMotion ? 0 : 0.3, ease: 'easeOut' }}
+          className="fixed inset-0 z-[10020] flex items-center justify-center overflow-hidden p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="academy-completion-title"
+        >
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-md" />
+
+          {!reduceMotion && (
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+              {FIREWORK_PARTICLES.map((particle, index) => (
+                <motion.span
+                  key={`${particle.left}-${particle.top}-${index}`}
+                  className={`absolute h-2 w-2 rounded-full ${particle.color} shadow-[0_0_18px_currentColor]`}
+                  style={{ left: `${particle.left}%`, top: `${particle.top}%` }}
+                  initial={{ opacity: 0, scale: 0.2, x: 0, y: 0 }}
+                  animate={{
+                    opacity: [0, 1, 0],
+                    scale: [0.2, 1.4, 0.4],
+                    x: particle.x,
+                    y: particle.y,
+                  }}
+                  transition={{
+                    duration: 1.1,
+                    delay: particle.delay,
+                    repeat: Infinity,
+                    repeatDelay: 0.8,
+                    ease: 'easeOut',
+                  }}
+                />
+              ))}
+
+              <motion.div
+                className="absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyber-blue/20"
+                initial={{ opacity: 0, scale: 0.7 }}
+                animate={{ opacity: [0.15, 0.45, 0.15], scale: [0.7, 1.04, 0.7] }}
+                transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+              />
+              <motion.div
+                className="absolute left-1/2 top-1/2 h-[24rem] w-[24rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyber-yellow/30"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: [0.2, 0.65, 0.2], scale: [0.8, 1.08, 0.8] }}
+                transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+              />
+            </div>
+          )}
+
+          <motion.div
+            initial={reduceMotion ? false : { y: 18, opacity: 0, scale: 0.96 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={reduceMotion ? { opacity: 0 } : { y: 12, opacity: 0, scale: 0.98 }}
+            transition={{ duration: reduceMotion ? 0 : 0.34, ease: 'easeOut' }}
+            className="relative z-10 w-full max-w-2xl cyber-card bg-surface/95 border border-cyber-yellow/50 p-6 sm:p-8 text-center shadow-[0_0_40px_rgba(255,214,0,0.16)]"
+          >
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center border border-cyber-yellow/50 bg-cyber-yellow/10 text-cyber-yellow">
+              <Sparkles size={30} aria-hidden="true" />
+            </div>
+
+            <div className="mb-3 text-[10px] font-mono font-bold uppercase tracking-[0.35em] text-cyber-blue">
+              {trackTitle} cleared
+            </div>
+            <h2
+              id="academy-completion-title"
+              className="font-display text-3xl font-black uppercase tracking-widest text-white sm:text-5xl"
+            >
+              Module Complete
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-white/70 sm:text-base">
+              You answered the final query for <span className="text-cyber-yellow">{lessonTitle}</span>.
+              Finalize the module to save progress, or exit back to the Academy hub.
+            </p>
+
+            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={onFinalize}
+                disabled={busy}
+                className="min-h-12 bg-cyber-yellow px-6 py-3 font-display text-sm font-bold uppercase tracking-widest text-black transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {busy ? 'SAVING...' : 'FINALIZE MODULE'}
+              </button>
+              <button
+                type="button"
+                onClick={onExit}
+                disabled={busy}
+                className="min-h-12 border border-cyber-blue/50 bg-cyber-blue/10 px-6 py-3 font-display text-sm font-bold uppercase tracking-widest text-cyber-blue transition-colors hover:bg-cyber-blue hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-blue/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <span className="inline-flex items-center justify-center gap-2">
+                  <Home size={16} aria-hidden="true" />
+                  Exit Academy
+                </span>
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
