@@ -7,6 +7,13 @@ import {
   requireExecutiveAdmin,
 } from '../middleware/auth';
 import { calculateLearningStreak } from '../utils/academyStats';
+import {
+  academyV2CourseIdFromProgressTrack,
+  getAcademyV2Course,
+  getAcademyV2Paths,
+  getAcademyV2Unit,
+  isAcademyV2ProgressTarget,
+} from '../lib/academyV2Catalog';
 
 const router = Router();
 
@@ -130,6 +137,53 @@ function safeJsonParse(value: string, fallback: unknown) {
   } catch {
     return fallback;
   }
+}
+
+async function loadCommunityTrackSummaries() {
+  const [{ data: tracks, error: tracksError }, { data: lessons, error: lessonsError }] =
+    await Promise.all([
+      db
+        .from('academy_tracks')
+        .select('*')
+        .eq('status', 'Published')
+        .order('sort_order', { ascending: true }),
+      db
+        .from('academy_lessons')
+        .select('*')
+        .eq('status', 'Published')
+        .order('sort_order', { ascending: true }),
+    ]);
+
+  if (tracksError || lessonsError) {
+    throw new Error(tracksError?.message || lessonsError?.message || 'Failed to load community tracks');
+  }
+
+  const lessonMap = new Map<string, any[]>();
+  for (const lesson of lessons || []) {
+    const row = lessonMap.get(lesson.track) || [];
+    row.push(lesson);
+    lessonMap.set(lesson.track, row);
+  }
+
+  return (tracks || []).map((track: any) => {
+    const trackLessons = (lessonMap.get(track.id) || []).sort(
+      (a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0)
+    );
+    const totalMinutes = trackLessons.reduce(
+      (sum, lesson) => sum + Number(lesson.minutes || 0),
+      0
+    );
+
+    return {
+      id: track.id,
+      title: track.title,
+      subtitle: track.subtitle || '',
+      description: track.description || '',
+      sort_order: Number(track.sort_order || 0),
+      lesson_count: trackLessons.length,
+      total_minutes: totalMinutes,
+    };
+  });
 }
 
 function questionPayloadFromBody(body: any, userId?: string) {
@@ -408,6 +462,182 @@ router.get('/catalog', authenticateUser as any, requireAcademyAccess, async (req
       success: true,
       data,
       count: data.length,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
+  }
+});
+
+// GET /api/academy/v2/catalog - curated paths + community track summaries
+router.get('/v2/catalog', authenticateUser as any, requireAcademyAccess, async (req: AuthRequest, res: Response) => {
+  try {
+    const curatedPaths = getAcademyV2Paths();
+    const communityTracks = await loadCommunityTrackSummaries();
+
+    res.json({
+      success: true,
+      data: {
+        curated_paths: curatedPaths,
+        community_tracks: communityTracks,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
+  }
+});
+
+// GET /api/academy/admin/v2/catalog - curated academy catalog for admin control plane
+router.get('/admin/v2/catalog', authenticateUser as any, requireExecutiveAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const curatedPaths = getAcademyV2Paths();
+    const communityTracks = await loadCommunityTrackSummaries();
+
+    res.json({
+      success: true,
+      data: {
+        curated_paths: curatedPaths,
+        community_tracks: communityTracks,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
+  }
+});
+
+// GET /api/academy/admin/v2/course/:courseId - curated course detail for admin browser
+router.get('/admin/v2/course/:courseId', authenticateUser as any, requireExecutiveAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const course = getAcademyV2Course(req.params.courseId);
+    if (!course) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'Course not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: course,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
+  }
+});
+
+// GET /api/academy/admin/v2/unit - curated unit detail for admin browser
+router.get('/admin/v2/unit', authenticateUser as any, requireExecutiveAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const courseId = normalizeTrackId(req.query.course_id || req.query.courseId);
+    const unitId = String(req.query.unit_id || req.query.unitId || '')
+      .trim()
+      .toLowerCase();
+
+    if (!courseId || !unitId) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'course_id and unit_id are required',
+      });
+    }
+
+    const unit = getAcademyV2Unit(courseId, unitId);
+    if (!unit) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'Unit not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: unit,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
+  }
+});
+
+// GET /api/academy/v2/course/:courseId - full curated course detail
+router.get('/v2/course/:courseId', authenticateUser as any, requireAcademyAccess, async (req: AuthRequest, res: Response) => {
+  try {
+    const course = getAcademyV2Course(req.params.courseId);
+    if (!course) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'Course not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: course,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
+  }
+});
+
+// GET /api/academy/v2/unit - curated lesson/practice unit detail with navigation
+router.get('/v2/unit', authenticateUser as any, requireAcademyAccess, async (req: AuthRequest, res: Response) => {
+  try {
+    const courseId = normalizeTrackId(req.query.course_id || req.query.courseId);
+    const unitId = String(req.query.unit_id || req.query.unitId || '')
+      .trim()
+      .toLowerCase();
+
+    if (!courseId || !unitId) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'course_id and unit_id are required',
+      });
+    }
+
+    const course = getAcademyV2Course(courseId);
+    const unit = getAcademyV2Unit(courseId, unitId);
+
+    if (!course || !unit) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'Unit not found',
+      });
+    }
+
+    const flatUnits = course.modules.flatMap((module) => [
+      ...module.learn_units,
+      ...module.practice_units,
+    ]);
+    const unitIndex = flatUnits.findIndex((item) => item.id === unitId);
+    const previousUnit = unitIndex > 0 ? flatUnits[unitIndex - 1] : null;
+    const nextUnit =
+      unitIndex >= 0 && unitIndex < flatUnits.length - 1 ? flatUnits[unitIndex + 1] : null;
+
+    res.json({
+      success: true,
+      data: {
+        course,
+        unit,
+        previous_unit: previousUnit,
+        next_unit: nextUnit,
+        unit_index: unitIndex,
+        total_units: flatUnits.length,
+      },
     });
   } catch (error: any) {
     res.status(500).json({
@@ -995,6 +1225,181 @@ router.delete(
 
 // GET /api/academy/admin/overview - aggregated learner progress for admin
 router.get(
+  '/admin/v2/analytics',
+  authenticateUser as any,
+  requireExecutiveAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const [{ data: rows, error: rowsError }] = await Promise.all([
+        db.from('academy_progress').select('*'),
+      ]);
+
+      if (rowsError) {
+        return res.status(500).json({
+          error: 'Database Error',
+          message: rowsError.message,
+        });
+      }
+
+      const pathMap = new Map(
+        getAcademyV2Paths().map((path) => [path.id, path])
+      );
+      const courseMap = new Map(
+        getAcademyV2Paths().flatMap((path) =>
+          path.courses.map((course) => [course.id, { course, pathId: path.id, pathTitle: path.title }])
+        )
+      );
+
+      const pathMetrics = new Map<string, {
+        id: string;
+        title: string;
+        completions: number;
+        practice_completions: number;
+        xp: number;
+        learner_ids: Set<string>;
+      }>();
+      const courseMetrics = new Map<string, {
+        id: string;
+        title: string;
+        path_id: string | null;
+        path_title: string | null;
+        completions: number;
+        practice_completions: number;
+        xp: number;
+        learner_ids: Set<string>;
+      }>();
+
+      let curatedRows = 0;
+      let communityRows = 0;
+      let curatedXp = 0;
+      let communityXp = 0;
+      const curatedLearners = new Set<string>();
+      const communityLearners = new Set<string>();
+
+      for (const row of rows || []) {
+        const courseId = academyV2CourseIdFromProgressTrack(row.track);
+        if (!courseId) {
+          communityRows += 1;
+          communityXp += Number(row.xp_awarded || 0);
+          if (row.user_id) {
+            communityLearners.add(row.user_id);
+          }
+          continue;
+        }
+
+        const courseMeta = courseMap.get(courseId);
+        if (!courseMeta) {
+          continue;
+        }
+
+        curatedRows += 1;
+        curatedXp += Number(row.xp_awarded || 0);
+        if (row.user_id) {
+          curatedLearners.add(row.user_id);
+        }
+
+        const existingCourse = courseMetrics.get(courseId) || {
+          id: courseMeta.course.id,
+          title: courseMeta.course.title,
+          path_id: courseMeta.pathId,
+          path_title: courseMeta.pathTitle,
+          completions: 0,
+          practice_completions: 0,
+          xp: 0,
+          learner_ids: new Set<string>(),
+        };
+
+        if (row.lesson_completed) {
+          existingCourse.completions += 1;
+        }
+        if (row.quiz_passed) {
+          existingCourse.practice_completions += 1;
+        }
+        existingCourse.xp += Number(row.xp_awarded || 0);
+        if (row.user_id) {
+          existingCourse.learner_ids.add(row.user_id);
+        }
+        courseMetrics.set(courseId, existingCourse);
+
+        const pathId = courseMeta.pathId;
+        const pathTitle = pathMap.get(pathId)?.title || courseMeta.pathTitle || pathId;
+        const existingPath = pathMetrics.get(pathId) || {
+          id: pathId,
+          title: pathTitle,
+          completions: 0,
+          practice_completions: 0,
+          xp: 0,
+          learner_ids: new Set<string>(),
+        };
+
+        if (row.lesson_completed) {
+          existingPath.completions += 1;
+        }
+        if (row.quiz_passed) {
+          existingPath.practice_completions += 1;
+        }
+        existingPath.xp += Number(row.xp_awarded || 0);
+        if (row.user_id) {
+          existingPath.learner_ids.add(row.user_id);
+        }
+        pathMetrics.set(pathId, existingPath);
+      }
+
+      const topPaths = [...pathMetrics.values()]
+        .map((entry) => ({
+          ...entry,
+          learner_count: entry.learner_ids.size,
+        }))
+        .sort((left, right) => {
+          const completionDelta = right.completions - left.completions;
+          if (completionDelta !== 0) {
+            return completionDelta;
+          }
+          return right.xp - left.xp;
+        })
+        .slice(0, 6)
+        .map(({ learner_ids, ...rest }) => rest);
+
+      const topCourses = [...courseMetrics.values()]
+        .map((entry) => ({
+          ...entry,
+          learner_count: entry.learner_ids.size,
+        }))
+        .sort((left, right) => {
+          const completionDelta = right.completions - left.completions;
+          if (completionDelta !== 0) {
+            return completionDelta;
+          }
+          return right.xp - left.xp;
+        })
+        .slice(0, 8)
+        .map(({ learner_ids, ...rest }) => rest);
+
+      res.json({
+        success: true,
+        data: {
+          lane_split: {
+            curated_rows: curatedRows,
+            community_rows: communityRows,
+            curated_xp: curatedXp,
+            community_xp: communityXp,
+            curated_learners: curatedLearners.size,
+            community_learners: communityLearners.size,
+          },
+          top_paths: topPaths,
+          top_courses: topCourses,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: error.message,
+      });
+    }
+  }
+);
+
+router.get(
   '/admin/overview',
   authenticateUser as any,
   requireExecutiveAdmin,
@@ -1209,7 +1614,10 @@ router.post('/progress', authenticateUser as any, requireAcademyAccess, async (r
       .eq('lesson_id', normalizedLessonId)
       .single();
 
-    if (lessonRefError || !lessonRef) {
+    const isDbLesson = !lessonRefError && !!lessonRef;
+    const isCuratedUnit = isAcademyV2ProgressTarget(normalizedTrack, normalizedLessonId);
+
+    if (!isDbLesson && !isCuratedUnit) {
       return res.status(400).json({
         error: 'Bad Request',
         message: 'track/lesson_id does not exist in academy catalog',

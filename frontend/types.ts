@@ -243,3 +243,143 @@ export interface AdminApiKey {
   created_at?: string;
   updated_at?: string;
 }
+
+export interface AcademyV2TestCase {
+  id: string;
+  description: string;
+  input: string;
+  expectedOutput: string;
+  hidden: boolean;
+}
+
+export interface AcademyV2Instructor {
+  id: string;
+  name: string;
+  bio: string;
+  socialLinks: {
+    twitter?: string;
+    github?: string;
+  };
+}
+
+export interface AcademyV2UnitSummary {
+  id: string;
+  source_id: string;
+  title: string;
+  type: 'content' | 'challenge' | 'quiz';
+  section: 'learn' | 'practice';
+  order: number;
+  xp_reward: number;
+  language?: 'typescript' | 'rust';
+  build_type?: 'standard' | 'buildable';
+  deployable?: boolean;
+}
+
+export interface AcademyV2UnitDetail extends AcademyV2UnitSummary {
+  content_md: string;
+  code: string;
+  tests: AcademyV2TestCase[];
+  hints: string[];
+  solution: string;
+  video_url: string;
+  widgets: string[];
+  course_id: string;
+  course_title: string;
+  module_id: string;
+  module_title: string;
+}
+
+export interface AcademyV2Module {
+  id: string;
+  title: string;
+  description: string;
+  order: number;
+  learn_units: AcademyV2UnitSummary[];
+  practice_units: AcademyV2UnitSummary[];
+}
+
+export interface AcademyV2CourseSummary {
+  id: string;
+  source_id: string;
+  title: string;
+  description: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  duration_hours: number;
+  xp_reward: number;
+  xp_per_unit: number;
+  tags: string[];
+  track_level: number;
+  thumbnail: string;
+  module_count: number;
+  learn_unit_count: number;
+  practice_unit_count: number;
+  total_unit_count: number;
+  has_challenge_lab: boolean;
+  instructor: AcademyV2Instructor | null;
+}
+
+export interface AcademyV2CourseDetail extends AcademyV2CourseSummary {
+  path_id: string | null;
+  path_title: string | null;
+  modules: AcademyV2Module[];
+}
+
+export interface AcademyV2Path {
+  id: string;
+  source_id: string;
+  title: string;
+  tag: string;
+  description: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  order: number;
+  course_count: number;
+  learn_unit_count: number;
+  practice_unit_count: number;
+  total_unit_count: number;
+  courses: AcademyV2CourseSummary[];
+}
+
+export interface AcademyV2CommunityTrack {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  sort_order: number;
+  lesson_count: number;
+  total_minutes: number;
+}
+
+export interface AcademyV2AnalyticsLaneSplit {
+  curated_rows: number;
+  community_rows: number;
+  curated_xp: number;
+  community_xp: number;
+  curated_learners: number;
+  community_learners: number;
+}
+
+export interface AcademyV2AnalyticsPath {
+  id: string;
+  title: string;
+  completions: number;
+  practice_completions: number;
+  xp: number;
+  learner_count: number;
+}
+
+export interface AcademyV2AnalyticsCourse {
+  id: string;
+  title: string;
+  path_id: string | null;
+  path_title: string | null;
+  completions: number;
+  practice_completions: number;
+  xp: number;
+  learner_count: number;
+}
+
+export interface AcademyV2Analytics {
+  lane_split: AcademyV2AnalyticsLaneSplit;
+  top_paths: AcademyV2AnalyticsPath[];
+  top_courses: AcademyV2AnalyticsCourse[];
+}

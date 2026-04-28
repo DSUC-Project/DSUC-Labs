@@ -3,26 +3,56 @@ import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+function textFromChildren(children: React.ReactNode): string {
+  return React.Children.toArray(children)
+    .map((child) => {
+      if (typeof child === 'string' || typeof child === 'number') {
+        return String(child);
+      }
+
+      if (React.isValidElement(child)) {
+        return textFromChildren((child.props as { children?: React.ReactNode }).children);
+      }
+
+      return '';
+    })
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function slugifyMarkdownHeading(value: string) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[`*_~]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function heading<Tag extends 'h1' | 'h2' | 'h3' | 'h4'>(tag: Tag, className: string) {
+  return function Heading({ children }: { children?: React.ReactNode }) {
+    const id = slugifyMarkdownHeading(textFromChildren(children));
+    return React.createElement(tag, { id, className }, children);
+  };
+}
+
 const markdownComponents: Components = {
-  h1: ({ children }) => (
-    <h1 className="mt-8 text-3xl font-display font-black uppercase tracking-[0.14em] text-cyber-yellow first:mt-0 sm:text-4xl">
-      {children}
-    </h1>
+  h1: heading(
+    'h1',
+    'mt-8 scroll-mt-28 text-3xl font-display font-black uppercase tracking-[0.14em] text-cyber-yellow first:mt-0 sm:text-4xl'
   ),
-  h2: ({ children }) => (
-    <h2 className="mt-8 border-l-4 border-cyber-blue pl-4 text-2xl font-display font-bold uppercase tracking-[0.12em] text-white first:mt-0 sm:text-3xl">
-      {children}
-    </h2>
+  h2: heading(
+    'h2',
+    'mt-8 scroll-mt-28 border-l-4 border-cyber-blue pl-4 text-2xl font-display font-bold uppercase tracking-[0.12em] text-white first:mt-0 sm:text-3xl'
   ),
-  h3: ({ children }) => (
-    <h3 className="mt-6 text-xl font-display font-bold uppercase tracking-[0.08em] text-cyber-blue sm:text-2xl">
-      {children}
-    </h3>
+  h3: heading(
+    'h3',
+    'mt-6 scroll-mt-28 text-xl font-display font-bold uppercase tracking-[0.08em] text-cyber-blue sm:text-2xl'
   ),
-  h4: ({ children }) => (
-    <h4 className="mt-5 text-lg font-display font-semibold uppercase tracking-[0.08em] text-white sm:text-xl">
-      {children}
-    </h4>
+  h4: heading(
+    'h4',
+    'mt-5 scroll-mt-28 text-lg font-display font-semibold uppercase tracking-[0.08em] text-white sm:text-xl'
   ),
   p: ({ children }) => (
     <p className="mt-4 text-base leading-8 text-white/84 first:mt-0 sm:text-[1.05rem]">
@@ -79,9 +109,9 @@ const markdownComponents: Components = {
       {children}
     </pre>
   ),
-  code: ({ inline, className, children }) => {
+  code: ({ className, children, ...props }: any) => {
     const content = String(children).replace(/\n$/, '');
-    if (inline) {
+    if (props.inline) {
       return (
         <code className="rounded-md border border-white/10 bg-white/6 px-1.5 py-0.5 font-mono text-[0.92em] text-cyber-yellow">
           {content}

@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { Layout } from './components/Layout';
@@ -17,6 +17,9 @@ import { Resources } from './pages/Resources';
 import { Projects } from './pages/Projects';
 import { ProjectDetail } from './pages/ProjectDetail';
 import { AcademyHome } from './pages/AcademyHome';
+import { AcademyPath } from './pages/AcademyPath';
+import { AcademyCourse } from './pages/AcademyCourse';
+import { AcademyUnit } from './pages/AcademyUnit';
 import { AcademyTrack } from './pages/AcademyTrack';
 import { AcademyLesson } from './pages/AcademyLesson';
 import { Admin } from './pages/Admin';
@@ -67,13 +70,27 @@ function AnimatedRoutes() {
             element={canAccessAcademy ? <AcademyHome /> : <AcademyAccessGate />}
           />
           <Route
-            path="/academy/track/:track"
+            path="/academy/path/:pathId"
+            element={canAccessAcademy ? <AcademyPath /> : <AcademyAccessGate />}
+          />
+          <Route
+            path="/academy/course/:courseId"
+            element={canAccessAcademy ? <AcademyCourse /> : <AcademyAccessGate />}
+          />
+          <Route
+            path="/academy/unit/:courseId/:unitId"
+            element={canAccessAcademy ? <AcademyUnit /> : <AcademyAccessGate />}
+          />
+          <Route
+            path="/academy/community/:track"
             element={canAccessAcademy ? <AcademyTrack /> : <AcademyAccessGate />}
           />
           <Route
-            path="/academy/learn/:track/:lesson"
+            path="/academy/community/:track/:lesson"
             element={canAccessAcademy ? <AcademyLesson /> : <AcademyAccessGate />}
           />
+          <Route path="/academy/track/:track" element={<LegacyCommunityTrackRedirect />} />
+          <Route path="/academy/learn/:track/:lesson" element={<LegacyCommunityLessonRedirect />} />
         </Routes>
       </motion.div>
     </AnimatePresence>
@@ -96,6 +113,16 @@ function AcademyAccessGate() {
       </p>
     </div>
   );
+}
+
+function LegacyCommunityTrackRedirect() {
+  const { track = '' } = useParams<{ track: string }>();
+  return <Navigate to={`/academy/community/${track}`} replace />;
+}
+
+function LegacyCommunityLessonRedirect() {
+  const { track = '', lesson = '' } = useParams<{ track: string; lesson: string }>();
+  return <Navigate to={`/academy/community/${track}/${lesson}`} replace />;
 }
 
 export default function App() {

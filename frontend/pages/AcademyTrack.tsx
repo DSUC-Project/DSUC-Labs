@@ -132,6 +132,10 @@ export function AcademyTrack() {
         <h1 className="text-4xl sm:text-6xl font-display font-bold tracking-widest text-white py-2 uppercase">
           {trackInfo.title}
         </h1>
+        <div className="mx-auto max-w-2xl border border-cyber-yellow/25 bg-cyber-yellow/10 px-4 py-3 text-sm leading-7 text-cyber-yellow/90">
+          This page is the legacy <span className="font-semibold uppercase tracking-[0.16em]">community track lane</span>.
+          Curated Academy v2 lives on the main `/academy` path and follows the new path/course/unit flow.
+        </div>
       </header>
 
       <div className="relative mt-16 px-4 sm:px-8">
@@ -153,7 +157,7 @@ export function AcademyTrack() {
                   type="button"
                   key={lesson.id}
                   className={`relative flex w-full text-left items-center gap-6 sm:gap-8 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${isLocked ? 'cursor-default opacity-50' : 'cursor-pointer'}`}
-                  onClick={() => !isLocked && navigate(`/academy/learn/${trackInfo.id}/${lesson.id}`)}
+                  onClick={() => !isLocked && navigate(`/academy/community/${trackInfo.id}/${lesson.id}`)}
                   disabled={isLocked}
                 >
                   <div className={`relative flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-none border-2 bg-surface transition-colors ${

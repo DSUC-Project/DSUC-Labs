@@ -673,9 +673,9 @@ export function AcademyLesson() {
 
     await completeLesson(() => {
       if (nextLesson) {
-        navigate(`/academy/learn/${track}/${nextLesson.id}`);
+        navigate(`/academy/community/${track}/${nextLesson.id}`);
       } else {
-        navigate(`/academy/track/${track}`);
+        navigate(`/academy/community/${track}`);
       }
     });
   }
@@ -719,10 +719,15 @@ export function AcademyLesson() {
         onExit={() => void exitToAcademy()}
       />
 
+      <div className="border border-cyber-yellow/25 bg-cyber-yellow/10 px-4 py-3 text-sm leading-7 text-cyber-yellow/90">
+        You are inside the legacy <span className="font-semibold uppercase tracking-[0.16em]">community lesson lane</span>.
+        The curated Academy v2 experience now lives on `/academy` with the new path/course/unit structure.
+      </div>
+
       <div className="sticky top-24 z-50 flex flex-col gap-4 rounded-lg border border-cyber-blue/30 bg-surface/85 p-4 backdrop-blur-md cyber-clip-bottom shadow-[0_0_20px_rgba(41,121,255,0.1)]">
         <div className="flex items-center justify-between">
           <button
-            onClick={() => navigate(`/academy/track/${track}`)}
+            onClick={() => navigate(`/academy/community/${track}`)}
             className="flex h-10 w-10 items-center justify-center border border-cyber-blue/50 text-cyber-blue transition-colors hover:bg-cyber-blue hover:text-black"
           >
             <ArrowLeft className="h-5 w-5" />
