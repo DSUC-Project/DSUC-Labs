@@ -418,7 +418,7 @@ async function recordAcademyActivity(row: any, action: AcademyAction) {
 }
 
 // GET /api/academy/catalog - published tracks + lessons for learner UI
-router.get('/catalog', authenticateUser as any, requireAcademyAccess, async (req: AuthRequest, res: Response) => {
+router.get('/catalog', async (req: AuthRequest, res: Response) => {
   try {
     const [{ data: tracks, error: tracksError }, { data: lessons, error: lessonsError }] =
       await Promise.all([
@@ -472,7 +472,7 @@ router.get('/catalog', authenticateUser as any, requireAcademyAccess, async (req
 });
 
 // GET /api/academy/v2/catalog - curated paths + community track summaries
-router.get('/v2/catalog', authenticateUser as any, requireAcademyAccess, async (req: AuthRequest, res: Response) => {
+router.get('/v2/catalog', async (req: AuthRequest, res: Response) => {
   try {
     const curatedPaths = getAcademyV2Paths();
     const communityTracks = await loadCommunityTrackSummaries();
@@ -572,7 +572,7 @@ router.get('/admin/v2/unit', authenticateUser as any, requireExecutiveAdmin, asy
 });
 
 // GET /api/academy/v2/course/:courseId - full curated course detail
-router.get('/v2/course/:courseId', authenticateUser as any, requireAcademyAccess, async (req: AuthRequest, res: Response) => {
+router.get('/v2/course/:courseId', async (req: AuthRequest, res: Response) => {
   try {
     const course = getAcademyV2Course(req.params.courseId);
     if (!course) {
@@ -595,7 +595,7 @@ router.get('/v2/course/:courseId', authenticateUser as any, requireAcademyAccess
 });
 
 // GET /api/academy/v2/unit - curated lesson/practice unit detail with navigation
-router.get('/v2/unit', authenticateUser as any, requireAcademyAccess, async (req: AuthRequest, res: Response) => {
+router.get('/v2/unit', async (req: AuthRequest, res: Response) => {
   try {
     const courseId = normalizeTrackId(req.query.course_id || req.query.courseId);
     const unitId = String(req.query.unit_id || req.query.unitId || '')
@@ -956,7 +956,7 @@ router.delete('/admin/lessons/:id', authenticateUser as any, requireExecutiveAdm
 });
 
 // GET /api/academy/questions - published quiz questions for academy lessons
-router.get('/questions', authenticateUser as any, requireAcademyAccess, async (req: AuthRequest, res: Response) => {
+router.get('/questions', async (req: AuthRequest, res: Response) => {
   try {
     const track = normalizeTrackId(req.query.track);
     const lessonId = String(req.query.lesson_id || req.query.lessonId || '').trim();

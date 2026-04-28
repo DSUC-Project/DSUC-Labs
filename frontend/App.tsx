@@ -34,7 +34,6 @@ function AnimatedRoutes() {
 
   const { currentUser } = useStore();
   const isOfficialMember = currentUser?.memberType === 'member';
-  const canAccessAcademy = !!currentUser && currentUser.academyAccess !== false;
   const isAdmin =
     isOfficialMember &&
     ['President', 'Vice-President'].includes(
@@ -65,53 +64,17 @@ function AnimatedRoutes() {
           <Route path="/resources" element={<Resources />} />
           <Route path="/admin" element={isAdmin ? <Admin /> : <Navigate to="/home" replace />} />
           <Route path="/academy-admin" element={isAdmin ? <AcademyAdmin /> : <Navigate to="/home" replace />} />
-          <Route
-            path="/academy"
-            element={canAccessAcademy ? <AcademyHome /> : <AcademyAccessGate />}
-          />
-          <Route
-            path="/academy/path/:pathId"
-            element={canAccessAcademy ? <AcademyPath /> : <AcademyAccessGate />}
-          />
-          <Route
-            path="/academy/course/:courseId"
-            element={canAccessAcademy ? <AcademyCourse /> : <AcademyAccessGate />}
-          />
-          <Route
-            path="/academy/unit/:courseId/:unitId"
-            element={canAccessAcademy ? <AcademyUnit /> : <AcademyAccessGate />}
-          />
-          <Route
-            path="/academy/community/:track"
-            element={canAccessAcademy ? <AcademyTrack /> : <AcademyAccessGate />}
-          />
-          <Route
-            path="/academy/community/:track/:lesson"
-            element={canAccessAcademy ? <AcademyLesson /> : <AcademyAccessGate />}
-          />
+          <Route path="/academy" element={<AcademyHome />} />
+          <Route path="/academy/path/:pathId" element={<AcademyPath />} />
+          <Route path="/academy/course/:courseId" element={<AcademyCourse />} />
+          <Route path="/academy/unit/:courseId/:unitId" element={<AcademyUnit />} />
+          <Route path="/academy/community/:track" element={<AcademyTrack />} />
+          <Route path="/academy/community/:track/:lesson" element={<AcademyLesson />} />
           <Route path="/academy/track/:track" element={<LegacyCommunityTrackRedirect />} />
           <Route path="/academy/learn/:track/:lesson" element={<LegacyCommunityLessonRedirect />} />
         </Routes>
       </motion.div>
     </AnimatePresence>
-  );
-}
-
-function AcademyAccessGate() {
-  return (
-    <div className="max-w-3xl mx-auto py-16 text-center space-y-4">
-      <div className="text-xs font-mono uppercase tracking-[0.3em] text-cyber-blue">
-        DSUC Account Required
-      </div>
-      <h1 className="text-4xl font-display font-bold text-white">
-        Sign in to access DSUC Academy
-      </h1>
-      <p className="text-white/60 max-w-xl mx-auto">
-        Learning progress is now tied to your DSUC account so the academy can
-        track who is learning, what they completed, and how they progress over
-        time.
-      </p>
-    </div>
   );
 }
 
