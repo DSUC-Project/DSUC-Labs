@@ -1,144 +1,121 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
+import type { Components } from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
-// Minimal markdown renderer (headings + paragraphs + lists + code blocks).
-// Keeps deps light for the MVP.
-
-function renderInline(text: string): React.ReactNode {
-  // Supports: **bold**, *italic*, `code`
-  // Simple tokenizer, not a full markdown spec.
-  const tokens: Array<{ type: 'text' | 'bold' | 'italic' | 'code'; value: string }> = [];
-
-  let i = 0;
-  while (i < text.length) {
-    // code: `...`
-    if (text[i] === '`') {
-      const j = text.indexOf('`', i + 1);
-      if (j !== -1) {
-        tokens.push({ type: 'code', value: text.slice(i + 1, j) });
-        i = j + 1;
-        continue;
-      }
+const markdownComponents: Components = {
+  h1: ({ children }) => (
+    <h1 className="mt-8 text-3xl font-display font-black uppercase tracking-[0.14em] text-cyber-yellow first:mt-0 sm:text-4xl">
+      {children}
+    </h1>
+  ),
+  h2: ({ children }) => (
+    <h2 className="mt-8 border-l-4 border-cyber-blue pl-4 text-2xl font-display font-bold uppercase tracking-[0.12em] text-white first:mt-0 sm:text-3xl">
+      {children}
+    </h2>
+  ),
+  h3: ({ children }) => (
+    <h3 className="mt-6 text-xl font-display font-bold uppercase tracking-[0.08em] text-cyber-blue sm:text-2xl">
+      {children}
+    </h3>
+  ),
+  h4: ({ children }) => (
+    <h4 className="mt-5 text-lg font-display font-semibold uppercase tracking-[0.08em] text-white sm:text-xl">
+      {children}
+    </h4>
+  ),
+  p: ({ children }) => (
+    <p className="mt-4 text-base leading-8 text-white/84 first:mt-0 sm:text-[1.05rem]">
+      {children}
+    </p>
+  ),
+  strong: ({ children }) => <strong className="font-bold text-white">{children}</strong>,
+  em: ({ children }) => <em className="italic text-cyber-yellow/90">{children}</em>,
+  ul: ({ children }) => (
+    <ul className="mt-4 list-disc space-y-3 pl-6 text-base leading-8 text-white/82 marker:text-cyber-blue sm:text-[1.02rem]">
+      {children}
+    </ul>
+  ),
+  ol: ({ children }) => (
+    <ol className="mt-4 list-decimal space-y-3 pl-6 text-base leading-8 text-white/82 marker:font-bold marker:text-cyber-yellow sm:text-[1.02rem]">
+      {children}
+    </ol>
+  ),
+  li: ({ children }) => <li className="pl-1">{children}</li>,
+  blockquote: ({ children }) => (
+    <blockquote className="mt-5 border-l-4 border-cyber-yellow/70 bg-cyber-yellow/6 px-5 py-4 text-base italic leading-8 text-white/82">
+      {children}
+    </blockquote>
+  ),
+  a: ({ href, children }) => (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="font-semibold text-cyber-blue underline decoration-cyber-blue/35 underline-offset-4 transition-colors hover:text-white"
+    >
+      {children}
+    </a>
+  ),
+  hr: () => <hr className="my-8 border-white/12" />,
+  table: ({ children }) => (
+    <div className="my-6 overflow-x-auto rounded-xl border border-white/12 bg-black/28">
+      <table className="min-w-full border-collapse text-left text-sm text-white/86">
+        {children}
+      </table>
+    </div>
+  ),
+  thead: ({ children }) => <thead className="bg-cyber-blue/12">{children}</thead>,
+  tbody: ({ children }) => <tbody className="divide-y divide-white/8">{children}</tbody>,
+  tr: ({ children }) => <tr className="align-top">{children}</tr>,
+  th: ({ children }) => (
+    <th className="border-b border-cyber-blue/20 px-4 py-3 font-display text-xs font-bold uppercase tracking-[0.18em] text-cyber-blue">
+      {children}
+    </th>
+  ),
+  td: ({ children }) => <td className="px-4 py-3 leading-7 text-white/82">{children}</td>,
+  pre: ({ children }) => (
+    <pre className="my-6 overflow-x-auto rounded-xl border border-cyber-blue/18 bg-black/62 p-5 text-sm leading-7 text-cyan-100 shadow-[0_0_18px_rgba(41,121,255,0.08)]">
+      {children}
+    </pre>
+  ),
+  code: ({ inline, className, children }) => {
+    const content = String(children).replace(/\n$/, '');
+    if (inline) {
+      return (
+        <code className="rounded-md border border-white/10 bg-white/6 px-1.5 py-0.5 font-mono text-[0.92em] text-cyber-yellow">
+          {content}
+        </code>
+      );
     }
 
-    // bold: **...**
-    if (text[i] === '*' && text[i + 1] === '*') {
-      const j = text.indexOf('**', i + 2);
-      if (j !== -1) {
-        tokens.push({ type: 'bold', value: text.slice(i + 2, j) });
-        i = j + 2;
-        continue;
-      }
+    return (
+      <code className={`font-mono text-[0.92em] text-cyan-100 ${className || ''}`.trim()}>
+        {content}
+      </code>
+    );
+  },
+  input: ({ type, checked }) => {
+    if (type === 'checkbox') {
+      return (
+        <input
+          type="checkbox"
+          checked={checked}
+          readOnly
+          disabled
+          className="mr-2 h-4 w-4 accent-cyber-blue"
+        />
+      );
     }
 
-    // italic: *...*
-    if (text[i] === '*') {
-      const j = text.indexOf('*', i + 1);
-      if (j !== -1) {
-        tokens.push({ type: 'italic', value: text.slice(i + 1, j) });
-        i = j + 1;
-        continue;
-      }
-    }
-
-    // plain text chunk
-    let j = i + 1;
-    while (j < text.length && text[j] !== '`' && text[j] !== '*') j++;
-    tokens.push({ type: 'text', value: text.slice(i, j) });
-    i = j;
-  }
-
-  return (
-    <>
-      {tokens.map((t, idx) => {
-        if (t.type === 'bold') return <strong key={idx} className="font-extrabold">{t.value}</strong>;
-        if (t.type === 'italic') return <em key={idx} className="italic">{t.value}</em>;
-        if (t.type === 'code') return <code key={idx} className="rounded-md border border-white/10 bg-white/5 px-1 py-0.5 font-mono text-[0.95em] text-indigo-200">{t.value}</code>;
-        return <React.Fragment key={idx}>{t.value}</React.Fragment>;
-      })}
-    </>
-  );
-}
+    return <input type={type} checked={checked} readOnly disabled />;
+  },
+};
 
 export function renderMd(md: string) {
-  const lines = md.split(/\r?\n/);
-  const out: React.ReactNode[] = [];
-
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-
-    if (line.startsWith('```')) {
-      const buf: string[] = [];
-      i++;
-      while (i < lines.length && !lines[i].startsWith('```')) {
-        buf.push(lines[i]);
-        i++;
-      }
-      // consume closing ```
-      i++;
-      out.push(
-        <pre key={`code-${out.length}`} className="mt-3 rounded-md border border-cyber-blue/20 bg-black/60 p-4 overflow-x-auto text-xs text-cyber-blue font-mono shadow-[0_0_15px_rgba(41,121,255,0.05)]">
-          <code>{buf.join('\n')}</code>
-        </pre>
-      );
-      continue;
-    }
-
-    if (line.startsWith('# ')) {
-      out.push(
-        <h1 key={`h1-${out.length}`} className="text-2xl font-black tracking-widest uppercase text-cyber-yellow font-display drop-shadow-[0_0_10px_rgba(255,214,0,0.5)]">
-          {renderInline(line.slice(2))}
-        </h1>
-      );
-      i++;
-      continue;
-    }
-
-    if (line.startsWith('## ')) {
-      out.push(
-        <h2 key={`h2-${out.length}`} className="mt-6 text-xl tracking-wider font-bold text-white font-display border-l-4 border-cyber-blue pl-3">
-          {renderInline(line.slice(3))}
-        </h2>
-      );
-      i++;
-      continue;
-    }
-
-    if (line.startsWith('- ')) {
-      const items: string[] = [];
-      while (i < lines.length && lines[i].startsWith('- ')) {
-        items.push(lines[i].slice(2));
-        i++;
-      }
-      out.push(
-        <ul key={`ul-${out.length}`} className="mt-3 list-disc pl-5 space-y-2 text-sm text-white/70 font-mono marker:text-cyber-blue">
-          {items.map((t, idx) => (
-            <li key={`${idx}-${t}`}>{renderInline(t)}</li>
-          ))}
-        </ul>
-      );
-      continue;
-    }
-
-    if (!line.trim()) {
-      i++;
-      continue;
-    }
-
-    // paragraph
-    const para: string[] = [line];
-    i++;
-    while (i < lines.length && lines[i].trim() && !lines[i].startsWith('#') && !lines[i].startsWith('- ') && !lines[i].startsWith('```')) {
-      para.push(lines[i]);
-      i++;
-    }
-
-    out.push(
-      <p key={`p-${out.length}`} className="mt-3 text-sm leading-relaxed text-white/80 font-mono">
-        {renderInline(para.join(' '))}
-      </p>
-    );
-  }
-
-  return out;
+  return (
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+      {md}
+    </ReactMarkdown>
+  );
 }

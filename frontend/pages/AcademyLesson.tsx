@@ -89,6 +89,40 @@ function rowsToProgressState(rows: any[]): ProgressState {
   };
 }
 
+function sanitizeProgressState(
+  state: ProgressState,
+  validLessonKeys: Set<string>
+): { state: ProgressState; changed: boolean } {
+  const completedLessons = Object.fromEntries(
+    Object.entries(state.completedLessons || {}).filter(([key]) => validLessonKeys.has(key))
+  );
+  const quizPassed = Object.fromEntries(
+    Object.entries(state.quizPassed || {}).filter(([key]) => validLessonKeys.has(key))
+  );
+  const checklist = Object.fromEntries(
+    Object.entries(state.checklist || {}).filter(([key]) => validLessonKeys.has(key))
+  );
+  const xp = Object.values(completedLessons).filter(Boolean).length * 100;
+  const sanitizedState: ProgressState = {
+    completedLessons,
+    quizPassed,
+    checklist,
+    xp,
+    updatedAt: state.updatedAt || new Date().toISOString(),
+  };
+
+  const changed =
+    Object.keys(completedLessons).length !== Object.keys(state.completedLessons || {}).length ||
+    Object.keys(quizPassed).length !== Object.keys(state.quizPassed || {}).length ||
+    Object.keys(checklist).length !== Object.keys(state.checklist || {}).length ||
+    xp !== Number(state.xp || 0);
+
+  return {
+    state: sanitizedState,
+    changed,
+  };
+}
+
 function buildAuthHeaders(token: string | null, walletAddress: string | null, includeJson = false) {
   const headers: Record<string, string> = {};
   if (includeJson) {
@@ -143,6 +177,7 @@ export function AcademyLesson() {
 
   const [state, setState] = useState<ProgressState>(() => loadProgress(identity));
   const [trackInfo, setTrackInfo] = useState<AcademyTrackCatalog | null>(null);
+  const [catalogLessonKeys, setCatalogLessonKeys] = useState<string[] | null>(null);
   const [loadingCatalog, setLoadingCatalog] = useState(true);
   const [busyFinish, setBusyFinish] = useState(false);
   const [err, setErr] = useState('');
@@ -234,6 +269,13 @@ export function AcademyLesson() {
           });
 
           if (!response.ok) {
+            const result = await response.json().catch(() => null);
+            if (
+              response.status === 400 &&
+              String(result?.message || '').includes('does not exist in academy catalog')
+            ) {
+              continue;
+            }
             synced = false;
           }
         } catch {
@@ -373,6 +415,7 @@ export function AcademyLesson() {
 
     async function fetchCatalog() {
       if (!canSyncRemote) {
+        setCatalogLessonKeys(null);
         setTrackInfo(null);
         setLoadingCatalog(false);
         setErr('Please sign in with a DSUC account to use Academy.');
@@ -392,10 +435,14 @@ export function AcademyLesson() {
         }
 
         const tracks = (result.data || []).map(normalizeAcademyCatalogTrack);
+        const nextCatalogLessonKeys = tracks.flatMap((item) =>
+          item.lessons.map((catalogLesson) => `${item.id}:${catalogLesson.id}`)
+        );
         const foundTrack = tracks.find((item) => item.id === track) || null;
         const foundLesson = foundTrack?.lessons.find((item) => item.id === lessonId) || null;
 
         if (!cancelled) {
+          setCatalogLessonKeys(nextCatalogLessonKeys);
           setTrackInfo(foundTrack);
           if (!foundTrack || !foundLesson) {
             setErr('Lesson not found in academy catalog.');
@@ -404,6 +451,7 @@ export function AcademyLesson() {
       } catch (error: any) {
         if (!cancelled) {
           setErr(error.message || 'Failed to load academy catalog.');
+          setCatalogLessonKeys(null);
           setTrackInfo(null);
         }
       } finally {
@@ -420,7 +468,7 @@ export function AcademyLesson() {
   }, [apiBase, authHeaders, canSyncRemote, lessonId, track]);
 
   useEffect(() => {
-    if (!canSyncRemote) {
+    if (!canSyncRemote || loadingCatalog || catalogLessonKeys === null) {
       return;
     }
 
@@ -442,16 +490,20 @@ export function AcademyLesson() {
           return;
         }
 
-        const remoteState = rowsToProgressState(result.data.rows);
-        const localState = loadProgress(identity);
-        const mergedState = mergeProgressStates(localState, remoteState);
-        const backfilled = await syncMissingRows(remoteState, mergedState);
+        const validLessonKeys = new Set(catalogLessonKeys);
+        const sanitizedRemote = sanitizeProgressState(
+          rowsToProgressState(result.data.rows),
+          validLessonKeys
+        );
+        const sanitizedLocal = sanitizeProgressState(loadProgress(identity), validLessonKeys);
+        const mergedState = mergeProgressStates(sanitizedLocal.state, sanitizedRemote.state);
+        const backfilled = await syncMissingRows(sanitizedRemote.state, mergedState);
 
         if (cancelled) {
           return;
         }
 
-        const authoritativeState = backfilled ? mergedState : remoteState;
+        const authoritativeState = backfilled ? mergedState : sanitizedRemote.state;
         setState(authoritativeState);
         saveProgress(identity, authoritativeState);
 
@@ -469,7 +521,7 @@ export function AcademyLesson() {
     return () => {
       cancelled = true;
     };
-  }, [apiBase, authHeaders, canSyncRemote, identity, syncMissingRows]);
+  }, [apiBase, authHeaders, canSyncRemote, catalogLessonKeys, identity, loadingCatalog, syncMissingRows]);
 
   useEffect(() => {
     if (!canSyncRemote || !lesson) {
@@ -711,7 +763,7 @@ export function AcademyLesson() {
               {lesson.title}
             </h1>
 
-            <div className="prose prose-invert prose-p:text-white/80 prose-headings:font-display prose-headings:font-bold prose-headings:tracking-wider prose-headings:uppercase prose-a:text-cyber-blue prose-a:no-underline hover:prose-a:underline mb-8 max-w-none text-base font-sans leading-relaxed sm:text-lg">
+            <div className="mb-8 max-w-none text-base font-sans leading-relaxed sm:text-lg">
               {renderMd(lesson.content_md)}
             </div>
 
