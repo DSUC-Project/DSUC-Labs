@@ -72,3 +72,5 @@ Goal: Rebuild DSUC Academy with Superteam-like UX and learning flow while keepin
 - [2026-04-29] Added curated Academy analytics in admin, including lane split, top paths, and top courses from DSUC progress data.
 - [2026-04-29] Added browser-side caching for curated catalog/course/unit responses to reduce repeated Academy content fetches and preserve egress.
 - [2026-04-29] Smoke-tested the verifier on seed starter code and seed solution code across JS-like, guided Rust, and Anchor scaffold lessons.
+- [2026-04-29] Simplified the Academy course and unit shells to reduce UI noise by removing duplicated route-status panels and shortening explanatory copy.
+- [2026-04-29] Reworked the practice editor and solution surfaces to use calmer dark-neutral code panels with higher-contrast text instead of the previous neon-heavy styling.

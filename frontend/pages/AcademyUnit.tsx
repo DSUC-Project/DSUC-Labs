@@ -450,8 +450,8 @@ export function AcademyUnit() {
               </h1>
               <p className="mt-4 max-w-4xl text-base leading-8 text-white/72">
                 {isPractice
-                  ? 'This unit shifts from explanation into reinforcement. Use the brief, checks, hints, and workspace together so the challenge feels like part of the route instead of a detached tool.'
-                  : 'This lesson is part of the guided learn lane. Read through it in sequence, then move into the next practice step while the context is still fresh.'}
+                  ? 'Read the brief, work in the editor, then pass the checks before you submit this lab.'
+                  : 'Read this lesson cleanly, then move straight into the next practice step while the context is fresh.'}
               </p>
             </div>
           </div>
@@ -845,12 +845,10 @@ export function AcademyUnit() {
                     tone={runnerSupported ? 'blue' : 'neutral'}
                     label={runnerSupported ? `${runtimeLabel} ready` : 'Guided workspace'}
                   />
-                  <StatusPill tone="neutral" label="Draft cached locally" />
                   <StatusPill
                     tone={draftDirty ? 'amber' : 'neutral'}
                     label={draftDirty ? 'Custom draft' : 'Starter draft'}
                   />
-                  {runnerSupported && <StatusPill tone="blue" label="Cmd/Ctrl + Enter runs checks" />}
                   {runReport && !runReportIsFresh && (
                     <StatusPill tone="amber" label="Draft changed since last run" />
                   )}
@@ -859,9 +857,14 @@ export function AcademyUnit() {
 
                 {activeWorkspaceTab === 'editor' && (
                   <div className="mt-5">
-                    <div className="rounded-t-[20px] border border-b-0 border-cyber-blue/18 bg-black/28 px-5 py-3">
-                      <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-cyber-blue/75">
-                        Starter code
+                    <div className="rounded-t-[20px] border border-b-0 border-white/10 bg-[#0b0f17] px-5 py-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/48">
+                          Starter code
+                        </div>
+                        <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/34">
+                          {unit.language || 'text'}
+                        </div>
                       </div>
                     </div>
                     <textarea
@@ -870,13 +873,13 @@ export function AcademyUnit() {
                         setDraftCode(event.target.value);
                       }}
                       spellCheck={false}
-                      className="min-h-[540px] w-full rounded-b-[20px] border border-cyber-blue/18 bg-black/38 p-5 font-mono text-sm leading-7 text-cyan-100 outline-none transition-colors placeholder:text-white/25 focus:border-cyber-blue/45"
+                      className="min-h-[540px] w-full rounded-b-[20px] border border-white/10 bg-[#0f141d] p-5 font-mono text-[13px] leading-7 text-slate-100 outline-none transition-colors placeholder:text-slate-500 selection:bg-cyber-blue/25 focus:border-cyber-yellow/30"
                     />
                   </div>
                 )}
 
                 {activeWorkspaceTab === 'results' && (
-                  <div className="mt-5 rounded-[20px] border border-white/10 bg-black/28 p-5">
+                  <div className="mt-5 rounded-[20px] border border-white/10 bg-[#0f141d] p-5">
                     {!runReport ? (
                       <div className="space-y-3 text-sm leading-7 text-white/62">
                         <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-cyber-blue/75">
@@ -972,7 +975,7 @@ export function AcademyUnit() {
                 )}
 
                 {activeWorkspaceTab === 'solution' && (
-                  <div className="mt-5 rounded-[20px] border border-white/10 bg-black/28 p-5">
+                  <div className="mt-5 rounded-[20px] border border-white/10 bg-[#0f141d] p-5">
                     {!solutionUnlocked ? (
                       <div className="space-y-4">
                         <div>
@@ -1023,7 +1026,7 @@ export function AcademyUnit() {
                           </button>
                         </div>
                         {unit.solution ? (
-                          <pre className="overflow-x-auto rounded-[18px] border border-cyber-yellow/18 bg-black/38 p-5 font-mono text-sm leading-7 text-amber-100">
+                          <pre className="overflow-x-auto rounded-[18px] border border-white/10 bg-[#0b0f17] p-5 font-mono text-[13px] leading-7 text-slate-100">
                             <code>{unit.solution}</code>
                           </pre>
                         ) : (
@@ -1036,10 +1039,10 @@ export function AcademyUnit() {
                   </div>
                 )}
 
-                <div className="mt-5 rounded-[20px] border border-cyber-blue/18 bg-cyber-blue/8 p-4 text-sm leading-7 text-white/62">
+                <div className="mt-5 rounded-[20px] border border-white/10 bg-black/16 p-4 text-sm leading-7 text-white/56">
                   {runnerSupported
-                    ? 'Drafts are cached locally in the browser. Run the current verifier against the draft before you submit this practice step.'
-                    : 'Drafts are cached locally in the browser. Browser execution is not enabled for this lab yet, so treat this workspace as a guided practice scratchpad.'}
+                    ? 'Drafts stay in the browser. Re-run checks after each meaningful change before marking the lab complete.'
+                    : 'Drafts stay in the browser. Use this workspace as a guided scratchpad for the lab.'}
                 </div>
               </section>
             </>
@@ -1047,42 +1050,6 @@ export function AcademyUnit() {
         </div>
 
         <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
-          <SidebarPanel
-            title="Route status"
-            accent="text-cyber-blue/75"
-            footer={`Course progress ${completedCount}/${course.total_unit_count}`}
-          >
-            <div className="space-y-4">
-              <div>
-                <div className="font-display text-2xl font-black uppercase tracking-[0.08em] text-white">
-                  {courseProgressPercent}% through course
-                </div>
-                <div className="mt-2 text-sm leading-7 text-white/62">
-                  Module progress is tracked separately below so the learner always knows the local
-                  context and the overall route context at the same time.
-                </div>
-              </div>
-              <div className="overflow-hidden rounded-full border border-white/10 bg-black/24">
-                <div
-                  className="h-3 rounded-full bg-gradient-to-r from-cyber-blue via-white to-cyber-yellow transition-[width] duration-500"
-                  style={{ width: `${courseProgressPercent}%` }}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <HeroStat
-                  icon={<BookOpen className="h-4 w-4" aria-hidden="true" />}
-                  label="Module"
-                  value={`${currentModulePercent}%`}
-                />
-                <HeroStat
-                  icon={isPractice ? <Code2 className="h-4 w-4" aria-hidden="true" /> : <Sparkles className="h-4 w-4" aria-hidden="true" />}
-                  label="Mode"
-                  value={isPractice ? 'Lab' : 'Read'}
-                />
-              </div>
-            </div>
-          </SidebarPanel>
-
           {outline.length > 0 ? (
             <SidebarPanel
               title="On this page"
@@ -1201,6 +1168,19 @@ export function AcademyUnit() {
             footer={unitDone ? 'Progress already synced for this step' : 'Complete to write progress + activity'}
           >
             <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <HeroStat
+                  icon={<BookOpen className="h-4 w-4" aria-hidden="true" />}
+                  label="Course"
+                  value={`${courseProgressPercent}%`}
+                />
+                <HeroStat
+                  icon={isPractice ? <Code2 className="h-4 w-4" aria-hidden="true" /> : <Sparkles className="h-4 w-4" aria-hidden="true" />}
+                  label="Module"
+                  value={`${currentModulePercent}%`}
+                />
+              </div>
+
               <p className="text-sm leading-7 text-white/66">
                 {unitDone
                   ? 'This step is already in your progress history. You can move forward or revisit the material from the course route.'

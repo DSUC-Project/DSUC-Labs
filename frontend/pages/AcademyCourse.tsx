@@ -11,7 +11,6 @@ import {
   Layers3,
   Lock,
   Sparkles,
-  Trophy,
   User,
 } from 'lucide-react';
 
@@ -246,7 +245,7 @@ export function AcademyCourse() {
               ))}
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-3 xl:max-w-3xl">
               <CourseMetric
                 icon={<Flame className="h-4 w-4" aria-hidden="true" />}
                 label="Effort"
@@ -262,11 +261,6 @@ export function AcademyCourse() {
                 label="Practice"
                 value={String(course.practice_unit_count)}
               />
-              <CourseMetric
-                icon={<Trophy className="h-4 w-4" aria-hidden="true" />}
-                label="Progress"
-                value={`${progressPercent}%`}
-              />
             </div>
           </div>
 
@@ -274,14 +268,14 @@ export function AcademyCourse() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-cyber-yellow/78">
-                  Mission control
+                  Continue
                 </div>
                 <h2 className="mt-3 font-display text-2xl font-black uppercase tracking-[0.1em] text-white">
                   {firstIncomplete ? firstIncomplete.title : 'Course complete'}
                 </h2>
                 <p className="mt-3 text-sm leading-7 text-white/66">
                   {firstIncomplete
-                    ? `Next up in ${firstIncomplete.moduleTitle}: keep the route moving by finishing the next unlocked unit.`
+                    ? `Next up in ${firstIncomplete.moduleTitle}: open the next unlocked unit and keep the route moving.`
                     : 'Every learn and practice unit in this course is marked complete.'}
                 </p>
               </div>
@@ -339,18 +333,14 @@ export function AcademyCourse() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <section className="space-y-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
             <div>
               <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-cyber-blue/75">
-                Course route
+                Curriculum
               </div>
               <h2 className="mt-2 font-display text-3xl font-black uppercase tracking-[0.12em] text-white">
                 Learn, then practice
               </h2>
-            </div>
-            <div className="max-w-xl text-sm leading-7 text-white/58 sm:text-right">
-              Each module keeps the learn lane and the practice lane separate so the course feels
-              like a guided path instead of a flat lesson list.
             </div>
           </div>
 
@@ -428,31 +418,6 @@ export function AcademyCourse() {
         </section>
 
         <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
-          <div className="rounded-[26px] border border-cyber-blue/20 bg-surface/72 p-5 shadow-[0_12px_32px_rgba(41,121,255,0.08)] backdrop-blur-sm">
-            <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-cyber-blue/75">
-              Route status
-            </div>
-            <div className="mt-3 font-display text-2xl font-black uppercase tracking-[0.1em] text-white">
-              {progressPercent}% complete
-            </div>
-            <p className="mt-3 text-sm leading-7 text-white/62">
-              Progress in curated paths is stored separately from community tracks, so this route can
-              evolve without colliding with DSUC custom content.
-            </p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-              <SidebarStat
-                icon={<BookOpen className="h-4 w-4" aria-hidden="true" />}
-                label="Units done"
-                value={`${completedCount}/${course.total_unit_count}`}
-              />
-              <SidebarStat
-                icon={<Sparkles className="h-4 w-4" aria-hidden="true" />}
-                label="Practice units"
-                value={String(course.practice_unit_count)}
-              />
-            </div>
-          </div>
-
           {course.instructor && (
             <div className="rounded-[26px] border border-white/10 bg-surface/72 p-5 shadow-[0_12px_32px_rgba(0,0,0,0.16)]">
               <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-cyber-yellow/72">
@@ -680,26 +645,6 @@ function CompactMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[18px] border border-white/10 bg-black/18 px-4 py-3">
       <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/40">{label}</div>
-      <div className="mt-2 font-display text-xl font-black text-white">{value}</div>
-    </div>
-  );
-}
-
-function SidebarStat({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-[20px] border border-white/10 bg-black/18 px-4 py-3">
-      <div className="flex items-center gap-2 text-cyber-blue">{icon}</div>
-      <div className="mt-2 text-[10px] font-mono uppercase tracking-[0.22em] text-white/40">
-        {label}
-      </div>
       <div className="mt-2 font-display text-xl font-black text-white">{value}</div>
     </div>
   );
