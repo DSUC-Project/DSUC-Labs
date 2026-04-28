@@ -75,3 +75,4 @@ Goal: Rebuild DSUC Academy with Superteam-like UX and learning flow while keepin
 - [2026-04-29] Simplified the Academy course and unit shells to reduce UI noise by removing duplicated route-status panels and shortening explanatory copy.
 - [2026-04-29] Reworked the practice editor and solution surfaces to use calmer dark-neutral code panels with higher-contrast text instead of the previous neon-heavy styling.
 - [2026-04-29] Opened Academy learner read routes to guests so curated content and community track reading no longer require sign-in; DB progress/activity sync still stays authenticated.
+- [2026-04-29] Embedded the curated Academy v2 catalog directly in the frontend bundle, so path/course/unit content no longer depends on backend fetches to render on a new machine.

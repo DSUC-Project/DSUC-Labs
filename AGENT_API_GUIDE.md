@@ -815,3 +815,95 @@ curl -X PATCH https://dsuc-lab-backend.onrender.com/api/academy/admin/tracks/sol
   "message": "Route <METHOD> <PATH> not found"
 }
 ```
+
+---
+
+## 8) Question File Spec (to ensure agent maps exact track)
+
+Use **JSON** (recommended), one file per track.  
+File naming suggestion: `academy-track.<track-id>.json`
+
+### 8.1 Canonical format
+```json
+{
+  "schema_version": "1.0",
+  "track": {
+    "id": "solana-foundation",
+    "title": "Solana Foundation",
+    "subtitle": "Core path",
+    "description": "Track description",
+    "status": "Draft",
+    "sort_order": 1
+  },
+  "rules": {
+    "min_questions_per_lesson": 3,
+    "min_choices_per_question": 3
+  },
+  "lessons": [
+    {
+      "track_id": "solana-foundation",
+      "lesson_id": "module-1",
+      "title": "Blockchain as a Computer",
+      "minutes": 15,
+      "content_md": "# Lesson content...",
+      "callouts": [
+        { "title": "Key", "body": "..." }
+      ],
+      "status": "Draft",
+      "sort_order": 1,
+      "questions": [
+        {
+          "track_id": "solana-foundation",
+          "lesson_id": "module-1",
+          "prompt": "What does Solana runtime execute?",
+          "choices": [
+            { "id": "a", "label": "Transaction instructions" },
+            { "id": "b", "label": "Docker containers" },
+            { "id": "c", "label": "Web pages" }
+          ],
+          "correct_choice_id": "a",
+          "explanation": "Runtime executes transaction instructions.",
+          "status": "Draft",
+          "sort_order": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+### 8.2 Why this format prevents wrong-track inserts
+1. Track ID appears in 3 places:
+   - `track.id`
+   - `lesson.track_id`
+   - `question.track_id`
+2. Agent must assert all 3 are equal before calling API.
+3. Question also repeats `lesson_id`, so mismatch is caught early.
+
+### 8.3 Import validation checklist (agent must enforce)
+1. `track.id` must be slug-safe (lowercase + hyphen).
+2. Every lesson `track_id` must equal `track.id`.
+3. Every question `track_id` and `lesson_id` must match parent lesson.
+4. Every lesson must contain at least `rules.min_questions_per_lesson` questions (recommend 3).
+5. Every question must have at least `rules.min_choices_per_question` choices (recommend 3).
+6. `correct_choice_id` must exist in that question’s `choices`.
+7. `lesson_id` unique within one track.
+8. `sort_order` should be contiguous (1,2,3...).
+
+### 8.4 Backend constraints to remember
+- Backend normalizes `track` via:
+  - lower-case
+  - replace non `[a-z0-9-]` with `-`
+- `lesson_id` is only trimmed (not slug-normalized), so keep lesson IDs consistent manually.
+- API minimums:
+  - question choices: `>= 2` (but recommended `>= 3`)
+  - lesson minutes: `> 0`
+
+### 8.5 API call order for import
+1. `POST /api/academy/admin/tracks` (or PATCH if exists)
+2. `POST /api/academy/admin/lessons` for each lesson
+3. `POST /api/academy/admin/questions` for each question
+4. Optional final publish:
+   - patch questions -> `Published`
+   - patch lessons -> `Published`
+   - patch track -> `Published`
