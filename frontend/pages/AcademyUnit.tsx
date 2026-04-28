@@ -230,6 +230,28 @@ export function AcademyUnit() {
     window.localStorage.setItem(draftKey(courseId, unitId), draftCode);
   }, [courseId, draftCode, unitData, unitId]);
 
+  const previewUnit = unitData?.unit ?? null;
+  const previewPracticeRunnable =
+    !!previewUnit &&
+    previewUnit.section === 'practice' &&
+    canRunAcademyChallenge(previewUnit);
+
+  useEffect(() => {
+    if (!previewUnit || previewUnit.section !== 'practice' || !previewPracticeRunnable || typeof window === 'undefined') {
+      return;
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+        event.preventDefault();
+        void handleRunChallenge();
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [draftCode, previewPracticeRunnable, previewUnit?.id]);
+
   if (loading) {
     return (
       <div className="space-y-6 pb-20">
@@ -389,22 +411,6 @@ export function AcademyUnit() {
       setRunLoading(false);
     }
   }
-
-  useEffect(() => {
-    if (!isPractice || !runnerSupported || typeof window === 'undefined') {
-      return;
-    }
-
-    function onKeyDown(event: KeyboardEvent) {
-      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-        event.preventDefault();
-        void handleRunChallenge();
-      }
-    }
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [draftCode, isPractice, runnerSupported]);
 
   const reportCasesById = new Map((activeRunReport?.cases || []).map((item) => [item.id, item]));
   const visibleTests = unit.tests.filter((item) => item.hidden !== true);

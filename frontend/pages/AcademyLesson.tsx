@@ -719,11 +719,6 @@ export function AcademyLesson() {
         onExit={() => void exitToAcademy()}
       />
 
-      <div className="border border-cyber-yellow/25 bg-cyber-yellow/10 px-4 py-3 text-sm leading-7 text-cyber-yellow/90">
-        You are inside the legacy <span className="font-semibold uppercase tracking-[0.16em]">community lesson lane</span>.
-        The curated Academy v2 experience now lives on `/academy` with the new path/course/unit structure.
-      </div>
-
       <div className="sticky top-24 z-50 flex flex-col gap-4 rounded-lg border border-cyber-blue/30 bg-surface/85 p-4 backdrop-blur-md cyber-clip-bottom shadow-[0_0_20px_rgba(41,121,255,0.1)]">
         <div className="flex items-center justify-between">
           <button
