@@ -25,9 +25,6 @@ export function Dashboard() {
       {/* Hero Section */}
       <section className="relative min-h-[50vh] flex flex-col justify-center items-center text-center pt-10">
         
-        {/* Decorative Grid - Neo Brutalism style */}
-        <div className="absolute inset-x-0 bottom-0 top-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #111827 1px, transparent 0)', backgroundSize: '32px 32px' }} />
-
         <div className="absolute top-20 left-10 w-16 h-16 bg-brutal-yellow rounded-full border-4 border-brutal-black pointer-events-none -z-10 shadow-neo" />
         <div className="absolute bottom-20 right-10 w-24 h-24 bg-brutal-pink border-4 border-brutal-black transform rotate-12 pointer-events-none -z-10 shadow-neo" />
         <div className="absolute top-1/4 right-20 w-12 h-12 bg-brutal-blue border-4 border-brutal-black transform rotate-45 pointer-events-none -z-10 shadow-neo" />
@@ -173,14 +170,18 @@ function EventCard({ event, idx }: { event: any, idx: number }) {
       className="h-full"
     >
       {lumaLink ? (
-        <a
-          href={lumaLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`${cardClasses} block h-full relative z-10 pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brutal-blue focus-visible:ring-offset-2`}
-        >
-          {inner}
-        </a>
+        <div className={`${cardClasses} h-full relative`}>
+          <a
+            href={lumaLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Mở sự kiện ${event.title}`}
+            className="absolute inset-0 z-30 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brutal-blue focus-visible:ring-offset-4"
+          />
+          <div className="relative z-10 pointer-events-none">
+            {inner}
+          </div>
+        </div>
       ) : (
         <div className={`${cardClasses} h-full`}>
           {inner}

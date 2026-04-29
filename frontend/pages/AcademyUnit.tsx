@@ -585,9 +585,9 @@ export function AcademyUnit() {
                 </div>
               </section>
 
-              <section className="bg-brutal-bg border-4 border-brutal-black overflow-hidden shadow-neo flex flex-col mb-12">
+              <section className="bg-brutal-bg border-4 border-brutal-black overflow-visible shadow-neo flex flex-col mb-12 relative">
                 <div className="overflow-visible flex flex-col sm:flex-row sm:items-center justify-between border-b-4 border-brutal-black bg-white px-4 py-3 gap-4">
-                   <div className="relative z-20 isolate flex gap-4 items-center">
+                   <div className="relative z-20 isolate flex flex-wrap items-end gap-3">
                      <LabTabButton
                        label="Mã nguồn"
                        active={activeWorkspaceTab === 'editor'}
@@ -1105,8 +1105,8 @@ function LabTabButton({
       onClick={onClick}
       className={`relative text-[10px] sm:text-xs font-black uppercase tracking-widest px-3 sm:px-4 py-2 transition-all border-4 ${
         active
-          ? 'z-20 bg-brutal-pink text-brutal-black border-brutal-black border-b-0 shadow-none -mb-[4px]'
-          : 'z-10 bg-white text-brutal-black border-brutal-black hover:z-20 hover:bg-brutal-yellow hover:-translate-y-0.5'
+          ? 'z-30 -translate-y-1 bg-brutal-pink text-brutal-black border-brutal-black shadow-neo-sm'
+          : 'z-10 bg-white text-brutal-black border-brutal-black shadow-neo-sm-sm hover:z-20 hover:-translate-y-0.5 hover:bg-brutal-yellow hover:shadow-neo-sm'
       }`}
     >
       {label}

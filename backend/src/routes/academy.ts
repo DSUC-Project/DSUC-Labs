@@ -1541,7 +1541,7 @@ router.get(
 );
 
 // GET /api/academy/progress - get all progress rows for current user
-router.get('/stats', authenticateUser as any, requireAcademyAccess, async (req: AuthRequest, res: Response) => {
+router.get('/stats', authenticateUser as any, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -1610,7 +1610,7 @@ router.get('/stats', authenticateUser as any, requireAcademyAccess, async (req: 
   }
 });
 
-router.get('/progress', authenticateUser as any, requireAcademyAccess, async (req: AuthRequest, res: Response) => {
+router.get('/progress', authenticateUser as any, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -1655,7 +1655,7 @@ router.get('/progress', authenticateUser as any, requireAcademyAccess, async (re
 });
 
 // POST /api/academy/progress - upsert progress row for current user
-router.post('/progress', authenticateUser as any, requireAcademyAccess, async (req: AuthRequest, res: Response) => {
+router.post('/progress', authenticateUser as any, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {

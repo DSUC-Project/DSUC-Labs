@@ -98,8 +98,10 @@ body {
 }
 
 .dsuc-dot-grid {
-  background-image: radial-gradient(circle at 3px 3px, rgba(255, 255, 255, 0.72) 2px, transparent 0);
-  background-size: 38px 38px;
+  background-image:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.96) 0 4px, rgba(148, 163, 184, 0.24) 4.2px 5.2px, transparent 5.3px);
+  background-size: 64px 64px;
+  background-position: 0 0;
 }
 
 .animate-in {
@@ -197,7 +199,8 @@ body.theme-dark {
 }
 
 .theme-dark .dsuc-dot-grid {
-  background-image: radial-gradient(circle at 3px 3px, rgba(255, 255, 255, 0.34) 2px, transparent 0);
+  background-image:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.82) 0 4px, rgba(255, 255, 255, 0.14) 4.2px 5.2px, transparent 5.3px);
 }
 
 .theme-dark .brutal-card {

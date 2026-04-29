@@ -112,7 +112,7 @@ export function Layout({ children }: { children?: React.ReactNode }) {
 
 function Background() {
   return (
-    <div className="dsuc-dot-grid fixed inset-0 z-0 overflow-hidden pointer-events-none opacity-55"></div>
+    <div className="dsuc-dot-grid fixed inset-0 z-0 overflow-hidden pointer-events-none opacity-80"></div>
   );
 }
 

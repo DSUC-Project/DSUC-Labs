@@ -50,7 +50,7 @@ export function Events() {
         <div className="relative">
           {/* Timeline Line */}
           {sortedEvents.length > 0 && (
-            <div className="absolute bottom-0 left-6 top-4 w-2 border-x-2 border-brutal-black bg-brutal-black md:left-1/2 md:-ml-1" />
+            <div className="pointer-events-none absolute bottom-0 left-6 top-4 w-2 border-x-2 border-brutal-black bg-brutal-black md:left-1/2 md:-ml-1" />
           )}
 
           <div className="space-y-12">
@@ -91,20 +91,21 @@ function EventItem({ event, index }: { event: Event, index: number, key?: React.
       </div>
 
       {/* Center Dot */}
-      <div className="absolute left-6 md:left-1/2 w-6 h-6 bg-brutal-yellow border-4 border-brutal-black transform -translate-x-1/2 md:-translate-x-1/2 z-10 shadow-neo-sm" />
+      <div className="pointer-events-none absolute left-6 md:left-1/2 w-6 h-6 bg-brutal-yellow border-4 border-brutal-black transform -translate-x-1/2 md:-translate-x-1/2 z-10 shadow-neo-sm" />
 
       {/* Card - Clickable */}
       <div className="md:w-1/2 w-full pl-16 md:pl-0">
         {lumaLink ? (
-          <a
-            href={lumaLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="relative z-20 block pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brutal-blue focus-visible:ring-offset-2"
-          >
-            <div
-              className="bg-white p-6 md:p-8 border-4 border-brutal-black transition-all group relative cursor-pointer brutal-card hover:-translate-y-1 hover:-translate-x-1 hover:shadow-neo-lg"
-            >
+          <div className="relative z-20 block w-full">
+            <div className="bg-white p-6 md:p-8 border-4 border-brutal-black transition-all group relative cursor-pointer brutal-card hover:-translate-y-1 hover:-translate-x-1 hover:shadow-neo-lg">
+              <a
+                href={lumaLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Mở sự kiện ${event.title}`}
+                className="absolute inset-0 z-30 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brutal-blue focus-visible:ring-offset-4"
+              />
+              <div className="relative z-10 pointer-events-none">
               <div className="flex justify-between items-start mb-6">
                 <span className="px-3 py-1 bg-brutal-pink text-[10px] font-bold uppercase tracking-widest text-brutal-black border-2 border-brutal-black shadow-neo-sm">
                   {event.type}
@@ -125,8 +126,9 @@ function EventItem({ event, index }: { event: Event, index: number, key?: React.
               <div className="mt-8 border-t-4 border-brutal-black pt-4 flex items-center text-brutal-black text-sm font-bold uppercase tracking-widest group-hover:text-brutal-blue transition-colors">
                 Đăng ký tham gia <span className="ml-2 font-black text-xl transition-transform group-hover:translate-x-2">→</span>
               </div>
+              </div>
             </div>
-          </a>
+          </div>
         ) : (
           <div className="bg-white p-6 md:p-8 border-4 border-brutal-black transition-all group relative shadow-neo">
           <div className="flex justify-between items-start mb-6">

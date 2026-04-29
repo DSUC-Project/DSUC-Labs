@@ -64,6 +64,19 @@ type SaveOptions = {
   xpAwarded?: number;
 };
 
+function parseProgressKey(key: string) {
+  const value = String(key || '');
+  const separator = value.lastIndexOf(':');
+  if (separator <= 0 || separator >= value.length - 1) {
+    return null;
+  }
+
+  return {
+    track: value.slice(0, separator),
+    lessonId: value.slice(separator + 1),
+  };
+}
+
 export function useAcademyProgressState(params: {
   identity: ProgressIdentity;
   currentUserId: string | null;
@@ -71,13 +84,15 @@ export function useAcademyProgressState(params: {
   walletAddress: string | null;
 }) {
   const { identity, currentUserId, authToken, walletAddress } = params;
+  const isSignedInIdentity = Boolean(identity.userId || currentUserId);
   const [state, setState] = useState<ProgressState>(() => loadProgress(identity));
-  const [loading, setLoading] = useState(Boolean(currentUserId));
 
   const apiBase = (import.meta as any).env.VITE_API_BASE_URL || '';
   const storedAuthToken =
     typeof window !== 'undefined' ? window.localStorage.getItem('auth_token') : null;
   const effectiveAuthToken = authToken || storedAuthToken;
+  const hasRemoteAuth = Boolean(effectiveAuthToken || walletAddress);
+  const [loading, setLoading] = useState(Boolean(currentUserId || hasRemoteAuth));
   const authHeaders = useMemo(
     () => buildAuthHeaders(effectiveAuthToken, walletAddress),
     [effectiveAuthToken, walletAddress]
@@ -87,12 +102,77 @@ export function useAcademyProgressState(params: {
     [effectiveAuthToken, walletAddress]
   );
 
+  const syncMissingRows = useCallback(
+    async (baseline: ProgressState, merged: ProgressState) => {
+      const allKeys = new Set<string>([
+        ...Object.keys(merged.completedLessons || {}),
+        ...Object.keys(merged.quizPassed || {}),
+        ...Object.keys(merged.checklist || {}),
+      ]);
+
+      let synced = true;
+
+      for (const key of allKeys) {
+        const parsed = parseProgressKey(key);
+        if (!parsed) {
+          continue;
+        }
+
+        const mergedCompleted = !!merged.completedLessons[key];
+        const mergedQuiz = !!merged.quizPassed[key];
+        const mergedChecklist = merged.checklist?.[key] || [];
+        const baselineCompleted = !!baseline.completedLessons[key];
+        const baselineQuiz = !!baseline.quizPassed[key];
+        const baselineChecklist = baseline.checklist?.[key] || [];
+        const checklistChanged =
+          JSON.stringify(mergedChecklist) !== JSON.stringify(baselineChecklist);
+
+        if (!mergedCompleted && !mergedQuiz && mergedChecklist.length === 0) {
+          continue;
+        }
+
+        if (
+          mergedCompleted === baselineCompleted &&
+          mergedQuiz === baselineQuiz &&
+          !checklistChanged
+        ) {
+          continue;
+        }
+
+        try {
+          const response = await fetch(`${apiBase}/api/academy/progress`, {
+            method: 'POST',
+            headers: jsonHeaders,
+            credentials: 'include',
+            body: JSON.stringify({
+              track: parsed.track,
+              lesson_id: parsed.lessonId,
+              lesson_completed: mergedCompleted,
+              quiz_passed: mergedQuiz,
+              checklist: mergedChecklist,
+              xp_awarded: mergedCompleted ? 100 : 0,
+            }),
+          });
+
+          if (!response.ok) {
+            synced = false;
+          }
+        } catch {
+          synced = false;
+        }
+      }
+
+      return synced;
+    },
+    [apiBase, jsonHeaders]
+  );
+
   useEffect(() => {
     setState(loadProgress(identity));
   }, [identity]);
 
   useEffect(() => {
-    if (!currentUserId) {
+    if (!currentUserId && !hasRemoteAuth) {
       setLoading(false);
       return;
     }
@@ -116,13 +196,26 @@ export function useAcademyProgressState(params: {
           return;
         }
 
-        const localState = loadProgress(identity);
+        const identityState = loadProgress(identity);
+        const guestState = isSignedInIdentity
+          ? loadProgress({})
+          : ({
+              completedLessons: {},
+              quizPassed: {},
+              checklist: {},
+              xp: 0,
+              updatedAt: new Date(0).toISOString(),
+            } satisfies ProgressState);
+        const localState = isSignedInIdentity
+          ? mergeProgressStates(guestState, identityState)
+          : identityState;
         const remoteState = rowsToProgressState(result.data.rows);
         const mergedState = mergeProgressStates(localState, remoteState);
 
         if (!cancelled) {
           setState(mergedState);
           saveProgress(identity, mergedState);
+          void syncMissingRows(remoteState, mergedState);
         }
       } catch {
         // Keep local progress as fallback.
@@ -137,7 +230,7 @@ export function useAcademyProgressState(params: {
     return () => {
       cancelled = true;
     };
-  }, [apiBase, authHeaders, currentUserId, identity]);
+  }, [apiBase, authHeaders, currentUserId, hasRemoteAuth, identity, isSignedInIdentity, syncMissingRows]);
 
   const persistUnitCompletion = useCallback(
     async (track: string, lessonId: string, options?: SaveOptions) => {
