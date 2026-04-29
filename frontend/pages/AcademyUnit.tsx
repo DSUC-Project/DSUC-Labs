@@ -14,6 +14,7 @@ import {
   Lock,
   Sparkles,
   TerminalSquare,
+  Play
 } from 'lucide-react';
 
 import type {
@@ -121,18 +122,18 @@ function isUnitLocked(
 
 function practiceModeText(unit: AcademyV2UnitDetail) {
   if (unit.language === 'rust' && unit.deployable) {
-    return 'Buildable Solana lab';
+    return 'Bài Lab Solana';
   }
 
   if (unit.language === 'rust') {
-    return 'Rust practice lab';
+    return 'Bài thực hành Rust';
   }
 
   if (unit.language === 'typescript') {
-    return 'TypeScript challenge';
+    return 'Thử thách TypeScript';
   }
 
-  return 'Practice challenge';
+  return 'Thử thách thực hành';
 }
 
 export function AcademyUnit() {
@@ -207,7 +208,7 @@ export function AcademyUnit() {
         }
       } catch (err: any) {
         if (!cancelled) {
-          setError(err.message || 'Failed to load academy unit.');
+          setError(err.message || 'Không thể tải bài học.');
         }
       } finally {
         if (!cancelled) {
@@ -254,14 +255,14 @@ export function AcademyUnit() {
 
   if (loading) {
     return (
-      <div className="space-y-6 pb-20">
-        <div className="h-64 animate-pulse rounded-[30px] border border-white/10 bg-surface/55" />
+      <div className="space-y-6 pb-20 mt-10 max-w-[1400px] mx-auto w-full px-4 sm:px-6 lg:px-8">
+        <div className="h-64 animate-pulse rounded-3xl bg-white border border-slate-100 shadow-sm" />
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="space-y-5">
-            <div className="h-96 animate-pulse rounded-[28px] border border-white/10 bg-surface/55" />
-            <div className="h-64 animate-pulse rounded-[28px] border border-white/10 bg-surface/55" />
+          <div className="space-y-6">
+            <div className="h-96 animate-pulse rounded-3xl bg-white border border-slate-100 shadow-sm" />
+            <div className="h-64 animate-pulse rounded-3xl bg-white border border-slate-100 shadow-sm" />
           </div>
-          <div className="h-96 animate-pulse rounded-[28px] border border-white/10 bg-surface/55" />
+          <div className="h-96 animate-pulse rounded-3xl bg-white border border-slate-100 shadow-sm" />
         </div>
       </div>
     );
@@ -269,29 +270,29 @@ export function AcademyUnit() {
 
   if (!unitData) {
     return (
-      <div className="rounded-[26px] border border-red-400/35 bg-red-500/10 p-6 text-red-100">
-        <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-red-200/80">
-          Unit unavailable
+      <div className="rounded-2xl border border-rose-100 bg-rose-50 p-8 text-center mt-10 max-w-4xl mx-auto">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-rose-100 text-rose-500 mb-4">
+           <Code2 className="w-6 h-6" />
         </div>
-        <h1 className="mt-3 font-display text-2xl font-black uppercase tracking-[0.1em] text-white">
-          Could not open this unit
+        <h1 className="font-display text-2xl font-bold text-slate-800">
+          Không thể mở bài học này
         </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-red-100/85">
-          {error || 'This unit could not be loaded from the Academy route right now.'}
+        <p className="mt-2 text-sm text-slate-500">
+          {error || 'Bài học hiện không mở được. Vui lòng thử lại sau.'}
         </p>
-        <div className="mt-5 flex flex-wrap gap-3">
-          <button
+        <div className="mt-8 flex flex-wrap justify-center gap-4">
+           <button
             type="button"
             onClick={() => setReloadNonce((value) => value + 1)}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-cyber-yellow px-5 text-sm font-display font-bold uppercase tracking-[0.16em] text-black transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="inline-flex items-center gap-2 rounded-full bg-sky-600 px-6 py-3 text-sm font-bold tracking-wider text-white transition-all hover:bg-sky-700 hover:shadow-md"
           >
-            Retry load
+            Tải lại
           </button>
           <Link
             to="/academy"
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/12 bg-white/5 px-5 text-sm font-display font-bold uppercase tracking-[0.16em] text-white transition-colors hover:border-cyber-blue/40 hover:text-cyber-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-bold tracking-wider text-slate-700 transition-all hover:bg-slate-50 hover:text-sky-600"
           >
-            Back to Academy
+            Về trang chủ Học Viện
           </Link>
         </div>
       </div>
@@ -320,11 +321,11 @@ export function AcademyUnit() {
     || runReport?.runtimeLabel
     || (unit.language === 'rust'
       ? unit.build_type === 'buildable'
-        ? 'Rust scaffold verifier'
-        : 'Guided Rust verifier'
+        ? 'Máy ảo biên dịch Rust'
+        : 'Trình xác thực mã Rust định hướng'
       : runnerSupported
-        ? 'Browser challenge runner'
-        : 'Guided workspace');
+        ? 'Trình chạy thử thách trên trình duyệt'
+        : 'Không gian thực hành');
   const completedCount = countCompletedAcademyV2CourseUnits(progress.state.completedLessons, course.id);
   const courseProgressPercent =
     course.total_unit_count > 0 ? Math.round((completedCount / course.total_unit_count) * 100) : 0;
@@ -344,8 +345,8 @@ export function AcademyUnit() {
     if (completionBlocked) {
       setNotice(
         runLoading
-          ? 'The current checks are still running. Wait for the result before marking this practice complete.'
-          : 'Run the current checks and pass every visible + hidden check before completing this practice.'
+          ? 'Hệ thống đang chạy bài kiểm tra. Vui lòng đợi kết quả trước khi hoàn thành.'
+          : 'Hãy vượt qua tất cả các bài kiểm tra kể cả ẩn trước khi hoàn thành chặng này.'
       );
       return;
     }
@@ -357,8 +358,8 @@ export function AcademyUnit() {
 
     setNotice(
       saved
-        ? 'Progress synced. Activity was recorded for this unit.'
-        : 'Local progress saved. Database sync will retry the next time this unit loads.'
+        ? 'Tiến độ được đồng bộ. Hoạt động luyện tập đã được lưu lại.'
+        : 'Tiến độ đã được lưu cục bộ. Hệ thống sẽ thử bộ lại lần tới khi bài học này được tải.'
     );
   }
 
@@ -368,12 +369,12 @@ export function AcademyUnit() {
     }
 
     void navigator.clipboard.writeText(draftCode);
-    setNotice('Draft copied to clipboard.');
+    setNotice('Code của bạn đã được copy vào clipboard.');
   }
 
   function resetDraft() {
     setDraftCode(unit.code || '');
-    setNotice('Starter code restored for this practice unit.');
+    setNotice('Khôi phục code gốc của bài học này thành công.');
   }
 
   async function handleRunChallenge() {
@@ -400,13 +401,13 @@ export function AcademyUnit() {
         hiddenPassedCount: 0,
         hiddenTotalCount: unit.tests.filter((item) => item.hidden === true).length,
         primaryFunction: null,
-        runtimeLabel: 'Browser challenge runner',
-        message: error?.message || 'Challenge execution failed.',
+        runtimeLabel: 'Thử thách trên trình duyệt',
+        message: error?.message || 'Có lỗi xảy ra trong lúc thực thi.',
         cases: [],
       });
       setLastRunSource(draftCode);
       setActiveWorkspaceTab('results');
-      setNotice(error?.message || 'Challenge execution failed.');
+      setNotice(error?.message || 'Có lỗi xảy ra trong lúc thực thi.');
     } finally {
       setRunLoading(false);
     }
@@ -416,71 +417,77 @@ export function AcademyUnit() {
   const visibleTests = unit.tests.filter((item) => item.hidden !== true);
 
   return (
-    <div className="space-y-6 pb-20">
-      <section className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(41,121,255,0.2),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(255,214,0,0.14),transparent_28%),linear-gradient(180deg,rgba(5,10,20,0.95),rgba(7,11,18,0.8))] p-6 shadow-[0_22px_60px_rgba(0,0,0,0.2)] sm:p-8">
-        <div className="absolute inset-0 bg-grid-pattern bg-[size:30px_30px] opacity-[0.08]" />
-        <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_320px] lg:items-end">
-          <div className="space-y-5">
+    <div className="space-y-12 pb-20 mt-10 max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 w-full">
+      <section className="bg-brutal-blue border-4 border-brutal-black p-8 sm:p-12 relative overflow-hidden brutal-card rounded-none shadow-neo-xl">
+        <div className="absolute right-0 top-0 w-[500px] h-[500px] bg-brutal-yellow rounded-full border-8 border-brutal-black translate-x-1/2 -translate-y-1/4 pointer-events-none" />
+
+        <div className="relative grid gap-10 lg:grid-cols-[minmax(0,1.3fr)_360px] lg:items-end z-10">
+          <div className="space-y-8">
             <Link
               to={`/academy/course/${course.id}`}
-              className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-black/20 px-4 text-[11px] font-mono font-bold uppercase tracking-[0.24em] text-cyber-blue transition-colors hover:border-cyber-blue/45 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="inline-flex min-h-12 items-center justify-center gap-3 bg-white border-4 border-brutal-black px-6 py-2 text-sm font-black uppercase tracking-widest text-brutal-black shadow-neo hover:-translate-y-1 hover:shadow-neo-lg transition-all"
             >
-              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-              Back to course
+               <ArrowLeft className="h-5 w-5" strokeWidth={3} aria-hidden="true" />
+               Về lại khóa học
             </Link>
 
-            <div className="flex flex-wrap gap-2">
-              <span className="inline-flex min-h-10 items-center rounded-full border border-cyber-blue/20 bg-cyber-blue/10 px-4 text-[10px] font-mono font-bold uppercase tracking-[0.26em] text-cyber-blue">
+            <div className="flex flex-wrap gap-3">
+              <span className="inline-flex items-center justify-center bg-brutal-black px-4 py-2 text-xs font-black uppercase tracking-widest text-white shadow-neo-sm border-2 border-transparent">
                 {course.title}
               </span>
-              <span className="inline-flex min-h-10 items-center rounded-full border border-white/10 bg-white/5 px-4 text-[10px] font-mono uppercase tracking-[0.22em] text-white/56">
+              <span className="inline-flex items-center justify-center bg-brutal-yellow px-4 py-2 text-xs font-black uppercase tracking-widest text-brutal-black border-4 border-brutal-black shadow-neo-sm">
                 {unit.module_title}
               </span>
-              <span className="inline-flex min-h-10 items-center rounded-full border border-cyber-yellow/20 bg-cyber-yellow/10 px-4 text-[10px] font-mono uppercase tracking-[0.22em] text-cyber-yellow">
-                {isPractice ? practiceModeText(unit) : 'Learn unit'}
+              <span className="inline-flex items-center justify-center bg-brutal-pink px-4 py-2 text-xs font-black uppercase tracking-widest text-brutal-black border-4 border-brutal-black shadow-neo-sm">
+                {isPractice ? practiceModeText(unit) : 'Bài lý thuyết'}
               </span>
             </div>
 
-            <div>
-              <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-white/38">
-                Step {Math.max(1, unit_index + 1)} of {total_units}
+            <div className="space-y-6">
+              <div className="inline-block text-xs font-black uppercase tracking-widest text-brutal-black bg-white border-2 border-brutal-black px-3 py-1 shadow-neo-sm">
+                Bài {Math.max(1, unit_index + 1)} trên {total_units}
               </div>
-              <h1 className="mt-3 max-w-5xl font-display text-3xl font-black uppercase tracking-[0.1em] text-white sm:text-5xl">
+              <h1 className="max-w-5xl font-display text-5xl font-black text-white sm:text-6xl lg:text-7xl leading-none uppercase tracking-tighter" style={{ textShadow: '4px 4px 0 #111827' }}>
                 {unit.title}
               </h1>
-              <p className="mt-4 max-w-4xl text-base leading-8 text-white/72">
+              <p className="mt-6 max-w-4xl text-lg font-bold leading-relaxed text-gray-800 bg-white/90 border-4 border-brutal-black p-5 shadow-neo-sm">
                 {isPractice
-                  ? 'Read the brief, work in the editor, then pass the checks before you submit this lab.'
-                  : 'Read this lesson cleanly, then move straight into the next practice step while the context is fresh.'}
+                  ? 'Hãy đọc kỹ hướng dẫn, thực hành trong trình soạn thảo, và vượt qua tất cả bài kiểm tra để hoàn thành Lab này.'
+                  : 'Đọc và nghiên cứu nội dung bài học này, sau đó tiếp tục thực hành ngay để kiểm tra kiến thức.'}
               </p>
             </div>
           </div>
 
-          <div className="rounded-[26px] border border-cyber-yellow/20 bg-black/22 p-5 shadow-[0_0_24px_rgba(255,214,0,0.07)] backdrop-blur-sm">
-            <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-cyber-yellow/78">
-              Unit status
-            </div>
-            <div className="mt-3 font-display text-2xl font-black uppercase tracking-[0.1em] text-white">
-              {unitDone ? 'Marked complete' : isPractice ? 'Ready for submission' : 'In progress'}
-            </div>
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <HeroStat
-                icon={<BookOpen className="h-4 w-4" aria-hidden="true" />}
-                label="Course progress"
-                value={`${courseProgressPercent}%`}
-              />
-              <HeroStat
-                icon={<Flame className="h-4 w-4" aria-hidden="true" />}
-                label="XP"
-                value={String(unit.xp_reward)}
-              />
-            </div>
+          <div className="bg-white p-8 border-4 border-brutal-black shadow-neo-lg xl:rotate-2 transform">
+             <div className="text-[10px] font-black uppercase tracking-widest text-white bg-brutal-blue px-2 py-1 inline-block mb-4 border-2 border-brutal-black shadow-neo-sm">
+               Trạng thái
+             </div>
+             <div className="font-display text-4xl font-black text-brutal-black uppercase tracking-tight mb-8">
+                {unitDone ? 'Đã hoàn thành' : isPractice ? 'Sẵn sàng nộp bài' : 'Đang học...'}
+             </div>
+             <div className="grid grid-cols-2 gap-4">
+                 <div className="bg-white border-4 border-brutal-black p-4 text-center shadow-neo-sm">
+                   <div className="flex items-center justify-center gap-2 mb-2 text-brutal-black">
+                     <BookOpen className="w-5 h-5" strokeWidth={3} />
+                     <span className="text-[10px] font-black uppercase tracking-widest">Tiến độ</span>
+                   </div>
+                   <div className="text-3xl font-black text-brutal-black">{courseProgressPercent}%</div>
+                 </div>
+                 <div className="bg-brutal-yellow border-4 border-brutal-black p-4 text-center shadow-neo-sm">
+                   <div className="flex items-center justify-center gap-2 mb-2 text-brutal-black">
+                     <Flame className="w-5 h-5" strokeWidth={3} />
+                     <span className="text-[10px] font-black uppercase tracking-widest">Thưởng XP</span>
+                   </div>
+                   <div className="text-3xl font-black text-brutal-black">+{unit.xp_reward}</div>
+                 </div>
+             </div>
           </div>
         </div>
       </section>
 
       {notice && (
-        <div className="rounded-[20px] border border-cyber-blue/30 bg-cyber-blue/10 px-5 py-4 text-sm leading-7 text-cyber-blue">
+        <div className="border-4 border-brutal-black bg-brutal-pink px-6 py-4 text-sm font-black text-brutal-black uppercase tracking-widest flex items-center gap-4 shadow-neo">
+          <TerminalSquare className="h-6 w-6" strokeWidth={3} />
           {notice}
         </div>
       )}
@@ -490,16 +497,16 @@ export function AcademyUnit() {
           {!isPractice ? (
             <>
               {embedUrl && (
-                <section className="overflow-hidden rounded-[28px] border border-white/10 bg-surface/72 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
-                  <div className="border-b border-white/8 px-6 py-5">
-                    <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-cyber-blue/75">
-                      Lesson media
+                <section className="overflow-hidden border-4 border-brutal-black bg-white shadow-neo">
+                  <div className="border-b-4 border-brutal-black bg-brutal-yellow px-6 py-5">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-brutal-black mb-1">
+                      Video Bài Học
                     </div>
-                    <h2 className="mt-2 font-display text-2xl font-black uppercase tracking-[0.1em] text-white">
-                      Watch the walkthrough
+                    <h2 className="font-display text-3xl font-black text-brutal-black uppercase tracking-tight">
+                       Xem hướng dẫn
                     </h2>
                   </div>
-                  <div className="relative w-full pb-[56.25%]">
+                  <div className="relative w-full pb-[56.25%] bg-brutal-black">
                     <iframe
                       src={embedUrl}
                       title={unit.title}
@@ -511,50 +518,50 @@ export function AcademyUnit() {
                 </section>
               )}
 
-              <section className="rounded-[30px] border border-white/10 bg-surface/72 p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)] sm:p-8 lg:p-10">
-                <div className="flex flex-col gap-4 border-b border-white/8 pb-6 sm:flex-row sm:items-end sm:justify-between">
+              <section className="border-4 border-brutal-black bg-white shadow-neo p-6 sm:p-8 lg:p-10 mb-8 mt-8">
+                <div className="flex flex-col gap-6 border-b-4 border-brutal-black pb-8 sm:flex-row sm:items-end sm:justify-between mb-8">
                   <div>
-                    <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-cyber-blue/75">
-                      Learn unit
+                    <div className="inline-block bg-brutal-blue text-white px-2 py-1 text-[10px] font-black uppercase tracking-widest border-2 border-brutal-black shadow-neo-sm mb-3">
+                      Bài lý thuyết
                     </div>
-                    <h2 className="mt-2 font-display text-3xl font-black uppercase tracking-[0.1em] text-white">
-                      Reading shell
+                    <h2 className="font-display text-4xl sm:text-5xl font-black text-brutal-black uppercase tracking-tighter decoration-brutal-pink decoration-4 underline underline-offset-8">
+                      Nội dung học
                     </h2>
                   </div>
                   {outline.length > 0 && (
-                    <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-mono uppercase tracking-[0.18em] text-white/48">
-                      {outline.length} sections in this lesson
+                    <div className="bg-brutal-yellow px-4 py-2 text-xs font-black uppercase tracking-wider text-brutal-black border-4 border-brutal-black shadow-neo-sm shrink-0">
+                      {outline.length} phần nội dung
                     </div>
                   )}
                 </div>
-                <div className="mt-8 max-w-none text-base font-sans leading-relaxed sm:text-lg">
+                <div className="markdown-body prose prose-slate max-w-none prose-headings:font-display prose-headings:font-black prose-headings:text-brutal-black prose-headings:uppercase prose-p:text-gray-800 prose-p:font-medium hover:prose-a:text-brutal-blue prose-a:font-bold prose-strong:font-black">
                   {renderMd(unit.content_md)}
                 </div>
               </section>
 
               {next_unit && (
-                <section className="rounded-[26px] border border-cyber-yellow/20 bg-[linear-gradient(180deg,rgba(255,214,0,0.08),rgba(255,255,255,0.02))] p-5 shadow-[0_14px_36px_rgba(255,214,0,0.06)]">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <section className="border-4 border-brutal-black bg-brutal-yellow p-8 shadow-neo mt-12 mb-8 transform -rotate-1">
+                  <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                      <div className="text-[10px] font-mono uppercase tracking-[0.26em] text-cyber-yellow/78">
-                        Next in route
+                      <div className="inline-block bg-white text-brutal-black px-2 py-1 text-[10px] font-black uppercase tracking-widest border-2 border-brutal-black shadow-neo-sm mb-4">
+                        Tiếp theo trong lộ trình
                       </div>
-                      <h3 className="mt-2 font-display text-2xl font-black uppercase tracking-[0.08em] text-white">
+                      <h3 className="font-display text-3xl font-black text-brutal-black uppercase">
                         {next_unit.title}
                       </h3>
-                      <p className="mt-3 max-w-2xl text-sm leading-7 text-white/66">
+                      <p className="mt-4 text-lg text-gray-800 font-bold max-w-xl bg-white/80 p-3 border-2 border-brutal-black">
                         {next_unit.section === 'practice'
-                          ? 'The next step moves straight into application while this lesson is still fresh.'
-                          : 'Continue the concept route before jumping into the next lab.'}
+                          ? 'Bước tiếp theo đưa bạn vào thực hành áp dụng những kiến thức vừa học được.'
+                          : 'Tiếp tục chuỗi lý thuyết trước khi đến với bài thực hành.'}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => navigate(`/academy/unit/${course.id}/${next_unit.id}`)}
-                      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-cyber-yellow px-5 text-sm font-display font-bold uppercase tracking-[0.16em] text-black transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                      className="inline-flex min-h-14 items-center justify-center gap-3 bg-brutal-black px-8 text-sm font-black uppercase tracking-widest text-white shadow-neo hover:-translate-y-1 hover:shadow-neo-lg transition-all focus-visible:outline-none whitespace-nowrap"
                     >
-                      Open next unit
-                      <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                      Mở bài tiếp theo
+                      <ChevronRight className="h-5 w-5" strokeWidth={3} aria-hidden="true" />
                     </button>
                   </div>
                 </section>
@@ -562,507 +569,316 @@ export function AcademyUnit() {
             </>
           ) : (
             <>
-              <section className="rounded-[28px] border border-white/10 bg-surface/72 p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
-                <div className="flex flex-col gap-4 border-b border-white/8 pb-6 sm:flex-row sm:items-end sm:justify-between">
+              <section className="bg-white border-4 border-brutal-black shadow-neo p-6 sm:p-8 lg:p-10 mb-8 max-h-[60vh] overflow-y-auto brutal-scrollbar">
+                <div className="flex flex-col gap-6 border-b-4 border-brutal-black pb-8 sm:flex-row sm:items-end sm:justify-between mb-8">
                   <div>
-                    <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-cyber-yellow/75">
-                      Practice brief
+                    <div className="inline-block bg-brutal-pink text-brutal-black px-2 py-1 text-[10px] font-black uppercase tracking-widest border-2 border-brutal-black shadow-neo-sm mb-3">
+                      Hướng dẫn thực hành
                     </div>
-                    <h2 className="mt-2 font-display text-3xl font-black uppercase tracking-[0.1em] text-white">
-                      What you need to build
+                    <h2 className="font-display text-4xl sm:text-5xl font-black text-brutal-black uppercase tracking-tighter decoration-brutal-blue decoration-4 underline underline-offset-8">
+                      Yêu cầu bài tập
                     </h2>
                   </div>
-                  <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-mono uppercase tracking-[0.18em] text-white/48">
+                  <div className="bg-brutal-yellow px-4 py-2 text-xs font-black uppercase tracking-wider text-brutal-black border-4 border-brutal-black shadow-neo-sm whitespace-nowrap hidden sm:block transform rotate-2">
                     {practiceModeText(unit)}
                   </div>
                 </div>
-                <div className="mt-8 max-w-none text-base font-sans leading-relaxed sm:text-lg">
+                {/* Note: In React Markdown, ensuring standard markdown styling */}
+                <div className="markdown-body prose prose-slate max-w-none prose-headings:font-display prose-headings:font-black prose-headings:text-brutal-black prose-headings:uppercase prose-p:text-gray-800 prose-p:font-medium hover:prose-a:text-brutal-blue prose-a:font-bold prose-strong:font-black">
                   {renderMd(unit.content_md)}
                 </div>
               </section>
 
-              <section className="rounded-[28px] border border-white/10 bg-surface/72 p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
-                <div className="flex flex-col gap-4 border-b border-white/8 pb-6 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-cyber-blue/75">
-                      Challenge checks
-                    </div>
-                    <h2 className="mt-2 font-display text-3xl font-black uppercase tracking-[0.1em] text-white">
-                      Tests and hints
-                    </h2>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {runnerSupported && (
-                      <button
-                        type="button"
-                        onClick={() => void handleRunChallenge()}
-                        disabled={runLoading}
-                        className="inline-flex min-h-10 items-center gap-2 rounded-full bg-cyber-yellow px-4 text-[11px] font-display font-bold uppercase tracking-[0.16em] text-black transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                      >
-                        {runLoading ? (
-                          <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
-                        ) : (
-                          <TerminalSquare className="h-4 w-4" aria-hidden="true" />
-                        )}
-                        {runLoading ? 'Running checks' : 'Run checks'}
-                      </button>
-                    )}
-                    <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-mono uppercase tracking-[0.18em] text-white/48">
-                      {unit.tests.length} tests / {unit.hints.length} hints
-                    </div>
-                  </div>
-                </div>
-
-                {runnerSupported ? (
-                  <div
-                    className={`mt-6 rounded-[22px] border px-5 py-4 ${
-                      runReportIsFresh && runReport?.allPassed
-                        ? 'border-emerald-400/28 bg-emerald-500/10'
-                        : runReport
-                          ? 'border-amber-300/24 bg-amber-500/10'
-                          : 'border-cyber-blue/20 bg-cyber-blue/8'
-                    }`}
-                  >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-white/52">
-                          {runtimeLabel}
-                        </div>
-                        <div className="mt-2 font-display text-xl font-black uppercase tracking-[0.08em] text-white">
-                          {activeRunReport?.allPassed
-                            ? 'All checks passed'
-                            : runReport && !runReportIsFresh
-                              ? 'Draft changed after the last run'
-                              : activeRunReport
-                              ? 'Checks still failing'
-                              : 'Run the challenge before submitting'}
-                        </div>
-                        <p className="mt-2 text-sm leading-7 text-white/64">
-                          {runReport && !runReportIsFresh
-                            ? 'The editor content changed after the last run. Re-run the browser checks so the result matches the current draft.'
-                            : activeRunReport
-                              ? activeRunReport.message
-                            : runnerSupported
-                              ? 'Completion stays locked until the current draft passes every visible and hidden check for this lab.'
-                              : 'This practice unit does not expose a runnable verifier yet.'}
-                        </p>
-                      </div>
-                      <div className="grid min-w-[200px] grid-cols-2 gap-3">
-                        <HeroStat
-                          icon={<CheckCircle2 className="h-4 w-4" aria-hidden="true" />}
-                          label="Visible checks"
-                          value={
-                            activeRunReport
-                              ? `${activeRunReport.visiblePassedCount}/${activeRunReport.visibleTotalCount}`
-                              : `0/${visibleTests.length}`
-                          }
-                        />
-                        <HeroStat
-                          icon={<Sparkles className="h-4 w-4" aria-hidden="true" />}
-                          label="Hidden checks"
-                          value={
-                            activeRunReport
-                              ? `${activeRunReport.hiddenPassedCount}/${activeRunReport.hiddenTotalCount}`
-                              : `0/${unit.tests.length - visibleTests.length}`
-                          }
-                        />
-                      </div>
-                    </div>
-                    {runReport && !runReportIsFresh && (
-                        <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-amber-300/30 bg-black/18 px-4 py-2 text-[11px] font-mono uppercase tracking-[0.18em] text-amber-100/88">
-                          <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-                        Draft changed since the last run. Execute the verifier again before completion.
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="mt-6 rounded-[22px] border border-white/10 bg-white/4 px-5 py-4 text-sm leading-7 text-white/62">
-                    {unit.language === 'rust'
-                      ? 'This is a guided Rust lab. The browser runner is not enabled for Rust yet, so use the brief, hints, and starter code as a structured practice lane for now.'
-                      : 'This practice unit does not expose an executable browser runner yet. You can still work through it with the brief, hints, and starter code.'}
-                  </div>
-                )}
-
-                <div className="mt-6 space-y-3">
-                  {unit.tests.length > 0 ? (
-                    visibleTests.map((test, index) => {
-                      const caseResult = reportCasesById.get(test.id);
-                      const statusTone =
-                        activeRunReport
-                          ? caseResult?.passed
-                            ? 'border-emerald-400/28 bg-emerald-500/10'
-                            : 'border-red-400/26 bg-red-500/10'
-                          : 'border-white/10 bg-black/18';
-                      const badgeTone =
-                        activeRunReport
-                          ? caseResult?.passed
-                            ? 'border-emerald-300/30 bg-emerald-400/10 text-emerald-100'
-                            : 'border-red-300/30 bg-red-400/10 text-red-100'
-                          : 'border-white/10 bg-white/5 text-white/48';
-
-                      return (
-                      <div
-                        key={test.id}
-                        className={`rounded-[18px] border p-4 text-sm leading-7 text-white/68 ${statusTone}`}
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-cyber-blue/75">
-                            Test {index + 1}
-                          </div>
-                          <div
-                            className={`rounded-full border px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] ${badgeTone}`}
-                          >
-                            {activeRunReport
-                              ? caseResult?.passed
-                                ? 'Passed'
-                                : 'Failed'
-                              : 'Not run'}
-                          </div>
-                        </div>
-                        <div className="mt-2 font-semibold text-white">{test.description}</div>
-                        {test.input && (
-                          <div className="mt-2 text-white/52">Input: {test.input}</div>
-                        )}
-                        {test.expectedOutput && (
-                          <div className="mt-2 text-white/52">Expected: {test.expectedOutput}</div>
-                        )}
-                        {activeRunReport && caseResult?.error && (
-                          <div className="mt-3 rounded-[14px] border border-red-400/24 bg-black/18 px-3 py-2 text-xs leading-6 text-red-100/82">
-                            {caseResult.error}
-                          </div>
-                        )}
-                      </div>
-                    );
-                    })
-                  ) : (
-                    <div className="rounded-[18px] border border-dashed border-white/12 bg-white/4 p-4 text-sm leading-7 text-white/48">
-                      This practice unit has no structured test cases attached yet.
-                    </div>
-                  )}
-                </div>
-
-                {unit.tests.length > visibleTests.length && (
-                  <div className="mt-4 rounded-[18px] border border-white/10 bg-black/18 p-4 text-sm leading-7 text-white/60">
-                    <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-cyber-yellow/76">
-                      Hidden checks
-                    </div>
-                    <div className="mt-2">
-                      {activeRunReport
-                        ? `${activeRunReport.hiddenPassedCount}/${activeRunReport.hiddenTotalCount} hidden checks passed on the latest run.`
-                        : `${unit.tests.length - visibleTests.length} hidden checks will run alongside the visible ones.`}
-                    </div>
-                  </div>
-                )}
-
-                {unit.hints.length > 0 && (
-                  <div className="mt-6 rounded-[20px] border border-cyber-yellow/20 bg-cyber-yellow/8 p-5">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-2 text-cyber-yellow">
-                        <Lightbulb className="h-4 w-4" aria-hidden="true" />
-                        <span className="text-[10px] font-mono uppercase tracking-[0.22em]">Hints</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setRevealedHints((value) => Math.min(value + 1, unit.hints.length))
-                        }
-                        disabled={revealedHints >= unit.hints.length}
-                        className="min-h-10 rounded-full border border-cyber-yellow/25 bg-cyber-yellow px-4 text-xs font-display font-bold uppercase tracking-[0.16em] text-black transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                      >
-                        Reveal more
-                      </button>
-                    </div>
-                    <div className="mt-4 space-y-3 text-sm leading-7 text-white/68">
-                      {unit.hints.slice(0, revealedHints).map((hint, index) => (
-                        <div key={`${hint}-${index}`} className="rounded-[16px] border border-white/8 bg-black/12 p-4">
-                          {hint}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </section>
-
-              <section className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(20,26,38,0.96),rgba(9,13,20,0.95))] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.22)]">
-                <div className="flex flex-col gap-4 border-b border-white/8 pb-5 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-cyber-blue/75">
-                      Practice workspace
-                    </div>
-                    <h2 className="mt-2 font-display text-2xl font-black uppercase tracking-[0.1em] text-white">
-                      Challenge workbench
-                    </h2>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <LabTabButton
-                      label="Editor"
-                      active={activeWorkspaceTab === 'editor'}
-                      onClick={() => setActiveWorkspaceTab('editor')}
-                    />
-                    <LabTabButton
-                      label="Results"
-                      active={activeWorkspaceTab === 'results'}
-                      onClick={() => setActiveWorkspaceTab('results')}
-                    />
-                    <LabTabButton
-                      label="Solution"
-                      active={activeWorkspaceTab === 'solution'}
-                      onClick={() => setActiveWorkspaceTab('solution')}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => void handleRunChallenge()}
-                      disabled={!runnerSupported || runLoading}
-                      className="inline-flex min-h-10 items-center gap-2 rounded-full bg-cyber-yellow px-4 text-[11px] font-display font-bold uppercase tracking-[0.16em] text-black transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                    >
-                      {runLoading ? (
-                        <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
-                      ) : (
-                        <TerminalSquare className="h-4 w-4" aria-hidden="true" />
-                      )}
-                      Run
-                    </button>
-                    <button
-                      type="button"
-                      onClick={copyDraft}
-                      className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[11px] font-mono font-bold uppercase tracking-[0.18em] text-white/72 transition-colors hover:border-cyber-blue/35 hover:text-cyber-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                    >
-                      <ClipboardCopy className="h-4 w-4" aria-hidden="true" />
-                      Copy
-                    </button>
-                    <button
-                      type="button"
-                      onClick={resetDraft}
-                      className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[11px] font-mono font-bold uppercase tracking-[0.18em] text-white/72 transition-colors hover:border-cyber-yellow/35 hover:text-cyber-yellow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                    >
-                      Reset
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mt-5 flex flex-wrap items-center gap-2">
-                  <StatusPill
-                    tone={runnerSupported ? 'blue' : 'neutral'}
-                    label={runnerSupported ? `${runtimeLabel} ready` : 'Guided workspace'}
-                  />
-                  <StatusPill
-                    tone={draftDirty ? 'amber' : 'neutral'}
-                    label={draftDirty ? 'Custom draft' : 'Starter draft'}
-                  />
-                  {runReport && !runReportIsFresh && (
-                    <StatusPill tone="amber" label="Draft changed since last run" />
-                  )}
-                  {activeRunReport?.allPassed && <StatusPill tone="green" label="All checks passed" />}
-                </div>
-
-                {activeWorkspaceTab === 'editor' && (
-                  <div className="mt-5">
-                    <div className="rounded-t-[20px] border border-b-0 border-white/10 bg-[#0b0f17] px-5 py-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/48">
-                          Starter code
-                        </div>
-                        <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/34">
-                          {unit.language || 'text'}
-                        </div>
-                      </div>
-                    </div>
-                    <textarea
-                      value={draftCode}
-                      onChange={(event) => {
-                        setDraftCode(event.target.value);
-                      }}
-                      spellCheck={false}
-                      className="min-h-[540px] w-full rounded-b-[20px] border border-white/10 bg-[#0f141d] p-5 font-mono text-[13px] leading-7 text-slate-100 outline-none transition-colors placeholder:text-slate-500 selection:bg-cyber-blue/25 focus:border-cyber-yellow/30"
-                    />
-                  </div>
-                )}
-
-                {activeWorkspaceTab === 'results' && (
-                  <div className="mt-5 rounded-[20px] border border-white/10 bg-[#0f141d] p-5">
-                    {!runReport ? (
-                      <div className="space-y-3 text-sm leading-7 text-white/62">
-                        <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-cyber-blue/75">
-                          Run output
-                        </div>
-                        <div>
-                          No run result yet. Execute the browser checks to inspect visible tests, hidden check counts, and error output for this draft.
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                          <div>
-                            <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-cyber-blue/75">
-                              Latest run
-                            </div>
-                            <div className="mt-2 font-display text-xl font-black uppercase tracking-[0.08em] text-white">
-                              {runReportIsFresh
-                                ? runReport.allPassed
-                                  ? 'Current draft passed'
-                                  : 'Current draft still failing'
-                                : 'Run result is stale'}
-                            </div>
-                            <p className="mt-2 text-sm leading-7 text-white/62">
-                              {runReportIsFresh
-                                ? runReport.message
-                              : 'The editor changed after this run. Execute checks again to refresh the result for the current draft.'}
-                            </p>
-                          </div>
-                          <div className="grid min-w-[220px] grid-cols-2 gap-3">
-                            <HeroStat
-                              icon={<CheckCircle2 className="h-4 w-4" aria-hidden="true" />}
-                              label="Passed"
-                              value={`${runReport.passedCount}/${runReport.totalCount}`}
-                            />
-                            <HeroStat
-                              icon={<TerminalSquare className="h-4 w-4" aria-hidden="true" />}
-                              label="Function"
-                              value={runReport.primaryFunction || 'Unknown'}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="rounded-[18px] border border-white/10 bg-white/4 p-4">
-                          <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-cyber-yellow/76">
-                            Test output lane
-                          </div>
-                          <div className="mt-3 space-y-3">
-                            {(runReport.cases || []).length > 0 ? (
-                              runReport.cases.map((caseItem, index) => (
-                                <div
-                                  key={caseItem.id}
-                                  className={`rounded-[16px] border px-4 py-3 ${
-                                    caseItem.passed
-                                      ? 'border-emerald-400/25 bg-emerald-500/10'
-                                      : 'border-red-400/24 bg-red-500/10'
-                                  }`}
-                                >
-                                  <div className="flex flex-wrap items-center justify-between gap-3">
-                                    <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/46">
-                                      {caseItem.hidden ? `Hidden check ${index + 1}` : `Visible check ${index + 1}`}
-                                    </div>
-                                    <div
-                                      className={`rounded-full border px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] ${
-                                        caseItem.passed
-                                          ? 'border-emerald-300/30 bg-emerald-400/10 text-emerald-100'
-                                          : 'border-red-300/30 bg-red-400/10 text-red-100'
-                                      }`}
-                                    >
-                                      {caseItem.passed ? 'Passed' : 'Failed'}
-                                    </div>
-                                  </div>
-                                  <div className="mt-2 text-sm leading-7 text-white/72">
-                                    {caseItem.description}
-                                  </div>
-                                  {caseItem.error && (
-                                    <div className="mt-2 text-xs leading-6 text-red-100/84">
-                                      {caseItem.error}
-                                    </div>
-                                  )}
-                                </div>
-                              ))
+              <section className="bg-brutal-bg border-4 border-brutal-black overflow-hidden shadow-neo flex flex-col mb-12">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-4 border-brutal-black bg-white px-4 py-3 gap-4">
+                   <div className="flex gap-4 items-center">
+                     <LabTabButton
+                       label="Mã nguồn"
+                       active={activeWorkspaceTab === 'editor'}
+                       onClick={() => setActiveWorkspaceTab('editor')}
+                     />
+                     <LabTabButton
+                       label="Kết quả"
+                       active={activeWorkspaceTab === 'results'}
+                       onClick={() => setActiveWorkspaceTab('results')}
+                     />
+                     <LabTabButton
+                       label="Đáp án"
+                       active={activeWorkspaceTab === 'solution'}
+                       onClick={() => setActiveWorkspaceTab('solution')}
+                     />
+                   </div>
+                   
+                   <div className="flex items-center gap-3">
+                      {runnerSupported && (
+                         <button
+                           type="button"
+                           onClick={() => void handleRunChallenge()}
+                           disabled={runLoading}
+                           className="inline-flex items-center gap-2 bg-brutal-green hover:bg-brutal-yellow text-brutal-black border-2 border-brutal-black shadow-neo-sm px-4 py-1.5 text-xs font-black uppercase tracking-widest transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                         >
+                            {runLoading ? (
+                               <LoaderCircle className="w-4 h-4 animate-spin" />
                             ) : (
-                              <div className="text-sm leading-7 text-white/56">
-                                The runner returned no structured case output for this unit.
-                              </div>
+                               <Play className="w-4 h-4 fill-current" />
                             )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                            {runLoading ? 'Đang chạy' : 'Chạy code'}
+                         </button>
+                      )}
+                     
+                      {activeWorkspaceTab === 'editor' && (
+                         <div className="flex flex-row bg-white border-2 border-brutal-black shadow-neo-sm">
+                           <button
+                             type="button"
+                             onClick={copyDraft}
+                             className="p-2 hover:bg-brutal-yellow text-brutal-black border-r-2 border-brutal-black transition-colors"
+                             title="Sao chép"
+                           >
+                             <ClipboardCopy className="w-4 h-4" />
+                           </button>
+                           <button
+                             type="button"
+                             onClick={resetDraft}
+                             className="p-2 hover:bg-brutal-pink text-brutal-black transition-colors"
+                             title="Khôi phục code gốc"
+                           >
+                             <AlertTriangle className="w-4 h-4" />
+                           </button>
+                         </div>
+                      )}
+                   </div>
+                </div>
 
-                {activeWorkspaceTab === 'solution' && (
-                  <div className="mt-5 rounded-[20px] border border-white/10 bg-[#0f141d] p-5">
-                    {!solutionUnlocked ? (
-                      <div className="space-y-4">
-                        <div>
-                          <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-cyber-yellow/76">
-                            Reference solution
-                          </div>
-                          <div className="mt-2 font-display text-xl font-black uppercase tracking-[0.08em] text-white">
-                            Hidden to avoid spoilers
-                          </div>
-                          <p className="mt-2 text-sm leading-7 text-white/62">
-                            Reveal the reference solution only when you want to compare approaches or unblock yourself after trying the challenge properly.
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setSolutionUnlocked(true)}
-                          className="inline-flex min-h-11 items-center justify-center rounded-full border border-cyber-yellow/25 bg-cyber-yellow px-5 text-sm font-display font-bold uppercase tracking-[0.16em] text-black transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                        >
-                          Reveal solution
-                        </button>
+                <div className="flex items-center gap-2 bg-brutal-bg px-4 py-3 border-b-4 border-brutal-black text-[10px] font-black tracking-widest uppercase overflow-x-auto text-brutal-black">
+                  {runnerSupported ? (
+                     <span className="text-brutal-black border-2 border-brutal-black bg-brutal-green px-2 py-0.5 shadow-neo-sm">● {runtimeLabel} Sẵn sàng</span>
+                  ) : (
+                     <span className="text-white border-2 border-brutal-black bg-brutal-blue px-2 py-0.5 shadow-neo-sm">Không gian hướng dẫn</span>
+                  )}
+
+                  {draftDirty && (
+                     <span className="text-brutal-black border-2 border-brutal-black bg-brutal-yellow px-2 py-0.5 shadow-neo-sm">Đã sửa đổi</span>
+                  )}
+                  {runReport && !runReportIsFresh && (
+                     <span className="text-brutal-black border-2 border-brutal-black bg-brutal-pink px-2 py-0.5 shadow-neo-sm">Cần chạy lại</span>
+                  )}
+                  {activeRunReport?.allPassed && (
+                     <span className="text-brutal-black border-2 border-brutal-black bg-brutal-green px-2 py-0.5 shadow-neo-sm">Đã vượt qua</span>
+                  )}
+                </div>
+
+                <div className="flex-1 bg-white">
+                  {activeWorkspaceTab === 'editor' && (
+                    <div className="h-[600px] relative">
+                      <div className="absolute top-2 right-4 text-[10px] font-black text-gray-400 uppercase tracking-widest pointer-events-none">
+                         {unit.language || 'text'}
                       </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div>
-                            <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-cyber-yellow/76">
-                              Reference solution
+                      <textarea
+                        value={draftCode}
+                        onChange={(event) => setDraftCode(event.target.value)}
+                        spellCheck={false}
+                        className="w-full h-full bg-white text-brutal-black font-mono text-[14px] leading-relaxed p-6 outline-none resize-none selection:bg-brutal-pink focus:bg-brutal-yellow/10 transition-colors"
+                        placeholder="Bắt đầu viết code ở đây..."
+                      />
+                    </div>
+                  )}
+
+                  {activeWorkspaceTab === 'results' && (
+                    <div className="p-6 text-brutal-black min-h-[600px] max-h-[600px] overflow-y-auto">
+                      {!runReport ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-center border-4 border-dashed border-brutal-black bg-gray-50 h-full">
+                           <div className="w-16 h-16 bg-white border-4 border-brutal-black shadow-neo-sm flex items-center justify-center mb-6">
+                             <TerminalSquare className="w-8 h-8 text-brutal-black" strokeWidth={2} />
+                           </div>
+                           <h3 className="font-display text-2xl font-black uppercase text-brutal-black mb-2">Chưa có kết quả</h3>
+                           <p className="text-sm font-bold text-gray-700 max-w-sm">Chạy code của bạn để xem kết quả kiểm tra với các ca kiểm thử công khai và ẩn.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                           <div className="bg-white p-6 border-4 border-brutal-black shadow-neo-sm">
+                             <div className="flex items-center justify-between gap-4 mb-4 border-b-4 border-brutal-black pb-4">
+                               <div className="text-sm font-black uppercase tracking-widest text-brutal-black flex items-center gap-2">
+                                 Kết quả chạy
+                               </div>
+                               <span className={`px-2 py-1 text-[10px] font-black uppercase tracking-widest border-2 border-brutal-black shadow-neo-sm ${runReportIsFresh ? runReport.allPassed ? 'bg-brutal-green text-brutal-black' : 'bg-brutal-pink text-brutal-black' : 'bg-brutal-yellow text-brutal-black'}`}>
+                                 {runReportIsFresh ? runReport.allPassed ? 'Thành công toàn bộ' : 'Thất bại' : 'Cần chạy lại'}
+                               </span>
+                             </div>
+
+                             <p className="text-base font-bold text-gray-800 leading-relaxed mb-6">
+                               {runReportIsFresh ? runReport.message : 'Bạn đã chỉnh sửa trình soạn thảo sau lần chạy gần nhất. Hãy chạy lại để kết quả phản ánh đoạn code mới nhất.'}
+                             </p>
+
+                             <div className="grid grid-cols-2 gap-4">
+                               <div className="bg-gray-100 p-4 border-4 border-brutal-black shadow-neo-sm">
+                                  <div className="text-[10px] font-black text-gray-600 uppercase tracking-widest w-full border-b-2 border-brutal-black pb-1 mb-2">
+                                    Thành công
+                                  </div>
+                                  <div className={`font-display text-3xl font-black ${runReport.allPassed ? 'text-brutal-green' : 'text-brutal-black'}`}>
+                                    {runReport.passedCount} <span className="text-gray-500 text-xl">/ {runReport.totalCount}</span>
+                                  </div>
+                               </div>
+                               <div className="bg-gray-100 p-4 border-4 border-brutal-black shadow-neo-sm">
+                                  <div className="text-[10px] font-black text-gray-600 uppercase tracking-widest w-full border-b-2 border-brutal-black pb-1 mb-2">
+                                    Hàm gọi chính
+                                  </div>
+                                  <div className="font-mono text-sm font-bold text-brutal-blue mt-1.5 truncate">
+                                    {runReport.primaryFunction || 'Không xác định'}
+                                  </div>
+                               </div>
+                             </div>
+                           </div>
+
+                           <div className="space-y-4">
+                             <div className="flex items-center gap-2">
+                               <div className="w-6 h-2 bg-brutal-black" />
+                               <div className="text-xs font-black tracking-widest uppercase text-brutal-black">
+                                 Chi tiết Test Cases
+                               </div>
+                             </div>
+                             {(runReport.cases || []).length > 0 ? (
+                               runReport.cases.map((caseItem, index) => (
+                                 <div
+                                   key={caseItem.id}
+                                   className={`p-5 border-4 border-brutal-black transition-transform hover:-translate-y-0.5 ${caseItem.passed ? 'bg-brutal-green/20' : 'bg-brutal-pink/20'}`}
+                                 >
+                                    <div className="flex items-center justify-between gap-4 mb-3 border-b-2 border-brutal-black pb-2">
+                                       <div className="text-[10px] font-black uppercase tracking-widest text-brutal-black flex items-center gap-2">
+                                          {caseItem.passed ? (
+                                             <div className="bg-brutal-green border-2 border-brutal-black p-0.5"><CheckCircle2 className="w-3 h-3 text-brutal-black" strokeWidth={3} /></div>
+                                          ) : (
+                                             <div className="bg-brutal-pink border-2 border-brutal-black p-0.5"><AlertTriangle className="w-3 h-3 text-brutal-black" strokeWidth={3} /></div>
+                                          )}
+                                          {caseItem.hidden ? `Test Ẩn ${index + 1}` : `Test Công Khai ${index + 1}`}
+                                       </div>
+                                    </div>
+                                    <div className="text-sm text-brutal-black font-bold leading-relaxed">
+                                      {caseItem.description}
+                                    </div>
+                                    {caseItem.error && (
+                                       <div className="mt-4 bg-white p-4 border-4 border-brutal-black shadow-neo-sm text-brutal-pink font-mono text-xs overflow-x-auto whitespace-pre-wrap font-bold">
+                                          {caseItem.error}
+                                       </div>
+                                    )}
+                                 </div>
+                               ))
+                             ) : (
+                                <div className="p-4 border-4 border-dashed border-brutal-black bg-gray-50 text-sm font-bold text-gray-500 text-center">
+                                  Trình chạy không trả về kết quả cấu trúc cho bài lab này.
+                                </div>
+                             )}
+                           </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {activeWorkspaceTab === 'solution' && (
+                    <div className="p-6 min-h-[600px] bg-white text-brutal-black">
+                       {!solutionUnlocked ? (
+                         <div className="flex flex-col items-center justify-center py-24 text-center border-4 border-dashed border-brutal-black bg-gray-50 h-full">
+                            <div className="w-16 h-16 bg-white border-4 border-brutal-black shadow-neo-sm flex items-center justify-center mb-6">
+                              <Lightbulb className="w-8 h-8 text-brutal-yellow fill-current" strokeWidth={2} />
                             </div>
-                            <div className="mt-2 font-display text-xl font-black uppercase tracking-[0.08em] text-white">
-                              Compare your approach
+                            <h3 className="font-display font-black text-2xl uppercase text-brutal-black mb-2">Đáp án tham khảo đã bị ẩn</h3>
+                            <p className="text-sm font-bold text-gray-700 max-w-md mx-auto mb-8 leading-relaxed">
+                               Hãy tự mình thử sức trước tiên. Giải pháp tham khảo chỉ dùng khi bạn muốn so sánh cách làm hoặc khi đã cố gắng nhưng vẫn bế tắc.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => setSolutionUnlocked(true)}
+                              className="bg-brutal-black text-white text-xs font-black uppercase tracking-widest px-6 py-3 border-4 border-brutal-black hover:bg-brutal-yellow hover:text-brutal-black shadow-neo hover:-translate-y-1 transition-all"
+                            >
+                              Hiển thị đáp án
+                            </button>
+                         </div>
+                       ) : (
+                         <div className="space-y-4">
+                            <div className="flex items-center justify-between border-b-4 border-brutal-black pb-4 mb-4">
+                               <div className="text-sm font-black uppercase tracking-widest text-brutal-black">Bài giải mẫu</div>
+                               <button
+                                  type="button"
+                                  disabled={!unit.solution}
+                                  onClick={() => {
+                                      if (unit.solution) {
+                                         navigator.clipboard.writeText(unit.solution);
+                                         setNotice('Đáp án đã được copy');
+                                      }
+                                  }}
+                                  className="text-[10px] font-black tracking-widest text-brutal-black bg-white border-2 border-brutal-black px-3 py-1.5 shadow-neo-sm uppercase hover:bg-brutal-yellow disabled:opacity-50 transition-colors flex items-center gap-1.5"
+                               >
+                                  <ClipboardCopy className="w-3.5 h-3.5" />
+                                  Copy
+                               </button>
                             </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!unit.solution) {
-                                return;
-                              }
-
-                              void navigator.clipboard.writeText(unit.solution);
-                              setNotice('Reference solution copied to clipboard.');
-                            }}
-                            disabled={!unit.solution}
-                            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[11px] font-mono font-bold uppercase tracking-[0.18em] text-white/72 transition-colors hover:border-cyber-blue/35 hover:text-cyber-blue disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                          >
-                            <ClipboardCopy className="h-4 w-4" aria-hidden="true" />
-                            Copy solution
-                          </button>
-                        </div>
-                        {unit.solution ? (
-                          <pre className="overflow-x-auto rounded-[18px] border border-white/10 bg-[#0b0f17] p-5 font-mono text-[13px] leading-7 text-slate-100">
-                            <code>{unit.solution}</code>
-                          </pre>
-                        ) : (
-                          <div className="rounded-[16px] border border-dashed border-white/12 bg-white/4 p-4 text-sm leading-7 text-white/56">
-                            This unit does not provide a reference solution yet.
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="mt-5 rounded-[20px] border border-white/10 bg-black/16 p-4 text-sm leading-7 text-white/56">
-                  {runnerSupported
-                    ? 'Drafts stay in the browser. Re-run checks after each meaningful change before marking the lab complete.'
-                    : 'Drafts stay in the browser. Use this workspace as a guided scratchpad for the lab.'}
+                            {unit.solution ? (
+                               <div className="bg-white border-4 border-brutal-black shadow-neo-sm overflow-hidden brutal-scrollbar">
+                                  <pre className="p-4 overflow-x-auto text-[14px] font-mono font-bold text-brutal-black leading-relaxed max-h-[500px] overflow-y-auto brutal-scrollbar selection:bg-brutal-pink">
+                                    <code>{unit.solution}</code>
+                                  </pre>
+                               </div>
+                            ) : (
+                               <div className="p-8 text-center bg-gray-50 border-4 border-dashed border-brutal-black text-gray-600 font-bold text-sm">
+                                 Chưa có đáp án mẫu cho bài lab này.
+                               </div>
+                            )}
+                         </div>
+                       )}
+                    </div>
+                  )}
                 </div>
               </section>
+              
+              <div className="grid md:grid-cols-2 gap-8 mt-10">
+                 {unit.hints.length > 0 && (
+                   <section className="bg-white border-4 border-brutal-black shadow-neo p-6 sm:p-8 h-fit">
+                     <div className="flex items-center justify-between gap-4 mb-8 border-b-4 border-brutal-black pb-4">
+                       <div className="flex items-center gap-3">
+                         <div className="w-10 h-10 border-4 border-brutal-black bg-brutal-yellow flex items-center justify-center shadow-neo-sm">
+                           <Lightbulb className="h-6 w-6 text-brutal-black" strokeWidth={3} aria-hidden="true" />
+                         </div>
+                         <h3 className="font-display font-black text-2xl uppercase text-brutal-black">Gợi ý</h3>
+                       </div>
+                       <button
+                           type="button"
+                           onClick={() =>
+                             setRevealedHints((value) => Math.min(value + 1, unit.hints.length))
+                           }
+                           disabled={revealedHints >= unit.hints.length}
+                           className="text-[10px] font-black uppercase tracking-widest text-brutal-black bg-white border-2 border-brutal-black px-4 py-2 hover:bg-brutal-yellow transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-neo-sm hover:-translate-y-0.5"
+                       >
+                           Xem thêm
+                       </button>
+                     </div>
+                     <div className="space-y-4">
+                        {unit.hints.slice(0, revealedHints).map((hint, index) => (
+                           <div key={`${hint}-${index}`} className="bg-gray-100 p-5 border-4 border-brutal-black text-sm text-brutal-black shadow-neo-sm font-bold">
+                              {hint}
+                           </div>
+                        ))}
+                     </div>
+                   </section>
+                 )}
+              </div>
             </>
           )}
         </div>
 
-        <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
+        <aside className="space-y-8 xl:sticky xl:top-24 xl:self-start">
           {outline.length > 0 ? (
             <SidebarPanel
-              title="On this page"
-              accent="text-cyber-yellow/72"
-              footer={`${outline.length} headings mapped`}
+              title="Mục lục"
+              accent="bg-brutal-green"
+              headerText="text-brutal-black"
+              footer={`${outline.length} danh mục`}
             >
-              <div className="space-y-2">
+              <div className="space-y-3 pl-4 relative border-l-4 border-brutal-black ml-2 py-2">
                 {outline.map((item) => (
                   <a
                     key={item.id}
                     href={`#${item.id}`}
-                    className={`block rounded-[16px] border border-white/8 bg-white/4 px-4 py-3 text-sm text-white/70 transition-colors hover:border-cyber-blue/35 hover:bg-cyber-blue/8 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                      item.level > 2 ? 'ml-3' : ''
+                    className={`block py-1 text-sm font-bold text-gray-800 hover:text-brutal-black transition-colors relative before:absolute before:left-[-22px] before:top-[10px] before:w-3 before:h-3 before:bg-white before:border-2 before:border-brutal-black hover:before:bg-brutal-yellow ${
+                      item.level > 2 ? 'pl-4' : 'pl-0'
                     }`}
                   >
                     {item.label}
@@ -1072,30 +888,31 @@ export function AcademyUnit() {
             </SidebarPanel>
           ) : (
             <SidebarPanel
-              title="Challenge profile"
-              accent="text-cyber-yellow/72"
+              title="Cấu hình thử thách"
+              accent="bg-white"
+              headerText="text-brutal-black"
               footer={practiceModeText(unit)}
             >
-              <div className="space-y-3 text-sm text-white/66">
-                <ProfileRow label="Tests" value={String(unit.tests.length)} />
-                <ProfileRow label="Hints" value={String(unit.hints.length)} />
-                <ProfileRow label="Language" value={unit.language || 'Not set'} />
-                <ProfileRow label="Build type" value={unit.build_type || 'standard'} />
-                <ProfileRow label="Deployable" value={unit.deployable ? 'Yes' : 'No'} />
+              <div className="space-y-0">
+                <ProfileRow label="Số kiểm tra" value={String(unit.tests.length)} />
+                <ProfileRow label="Gợi ý" value={String(unit.hints.length)} />
+                <ProfileRow label="Ngôn ngữ" value={unit.language || 'Trống'} />
+                <ProfileRow label="Kiểu build" value={unit.build_type || 'chuẩn'} />
               </div>
             </SidebarPanel>
           )}
 
           <SidebarPanel
-            title="Module route"
-            accent="text-cyber-blue/75"
+            title={currentModule?.title || "Chương"}
+            accent="bg-white"
+            headerText="text-brutal-black"
             footer={
               currentModule
-                ? `${currentModuleCompleted}/${currentModuleUnits.length} steps complete in ${currentModule.title}`
-                : 'No module context'
+                ? `${currentModuleCompleted}/${currentModuleUnits.length} bài hoàn thành`
+                : 'Không có thông tin chương'
             }
           >
-            <div className="space-y-3">
+            <div className="space-y-3 mt-4">
               {currentModuleUnits.map((routeUnit) => {
                 const done = isAcademyV2UnitCompleted(
                   progress.state.completedLessons,
@@ -1116,46 +933,47 @@ export function AcademyUnit() {
                     type="button"
                     disabled={locked}
                     onClick={() => !locked && navigate(`/academy/unit/${course.id}/${routeUnit.id}`)}
-                    className={`flex w-full items-center gap-3 rounded-[18px] border px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                    className={`flex w-full items-center gap-4 p-3 text-left transition-all border-4 ${
                       current
-                        ? 'border-cyber-yellow/30 bg-cyber-yellow/10'
+                        ? 'border-brutal-black bg-brutal-yellow shadow-neo-sm transform -translate-y-1'
                         : locked
-                          ? 'cursor-not-allowed border-white/10 bg-white/4 opacity-55'
+                          ? 'cursor-not-allowed border-brutal-black bg-gray-200 opacity-60'
                           : done
-                            ? 'border-cyber-blue/25 bg-cyber-blue/10 transition-colors hover:bg-cyber-blue/14'
-                            : 'border-white/10 bg-white/4 transition-colors hover:border-cyber-blue/35 hover:bg-cyber-blue/8'
+                            ? 'border-brutal-black bg-white hover:bg-gray-50 hover:shadow-neo-sm'
+                            : 'border-brutal-black bg-white hover:bg-brutal-blue hover:shadow-neo-sm hover:-translate-y-1'
                     }`}
                   >
                     <div
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border ${
+                      className={`flex h-10 w-10 shrink-0 border-2 border-brutal-black items-center justify-center ${
                         current
-                          ? 'border-cyber-yellow/40 bg-cyber-yellow/12 text-cyber-yellow'
+                          ? 'bg-white text-brutal-black'
                           : done
-                            ? 'border-cyber-blue/35 bg-cyber-blue/12 text-cyber-blue'
+                            ? 'bg-brutal-green text-brutal-black'
                             : locked
-                              ? 'border-white/10 bg-background text-white/35'
+                              ? 'bg-gray-300 text-gray-500'
                               : routeUnit.section === 'practice'
-                                ? 'border-cyber-blue/35 bg-cyber-blue/10 text-cyber-blue'
-                                : 'border-white/12 bg-white/5 text-white/58'
+                                ? 'bg-brutal-pink text-brutal-black'
+                                : 'bg-brutal-blue text-white'
                       }`}
                     >
                       {locked ? (
-                        <Lock className="h-4 w-4" aria-hidden="true" />
+                        <Lock className="h-5 w-5" strokeWidth={3} aria-hidden="true" />
+                      ) : done ? (
+                         <CheckCircle2 className="h-5 w-5" strokeWidth={3} />
                       ) : routeUnit.section === 'practice' ? (
-                        <Code2 className="h-4 w-4" aria-hidden="true" />
+                        <Code2 className="h-5 w-5" strokeWidth={3} aria-hidden="true" />
                       ) : (
-                        <BookOpen className="h-4 w-4" aria-hidden="true" />
+                        <BookOpen className="h-5 w-5" strokeWidth={3} aria-hidden="true" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate font-display text-sm font-black uppercase tracking-[0.08em] text-white">
+                      <div className={`truncate text-xs font-black uppercase ${current ? 'text-brutal-black' : 'text-brutal-black'}`}>
                         {routeUnit.title}
                       </div>
-                      <div className="mt-1 text-[11px] font-mono uppercase tracking-[0.16em] text-white/42">
-                        {current ? 'Current step' : done ? 'Completed' : locked ? 'Locked' : routeUnit.section}
+                      <div className="text-[10px] uppercase font-bold tracking-widest text-gray-600 mt-1">
+                        {current ? 'Đang học' : done ? 'Hoàn thành' : locked ? 'Đã khóa' : routeUnit.section === 'practice' ? 'Thực hành' : 'Lý thuyết'}
                       </div>
                     </div>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-cyber-blue" aria-hidden="true" />
                   </button>
                 );
               })}
@@ -1163,32 +981,30 @@ export function AcademyUnit() {
           </SidebarPanel>
 
           <SidebarPanel
-            title={unitDone ? 'Unit complete' : 'Ready to mark complete'}
-            accent="text-cyber-yellow/72"
-            footer={unitDone ? 'Progress already synced for this step' : 'Complete to write progress + activity'}
+            title={unitDone ? 'Đã hoàn tất' : 'Xác nhận hoàn thành'}
+            accent={unitDone ? 'bg-brutal-green' : 'bg-brutal-blue text-white'}
+            headerText={unitDone ? "text-brutal-black" : "text-white"}
           >
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <HeroStat
-                  icon={<BookOpen className="h-4 w-4" aria-hidden="true" />}
-                  label="Course"
-                  value={`${courseProgressPercent}%`}
-                />
-                <HeroStat
-                  icon={isPractice ? <Code2 className="h-4 w-4" aria-hidden="true" /> : <Sparkles className="h-4 w-4" aria-hidden="true" />}
-                  label="Module"
-                  value={`${currentModulePercent}%`}
-                />
+            <div className="space-y-6 mt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white p-4 border-4 border-brutal-black text-center shadow-neo-sm">
+                   <div className="text-[10px] font-black uppercase tracking-widest text-brutal-black mb-2">Khóa học</div>
+                   <div className="font-display font-black text-2xl text-brutal-black">{courseProgressPercent}%</div>
+                </div>
+                <div className="bg-brutal-yellow p-4 border-4 border-brutal-black text-center shadow-neo-sm">
+                   <div className="text-[10px] font-black uppercase tracking-widest text-brutal-black mb-2">Chương</div>
+                   <div className="font-display font-black text-2xl text-brutal-black">{currentModulePercent}%</div>
+                </div>
               </div>
 
-              <p className="text-sm leading-7 text-white/66">
+              <p className={`text-sm font-bold leading-relaxed text-center px-2 py-4 border-4 border-brutal-black ${unitDone ? 'bg-white text-brutal-black' : 'bg-brutal-bg text-brutal-black'}`}>
                 {unitDone
-                  ? 'This step is already in your progress history. You can move forward or revisit the material from the course route.'
+                  ? 'Bài học đã lưu dấu. Tiến thẳng lên bài học kế tiếp.'
                   : isPractice
                     ? runnerSupported
-                      ? 'Run the checks on the current draft first. Completion unlocks only after every visible and hidden browser check passes.'
-                      : 'This practice lane is guided for now. Mark it complete when you are done so the next route step unlocks and the activity trail updates in admin.'
-                    : 'Once you finish the reading, mark this step complete so the next route step unlocks immediately.'}
+                      ? 'Hoàn tất các bước kiểm tra (Run Checks). Bạn cần pass hết các test case mới có thể Nộp bài.'
+                      : 'Khi hoàn tất việc thực hành, nhấn Nộp bài để tiếp tục.'
+                    : 'Hãy nhấn Hoàn Thành để lưu vào hệ thống.'}
               </p>
 
               {!unitDone ? (
@@ -1196,34 +1012,35 @@ export function AcademyUnit() {
                   type="button"
                   onClick={() => void handleComplete()}
                   disabled={completionBlocked || runLoading}
-                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-cyber-yellow px-5 text-sm font-display font-bold uppercase tracking-[0.16em] text-black transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className="inline-flex w-full items-center justify-center gap-3 bg-brutal-black px-6 py-4 text-sm font-black uppercase tracking-widest text-white shadow-neo hover:-translate-y-1 hover:shadow-neo-lg transition-all focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none border-4 border-brutal-black disabled:border-gray-400"
                 >
-                  <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-                  {isPractice ? 'Complete practice' : 'Complete lesson'}
+                  <CheckCircle2 className="h-5 w-5" strokeWidth={3} aria-hidden="true" />
+                  {isPractice ? 'Nộp bài thực hành' : 'Xác nhận hoàn thành'}
                 </button>
               ) : (
-                <div className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-cyber-yellow/25 bg-cyber-yellow/10 px-5 text-sm font-display font-bold uppercase tracking-[0.16em] text-cyber-yellow">
-                  <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-                  Completion recorded
+                <div className="inline-flex w-full items-center justify-center gap-3 bg-brutal-black px-6 py-4 text-sm font-black tracking-widest uppercase text-white border-4 border-brutal-black shadow-neo">
+                  <CheckCircle2 className="h-6 w-6 text-brutal-green" strokeWidth={3} aria-hidden="true" />
+                  Đã ghi nhận điểm
                 </div>
               )}
 
               {!unitDone && completionBlocked && (
-                <div className="rounded-[18px] border border-amber-300/24 bg-amber-500/10 px-4 py-3 text-sm leading-7 text-amber-100/88">
-                  {runLoading
-                    ? 'Checks are running. Wait for the result before completing this practice.'
-                    : 'Completion is locked until the current draft passes every browser check.'}
-                </div>
+                 <div className="px-4 py-3 bg-brutal-yellow border-4 border-brutal-black text-sm text-brutal-black font-black uppercase tracking-wider text-center shadow-neo-sm">
+                   <AlertTriangle className="w-5 h-5 inline-block mr-2 -translate-y-0.5" strokeWidth={3} />
+                   {runLoading
+                     ? 'Đang chấm bài. Vui lòng chờ vài giây.'
+                     : 'Yêu cầu vượt qua hết bộ test case.'}
+                 </div>
               )}
 
               {next_unit && (
                 <button
                   type="button"
                   onClick={() => navigate(`/academy/unit/${course.id}/${next_unit.id}`)}
-                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-cyber-blue/30 bg-cyber-blue/10 px-5 text-sm font-display font-bold uppercase tracking-[0.16em] text-cyber-blue transition-colors hover:bg-cyber-blue hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-blue/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className="inline-flex w-full items-center justify-center gap-3 bg-brutal-yellow px-6 py-4 text-sm font-black uppercase tracking-widest text-brutal-black shadow-neo hover:-translate-y-1 hover:shadow-neo-lg transition-all focus-visible:outline-none border-4 border-brutal-black mt-4"
                 >
-                  Next unit
-                  <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                  Bài học tiếp theo
+                  <ChevronRight className="h-5 w-5" strokeWidth={3} aria-hidden="true" />
                 </button>
               )}
             </div>
@@ -1231,21 +1048,21 @@ export function AcademyUnit() {
         </aside>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <NavUnitLink
-          label="Previous"
-          unit={previous_unit}
-          href={previous_unit ? `/academy/unit/${course.id}/${previous_unit.id}` : '#'}
-          disabled={!previous_unit}
-          align="left"
-        />
-        <NavUnitLink
-          label="Next"
-          unit={next_unit}
-          href={next_unit ? `/academy/unit/${course.id}/${next_unit.id}` : '#'}
-          disabled={!next_unit}
-          align="right"
-        />
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between py-10 mt-12 mb-20 border-t-8 border-brutal-black">
+         <NavUnitLink
+           label="Bài trước"
+           unit={previous_unit}
+           href={previous_unit ? `/academy/unit/${course.id}/${previous_unit.id}` : '#'}
+           disabled={!previous_unit}
+           align="left"
+         />
+         <NavUnitLink
+           label="Bài tiếp theo"
+           unit={next_unit}
+           href={next_unit ? `/academy/unit/${course.id}/${next_unit.id}` : '#'}
+           disabled={!next_unit}
+           align="right"
+         />
       </div>
     </div>
   );
@@ -1254,41 +1071,25 @@ export function AcademyUnit() {
 function SidebarPanel({
   title,
   accent,
+  headerText,
   footer,
   children,
 }: {
   title: string;
   accent: string;
+  headerText: string;
   footer?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-[26px] border border-white/10 bg-surface/72 p-5 shadow-[0_14px_36px_rgba(0,0,0,0.16)]">
-      <div className={`text-[10px] font-mono uppercase tracking-[0.28em] ${accent}`}>{title}</div>
-      <div className="mt-4">{children}</div>
-      {footer && (
-        <div className="mt-4 border-t border-white/8 pt-4 text-xs leading-6 text-white/46">{footer}</div>
-      )}
-    </div>
-  );
-}
-
-function HeroStat({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-[20px] border border-white/10 bg-white/5 px-4 py-3">
-      <div className="flex items-center gap-2 text-cyber-blue">{icon}</div>
-      <div className="mt-2 text-[10px] font-mono uppercase tracking-[0.22em] text-white/40">
-        {label}
+    <div className={`border-4 border-brutal-black p-6 shadow-neo ${accent}`}>
+      <div className={`text-base font-black uppercase tracking-widest mb-6 border-b-4 border-brutal-black pb-4 ${headerText}`}>
+         {title}
       </div>
-      <div className="mt-2 font-display text-xl font-black text-white">{value}</div>
+      <div>{children}</div>
+      {footer && (
+        <div className={`mt-6 pt-4 border-t-4 border-brutal-black text-xs font-black uppercase tracking-widest text-center ${headerText}`}>{footer}</div>
+      )}
     </div>
   );
 }
@@ -1306,10 +1107,10 @@ function LabTabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex min-h-10 items-center rounded-full border px-4 text-[11px] font-mono font-bold uppercase tracking-[0.18em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+      className={`text-[10px] sm:text-xs font-black uppercase tracking-widest px-3 sm:px-4 py-2 transition-all border-4 ${
         active
-          ? 'border-cyber-yellow/30 bg-cyber-yellow/12 text-cyber-yellow'
-          : 'border-white/10 bg-white/5 text-white/62 hover:border-cyber-blue/35 hover:text-cyber-blue'
+          ? 'bg-brutal-pink text-brutal-black border-brutal-black border-b-0 shadow-none -mb-[4px] relative z-10'
+          : 'bg-white text-brutal-black border-brutal-black hover:bg-brutal-yellow'
       }`}
     >
       {label}
@@ -1317,36 +1118,11 @@ function LabTabButton({
   );
 }
 
-function StatusPill({
-  tone,
-  label,
-}: {
-  tone: 'blue' | 'amber' | 'green' | 'neutral';
-  label: string;
-}) {
-  const toneClass =
-    tone === 'blue'
-      ? 'border-cyber-blue/20 bg-cyber-blue/10 text-cyber-blue'
-      : tone === 'amber'
-        ? 'border-amber-300/24 bg-amber-500/10 text-amber-100'
-        : tone === 'green'
-          ? 'border-emerald-300/24 bg-emerald-500/10 text-emerald-100'
-          : 'border-white/10 bg-white/5 text-white/54';
-
-  return (
-    <div
-      className={`inline-flex min-h-9 items-center rounded-full border px-4 text-[10px] font-mono uppercase tracking-[0.18em] ${toneClass}`}
-    >
-      {label}
-    </div>
-  );
-}
-
 function ProfileRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-[16px] border border-white/8 bg-black/14 px-4 py-3">
-      <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/40">{label}</div>
-      <div className="font-display text-sm font-black uppercase tracking-[0.08em] text-white">
+    <div className="flex items-center justify-between py-3 border-b-4 border-brutal-black last:border-0">
+      <div className="text-xs font-black uppercase tracking-widest text-gray-600">{label}</div>
+      <div className="font-bold text-sm text-brutal-black">
         {value}
       </div>
     </div>
@@ -1366,38 +1142,27 @@ function NavUnitLink({
   disabled: boolean;
   align: 'left' | 'right';
 }) {
-  const content = (
-    <>
-      <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/38">{label}</div>
-      <div className="mt-2 font-display text-lg font-black uppercase tracking-[0.08em] text-white">
-        {unit?.title || 'No unit'}
-      </div>
-      <div className="mt-2 text-sm text-cyber-blue">
-        {unit ? `${unit.type} / ${unit.section}` : 'End of sequence'}
-      </div>
-    </>
-  );
+   if (disabled) {
+      return (
+         <div className={`w-full sm:w-[48%] opacity-60 p-8 border-4 border-brutal-black bg-gray-200 flex flex-col ${align === 'right' ? 'sm:text-right sm:items-end items-start' : 'items-start'}`}>
+            <div className="text-xs uppercase font-black tracking-widest text-gray-500 mb-2">{label}</div>
+            <div className="font-display font-black text-2xl text-brutal-black">Hết lộ trình</div>
+         </div>
+      );
+   }
 
-  if (disabled) {
-    return (
-      <div
-        className={`w-full rounded-[22px] border border-white/10 bg-surface/45 p-4 opacity-55 sm:w-[48%] ${
-          align === 'right' ? 'sm:text-right' : ''
-        }`}
+   return (
+      <Link
+        to={href}
+        className={`w-full sm:w-[48%] group p-8 border-4 border-brutal-black bg-white hover:bg-brutal-blue hover:text-white shadow-neo hover:shadow-neo-lg hover:-translate-y-1 transition-all flex flex-col ${align === 'right' ? 'sm:text-right sm:items-end items-start' : 'items-start'}`}
       >
-        {content}
-      </div>
-    );
-  }
-
-  return (
-    <Link
-      to={href}
-      className={`w-full rounded-[22px] border border-white/10 bg-surface/62 p-4 transition-colors hover:border-cyber-blue/35 hover:bg-cyber-blue/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-[48%] ${
-        align === 'right' ? 'sm:text-right' : ''
-      }`}
-    >
-      {content}
-    </Link>
-  );
+        <div className="text-xs uppercase font-black tracking-widest text-gray-500 group-hover:text-brutal-yellow mb-2">{label}</div>
+        <div className="font-display font-black text-3xl text-brutal-black group-hover:text-white truncate max-w-full">
+           {unit?.title}
+        </div>
+        <div className="text-xs mt-3 uppercase font-black tracking-widest bg-brutal-yellow text-brutal-black px-3 py-1 border-2 border-brutal-black shadow-neo-sm inline-block">
+           {unit?.section === 'practice' ? 'Thực hành' : 'Lý thuyết'}
+        </div>
+      </Link>
+   );
 }

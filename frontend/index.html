@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=Fira+Code:wght@400;500;700&display=swap"
     rel="stylesheet">
   <script>
     tailwind.config = {
@@ -23,14 +23,35 @@
               blue: '#2979FF',     // Electric Blue
               yellow: '#FFD600',   // Cyber Yellow
               dark: '#0A1220'
+            },
+            brutal: {
+              bg: '#FAFAF9',
+              black: '#111827',
+              yellow: '#FDE047',
+              blue: '#38BDF8',
+              pink: '#F472B6',
+              green: '#4ADE80',
+              red: '#F87171'
             }
           },
           fontFamily: {
-            sans: ['Open Sans', 'sans-serif'],
-            display: ['Chakra Petch', 'sans-serif'],
+            sans: ['Inter', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+            mono: ['Fira Code', 'monospace'],
           },
           backgroundImage: {
             'grid-pattern': "linear-gradient(to right, #2979FF10 1px, transparent 1px), linear-gradient(to bottom, #2979FF10 1px, transparent 1px)",
+          },
+          boxShadow: {
+            'neo': '4px 4px 0px 0px #111827',
+            'neo-sm': '2px 2px 0px 0px #111827',
+            'neo-lg': '8px 8px 0px 0px #111827',
+            'neo-xl': '12px 12px 0px 0px #111827',
+            'neo-none': '0px 0px 0px 0px #111827',
+            'brutal': '4px 4px 0px 0px #111827',
+            'brutal-sm': '2px 2px 0px 0px #111827',
+            'brutal-hover': '6px 6px 0px 0px #111827',
+            'brutal-active': '1px 1px 0px 0px #111827',
           },
           animation: {
             'scan': 'scan 4s linear infinite',
@@ -48,27 +69,27 @@
   </script>
   <style>
     body {
-      background-color: #020408;
-      color: #ffffff;
+      background-color: #fafaf9;
+      color: #111827;
       overflow-x: hidden;
     }
 
     /* Custom Scrollbar */
     ::-webkit-scrollbar {
-      width: 6px;
+      width: 10px;
     }
 
     ::-webkit-scrollbar-track {
-      background: #020408;
+      background: #fafaf9;
     }
 
     ::-webkit-scrollbar-thumb {
-      background: #2979FF;
+      background: #111827;
       border-radius: 0px;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-      background: #FFD600;
+      background: #38BDF8;
     }
 
     .glass-panel {

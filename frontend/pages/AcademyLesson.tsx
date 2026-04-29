@@ -22,22 +22,22 @@ import { useStore } from '@/store/useStore';
 const CELEBRATION_AUDIO_SRC = '/theme-submit.mp3';
 
 const FIREWORK_PARTICLES = [
-  { left: 8, top: 18, x: 54, y: -42, delay: 0.05, color: 'bg-cyber-yellow', size: 'h-2 w-2' },
+  { left: 8, top: 18, x: 54, y: -42, delay: 0.05, color: 'bg-amber-400', size: 'h-2 w-2' },
   { left: 12, top: 78, x: 72, y: 38, delay: 0.18, color: 'bg-pink-400', size: 'h-3 w-3' },
   { left: 20, top: 36, x: -48, y: 54, delay: 0.28, color: 'bg-white', size: 'h-2 w-2' },
-  { left: 28, top: 16, x: 36, y: 68, delay: 0.36, color: 'bg-cyber-blue', size: 'h-2.5 w-2.5' },
-  { left: 36, top: 84, x: -58, y: -50, delay: 0.12, color: 'bg-lime-300', size: 'h-3 w-3' },
+  { left: 28, top: 16, x: 36, y: 68, delay: 0.36, color: 'bg-sky-400', size: 'h-2.5 w-2.5' },
+  { left: 36, top: 84, x: -58, y: -50, delay: 0.12, color: 'bg-emerald-300', size: 'h-3 w-3' },
   { left: 44, top: 24, x: 76, y: -28, delay: 0.42, color: 'bg-white', size: 'h-2 w-2' },
   { left: 52, top: 68, x: -72, y: 44, delay: 0.22, color: 'bg-cyan-300', size: 'h-2.5 w-2.5' },
-  { left: 60, top: 12, x: 62, y: 64, delay: 0.31, color: 'bg-cyber-yellow', size: 'h-3 w-3' },
+  { left: 60, top: 12, x: 62, y: 64, delay: 0.31, color: 'bg-amber-400', size: 'h-3 w-3' },
   { left: 68, top: 80, x: -42, y: -70, delay: 0.48, color: 'bg-fuchsia-400', size: 'h-2.5 w-2.5' },
-  { left: 76, top: 30, x: 56, y: 52, delay: 0.15, color: 'bg-cyber-blue', size: 'h-2 w-2' },
+  { left: 76, top: 30, x: 56, y: 52, delay: 0.15, color: 'bg-sky-400', size: 'h-2 w-2' },
   { left: 84, top: 62, x: -76, y: -36, delay: 0.38, color: 'bg-orange-300', size: 'h-3 w-3' },
   { left: 92, top: 20, x: -58, y: 62, delay: 0.26, color: 'bg-white', size: 'h-2 w-2' },
   { left: 14, top: 52, x: 86, y: -16, delay: 0.62, color: 'bg-pink-300', size: 'h-2.5 w-2.5' },
   { left: 88, top: 88, x: -82, y: -58, delay: 0.58, color: 'bg-cyan-300', size: 'h-3 w-3' },
   { left: 6, top: 44, x: 114, y: 8, delay: 0.7, color: 'bg-violet-300', size: 'h-2 w-2' },
-  { left: 96, top: 48, x: -118, y: -6, delay: 0.74, color: 'bg-lime-300', size: 'h-2 w-2' },
+  { left: 96, top: 48, x: -118, y: -6, delay: 0.74, color: 'bg-emerald-300', size: 'h-2 w-2' },
 ];
 
 const CONFETTI_PIECES = Array.from({ length: 36 }, (_, index) => ({
@@ -47,13 +47,13 @@ const CONFETTI_PIECES = Array.from({ length: 36 }, (_, index) => ({
   rotate: index % 2 === 0 ? 180 : -180,
   color:
     index % 5 === 0
-      ? 'bg-cyber-yellow'
+      ? 'bg-amber-400'
       : index % 5 === 1
         ? 'bg-pink-400'
         : index % 5 === 2
-          ? 'bg-cyber-blue'
+          ? 'bg-sky-400'
           : index % 5 === 3
-            ? 'bg-lime-300'
+            ? 'bg-emerald-300'
             : 'bg-white',
 }));
 
@@ -147,8 +147,8 @@ export function AcademyLesson() {
   const lessonId = String(params.lesson || '').trim();
   if (!track || !lessonId) {
     return (
-      <div className="py-20 text-center font-mono text-white/40 uppercase tracking-widest">
-        Lesson not found
+      <div className="py-20 text-center font-mono text-slate-400 uppercase tracking-widest">
+        Không tìm thấy bài học
       </div>
     );
   }
@@ -315,7 +315,7 @@ export function AcademyLesson() {
 
         if (!response.ok) {
           const result = await response.json().catch(() => null);
-          throw new Error(result?.message || `Academy progress sync failed (${response.status})`);
+          throw new Error(result?.message || `Lỗi đồng bộ tiến độ Học viện (${response.status})`);
         }
 
         return true;
@@ -360,7 +360,7 @@ export function AcademyLesson() {
         if (!synced) {
           setCompletionSaveStatus('error');
           setErr(
-            'SYNC_ERROR: Academy progress was not written to the database. Please stay signed in and retry.'
+            'LỖI ĐỒNG BỘ: Không thể lưu tiến độ lên hệ thống. Vui lòng thử lại sau.'
           );
           completionPromiseRef.current = null;
           return false;
@@ -418,7 +418,7 @@ export function AcademyLesson() {
         setCatalogLessonKeys(null);
         setTrackInfo(null);
         setLoadingCatalog(false);
-        setErr('Please sign in with a DSUC account to use Academy.');
+        setErr('Vui lòng đăng nhập bằng DSUC account để sử dụng Học viện.');
         return;
       }
 
@@ -431,7 +431,7 @@ export function AcademyLesson() {
         const result = await response.json().catch(() => null);
 
         if (!response.ok || !result?.success) {
-          throw new Error(result?.message || 'Failed to load academy catalog.');
+          throw new Error(result?.message || 'Không thể tải danh sách học viện.');
         }
 
         const tracks = (result.data || []).map(normalizeAcademyCatalogTrack);
@@ -445,12 +445,12 @@ export function AcademyLesson() {
           setCatalogLessonKeys(nextCatalogLessonKeys);
           setTrackInfo(foundTrack);
           if (!foundTrack || !foundLesson) {
-            setErr('Lesson not found in academy catalog.');
+            setErr('Không tìm thấy bài học này trong cấu trúc.');
           }
         }
       } catch (error: any) {
         if (!cancelled) {
-          setErr(error.message || 'Failed to load academy catalog.');
+          setErr(error.message || 'Lỗi tải danh mục học viện.');
           setCatalogLessonKeys(null);
           setTrackInfo(null);
         }
@@ -509,7 +509,7 @@ export function AcademyLesson() {
 
         if (!backfilled) {
           setErr(
-            'SYNC_ERROR: Local academy progress could not be written to the database. Remote progress is shown instead.'
+            'LỖI ĐỒNG BỘ: Không đồng bộ quá trình được, hệ thống sẽ sử dụng phiên bản trên máy chủ.'
           );
         }
       } catch {
@@ -543,7 +543,7 @@ export function AcademyLesson() {
         });
 
         if (!response.ok) {
-          throw new Error('Failed to load lesson questions.');
+          throw new Error('Lỗi lấy bài kiểm tra.');
         }
 
         const result = await response.json();
@@ -602,7 +602,7 @@ export function AcademyLesson() {
     setSubmittedQ(nextSubmittedQ);
 
     if (!correct) {
-      setErr('SYS_ERROR: INCORRECT_DATA. RECALIBRATE AND RETRY.');
+      setErr('CHƯA ĐÚNG. HÃY ĐỌC THẬT CẨN THẬN VÀ LÀM LẠI.');
       return;
     }
 
@@ -642,11 +642,11 @@ export function AcademyLesson() {
 
     if (quiz.length > 0) {
       if (!allSubmitted) {
-        setErr('ERROR: PENDING_SUBMISSIONS_DETECTED.');
+        setErr('LỖI: VẪN CÒN CÂU CHƯA NỘP XONG.');
         return false;
       }
       if (!allCorrect) {
-        setErr('ERROR: INVALID_PARAMETERS. FIX BEFORE CONTINUING.');
+        setErr('LỖI: BẠN PHẢI TRẢ LỜI ĐÚNG ĐỂ ĐI TIẾP.');
         return false;
       }
     }
@@ -691,22 +691,23 @@ export function AcademyLesson() {
 
   if (loadingCatalog) {
     return (
-      <div className="py-20 text-center font-mono text-white/40 uppercase tracking-widest">
-        Loading lesson...
+      <div className="flex flex-col items-center justify-center py-32 space-y-4">
+        <div className="w-12 h-12 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin"></div>
+        <div className="text-sky-600 font-bold uppercase tracking-widest text-sm">Đang tải bài học...</div>
       </div>
     );
   }
 
   if (!lesson || !trackInfo) {
     return (
-      <div className="py-20 text-center font-mono text-white/40 uppercase tracking-widest">
-        {err || 'Lesson not found'}
+      <div className="py-20 text-center text-slate-500 font-bold uppercase tracking-widest bg-white rounded-3xl border border-slate-200 m-8">
+        {err || 'Không tìm thấy bài học'}
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 pb-20 max-w-4xl mx-auto">
+    <div className="space-y-8 pb-20 mt-10 max-w-4xl mx-auto px-4 sm:px-6">
       <audio ref={celebrationAudioRef} src={CELEBRATION_AUDIO_SRC} preload="auto" />
       <CompletionCelebration
         open={showCelebration && isFinalLessonInTrack}
@@ -719,65 +720,65 @@ export function AcademyLesson() {
         onExit={() => void exitToAcademy()}
       />
 
-      <div className="sticky top-24 z-50 flex flex-col gap-4 rounded-lg border border-cyber-blue/30 bg-surface/85 p-4 backdrop-blur-md cyber-clip-bottom shadow-[0_0_20px_rgba(41,121,255,0.1)]">
+      <div className="sticky top-24 z-50 flex flex-col gap-4 border-4 border-brutal-black bg-white p-4 shadow-neo">
         <div className="flex items-center justify-between">
           <button
             onClick={() => navigate(`/academy/community/${track}`)}
-            className="flex h-10 w-10 items-center justify-center border border-cyber-blue/50 text-cyber-blue transition-colors hover:bg-cyber-blue hover:text-black"
+            className="flex h-12 w-12 items-center justify-center bg-white border-4 border-brutal-black text-brutal-black hover:bg-brutal-yellow transition-colors shadow-neo-sm hover:translate-x-1 hover:translate-y-1 hover:shadow-none brutal-btn"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-6 w-6" strokeWidth={3} />
           </button>
 
-          <div className="relative mx-6 h-2 flex-1 overflow-hidden border border-cyber-blue/20 bg-black">
+          <div className="relative mx-6 h-6 flex-1 border-4 border-brutal-black bg-gray-200">
             <div
-              className="absolute left-0 top-0 h-full bg-cyber-blue transition-all duration-500 ease-out shadow-[0_0_10px_rgba(41,121,255,1)]"
+              className="absolute left-0 top-0 h-full bg-brutal-blue border-r-4 border-brutal-black transition-all duration-500 ease-out"
               style={{ width: `${progressPercentage}%` }}
             />
           </div>
 
-          <div className="flex items-center gap-2 font-mono text-xs font-bold tracking-widest text-cyber-blue">
-            <Trophy className="h-4 w-4 text-cyber-yellow" />
-            <span className="hidden sm:inline">STREAK: </span>
-            {currentUser?.streak || 0}
+          <div className="flex items-center gap-2 bg-brutal-yellow border-4 border-brutal-black px-4 py-2 font-mono text-sm font-black tracking-widest text-brutal-black shadow-neo-sm">
+            <Trophy className="h-5 w-5 fill-brutal-black text-brutal-black" />
+            <span className="hidden sm:inline">Chuỗi: </span>
+            <span className="text-xl font-display text-brutal-black leading-none">{currentUser?.streak || 0}</span>
           </div>
         </div>
 
-        <div className="flex items-center justify-between px-2 font-mono text-[10px] uppercase tracking-widest text-white/50">
-          <span>{trackTitle}</span>
-          <span>
-            PHASE {currentStep + 1}/{totalSteps}
+        <div className="flex items-center justify-between px-2 font-mono text-[10px] font-black uppercase tracking-widest text-brutal-black">
+          <span className="bg-white border-2 border-brutal-black px-3 py-1 shadow-neo-sm shadow-brutal-black/50">{trackTitle}</span>
+          <span className="bg-white border-2 border-brutal-black px-3 py-1 shadow-neo-sm shadow-brutal-black/50">
+            Bước {currentStep + 1}/{totalSteps}
           </span>
         </div>
       </div>
 
-      <div className="relative flex min-h-[60vh] flex-col border border-white/20 bg-surface/70 p-6 shadow-[0_0_30px_rgba(41,121,255,0.05)] backdrop-blur-xl sm:p-10">
+      <div className="relative flex min-h-[60vh] flex-col border-4 border-brutal-black bg-white p-6 shadow-neo sm:p-10 brutal-card">
         {err && (
-          <div className="mb-6 flex animate-pulse items-center gap-3 border border-red-500/50 bg-red-500/10 px-5 py-4 font-mono text-xs font-bold uppercase tracking-widest text-red-500">
-            <Terminal size={14} className="shrink-0" /> {err}
+          <div className="mb-8 flex items-center gap-3 border-4 border-brutal-black bg-brutal-red px-5 py-4 font-mono text-[13px] font-black uppercase tracking-widest text-white shadow-neo-sm">
+            <Terminal size={20} className="shrink-0 text-white" /> {err}
           </div>
         )}
 
         {currentStep === 0 && (
           <div className="animate-in slide-in-from-right-8 duration-500 fade-in flex-grow">
-            <h1 className="mb-6 text-3xl font-display font-bold uppercase tracking-widest text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)] sm:text-5xl">
+            <h1 className="mb-6 text-4xl font-display font-black text-brutal-black sm:text-5xl leading-tight uppercase tracking-tighter decoration-brutal-yellow decoration-4 underline underline-offset-8">
               {lesson.title}
             </h1>
 
-            <div className="mb-8 max-w-none text-base font-sans leading-relaxed sm:text-lg">
+            <div className="mb-8 max-w-none text-base font-medium leading-relaxed text-slate-800">
               {renderMd(lesson.content_md)}
             </div>
 
             {lesson.callouts?.length ? (
-              <div className="mb-8 mt-8 grid grid-cols-1 gap-4">
+              <div className="mb-8 mt-8 grid grid-cols-1 gap-6">
                 {lesson.callouts.map((callout, index) => (
                   <div
                     key={`${callout.title}-${index}`}
-                    className="relative overflow-hidden border-l-4 border-cyber-blue bg-cyber-blue/5 p-5"
+                    className="relative overflow-hidden border-4 border-brutal-black bg-brutal-pink p-6 shadow-neo-sm"
                   >
-                    <div className="mb-2 flex items-center gap-2 font-display text-sm font-bold uppercase tracking-widest text-cyber-blue">
-                      <Terminal size={14} /> {callout.title || 'NOTE'}
+                    <div className="mb-3 flex items-center gap-3 font-display text-lg font-black text-brutal-black bg-white border-4 border-brutal-black px-4 py-2 w-fit uppercase tracking-widest">
+                      <Terminal size={20} className="text-brutal-black" /> {callout.title || 'Lưu ý'}
                     </div>
-                    <div className="relative z-10 font-mono text-sm leading-relaxed text-white/70 sm:text-base">
+                    <div className="relative z-10 text-base font-bold leading-relaxed text-brutal-black bg-white/50 p-4 border-2 border-brutal-black">
                       {callout.body}
                     </div>
                   </div>
@@ -793,32 +794,32 @@ export function AcademyLesson() {
 
           return (
             <div className="animate-in slide-in-from-right-8 duration-500 fade-in flex flex-grow flex-col justify-center">
-              <h2 className="mb-8 flex items-center gap-3 border-b border-cyber-blue/20 pb-4 font-display text-2xl font-bold uppercase tracking-widest text-white">
-                <Code className="h-5 w-5 text-cyber-blue" /> EXAM_QUERY [{currentStep}/{quiz.length}]
+              <h2 className="mb-8 flex items-center gap-3 border-b-4 border-brutal-black pb-4 font-display text-3xl font-black text-brutal-black uppercase tracking-tight">
+                <Code className="h-10 w-10 text-brutal-pink" strokeWidth={3} /> CÂU HỎI [{currentStep}/{quiz.length}]
               </h2>
 
-              <h3 className="mb-8 font-mono text-lg font-bold leading-relaxed text-white">
+              <h3 className="mb-8 text-xl font-black leading-relaxed text-brutal-black bg-brutal-yellow border-4 border-brutal-black p-6 shadow-neo-sm">
                 {currentQuizData.prompt}
               </h3>
 
-              <div className="mb-8 space-y-4 font-mono text-sm">
+              <div className="mb-8 space-y-4 text-base">
                 {currentQuizData.choices.map((choice) => {
                   const selected = answers[currentQuizData.id] === choice.id;
                   const isChoiceCorrect = choice.id === currentQuizData.correctChoiceId;
 
-                  let className = 'border-white/10 hover:border-cyber-blue/50 text-white/70 bg-black/40';
+                  let className = 'border-4 border-brutal-black hover:bg-brutal-yellow text-brutal-black bg-white shadow-neo-sm transition-all hover:translate-x-1 hover:translate-y-1 hover:shadow-none font-bold uppercase tracking-wide';
                   if (submitted) {
                     if (isChoiceCorrect) {
                       className =
-                        'bg-cyber-blue/20 border-cyber-blue text-cyber-blue shadow-[0_0_15px_rgba(41,121,255,0.2)]';
+                        'bg-brutal-green border-4 border-brutal-black text-brutal-black font-black shadow-neo-sm';
                     } else if (selected && !isChoiceCorrect) {
                       className =
-                        'bg-cyber-yellow/10 border-cyber-yellow text-cyber-yellow shadow-[0_0_15px_rgba(255,214,0,0.2)]';
+                        'bg-brutal-red border-4 border-brutal-black text-white font-black shadow-neo-sm scale-[0.98]';
                     } else {
-                      className = 'opacity-40 bg-black/60 border-white/5';
+                      className = 'bg-gray-200 border-4 border-brutal-black text-gray-500 cursor-not-allowed font-medium opacity-80';
                     }
                   } else if (selected) {
-                    className = 'border-cyber-blue bg-cyber-blue/10 text-white shadow-[0_0_10px_rgba(41,121,255,0.2)]';
+                    className = 'border-4 border-brutal-black bg-brutal-blue text-white shadow-none translate-x-1 translate-y-1 font-black uppercase tracking-wide';
                   }
 
                   return (
@@ -831,18 +832,20 @@ export function AcademyLesson() {
                           setSubmittedQ((prevSubmitted) => ({ ...prevSubmitted, [currentQuizData.id]: false }));
                         }
                       }}
-                      className={`flex w-full cursor-pointer items-start border p-5 text-left text-base transition-all sm:items-center ${className}`}
+                      className={`flex w-full cursor-pointer items-start p-5 text-left transition-all sm:items-center ${className}`}
                     >
                       <div
-                        className={`mr-4 mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border font-bold transition-colors sm:mt-0 ${
+                        className={`mr-4 mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center border-4 transition-colors sm:mt-0 ${
                           submitted && isChoiceCorrect
-                            ? 'border-cyber-blue bg-cyber-blue'
+                            ? 'border-brutal-black bg-brutal-black text-brutal-green'
                             : selected && !submitted
-                              ? 'border-cyber-blue bg-cyber-blue'
-                              : 'border-white/20'
+                              ? 'border-brutal-black bg-white text-brutal-blue'
+                              : 'border-brutal-black bg-white'
                         }`}
-                      />
-                      <span className="leading-relaxed">{choice.label}</span>
+                      >
+                         {(submitted && isChoiceCorrect) || (selected && !submitted) ? <CheckCircle2 size={24} strokeWidth={4} /> : null}
+                      </div>
+                      <span className="leading-relaxed text-lg">{choice.label}</span>
                     </button>
                   );
                 })}
@@ -850,24 +853,24 @@ export function AcademyLesson() {
 
               {submitted && (
                 <div
-                  className={`animate-in zoom-in-95 border p-6 font-mono text-sm duration-300 ${
+                  className={`animate-in zoom-in-95 border-4 p-6 duration-300 shadow-neo ${
                     correct
-                      ? 'bg-cyber-blue/10 text-cyber-blue border-cyber-blue shadow-[inset_0_0_20px_rgba(41,121,255,0.1)]'
-                      : 'bg-cyber-yellow/10 text-cyber-yellow border-cyber-yellow shadow-[inset_0_0_20px_rgba(255,214,0,0.1)]'
+                      ? 'bg-brutal-green border-brutal-black text-brutal-black'
+                      : 'bg-brutal-red border-brutal-black text-white'
                   }`}
                 >
-                  <p className="mb-2 flex items-center gap-2 text-lg font-bold uppercase tracking-widest">
-                    <Terminal size={20} />
-                    {correct ? 'VALID_RESPONSE' : 'INVALID_RESPONSE'}
+                  <p className={`mb-3 flex w-fit items-center gap-2 text-sm font-black uppercase tracking-widest border-4 border-brutal-black bg-white px-4 py-2 ${correct ? 'text-brutal-green' : 'text-brutal-red'}`}>
+                    <Terminal size={20} strokeWidth={3} />
+                    {correct ? 'CHÍNH XÁC' : 'CHƯA ĐÚNG'}
                   </p>
-                  <p className="text-sm leading-relaxed text-white/80 opacity-90">{currentQuizData.explanation}</p>
+                  <p className="text-lg font-bold leading-relaxed">{currentQuizData.explanation}</p>
                 </div>
               )}
             </div>
           );
         })()}
 
-        <div className="mt-auto flex justify-end border-t border-cyber-blue/20 pt-8">
+        <div className="mt-auto flex justify-end border-t-4 border-brutal-black pt-8 gap-4 flex-col sm:flex-row">
           {currentStep === 0 ? (
             <button
               onClick={() => {
@@ -878,14 +881,14 @@ export function AcademyLesson() {
                   void finishLesson();
                 }
               }}
-              className="flex w-full items-center justify-center gap-2 bg-cyber-blue px-8 py-4 font-display text-sm font-bold uppercase tracking-widest text-black shadow-[0_0_15px_rgba(41,121,255,0.4)] transition-all hover:bg-white sm:w-auto"
+              className="flex w-full items-center justify-center gap-3 bg-brutal-blue border-4 border-brutal-black px-8 py-4 text-sm font-black uppercase tracking-widest text-white shadow-neo transition-all hover:bg-brutal-pink hover:translate-x-1 hover:translate-y-1 hover:shadow-none sm:w-auto brutal-btn"
             >
               {quiz.length > 0
-                ? 'START EXAM MODULE'
+                ? 'LÀM BÀI KIỂM TRA'
                 : isFinalLessonInTrack
-                  ? 'FINALIZE TRACK'
-                  : 'FINALIZE MODULE'}{' '}
-              <ArrowRight className="h-5 w-5" />
+                  ? 'HOÀN THÀNH CHUYÊN ĐỀ'
+                  : 'HOÀN THÀNH BÀI HỌC'}{' '}
+              <ArrowRight className="h-6 w-6" strokeWidth={3} />
             </button>
           ) : currentQuizData ? (
             (() => {
@@ -898,9 +901,9 @@ export function AcademyLesson() {
                   <button
                     onClick={() => submitQuestion(currentQuizData.id)}
                     disabled={!hasSelected}
-                    className="flex w-full items-center justify-center gap-2 border border-cyber-blue bg-black px-8 py-4 font-display text-sm font-bold uppercase tracking-widest text-cyber-blue shadow-[0_0_10px_rgba(41,121,255,0.2)] transition-all hover:bg-cyber-blue hover:text-black disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-black disabled:hover:text-cyber-blue sm:w-auto"
+                    className="flex w-full items-center justify-center gap-3 bg-brutal-black border-4 border-brutal-black px-8 py-4 text-sm font-black uppercase tracking-widest text-white shadow-neo transition-all hover:bg-white hover:text-brutal-black hover:translate-x-1 hover:translate-y-1 hover:shadow-none disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-gray-200 disabled:text-gray-500 disabled:shadow-none sm:w-auto brutal-btn"
                   >
-                    EXECUTE QUERY
+                    XÁC NHẬN CHỌN
                   </button>
                 );
               }
@@ -912,9 +915,9 @@ export function AcademyLesson() {
                       setCurrentStep((prev) => prev + 1);
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
-                    className="flex w-full items-center justify-center gap-2 bg-cyber-blue px-8 py-4 font-display text-sm font-bold uppercase tracking-widest text-black shadow-[0_0_15px_rgba(41,121,255,0.4)] transition-all hover:bg-white sm:w-auto"
+                    className="flex w-full items-center justify-center gap-3 bg-brutal-yellow border-4 border-brutal-black px-8 py-4 text-sm font-black uppercase tracking-widest text-brutal-black shadow-neo transition-all hover:bg-brutal-blue hover:text-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none sm:w-auto brutal-btn"
                   >
-                    NEXT QUERY <ArrowRight className="h-5 w-5" />
+                    CÂU TIẾP THEO <ArrowRight className="h-6 w-6" strokeWidth={3} />
                   </button>
                 );
               }
@@ -923,14 +926,14 @@ export function AcademyLesson() {
                 <button
                   onClick={() => void finishLesson()}
                   disabled={busyFinish}
-                  className="flex w-full items-center justify-center gap-2 bg-cyber-blue px-8 py-4 font-display text-sm font-bold uppercase tracking-widest text-black shadow-[0_0_15px_rgba(41,121,255,0.4)] transition-all hover:bg-white disabled:opacity-50 sm:w-auto"
+                  className="flex w-full items-center justify-center gap-3 bg-brutal-green border-4 border-brutal-black px-8 py-4 text-sm font-black uppercase tracking-widest text-brutal-black shadow-neo transition-all hover:bg-brutal-white hover:text-brutal-black hover:translate-x-1 hover:translate-y-1 hover:shadow-none disabled:opacity-50 sm:w-auto overflow-hidden brutal-btn"
                 >
                   {busyFinish
-                    ? 'SAVING...'
+                    ? 'ĐANG LƯU...'
                     : isFinalLessonInTrack
-                      ? 'FINALIZE TRACK'
-                      : 'FINALIZE MODULE'}{' '}
-                  <CheckCircle2 className="h-5 w-5" />
+                      ? 'HOÀN THÀNH CHUYÊN ĐỀ'
+                      : 'HOÀN THÀNH BÀI HỌC'}{' '}
+                  <CheckCircle2 className="h-6 w-6" strokeWidth={3} />
                 </button>
               );
             })()
@@ -985,19 +988,17 @@ function CompletionCelebration({
           animate={{ opacity: 1 }}
           exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
           transition={{ duration: reduceMotion ? 0 : 0.3, ease: 'easeOut' }}
-          className="fixed inset-0 z-[10020] flex items-center justify-center overflow-hidden p-4"
+          className="fixed inset-0 z-[10020] flex items-center justify-center overflow-hidden p-4 bg-slate-900/60 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="academy-completion-title"
         >
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-md" />
-
           {!reduceMotion && (
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
               {CONFETTI_PIECES.map((piece, index) => (
                 <motion.span
                   key={`confetti-${index}`}
-                  className={`absolute h-4 w-2 rounded-sm ${piece.color} shadow-[0_0_14px_currentColor]`}
+                  className={`absolute h-4 w-4 rounded-full ${piece.color} shadow-sm`}
                   style={{ left: `${piece.left}%`, top: '-8%' }}
                   initial={{ y: -40, opacity: 0, rotate: 0 }}
                   animate={{
@@ -1019,7 +1020,7 @@ function CompletionCelebration({
               {FIREWORK_PARTICLES.map((particle, index) => (
                 <motion.span
                   key={`${particle.left}-${particle.top}-${index}`}
-                  className={`absolute rounded-full ${particle.size} ${particle.color} shadow-[0_0_22px_currentColor]`}
+                  className={`absolute rounded-full ${particle.size} ${particle.color} shadow-[0_0_10px_currentColor]`}
                   style={{ left: `${particle.left}%`, top: `${particle.top}%` }}
                   initial={{ opacity: 0, scale: 0.2, x: 0, y: 0 }}
                   animate={{
@@ -1037,25 +1038,6 @@ function CompletionCelebration({
                   }}
                 />
               ))}
-
-              <motion.div
-                className="absolute left-1/2 top-1/2 h-[38rem] w-[38rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-pink-300/25"
-                initial={{ opacity: 0, scale: 0.7 }}
-                animate={{ opacity: [0.2, 0.7, 0.2], scale: [0.72, 1.08, 0.72], rotate: [0, 8, 0] }}
-                transition={{ duration: 1.25, repeat: Infinity, ease: 'easeInOut' }}
-              />
-              <motion.div
-                className="absolute left-1/2 top-1/2 h-[25rem] w-[25rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyber-yellow/50"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: [0.35, 0.85, 0.35], scale: [0.75, 1.12, 0.75], rotate: [0, -10, 0] }}
-                transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }}
-              />
-              <motion.div
-                className="absolute left-1/2 top-1/2 h-[16rem] w-[16rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-300/45"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: [0.25, 0.75, 0.25], scale: [0.8, 1.18, 0.8], rotate: [0, 14, 0] }}
-                transition={{ duration: 0.82, repeat: Infinity, ease: 'easeInOut' }}
-              />
             </div>
           )}
 
@@ -1064,63 +1046,61 @@ function CompletionCelebration({
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={reduceMotion ? { opacity: 0 } : { y: 12, opacity: 0, scale: 0.98 }}
             transition={{ duration: reduceMotion ? 0 : 0.34, ease: 'easeOut' }}
-            className="relative z-10 w-full max-w-2xl overflow-hidden cyber-card border border-cyber-yellow/60 bg-surface/95 p-6 text-center shadow-[0_0_60px_rgba(255,214,0,0.24)] sm:p-8"
+            className="relative z-10 w-full max-w-2xl overflow-hidden bg-brutal-pink p-8 sm:p-12 shadow-neo-lg text-center border-4 border-brutal-black brutal-card"
           >
-            <div className="pointer-events-none absolute -left-16 -top-16 h-36 w-36 rounded-full bg-pink-400/20 blur-3xl" />
-            <div className="pointer-events-none absolute -bottom-16 -right-16 h-40 w-40 rounded-full bg-cyan-300/20 blur-3xl" />
-
             <motion.div
               animate={reduceMotion ? undefined : { rotate: [-6, 6, -6], scale: [1, 1.08, 1] }}
               transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
-              className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-cyber-yellow/60 bg-gradient-to-br from-cyber-yellow/25 via-pink-400/20 to-cyber-blue/20 text-cyber-yellow shadow-[0_0_30px_rgba(255,214,0,0.25)]"
+              className="mx-auto mb-8 flex h-24 w-24 items-center justify-center bg-brutal-yellow text-brutal-black shadow-neo-sm border-4 border-brutal-black"
             >
-              <Sparkles size={34} aria-hidden="true" />
+              <Sparkles size={48} aria-hidden="true" strokeWidth={3} />
             </motion.div>
 
-            <div className="relative mx-auto mb-4 flex w-fit items-center gap-2 rounded-full border border-pink-300/40 bg-pink-300/10 px-4 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.28em] text-pink-200">
-              <span className="h-1.5 w-1.5 rounded-full bg-pink-300 shadow-[0_0_10px_rgba(249,168,212,0.8)]" />
-              Graduation Unlocked
+            <div className="relative mx-auto mb-6 flex w-fit items-center gap-2 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-brutal-black border-4 border-brutal-black shadow-neo-sm shadow-brutal-black">
+              <span className="h-3 w-3 bg-brutal-green animate-pulse border-2 border-brutal-black" />
+              ĐÃ MỞ KHÓA TỐT NGHIỆP
             </div>
 
-            <div className="mb-3 font-mono text-[10px] font-bold uppercase tracking-[0.35em] text-cyber-blue">
-              {trackTitle} cleared
+            <div className="mb-4 inline-block px-3 py-1 text-sm font-black uppercase tracking-wider text-brutal-black bg-white border-4 border-brutal-black shadow-neo-sm">
+              Hoàn thành {trackTitle}
             </div>
             <h2
               id="academy-completion-title"
-              className="relative font-display text-3xl font-black uppercase tracking-widest text-white sm:text-5xl"
+              className="relative font-display text-4xl font-black text-brutal-black sm:text-5xl uppercase tracking-tighter decoration-brutal-yellow decoration-4 underline underline-offset-8 mt-4"
             >
-              {graduationLabel} Graduate
+              Chúc mừng tốt nghiệp!
             </h2>
-            <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-white/70 sm:text-base">
-              You have graduated <span className="text-cyber-yellow">{graduationLabel}</span> by completing{' '}
-              <span className="text-cyber-yellow">{lessonTitle}</span>. Do not forget to review every day to protect your streak and keep your Solana skills sharp.
+            <p className="mx-auto mt-6 max-w-xl text-lg font-bold leading-relaxed text-brutal-black bg-white/80 p-4 border-2 border-brutal-black">
+              Bạn đã chính thức vượt qua chuyên đề <span className="font-black text-brutal-blue">{graduationLabel}</span> bằng việc hoàn thành bài học cuối cùng{' '}
+              <span className="font-black text-brutal-blue">{lessonTitle}</span>. Hãy tiếp tục duy trì thành tích đăng nhập này nhé.
             </p>
 
-            <div className="mx-auto mt-5 w-fit rounded-full border border-cyber-blue/30 bg-cyber-blue/10 px-4 py-2 font-mono text-xs uppercase tracking-widest text-cyber-blue">
-              {saveStatus === 'saving' && 'Saving progress to DSUC Academy...'}
-              {saveStatus === 'saved' && 'Progress saved to Academy.'}
-              {saveStatus === 'error' && 'Database save failed. Press Finalize to retry.'}
-              {saveStatus === 'idle' && 'Preparing Academy progress save.'}
+            <div className="mx-auto mt-8 w-fit bg-brutal-yellow border-4 border-brutal-black px-6 py-3 text-xs font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
+              {saveStatus === 'saving' && 'Đang lưu tiến trình...'}
+              {saveStatus === 'saved' && 'Đã lưu lại thành tích.'}
+              {saveStatus === 'error' && 'Không lưu được. Hãy thử lại.'}
+              {saveStatus === 'idle' && 'Chuẩn bị lưu dữ liệu.'}
             </div>
 
-            <div className="relative mt-8 grid gap-3 sm:grid-cols-2">
+            <div className="relative mt-10 grid gap-4 sm:grid-cols-2">
               <button
                 type="button"
                 onClick={onFinalize}
                 disabled={busy}
-                className="min-h-12 bg-cyber-yellow px-6 py-3 font-display text-sm font-bold uppercase tracking-widest text-black transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex items-center justify-center gap-2 min-h-14 bg-brutal-green px-6 py-4 text-sm font-black uppercase tracking-wider text-brutal-black shadow-neo transition-all hover:bg-brutal-blue hover:text-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none disabled:opacity-50 border-4 border-brutal-black brutal-btn"
               >
-                {busy || saveStatus === 'saving' ? 'SAVING...' : 'FINALIZE TRACK'}
+                {busy || saveStatus === 'saving' ? 'ĐANG LƯU...' : 'NHẬN CÚP'}
+                <CheckCircle2 size={24} strokeWidth={3} />
               </button>
               <button
                 type="button"
                 onClick={onExit}
                 disabled={busy}
-                className="min-h-12 border border-cyber-blue/50 bg-cyber-blue/10 px-6 py-3 font-display text-sm font-bold uppercase tracking-widest text-cyber-blue transition-colors hover:bg-cyber-blue hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-blue/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex items-center justify-center min-h-14 bg-white border-4 border-brutal-black px-6 py-4 text-sm font-black uppercase tracking-wider text-brutal-black shadow-neo transition-all hover:bg-brutal-yellow hover:-translate-y-1 hover:shadow-neo-lg disabled:opacity-50 brutal-btn"
               >
-                <span className="inline-flex items-center justify-center gap-2">
-                  <Home size={16} aria-hidden="true" />
-                  Exit Academy
+                <span className="inline-flex items-center justify-center gap-3">
+                  <Home size={24} strokeWidth={3} aria-hidden="true" />
+                  Về trang chủ Học Viện
                 </span>
               </button>
             </div>

@@ -41,7 +41,7 @@ export function AcademyTrack() {
   useEffect(() => {
     if (!trackId) {
       setTrackInfo(null);
-      setError('Track not found');
+      setError('Không tìm thấy lộ trình');
       setLoading(false);
       return;
     }
@@ -60,7 +60,7 @@ export function AcademyTrack() {
         const result = await response.json().catch(() => null);
 
         if (!response.ok || !result?.success) {
-          throw new Error(result?.message || 'Failed to load academy track.');
+          throw new Error(result?.message || 'Không thể tải chi tiết lộ trình cộng đồng.');
         }
 
         const tracks = (result.data || []).map(normalizeAcademyCatalogTrack);
@@ -68,7 +68,7 @@ export function AcademyTrack() {
 
         if (!cancelled) {
           if (!found) {
-            setError('Track not found');
+            setError('Không tìm thấy lộ trình');
             setTrackInfo(null);
           } else {
             setTrackInfo(found);
@@ -76,7 +76,7 @@ export function AcademyTrack() {
         }
       } catch (err: any) {
         if (!cancelled) {
-          setError(err.message || 'Failed to load academy track.');
+          setError(err.message || 'Không thể tải chi tiết lộ trình cộng đồng.');
           setTrackInfo(null);
         }
       } finally {
@@ -94,11 +94,20 @@ export function AcademyTrack() {
   }, [authToken, trackId, walletAddress]);
 
   if (loading) {
-    return <div className="text-center py-20 text-white/40 font-mono tracking-widest uppercase">Loading track...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center py-32 space-y-4">
+        <div className="w-12 h-12 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin"></div>
+        <div className="text-sky-600 font-bold uppercase tracking-widest text-sm">Đang tải cấu trúc lộ trình...</div>
+      </div>
+    );
   }
 
   if (!trackInfo) {
-    return <div className="text-center py-20 text-white/40 font-mono tracking-widest uppercase">{error || 'Track not found'}</div>;
+    return (
+      <div className="text-center py-20 text-slate-500 font-bold uppercase tracking-widest bg-white border border-slate-200 rounded-3xl m-8">
+        {error || 'Không tìm thấy lộ trình cộng đồng'}
+      </div>
+    );
   }
 
   const lessons = trackInfo.lessons || [];
@@ -106,41 +115,37 @@ export function AcademyTrack() {
   const progressPercent = lessons.length > 0 ? (completedCount / lessons.length) * 100 : 0;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-12 pb-20">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-surface/50 p-4 border border-cyber-blue/20 backdrop-blur-md relative overflow-hidden">
-        <Link to="/academy" className="inline-flex items-center text-xs font-mono font-bold uppercase tracking-widest text-cyber-blue hover:text-white transition-colors relative z-10">
-          <ArrowLeft className="w-4 h-4 mr-2" /> BOOT_SEQUENCE
+    <div className="max-w-4xl mx-auto space-y-12 pb-20 pt-10 px-4 sm:px-6">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 border-4 border-brutal-black shadow-neo">
+        <Link to="/academy" className="inline-flex items-center text-sm font-black uppercase tracking-widest text-brutal-black hover:-translate-x-1 transition-transform">
+          <ArrowLeft className="w-5 h-5 mr-2" strokeWidth={3} /> Quay lại
         </Link>
-        <div className="flex items-center gap-4 relative z-10">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-cyber-yellow/10 border border-cyber-yellow/30 text-cyber-yellow text-xs font-mono font-bold uppercase tracking-widest">
-            <Star size={14} className="fill-cyber-yellow" />
-            <span className="hidden sm:inline">STREAK: {currentUser?.streak || 0}</span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-brutal-yellow border-2 border-brutal-black shadow-neo-sm text-brutal-black text-xs font-black uppercase tracking-widest">
+            <Star size={16} strokeWidth={3} className="fill-brutal-black" />
+            <span className="hidden sm:inline">Chuỗi: {currentUser?.streak || 0}</span>
             <span className="sm:hidden">{currentUser?.streak || 0}</span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-cyber-blue/10 border border-cyber-blue/30 text-cyber-blue text-xs font-mono font-bold uppercase tracking-widest">
-            <Terminal size={14} />
-            <span className="hidden sm:inline">BUILDS: {currentUser?.builds || 0}</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-brutal-blue border-2 border-brutal-black shadow-neo-sm text-white text-xs font-black uppercase tracking-widest">
+            <Terminal size={16} strokeWidth={3} />
+            <span className="hidden sm:inline">Bản dựng: {currentUser?.builds || 0}</span>
             <span className="sm:hidden">{currentUser?.builds || 0}</span>
           </div>
         </div>
       </div>
 
       <header className="text-center space-y-6 pt-4 relative">
-        <div className="inline-flex px-3 py-1 text-[10px] font-mono font-bold tracking-widest uppercase mb-2 bg-cyber-blue/10 text-cyber-blue border border-cyber-blue/30">
-          {trackInfo.id} // TRACK
+        <div className="inline-flex px-4 py-1.5 font-black tracking-widest uppercase mb-2 bg-brutal-pink text-brutal-black border-4 border-brutal-black shadow-neo-sm text-sm">
+          Chuyên đề: {trackInfo.id}
         </div>
-        <h1 className="text-4xl sm:text-6xl font-display font-bold tracking-widest text-white py-2 uppercase">
+        <h1 className="text-5xl sm:text-7xl font-display font-black tracking-tighter text-brutal-black py-2 uppercase" style={{ textShadow: '4px 4px 0 #111827', color: 'white' }}>
           {trackInfo.title}
         </h1>
-        <div className="mx-auto max-w-2xl border border-cyber-yellow/25 bg-cyber-yellow/10 px-4 py-3 text-sm leading-7 text-cyber-yellow/90">
-          This page is the legacy <span className="font-semibold uppercase tracking-[0.16em]">community track lane</span>.
-          Curated Academy v2 lives on the main `/academy` path and follows the new path/course/unit flow.
-        </div>
       </header>
 
-      <div className="relative mt-16 px-4 sm:px-8">
-        <div className="absolute left-8 sm:left-12 top-0 bottom-0 w-1 bg-surface border-l border-r border-cyber-blue/20">
-          <div className="w-full bg-cyber-yellow relative shadow-[0_0_10px_rgba(255,214,0,0.8)] transition-all duration-1000" style={{ height: `${progressPercent}%` }} />
+      <div className="relative mt-16 px-2 sm:px-4">
+        <div className="absolute left-6 sm:left-8 top-8 bottom-8 w-2 bg-white border-2 border-brutal-black shadow-neo-sm">
+          <div className="w-full bg-brutal-green border-r-2 border-brutal-black transition-all duration-1000" style={{ height: `${progressPercent}%` }} />
         </div>
 
         <div className="space-y-8 relative z-10">
@@ -156,57 +161,62 @@ export function AcademyTrack() {
                 <button
                   type="button"
                   key={lesson.id}
-                  className={`relative flex w-full text-left items-center gap-6 sm:gap-8 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${isLocked ? 'cursor-default opacity-50' : 'cursor-pointer'}`}
+                  className={`relative flex w-full text-left items-center gap-6 sm:gap-8 group focus-visible:outline-none transition-all ${isLocked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:-translate-y-1 hover:translate-x-1'}`}
                   onClick={() => !isLocked && navigate(`/academy/community/${trackInfo.id}/${lesson.id}`)}
                   disabled={isLocked}
                 >
-                  <div className={`relative flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-none border-2 bg-surface transition-colors ${
+                  <div className={`relative flex-shrink-0 flex items-center justify-center w-12 h-12 border-4 border-brutal-black transition-colors z-10 ${
                     isLocked
-                      ? 'border-white/20'
+                      ? 'bg-gray-200'
                       : isCompleted
-                        ? 'border-cyber-yellow shadow-[0_0_15px_rgba(255,214,0,0.4)]'
-                        : 'border-cyber-blue shadow-[0_0_15px_rgba(41,121,255,0.4)]'
+                        ? 'bg-brutal-green'
+                        : 'bg-brutal-yellow shadow-neo'
                   }`}>
-                    {isCompleted ? <CheckCircle2 size={16} className="text-cyber-yellow" /> : <div className={`w-2 h-2 ${isLocked ? 'bg-white/20' : 'bg-cyber-blue'}`} />}
+                    {isCompleted ? <CheckCircle2 size={24} strokeWidth={3} className="text-brutal-black" /> : <div className={`w-3 h-3 ${isLocked ? 'bg-gray-400' : 'bg-brutal-black animate-ping'}`} />}
                   </div>
 
-                  <div className={`relative flex-grow p-6 border transition-all overflow-hidden ${
+                  <div className={`relative flex-grow p-6 sm:p-8 border-4 border-brutal-black transition-all overflow-hidden ${
                     isCompleted
-                      ? 'bg-cyber-yellow/10 border-cyber-yellow hover:bg-cyber-yellow/20'
+                      ? 'bg-white shadow-neo-sm'
                       : isLocked
-                        ? 'bg-surface border-white/10'
-                        : 'bg-cyber-blue/10 border-cyber-blue hover:bg-cyber-blue/20'
+                        ? 'bg-gray-100'
+                        : 'bg-white shadow-neo'
                   }`}>
-                    <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    {isCurrent && (
+                        <div className="absolute inset-0 bg-brutal-blue opacity-10 z-0"></div>
+                    )}
+                    <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                       <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className={`px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest border ${
-                            isCompleted ? 'bg-cyber-yellow/20 text-cyber-yellow border-cyber-yellow/50' : 'bg-white/5 text-white/50 border-white/10'
+                        <div className="flex items-center gap-3 mb-3">
+                          <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest border-2 border-brutal-black ${
+                            isCompleted ? 'bg-brutal-green text-brutal-black shadow-neo-sm' : isCurrent ? 'bg-brutal-blue text-white shadow-neo-sm' : 'bg-white text-gray-500'
                           }`}>
-                            MODULE {index + 1}
+                            Bài {index + 1}
                           </span>
                           {isCurrent && (
-                            <span className="px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest bg-cyber-blue text-black animate-pulse">
-                              ACTIVE_NODE
+                            <span className="px-3 py-1 text-[10px] font-black uppercase tracking-widest bg-brutal-yellow text-brutal-black border-2 border-brutal-black shadow-neo-sm animate-pulse">
+                              Đang học
                             </span>
                           )}
                         </div>
-                        <h3 className={`text-xl font-display font-bold uppercase tracking-wider ${
-                          isCompleted ? 'text-cyber-yellow' : isLocked ? 'text-white/50' : 'text-cyber-blue'
+                        <h3 className={`text-2xl font-display font-black uppercase tracking-tight ${
+                          isCompleted ? 'text-brutal-black' : isLocked ? 'text-gray-500' : 'text-brutal-blue group-hover:text-brutal-pink'
                         }`}>
                           {lesson.title}
                         </h3>
                       </div>
 
-                      <div className="flex items-center gap-4 text-[10px] font-mono tracking-widest uppercase shrink-0">
-                        <span className={`flex items-center gap-1.5 ${isCompleted ? 'text-cyber-yellow/70' : 'text-white/50'}`}>
-                          <Clock size={12} /> {lesson.minutes} MIN
+                      <div className="flex items-center gap-4 text-xs uppercase font-black tracking-widest shrink-0">
+                        <span className={`flex items-center gap-2 ${isCompleted ? 'text-brutal-green' : isLocked ? 'text-gray-500' : 'text-brutal-blue'}`}>
+                          <Clock size={16} strokeWidth={3} /> {lesson.minutes} PHÚT
                         </span>
                         {isLocked ? (
-                          <Lock size={16} className="text-white/20 ml-2" />
+                          <div className="p-2 border-4 border-brutal-black bg-gray-200 text-gray-400">
+                             <Lock size={18} strokeWidth={3} />
+                          </div>
                         ) : (
-                          <div className={`p-2 border ${isCompleted ? 'border-cyber-yellow/50 bg-cyber-yellow/10 text-cyber-yellow' : 'border-cyber-blue/50 bg-cyber-blue/10 text-cyber-blue'}`}>
-                            {isCompleted ? 'CLEARED' : 'INITIATE'}
+                          <div className={`px-5 py-2 border-2 border-brutal-black shadow-neo-sm transition-transform ${isCompleted ? 'bg-white text-brutal-black group-hover:-translate-y-0.5' : 'bg-brutal-black text-white group-hover:-translate-y-0.5'}`}>
+                            {isCompleted ? 'Học lại' : 'Bắt đầu'}
                           </div>
                         )}
                       </div>
@@ -216,7 +226,7 @@ export function AcademyTrack() {
               );
             })
           ) : (
-            <div className="text-white/40 font-mono tracking-widest uppercase w-full text-center">No lessons in this track.</div>
+            <div className="text-brutal-black font-black uppercase tracking-widest w-full text-center bg-white border-4 border-brutal-black shadow-neo p-12">Không có bài học nào trong chuyên đề này.</div>
           )}
         </div>
       </div>

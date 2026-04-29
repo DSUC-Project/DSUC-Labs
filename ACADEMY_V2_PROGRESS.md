@@ -76,3 +76,6 @@ Goal: Rebuild DSUC Academy with Superteam-like UX and learning flow while keepin
 - [2026-04-29] Reworked the practice editor and solution surfaces to use calmer dark-neutral code panels with higher-contrast text instead of the previous neon-heavy styling.
 - [2026-04-29] Opened Academy learner read routes to guests so curated content and community track reading no longer require sign-in; DB progress/activity sync still stays authenticated.
 - [2026-04-29] Embedded the curated Academy v2 catalog directly in the frontend bundle, so path/course/unit content no longer depends on backend fetches to render on a new machine.
+- [2026-04-29] Began merging the updated frontend visual layer from the local `zip/` drop while deliberately keeping DSUC store/auth/backend logic unchanged.
+- [2026-04-29] Added brutal-theme compatibility tokens, fallback shadow utilities, and lightweight animation helpers so the merged `zip/` UI can run on the current Tailwind-CDN setup without waiting for a build-system migration.
+- [2026-04-29] Fixed AcademyHome guest runtime safety plus several invalid utility classes copied from the `zip/` frontend (`border-3`, `shadow-neo-sm-sm`, `pl-21`) to keep the merged UI checkable.

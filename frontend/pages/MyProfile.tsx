@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -83,7 +82,7 @@ export function MyProfile() {
 
   const handleSaveAll = async () => {
     if (isOnboarding && !hasProfileBasics) {
-      alert('Please complete your basic profile first: name and at least one skill or social link.');
+      alert('Vui lòng hoàn thiện hồ sơ cơ bản: tên và ít nhất một kỹ năng hoặc mạng xã hội.');
       return;
     }
 
@@ -110,13 +109,13 @@ export function MyProfile() {
       }
 
       await updateCurrentUser(updates);
-      alert('Profile saved successfully');
+      alert('Cập nhật hồ sơ thành công');
       if (isOnboarding) {
         navigate('/home', { replace: true });
       }
     } catch (err) {
       console.error('[MyProfile] Save failed:', err);
-      alert('Failed to save profile. Check console for details.');
+      alert('Lỗi cập nhật hồ sơ. Vui lòng kiểm tra console.');
     }
   };
 
@@ -134,9 +133,8 @@ export function MyProfile() {
         } : undefined
       });
       setIsEditingBank(false);
-      // Optional: show a small toast inside the component instead of alert
     } catch (err) {
-       alert('Failed to save bank info.');
+       alert('Cập nhật tài khoản ngân hàng thất bại.');
     }
   };
 
@@ -168,7 +166,7 @@ export function MyProfile() {
       };
       await linkGoogleAccount(googleUserInfo);
     } catch (error) {
-      alert('Google account linking failed. Please try again.');
+      alert('Liên kết tài khoản Google thất bại. Vui lòng thử lại.');
     } finally {
       setIsLinkingGoogle(false);
     }
@@ -177,36 +175,36 @@ export function MyProfile() {
   if (!currentUser) return null;
 
   return (
-    <div className="min-h-screen pt-20 pb-32 max-w-6xl mx-auto px-4 overflow-x-hidden">
+    <div className="min-h-screen pt-10 pb-32 max-w-6xl mx-auto px-4 sm:px-6 overflow-x-hidden">
       {isOnboarding && (
-        <div className="mb-8 bg-cyber-blue/10 border border-cyber-blue/30 p-5">
-          <div className="text-xs font-mono uppercase tracking-[0.25em] text-cyber-blue mb-2">
-            First-Time Setup
+        <div className="mb-8 bg-sky-50 border border-sky-100 p-6 rounded-2xl shadow-sm">
+          <div className="text-[11px] font-bold uppercase tracking-widest text-sky-600 mb-2">
+            Thiết lập lần đầu
           </div>
-          <p className="text-white/70 text-sm">
-            Complete your profile before entering the rest of the app. Add your name and at least one skill or social link, then commit changes once to continue.
+          <p className="text-slate-600 font-medium text-sm">
+            Vui lòng hoàn thiện hồ sơ của bạn trước khi truy cập ứng dụng. Thêm tên và ít nhất một kỹ năng hoặc thông tin liên lạc, sau đó nhấn Lưu Thay Đổi.
           </p>
         </div>
       )}
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/10 pb-6 mb-8 mt-4 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b-4 border-brutal-black pb-6 mb-8 mt-4 gap-6">
         <div>
-          <h2 className="text-4xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/50 tracking-wide uppercase">Operator Profile</h2>
-          <p className="text-cyber-blue font-mono text-sm tracking-widest uppercase mt-2">Manage your identity and protocols.</p>
+          <h2 className="text-4xl sm:text-5xl font-display font-black text-brutal-black tracking-tight uppercase decoration-brutal-pink decoration-4 underline underline-offset-4">HỒ SƠ CỦA TÔI</h2>
+          <p className="text-brutal-black font-bold text-sm mt-4 border-l-4 border-brutal-yellow pl-4">Quản lý định danh và thông tin cá nhân của bạn.</p>
         </div>
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="flex items-center gap-4 w-full md:w-auto">
           <button
             onClick={handleLogout}
-            className="flex-1 md:flex-none border border-red-500/30 text-red-400 hover:bg-red-500/10 font-mono font-bold text-xs px-4 py-2 flex items-center justify-center gap-2 transition-colors uppercase tracking-widest"
+            className="flex-1 md:flex-none brutal-btn bg-brutal-red text-white hover:bg-brutal-pink hover:text-brutal-black font-black text-xs uppercase tracking-wider px-6 py-4 flex items-center justify-center gap-2 transition-colors border-4 border-brutal-black shadow-neo-sm"
           >
-            <LogOut size={14} /> Disconnect
+            <LogOut size={20} /> Đăng Xuất
           </button>
           <button
             onClick={handleSaveAll}
-            className="flex-1 md:flex-none bg-cyber-yellow hover:bg-white text-black font-mono font-bold text-xs px-6 py-2 flex items-center justify-center gap-2 transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(255,214,0,0.2)] hover:shadow-[0_0_20px_rgba(255,214,0,0.5)]"
+            className="flex-1 md:flex-none brutal-btn bg-brutal-blue hover:bg-brutal-yellow text-white hover:text-brutal-black font-black text-xs px-6 py-4 flex items-center justify-center gap-2 transition-all uppercase tracking-wider border-4 border-brutal-black shadow-neo-sm"
           >
-            <Save size={14} /> Commit Changes
+            <Save size={20} /> Lưu Thay Đổi
           </button>
         </div>
       </div>
@@ -214,41 +212,38 @@ export function MyProfile() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
         {/* Left Column: Identity & Socials */}
-        <div className="lg:col-span-4 flex flex-col gap-8">
+        <div className="lg:col-span-4 flex flex-col gap-6">
 
           {/* Identity Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-[#050B14] border border-white/10 p-6 relative group"
+            className="bg-white border-4 border-brutal-black p-8 shadow-neo relative group overflow-hidden brutal-card"
           >
-            <div className="absolute top-0 right-0 w-24 h-24 bg-cyber-blue/5 rounded-full blur-2xl pointer-events-none" />
-
-            <div className="flex flex-col items-center">
-              <div className="w-32 h-32 rounded-full p-1 border border-white/20 mb-6 relative group overflow-hidden">
-                <div className="absolute inset-0 rounded-full border border-cyber-blue/30 animate-[spin_4s_linear_infinite] pointer-events-none" />
-                <img src={avatar || `https://i.pravatar.cc/150?u=${currentUser.id}`} alt="Avatar" className="w-full h-full object-cover rounded-full bg-black grayscale group-hover:grayscale-0 transition-all duration-500" />
-                <label className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full backdrop-blur-sm">
-                  <Upload className="text-white mb-1" size={20} />
-                  <span className="text-[9px] font-mono text-white/80 uppercase tracking-widest">Update</span>
+            <div className="flex flex-col items-center relative z-10">
+              <div className="w-32 h-32 p-1 border-4 border-brutal-black mb-6 relative group/avatar bg-brutal-yellow shadow-neo-sm transition-transform duration-500 hover:scale-105">
+                <img src={avatar || `https://i.pravatar.cc/150?u=${currentUser.id}`} alt="Avatar" className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300" />
+                <label className="absolute inset-0 bg-brutal-black/80 flex flex-col items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer">
+                  <Upload className="text-white mb-1" size={24} />
+                  <span className="text-[10px] font-black text-white uppercase tracking-widest mt-1">Sửa</span>
                   <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                 </label>
               </div>
 
-              <div className="w-full space-y-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-mono text-cyber-blue uppercase tracking-widest">Callsign</label>
+              <div className="w-full space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-brutal-black uppercase tracking-widest pl-1">Tên hiển thị</label>
                   <input
                     value={name}
                     onChange={e => setName(e.target.value)}
-                    className="w-full bg-black border border-white/10 px-3 py-2 text-white focus:border-cyber-blue outline-none font-display font-medium text-lg transition-colors"
+                    className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black focus:bg-brutal-pink focus:outline-none font-display font-black text-lg transition-colors shadow-neo-sm"
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-mono text-cyber-blue uppercase tracking-widest">Clearance Level</label>
-                  <div className="w-full bg-black border border-white/5 px-3 py-2 text-white/50 font-mono text-xs uppercase tracking-widest flex items-center justify-between">
-                    <span>{currentUser.memberType === 'community' ? 'Community' : currentUser.role}</span>
-                    <Hexagon size={14} className="text-cyber-blue/50" />
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-brutal-black uppercase tracking-widest pl-1">Cấp độ thành viên</label>
+                  <div className="w-full bg-brutal-blue border-4 border-brutal-black px-4 py-3 text-white font-black text-sm uppercase tracking-wider flex items-center justify-between shadow-neo-sm">
+                    <span>{currentUser.memberType === 'community' ? 'Cộng đồng' : currentUser.role}</span>
+                    <Hexagon size={20} className="text-white" />
                   </div>
                 </div>
               </div>
@@ -260,20 +255,20 @@ export function MyProfile() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.08 }}
-              className="bg-[#050B14] border border-white/10 p-6"
+              className="bg-white border border-slate-200 p-8 rounded-[2rem] shadow-sm"
             >
-              <h3 className="text-xs font-mono text-white/40 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <Hexagon size={14} /> Wallet Link
+              <h3 className="text-xs font-bold text-slate-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <Hexagon size={16} className="text-slate-400" /> Lk Ví Điện Tử
               </h3>
-              <div className="text-[11px] font-mono text-white/60 break-all mb-4">
+              <div className="text-xs font-mono text-slate-600 break-all mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
                 {currentUser.wallet_address}
               </div>
               <button
                 onClick={handleReconnectWallet}
                 disabled={isReconnectingWallet}
-                className="w-full border border-cyber-blue/40 text-cyber-blue hover:bg-cyber-blue hover:text-black font-mono font-bold text-[10px] uppercase tracking-widest py-3 transition-colors disabled:opacity-60"
+                className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider py-3 rounded-xl transition-colors shadow-sm disabled:opacity-60"
               >
-                {isReconnectingWallet ? 'Reconnecting...' : 'Reconnect Wallet'}
+                {isReconnectingWallet ? 'Đang kết nối lại...' : 'Kết nối lại Ví'}
               </button>
             </motion.div>
           )}
@@ -283,26 +278,26 @@ export function MyProfile() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-[#050B14] border border-white/10 p-6"
+            className="bg-white border-4 border-brutal-black p-8 shadow-neo-sm"
           >
-            <h3 className="text-xs font-mono text-white/40 uppercase tracking-widest mb-4 flex items-center gap-2">
-              <Link2 size={14} /> Comms Network
+            <h3 className="text-xs font-black text-brutal-black uppercase tracking-widest mb-6 flex items-center gap-2">
+              <Link2 size={16} className="text-brutal-pink" /> Liên Kết Mạng Xã Hội
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {[
                 { icon: Github, value: github, setter: setGithub, placeholder: 'github.com/username' },
                 { icon: Twitter, value: twitter, setter: setTwitter, placeholder: 'x.com/username' },
                 { icon: Send, value: telegram, setter: setTelegram, placeholder: 't.me/username' },
                 { icon: Facebook, value: facebook, setter: setFacebook, placeholder: 'facebook.com/username' },
               ].map((social, idx) => (
-                <div key={idx} className="flex items-center gap-3 bg-black border border-white/5 p-2 focus-within:border-cyber-blue transition-colors">
-                  <social.icon className="text-white/30 ml-2" size={16} />
+                <div key={idx} className="flex items-center gap-3 bg-white border-4 border-brutal-black px-3 py-2 focus-within:bg-brutal-green transition-colors shadow-neo-sm">
+                  <social.icon className="text-brutal-black shrink-0" size={20} />
                   <input
                     type="text"
                     value={social.value}
                     onChange={e => social.setter(e.target.value)}
                     placeholder={social.placeholder}
-                    className="flex-1 bg-transparent text-white outline-none font-mono text-xs placeholder:text-white/20"
+                    className="flex-1 bg-transparent text-brutal-black outline-none font-bold text-sm placeholder:text-gray-500"
                   />
                 </div>
               ))}
@@ -311,49 +306,48 @@ export function MyProfile() {
         </div>
 
         {/* Right Column: Content */}
-        <div className="lg:col-span-8 flex flex-col gap-8">
+        <div className="lg:col-span-8 flex flex-col gap-6">
 
           {/* Academy Progress Redesign */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
-            className="bg-[#050B14] border border-cyber-yellow/20 relative overflow-hidden"
+            className="bg-brutal-yellow border-4 border-brutal-black relative overflow-hidden shadow-neo"
           >
-            <div className="absolute top-0 right-0 w-64 h-64 bg-cyber-yellow/5 rounded-full blur-[80px] pointer-events-none" />
-            <div className="p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center border-b border-white/5 relative z-10 gap-6">
+            <div className="p-8 flex flex-col md:flex-row justify-between items-start md:items-center border-b-4 border-brutal-black relative z-10 gap-6">
               <div>
-                <h3 className="text-xl font-display font-bold text-white uppercase tracking-wider flex items-center gap-3">
-                  <Trophy className="text-cyber-yellow" size={24} />
-                  Academy Progress
+                <h3 className="text-2xl font-display font-black text-brutal-black uppercase flex items-center gap-3">
+                  <Trophy className="text-brutal-black" size={32} />
+                  Tiến độ học tập
                 </h3>
-                <p className="text-white/40 font-mono text-[10px] uppercase tracking-widest mt-1">Current learning metrics and standing</p>
+                <p className="text-brutal-black font-bold text-sm mt-2">Tổng quan quá trình và thành tích của bạn</p>
               </div>
-              <button onClick={() => navigate('/academy')} className="group flex items-center gap-2 bg-cyber-yellow/10 hover:bg-cyber-yellow/20 text-cyber-yellow border border-cyber-yellow/30 px-4 py-2 font-mono text-[10px] uppercase tracking-widest transition-all">
-                Enter Academy <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
+              <button onClick={() => navigate('/academy')} className="group flex items-center justify-center gap-2 bg-brutal-pink hover:bg-brutal-blue text-brutal-black hover:text-white border-4 border-brutal-black shadow-neo px-6 py-4 font-black text-xs uppercase tracking-wider transition-all brutal-btn">
+                Vào Học Viện <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform border-l-2 border-current pl-1" />
               </button>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-white/5 relative z-10 w-full">
-              <div className="p-6 flex flex-col items-center justify-center text-center bg-black/20 hover:bg-black/40 transition-colors">
-                <Flame className="text-orange-500 mb-2" size={28} />
-                <div className="text-3xl font-display font-black text-white">{currentUser.streak || 0}</div>
-                <div className="text-[9px] font-mono text-white/40 uppercase tracking-widest mt-1">Day Streak</div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 divide-x-4 divide-y-4 lg:divide-y-0 divide-brutal-black relative z-10 w-full bg-white">
+              <div className="p-8 flex flex-col items-center justify-center text-center hover:bg-brutal-pink transition-colors">
+                <Flame className="text-brutal-black mb-3" size={32} />
+                <div className="text-4xl font-display font-black text-brutal-black">{currentUser.streak || 0}</div>
+                <div className="text-[10px] font-black text-brutal-black uppercase tracking-widest mt-2 border-t-2 border-brutal-black pt-2 w-full">Chuỗi ngày học</div>
               </div>
-              <div className="p-6 flex flex-col items-center justify-center text-center bg-black/20 hover:bg-black/40 transition-colors">
-                <Code className="text-cyber-blue mb-2" size={28} />
-                <div className="text-3xl font-display font-black text-white">1</div>
-                <div className="text-[9px] font-mono text-white/40 uppercase tracking-widest mt-1">Total Builds</div>
+              <div className="p-8 flex flex-col items-center justify-center text-center hover:bg-brutal-green transition-colors">
+                <Code className="text-brutal-black mb-3" size={32} />
+                <div className="text-4xl font-display font-black text-brutal-black">1</div>
+                <div className="text-[10px] font-black text-brutal-black uppercase tracking-widest mt-2 border-t-2 border-brutal-black pt-2 w-full">Dự án hoàn thành</div>
               </div>
-              <div className="p-6 flex flex-col items-center justify-center text-center bg-black/20 hover:bg-black/40 transition-colors">
-                <div className="font-display font-bold text-purple-400 text-2xl mb-2">{'< />'}</div>
-                <div className="text-3xl font-display font-black text-white">12</div>
-                <div className="text-[9px] font-mono text-white/40 uppercase tracking-widest mt-1">Lessons</div>
+              <div className="p-8 flex flex-col items-center justify-center text-center hover:bg-brutal-gold transition-colors">
+                <div className="font-display font-black text-brutal-black text-3xl mb-3">{'< />'}</div>
+                <div className="text-4xl font-display font-black text-brutal-black">12</div>
+                <div className="text-[10px] font-black text-brutal-black uppercase tracking-widest mt-2 border-t-2 border-brutal-black pt-2 w-full">Bài học</div>
               </div>
-              <div className="p-6 flex flex-col items-center justify-center text-center bg-black/20 hover:bg-black/40 transition-colors">
-                <Hexagon className="text-cyber-yellow mb-2" size={28} />
-                <div className="text-xl font-display font-black text-transparent bg-clip-text bg-gradient-to-br from-cyber-yellow to-orange-400 mt-1">GENIN</div>
-                <div className="text-[9px] font-mono text-white/40 uppercase tracking-widest mt-1">Rank</div>
+              <div className="p-8 flex flex-col items-center justify-center text-center hover:bg-brutal-blue hover:text-white transition-colors group">
+                <Hexagon className="text-brutal-black group-hover:text-white mb-3" size={32} />
+                <div className="text-2xl font-display font-black text-brutal-black group-hover:text-white mt-1">GENIN</div>
+                <div className="text-[10px] font-black text-brutal-black group-hover:text-white uppercase tracking-widest mt-2 border-t-2 border-current pt-2 w-full">Danh hiệu</div>
               </div>
             </div>
           </motion.div>
@@ -364,99 +358,99 @@ export function MyProfile() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-[#050B14] border border-white/10 p-6 md:p-8"
+            className="bg-white border-4 border-brutal-black p-8 shadow-neo"
           >
-            <div className="flex justify-between items-start mb-6 border-b border-white/5 pb-4">
+            <div className="flex justify-between items-start mb-8 border-b-4 border-brutal-black pb-5">
               <div>
-                <h3 className="text-lg font-display font-bold text-white flex items-center gap-2 uppercase tracking-wide">
-                  <CreditCard className="text-white/50" size={20} /> Bank Protocol
+                <h3 className="text-xl font-display font-black text-brutal-black flex items-center gap-3">
+                  <CreditCard className="text-brutal-blue" size={24} /> THÔNG TIN NGÂN HÀNG
                 </h3>
-                <p className="text-[10px] text-white/40 font-mono mt-1 uppercase tracking-widest">Link your account for financial operations</p>
+                <p className="text-sm text-brutal-black font-bold mt-2">Thiết lập tài khoản để nhận hỗ trợ hoặc quỹ dự án</p>
               </div>
               {!isEditingBank ? (
                 <button
                   onClick={() => setIsEditingBank(true)}
-                  className="p-2 border border-white/10 text-white/50 hover:text-white hover:border-white/30 transition-colors"
+                  className="p-3 border-4 border-brutal-black bg-brutal-yellow text-brutal-black hover:bg-brutal-pink transition-colors shadow-neo-sm brutal-btn"
                 >
-                  <Edit2 size={14} />
+                  <Edit2 size={24} />
                 </button>
               ) : (
                 <button
                   onClick={handleSaveBank}
-                  className="bg-white text-black font-mono font-bold text-[10px] uppercase tracking-widest px-4 py-2 shadow-lg"
+                  className="bg-brutal-green border-4 border-brutal-black text-brutal-black font-black text-xs uppercase tracking-wider px-6 py-4 shadow-neo-sm hover:bg-brutal-blue hover:text-white transition-colors brutal-btn"
                 >
-                  Save Bank
+                  Lưu Ngân Hàng
                 </button>
               )}
             </div>
 
             {isEditingBank ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-mono text-white/50 uppercase tracking-widest">Institution</label>
+                  <label className="text-xs font-black text-brutal-black uppercase tracking-widest ml-1">Ngân hàng</label>
                   <select
                     value={selectedBank?.id || bankId}
                     onChange={e => setBankId(e.target.value)}
-                    className="w-full bg-black border border-white/10 px-3 py-3 text-white focus:border-cyber-blue outline-none font-mono text-xs appearance-none transition-colors"
+                    className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black focus:bg-brutal-pink outline-none font-bold text-sm transition-colors shadow-neo-sm appearance-none"
                   >
-                    <option value="">-- SELECT BANK --</option>
+                    <option value="">-- CHỌN NGÂN HÀNG --</option>
                     {BANKS.map(b => (
                       <option key={b.id} value={b.id}>{b.shortName} ({b.code}) - {b.bin}</option>
                     ))}
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-mono text-white/50 uppercase tracking-widest">Bank BIN / ID</label>
+                  <label className="text-xs font-black text-brutal-black uppercase tracking-widest ml-1">Mã Ngân Hàng (BIN)</label>
                   <input
                     value={bankId}
                     onChange={e => setBankId(e.target.value)}
-                    placeholder="970422"
-                    className="w-full bg-black border border-white/10 px-3 py-3 text-white focus:border-cyber-blue outline-none font-mono text-xs tracking-widest transition-colors"
+                    placeholder="Ví dụ: 970422"
+                    className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black focus:bg-brutal-pink outline-none font-bold text-sm transition-colors shadow-neo-sm"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-mono text-white/50 uppercase tracking-widest">Account Number</label>
+                  <label className="text-xs font-black text-brutal-black uppercase tracking-widest ml-1">Số Tài Khoản</label>
                   <input
                     value={accountNo}
                     onChange={e => setAccountNo(e.target.value)}
-                    placeholder="Enter Account Number"
-                    className="w-full bg-black border border-white/10 px-3 py-3 text-white focus:border-cyber-blue outline-none font-mono text-xs tracking-widest transition-colors"
+                    placeholder="Nhập số tài khoản"
+                    className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black focus:bg-brutal-pink outline-none font-bold text-sm transition-colors shadow-neo-sm"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-mono text-white/50 uppercase tracking-widest">Account Name</label>
+                  <label className="text-xs font-black text-brutal-black uppercase tracking-widest ml-1">Tên Chủ Tài Khoản</label>
                   <input
                     value={accountName}
                     onChange={e => setAccountName(e.target.value)}
                     placeholder="NGUYEN VAN A"
-                    className="w-full bg-black border border-white/10 px-3 py-3 text-white focus:border-cyber-blue outline-none font-mono text-xs tracking-widest uppercase transition-colors"
+                    className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black focus:bg-brutal-pink outline-none font-bold uppercase text-sm transition-colors shadow-neo-sm"
                   />
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-black/50 border border-white/5 p-4">
-                  <div className="text-[9px] font-mono text-white/40 uppercase tracking-widest mb-1">Institution</div>
-                  <div className="font-display text-white">
-                    {selectedBank ? `${selectedBank.shortName} (${selectedBank.bin})` : bankId || 'Not configured'}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="bg-brutal-pink border-4 border-brutal-black p-5 shadow-neo-sm">
+                  <div className="text-[10px] font-black text-brutal-black uppercase tracking-widest mb-2 border-b-2 border-brutal-black pb-1">Ngân Hàng</div>
+                  <div className="font-display font-black text-brutal-black text-lg">
+                    {selectedBank ? `${selectedBank.shortName} (${selectedBank.bin})` : bankId || 'Chưa thiết lập'}
                   </div>
                 </div>
-                <div className="bg-black/50 border border-white/5 p-4">
-                  <div className="text-[9px] font-mono text-white/40 uppercase tracking-widest mb-1">Account Number</div>
-                  <div className="font-mono text-white tracking-wider">
-                    {accountNo ? accountNo.replace(/\d(?=\d{4})/g, '*') : 'Not configured'}
+                <div className="bg-brutal-yellow border-4 border-brutal-black p-5 shadow-neo-sm">
+                  <div className="text-[10px] font-black text-brutal-black uppercase tracking-widest mb-2 border-b-2 border-brutal-black pb-1">Số Tài Khoản</div>
+                  <div className="font-mono text-brutal-black font-black text-lg tracking-wider">
+                    {accountNo ? accountNo.replace(/\d(?=\d{4})/g, '*') : 'Chưa thiết lập'}
                   </div>
                 </div>
-                <div className="bg-black/50 border border-white/5 p-4">
-                  <div className="text-[9px] font-mono text-white/40 uppercase tracking-widest mb-1">Bank Code</div>
-                  <div className="font-mono text-white tracking-wider">
-                    {selectedBank?.code || 'Not configured'}
+                <div className="bg-brutal-green border-4 border-brutal-black p-5 shadow-neo-sm">
+                  <div className="text-[10px] font-black text-brutal-black uppercase tracking-widest mb-2 border-b-2 border-brutal-black pb-1">Mã Ngân Hàng</div>
+                  <div className="font-mono text-brutal-black font-black text-lg tracking-wider">
+                    {selectedBank?.code || 'Chưa thiết lập'}
                   </div>
                 </div>
-                <div className="bg-black/50 border border-white/5 p-4">
-                  <div className="text-[9px] font-mono text-white/40 uppercase tracking-widest mb-1">Account Name</div>
-                  <div className="font-mono text-white tracking-wider uppercase">
-                    {accountName || 'Not configured'}
+                <div className="bg-brutal-blue border-4 border-brutal-black p-5 shadow-neo-sm">
+                  <div className="text-[10px] font-black text-white uppercase tracking-widest mb-2 border-b-2 border-white pb-1">Chủ Tài Khoản</div>
+                  <div className="font-black text-white text-lg uppercase">
+                    {accountName || 'Chưa thiết lập'}
                   </div>
                 </div>
               </div>
@@ -469,10 +463,10 @@ export function MyProfile() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="bg-[#050B14] border border-white/10 p-6 md:p-8"
+            className="bg-white border-4 border-brutal-black p-8 shadow-neo"
           >
-            <h3 className="text-lg font-display font-bold text-white mb-6 uppercase tracking-wide flex items-center gap-2 border-b border-white/5 pb-4">
-              <Hexagon className="text-white/50" size={20} /> Skill Matrix
+            <h3 className="text-xl font-display font-black text-brutal-black mb-6 flex items-center gap-3 border-b-4 border-brutal-black pb-5 uppercase">
+              <Hexagon className="text-brutal-pink" size={24} /> Kỹ Năng / Chuyên Môn
             </h3>
             <SkillInput
               skills={skills}
@@ -487,38 +481,42 @@ export function MyProfile() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="bg-[#050B14] border border-white/10 p-6 md:p-8"
+              className="bg-white border-4 border-brutal-black p-8 shadow-neo-sm mt-6"
             >
-              <h3 className="text-lg font-display font-bold text-white mb-4 uppercase tracking-wide flex items-center gap-2">
-                <Mail className="text-white/50" size={20} /> Auth Redundancy
+              <h3 className="text-xl font-display font-black text-brutal-black mb-6 flex items-center gap-3">
+                <Mail className="text-brutal-blue" size={24} /> PHƯƠNG THỨC ĐĂNG NHẬP DỰ PHÒNG
               </h3>
 
               {currentUser?.email ? (
-                <div className="flex items-center gap-4 bg-green-500/5 border border-green-500/20 p-4">
-                  <CheckCircle className="text-green-500" size={20} />
+                <div className="flex items-center gap-4 bg-brutal-green border-4 border-brutal-black p-5 shadow-neo-sm">
+                  <CheckCircle className="text-brutal-black" size={32} />
                   <div>
-                    <div className="text-[10px] font-mono text-green-500 uppercase tracking-widest">Active Link</div>
-                    <div className="text-white text-sm mt-0.5">{currentUser.email}</div>
+                    <div className="text-xs font-black text-brutal-black uppercase tracking-widest">Đã Liên Kết</div>
+                    <div className="text-brutal-black font-bold mt-1 text-lg">{currentUser.email}</div>
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-between bg-black p-4 border border-white/5">
-                  <div>
-                    <div className="text-xs font-mono text-white/80">Account unlinked</div>
-                    <div className="text-[10px] text-white/40 mt-1">Enable alternate access vector</div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-6 border-4 border-brutal-black shadow-neo-sm gap-4 relative overflow-hidden">
+                  <div className="relative z-10">
+                    <div className="font-black text-brutal-black text-xl tracking-tight uppercase">Tài khoản chưa được liên kết</div>
+                    <div className="text-sm font-bold text-gray-600 mt-1">Nên thêm phương thức dự phòng để tránh mất quyền truy cập</div>
                   </div>
-                  {isLinkingGoogle ? (
-                    <span className="text-white/40 font-mono text-[10px] uppercase">Processing...</span>
-                  ) : (
-                    <GoogleLogin
-                      onSuccess={handleGoogleLinkSuccess}
-                      onError={() => alert('Failed')}
-                      useOneTap={false}
-                      theme="filled_black"
-                      size="medium"
-                      shape="rectangular"
-                    />
-                  )}
+                  <div className="relative z-10 shrink-0">
+                    {isLinkingGoogle ? (
+                      <span className="text-brutal-black font-black text-xs uppercase tracking-widest px-4 py-2 bg-brutal-yellow border-4 border-brutal-black shadow-neo-sm">Đang xử lý...</span>
+                    ) : (
+                      <div className="bg-white p-1 shadow-neo-sm border-4 border-brutal-black inline-block">
+                        <GoogleLogin
+                          onSuccess={handleGoogleLinkSuccess}
+                          onError={() => alert('Thất bại')}
+                          useOneTap={false}
+                          theme="outline"
+                          size="medium"
+                          shape="rectangular"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </motion.div>
@@ -536,7 +534,7 @@ function ArrowRight(props: any) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="2.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       {...props}

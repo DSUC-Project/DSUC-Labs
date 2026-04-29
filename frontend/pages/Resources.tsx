@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { motion } from 'framer-motion';
@@ -7,6 +6,14 @@ import { useStore } from '../store/useStore';
 import { Resource, ResourceCategory } from '../types';
 
 const CATEGORIES: ResourceCategory[] = ['Learning', 'Training', 'Document', 'Media', 'Hackathon'];
+
+const CATEGORY_LABELS: Record<ResourceCategory, string> = {
+  Learning: 'Học tập',
+  Training: 'Đào tạo',
+  Document: 'Tài liệu',
+  Media: 'Truyền thông',
+  Hackathon: 'Hackathon'
+};
 
 export function Resources() {
   const { resources, addResource, currentUser } = useStore();
@@ -18,57 +25,62 @@ export function Resources() {
 
   const handleAddClick = () => {
     if (!currentUser) {
-      alert('Please sign in first!');
+      alert('Vui lòng đăng nhập trước!');
       return;
     }
     if (!canManage) {
-      alert('Community accounts cannot create resources.');
+      alert('Tài khoản cộng đồng không thể thêm tài nguyên.');
       return;
     }
     setIsModalOpen(true);
   };
 
   return (
-    <div>
-      <div className="flex flex-col md:flex-row justify-between items-end mb-12 border-b border-cyber-blue/20 pb-6 gap-6">
+    <div className="pt-10 pb-20 px-4 sm:px-6 max-w-7xl mx-auto">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-12 border-b border-slate-200 pb-6 gap-6">
          <div>
-            <h2 className="text-4xl font-display font-bold mb-1 text-white">KNOWLEDGE BASE</h2>
-            <p className="text-cyber-blue font-mono text-sm">Classified intel and assets.</p>
+            <h2 className="text-4xl sm:text-5xl font-display font-bold mb-2 text-slate-800 tracking-tight">KHO LƯU TRỮ</h2>
+            <p className="text-slate-500 font-medium text-sm">Tài liệu, khóa học và các tài nguyên nội bộ của DSUC.</p>
          </div>
-         <div className="flex flex-wrap gap-2">
+         <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
            <button 
              onClick={() => setFilter('All')} 
-             className={`px-4 py-1 text-xs font-bold font-display uppercase border ${filter === 'All' ? 'bg-white text-black border-white' : 'border-white/20 text-white/40 hover:text-white'}`}
+             className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-full transition-colors whitespace-nowrap ${filter === 'All' ? 'bg-sky-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
            >
-             All
+             Tất cả
            </button>
            {CATEGORIES.map(cat => (
              <button
                 key={cat}
                 onClick={() => setFilter(cat)}
-                className={`px-4 py-1 text-xs font-bold font-display uppercase border ${filter === cat ? 'bg-cyber-blue text-white border-cyber-blue' : 'border-white/20 text-white/40 hover:text-white'}`}
+                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-full transition-colors whitespace-nowrap ${filter === cat ? 'bg-sky-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
              >
-               {cat}
+               {CATEGORY_LABELS[cat] || cat}
              </button>
            ))}
            <button 
              onClick={handleAddClick}
              disabled={!canManage}
-             className={`ml-4 px-4 py-2 font-bold font-display text-xs cyber-button flex items-center gap-2 ${
+             className={`ml-0 lg:ml-2 mt-2 lg:mt-0 px-5 py-2 font-bold text-xs rounded-full flex items-center justify-center gap-2 w-full lg:w-auto transition-colors ${
                canManage
-                 ? 'bg-cyber-yellow text-black hover:bg-white' 
-                 : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
+                 ? 'bg-amber-400 text-amber-950 hover:bg-amber-500 shadow-sm' 
+                 : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
              }`}
            >
-             <Plus size={14} /> ADD
+             <Plus size={16} /> THÊM MỚI
            </button>
          </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {filteredResources.map((resource, i) => (
           <ResourceCard key={resource.id} resource={resource} index={i} />
         ))}
+        {filteredResources.length === 0 && (
+           <div className="col-span-full py-16 text-center text-slate-500 font-medium bg-slate-50 rounded-3xl border border-slate-100">
+             Chưa có tài nguyên nào trong mục này.
+           </div>
+        )}
       </div>
 
       <AddResourceModal isOpen={isModalOpen && canManage} onClose={() => setIsModalOpen(false)} onAdd={addResource} />
@@ -92,33 +104,37 @@ function ResourceCard({ resource, index }: { resource: Resource, index: number, 
     if (resource.url) {
       window.open(resource.url, '_blank', 'noopener,noreferrer');
     } else {
-      alert('Resource link not available');
+      alert('Chưa có link cho tài nguyên này');
     }
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={{ opacity: 0, scale: 0.95, y: 10 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
       onClick={handleAccess}
-      className="cyber-card p-6 group cursor-pointer hover:bg-cyber-blue/5 transition-colors flex flex-col items-center text-center gap-4 border border-cyber-blue/20 hover:border-cyber-blue bg-surface/50"
+      className="bg-white p-6 group cursor-pointer hover:-translate-y-1 hover:-translate-x-1 hover:shadow-neo-lg transition-all flex flex-col items-center text-center gap-5 border-4 border-brutal-black h-full overflow-hidden relative brutal-card"
     >
-      <div className={`w-14 h-14 bg-cyber-blue/10 flex items-center justify-center text-cyber-blue group-hover:scale-110 transition-transform duration-300 clip-path-polygon border border-cyber-blue/20`}>
-        <Icon size={24} />
+      <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-brutal-blue to-brutal-yellow scale-x-0 group-hover:scale-x-100 transition-transform origin-left border-b-2 border-brutal-black" />
+
+      <div className="w-16 h-16 bg-brutal-yellow text-brutal-black flex items-center justify-center group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-300 border-4 border-brutal-black shadow-neo-sm mt-3">
+        <Icon size={32} />
       </div>
 
-      <div>
-        <h3 className="font-bold font-display text-sm mb-1 line-clamp-1 text-white">{resource.name}</h3>
-        <p className="text-[9px] text-white/40 uppercase font-bold tracking-wider font-mono">{resource.category} {resource.size && `• ${resource.size}`}</p>
+      <div className="flex-1 flex flex-col justify-center w-full">
+        <h3 className="font-black font-display text-brutal-black text-lg mb-3 line-clamp-2 leading-tight uppercase group-hover:underline decoration-brutal-pink decoration-2 underline-offset-2">{resource.name}</h3>
+        <p className="text-[10px] text-brutal-black font-black uppercase tracking-widest bg-brutal-green px-3 py-1.5 border-2 border-brutal-black shadow-neo-sm inline-block w-fit mx-auto">
+          {CATEGORY_LABELS[resource.category] || resource.category} {resource.size && `• ${resource.size}`}
+        </p>
       </div>
 
       <button
         onClick={(e) => { e.stopPropagation(); handleAccess(); }}
-        className="relative z-10 pointer-events-auto mt-auto w-full py-2 bg-white/5 text-[10px] font-bold font-mono hover:bg-cyber-blue hover:text-white transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 duration-200 uppercase tracking-widest"
+        className="w-full mt-auto py-3 bg-white text-brutal-black font-black text-sm hover:bg-brutal-blue transition-colors flex items-center justify-center gap-2 uppercase tracking-wide border-4 border-brutal-black shadow-neo-sm hover:shadow-neo-none hover:translate-x-0.5 hover:translate-y-0.5"
       >
-        <Download size={10} />
-        ACCESS DATA
+        <Download size={18} />
+        Truy Cập
       </button>
     </motion.div>
   );
@@ -145,24 +161,43 @@ function AddResourceModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose
 
   return ReactDOM.createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
       <motion.div 
-        initial={{ scale: 0.9, opacity: 0 }} 
-        animate={{ scale: 1, opacity: 1 }} 
-        className="bg-surface cyber-card border border-cyber-blue/50 p-6 md:p-8 w-full max-w-md relative z-10 my-8"
+        initial={{ scale: 0.95, opacity: 0, y: 20 }} 
+        animate={{ scale: 1, opacity: 1, y: 0 }} 
+        className="bg-white rounded-[2rem] border border-slate-100 p-8 w-full max-w-md relative z-10 my-8 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <button onClick={onClose} className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors z-10">
+        <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 p-2 rounded-full transition-colors z-10">
           <X size={20} />
         </button>
-        <h3 className="text-xl md:text-2xl font-display font-bold mb-4 md:mb-6 text-cyber-blue uppercase pr-8">UPLOAD RESOURCE</h3>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <input name="name" placeholder="Resource Name" required className="w-full bg-black/50 border border-white/10 p-2.5 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
-          <input name="url" placeholder="URL Link" required className="w-full bg-black/50 border border-white/10 p-2.5 text-white focus:border-cyber-blue outline-none font-mono text-sm" />
-          <select name="category" className="w-full bg-black/50 border border-white/10 p-2.5 text-white focus:border-cyber-blue outline-none font-mono text-sm">
-            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <button type="submit" className="relative z-10 pointer-events-auto w-full bg-cyber-yellow text-black font-display font-bold py-2.5 cyber-button hover:bg-white transition-colors uppercase tracking-widest text-sm">UPLOAD TO VAULT</button>
+        
+        <div className="mb-8 pr-8">
+          <h3 className="text-2xl font-display font-bold text-slate-800">Thêm Tài Nguyên</h3>
+          <p className="text-slate-500 font-medium text-sm mt-2">Chia sẻ tài liệu vào kho lưu trữ chung của câu lạc bộ.</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Tên tài nguyên</label>
+            <input name="name" placeholder="Ví dụ: Slide buổi Training ReactJS" required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none font-medium text-sm transition-all shadow-sm" />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Liên kết (URL)</label>
+            <input name="url" placeholder="https://drive.google.com/..." required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sky-600 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none font-medium text-sm transition-all shadow-sm" />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Phân loại</label>
+            <select name="category" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none font-medium text-sm transition-all shadow-sm appearance-none">
+              {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_LABELS[c] || c}</option>)}
+            </select>
+          </div>
+
+          <button type="submit" className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-4 rounded-full transition-all shadow-sm hover:shadow uppercase tracking-wider text-sm mt-6">
+            Tải Lên Máy Chủ
+          </button>
         </form>
       </motion.div>
     </div>,

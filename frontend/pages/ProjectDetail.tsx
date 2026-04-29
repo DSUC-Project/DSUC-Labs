@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -13,58 +12,62 @@ export function ProjectDetail() {
   const project = projects.find(p => p.id === id);
 
   if (!project) {
-    return <div className="text-white text-center pt-20">SYSTEM NOT FOUND</div>;
+    return <div className="text-slate-800 text-center pt-20 font-bold uppercase tracking-widest">Không tìm thấy hệ thống</div>;
   }
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
-    alert('LINK COPIED TO CLIPBOARD');
+    alert('ĐÃ SAO CHÉP LIÊN KẾT');
   };
 
   return (
-    <div className="max-w-4xl mx-auto pt-10">
+    <div className="max-w-4xl mx-auto pt-10 pb-20 px-4 sm:px-6">
       <button 
         onClick={() => navigate('/projects')}
-        className="mb-8 flex items-center gap-2 text-white/40 hover:text-cyber-yellow transition-colors font-mono text-xs uppercase tracking-widest"
+        className="mb-8 flex items-center gap-2 text-slate-500 hover:text-sky-600 transition-colors font-bold text-xs uppercase tracking-widest px-4 py-2 bg-white rounded-full border border-slate-200 shadow-sm hover:shadow"
       >
-        <ArrowLeft size={16} /> Return to Projects
+        <ArrowLeft size={16} /> Quay Lại DSKT
       </button>
 
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-surface/50 cyber-card border border-cyber-blue p-8 md:p-12 relative overflow-hidden"
+        className="bg-white border-4 border-brutal-black p-8 md:p-12 relative overflow-hidden shadow-neo-xl"
       >
         {/* Background Grid Accent */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-cyber-blue/5 rounded-bl-full pointer-events-none" />
+        <div className="absolute top-0 right-0 w-80 h-80 bg-brutal-blue opacity-10 pointer-events-none -mr-20 -mt-20" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-brutal-yellow opacity-10 pointer-events-none -ml-20 -mb-20" />
+        
         <button 
           onClick={handleCopyLink}
-          className="absolute top-6 right-6 text-white/30 hover:text-white transition-colors"
-          title="Share Link"
+          className="absolute top-8 right-8 text-brutal-black hover:bg-brutal-pink bg-brutal-yellow p-3 border-2 border-brutal-black transition-colors z-20 shadow-neo-sm hover:shadow-neo-none hover:translate-x-1 hover:translate-y-1"
+          title="Chia Sẻ Liên Kết"
         >
-          <Share2 size={20} />
+          <Share2 size={24} />
         </button>
 
-        <div className="flex flex-col md:flex-row items-start gap-8 mb-10 relative z-10">
-           <div className="w-24 h-24 bg-cyber-blue/10 border border-cyber-blue/30 flex items-center justify-center text-cyber-blue shrink-0 cyber-clip-top">
+        <div className="flex flex-col md:flex-row items-start gap-8 mb-12 relative z-10">
+           <div className="w-28 h-28 bg-brutal-blue border-4 border-brutal-black flex items-center justify-center text-white shrink-0 shadow-neo-sm rotate-3 hover:rotate-6 transition-transform duration-300">
               <Rocket size={48} />
            </div>
            
-           <div className="flex-1">
-              <div className="flex flex-wrap items-center gap-2 mb-4">
-                 <span className="px-3 py-1 bg-cyber-yellow/10 text-cyber-yellow text-xs font-mono font-bold uppercase border border-cyber-yellow/20">
+           <div className="flex-1 mt-2">
+              <div className="flex flex-wrap items-center gap-3 mb-5">
+                 <span className="px-4 py-1.5 bg-brutal-yellow text-brutal-black text-xs font-bold uppercase tracking-widest border-2 border-brutal-black shadow-neo-sm">
                    {project.category}
                  </span>
-                 <span className="text-xs text-green-500 font-mono flex items-center gap-1 bg-green-500/10 px-2 py-1 rounded-full border border-green-500/20">
-                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" /> SYSTEM ONLINE
+                 <span className="text-xs text-brutal-black font-bold tracking-widest uppercase flex items-center gap-2 bg-brutal-green px-4 py-1.5 border-2 border-brutal-black shadow-neo-sm">
+                   <div className="w-2 h-2 bg-brutal-black rounded-full animate-ping opacity-75 absolute" />
+                   <div className="w-2 h-2 bg-brutal-black rounded-full relative z-10" />
+                   Hệ Thống Trực Tuyến
                  </span>
               </div>
               
-              <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-4 leading-tight">{project.name}</h1>
+              <h1 className="text-4xl md:text-5xl font-display font-black text-brutal-black mb-5 leading-tight tracking-tight uppercase underline decoration-brutal-blue decoration-4 underline-offset-4">{project.name}</h1>
               
               <div className="flex flex-wrap gap-2">
                 {project.builders.map(b => (
-                   <span key={b} className="text-xs font-mono text-white/60 uppercase bg-white/5 px-2 py-1 rounded-sm border border-white/10 hover:border-white/30 transition-colors cursor-default">
+                   <span key={b} className="text-xs font-bold tracking-wide text-brutal-black uppercase bg-white px-3 py-1.5 border-2 border-brutal-black hover:bg-brutal-pink transition-colors cursor-default shadow-neo-sm">
                      {b}
                    </span>
                 ))}
@@ -72,32 +75,32 @@ export function ProjectDetail() {
            </div>
         </div>
 
-        <div className="mb-10 relative z-10">
-           <h3 className="text-sm font-mono text-cyber-blue uppercase mb-4 tracking-widest flex items-center gap-2">
-             <span className="w-4 h-[1px] bg-cyber-blue" /> System Overview
+        <div className="mb-12 relative z-10 bg-white border-4 border-brutal-black p-8 shadow-neo">
+           <h3 className="text-sm font-black text-brutal-black uppercase mb-4 tracking-widest flex items-center gap-3 border-b-2 border-brutal-black pb-2">
+             <span className="w-3 h-3 bg-brutal-pink border-2 border-brutal-black block" /> Tổng Quan Dự Án
            </h3>
-           <p className="text-white/80 font-sans leading-relaxed text-lg border-l-2 border-white/10 pl-6">
+           <p className="text-brutal-black font-bold leading-relaxed pl-5 border-l-4 border-brutal-blue">
              {project.description}
            </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
            <a 
              href={project.link} 
              target="_blank" 
              rel="noreferrer"
-             className="bg-cyber-blue text-white hover:bg-white hover:text-black py-4 cyber-button font-display font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-colors"
+             className="bg-brutal-blue text-brutal-black border-4 border-brutal-black py-4 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-neo hover:shadow-neo-none hover:translate-x-1 hover:translate-y-1 transition-all"
            >
-             <ExternalLink size={18} /> INITIALIZE DEMO
+             <ExternalLink size={20} /> Khởi Động Demo
            </a>
            {project.repoLink && (
              <a 
                href={project.repoLink} 
                target="_blank" 
                rel="noreferrer"
-               className="bg-black border border-white/20 text-white hover:border-cyber-blue hover:text-cyber-blue py-4 cyber-button font-display font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-colors"
+               className="bg-white text-brutal-black border-4 border-brutal-black py-4 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-neo hover:shadow-neo-none hover:translate-x-1 hover:translate-y-1 transition-all hover:bg-brutal-yellow"
              >
-               <Github size={18} /> ACCESS SOURCE
+               <Github size={20} /> Truy Cập Mã Nguồn
              </a>
            )}
         </div>

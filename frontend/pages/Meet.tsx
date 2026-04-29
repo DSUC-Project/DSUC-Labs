@@ -91,8 +91,8 @@ export function Meet() {
   if (isJoining) {
     return (
       <div className="h-[90vh] flex flex-col items-center justify-center space-y-6">
-        <Loader2 className="w-16 h-16 text-cyber-blue animate-spin" />
-        <h2 className="text-2xl font-display font-bold text-white uppercase tracking-widest animate-pulse">Establishing Secure Uplink...</h2>
+        <Loader2 className="w-16 h-16 text-sky-500 animate-spin" />
+        <h2 className="text-2xl font-display font-bold text-slate-800 tracking-wide animate-pulse">Đang kết nối vào phòng...</h2>
       </div>
     );
   }
@@ -107,32 +107,32 @@ export function Meet() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
                 onClick={() => setShowComingSoon(false)}
               />
               <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="relative bg-[#050B14] border border-cyber-yellow/30 p-8 shadow-[0_0_40px_rgba(255,214,0,0.15)] max-w-sm w-full text-center"
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                className="relative bg-white rounded-3xl p-8 shadow-2xl border border-slate-100 max-w-sm w-full text-center"
               >
                 <button
                   onClick={() => setShowComingSoon(false)}
-                  className="absolute top-4 right-4 text-white/50 hover:text-white"
+                  className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-colors"
                 >
                   <X size={20} />
                 </button>
-                <div className="w-16 h-16 rounded-full border border-cyber-yellow/30 bg-cyber-yellow/10 flex items-center justify-center mx-auto mb-6 text-cyber-yellow animate-pulse">
-                  <Video size={32} />
+                <div className="w-20 h-20 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto mb-6 text-amber-500 shadow-inner">
+                  <Video size={40} className="animate-pulse" />
                 </div>
-                <h2 className="text-2xl font-display font-bold text-white mb-2 uppercase tracking-wider">
-                  Feature Coming Soon
+                <h2 className="text-2xl font-display font-bold text-slate-800 mb-2">
+                  Tính năng sắp ra mắt
                 </h2>
-                <p className="text-white/60 font-mono text-sm leading-relaxed mb-6 uppercase">
-                  Secure Comms infrastructure is currently undergoing recalibration. ETA: Unknown.
+                <p className="text-slate-500 font-medium text-sm leading-relaxed mb-8">
+                  Hệ thống giao tiếp nội bộ DSUC đang được bảo trì và nâng cấp để mang lại chất lượng kết nối tốt hơn. Quay lại sau nhé!
                 </p>
-                <button onClick={() => setShowComingSoon(false)} className="w-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-mono text-xs uppercase tracking-widest py-3 transition-colors">
-                  Acknowledge
+                <button onClick={() => setShowComingSoon(false)} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm uppercase tracking-wider py-4 rounded-full transition-colors">
+                  Đã hiểu
                 </button>
               </motion.div>
             </div>
@@ -140,56 +140,56 @@ export function Meet() {
         </AnimatePresence>
 
         <div className="flex-1 space-y-8 animate-in slide-in-from-left-8 duration-500">
-          <h1 className="text-4xl md:text-5xl font-display font-bold text-white leading-tight">
-            Premium covert comms.<br />
-            <span className="text-cyber-blue">For operational teams.</span>
+          <h1 className="text-4xl md:text-5xl font-display font-bold text-slate-800 leading-tight">
+            Kết nối chất lượng cao.<br />
+            <span className="text-sky-600">Dành cho cộng đồng.</span>
           </h1>
-          <p className="text-white/60 font-mono">
-            We engineered DSUC Meet to protect your operational security during sensitive briefings.
+          <p className="text-slate-500 text-lg font-medium">
+            DSUC Meet được thiết kế để mang lại trải nghiệm họp trực tuyến mượt mà và bảo mật cho tất cả các thành viên trong câu lạc bộ.
           </p>
           <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
             <button
               onClick={handleNewMeeting}
-              className="bg-cyber-blue text-black hover:bg-white px-6 py-3 font-display font-bold text-sm uppercase tracking-widest cyber-button flex items-center gap-2 w-full sm:w-auto justify-center"
+              className="bg-sky-600 text-white hover:bg-sky-700 hover:shadow-md px-6 py-4 rounded-full font-bold text-sm uppercase tracking-wider flex items-center gap-2 w-full sm:w-auto justify-center transition-all"
             >
-              <Video className="w-5 h-5" /> New Meeting
+              <Video className="w-5 h-5" /> Cuộc họp mới
             </button>
-            <form onSubmit={handleJoin} className="relative w-full sm:w-auto">
-              <Keyboard className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 w-5 h-5" />
+            <form onSubmit={handleJoin} className="relative w-full sm:w-auto flex-1">
+              <Keyboard className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Enter a link"
+                placeholder="Nhập mã cuộc họp"
                 value={meetingCode}
                 onChange={e => setMeetingCode(e.target.value)}
-                className="w-full sm:w-72 bg-surface border border-white/20 px-10 py-3 text-white focus:outline-none focus:border-cyber-blue font-mono transition-colors"
+                className="w-full bg-slate-50 border border-slate-200 rounded-full px-12 py-4 text-slate-800 focus:outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100 font-medium transition-all"
                 required
               />
               <button
                 type="submit"
                 disabled={!meetingCode}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-cyber-blue font-bold font-display uppercase tracking-widest text-sm disabled:opacity-50 hover:text-white"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-sky-600 font-bold uppercase tracking-widest text-sm disabled:opacity-50 hover:text-sky-800 transition-colors"
               >
-                Join
+                Tham gia
               </button>
             </form>
           </div>
-          <div className="pt-8 border-t border-white/10 text-sm text-white/40 font-mono">
-            <a href="#" className="hover:text-cyber-blue transition-colors underline decoration-white/20 underline-offset-4">Learn more</a> about DSUC operations.
+          <div className="pt-8 border-t border-slate-100 text-sm text-slate-500 font-medium tracking-wide">
+            <a href="#" className="font-bold text-sky-600 hover:text-sky-700 transition-colors">Tìm hiểu thêm</a> về bảo mật của DSUC Meet.
           </div>
         </div>
 
         <div className="flex-1 w-full max-w-md animate-in slide-in-from-right-8 duration-500 delay-150">
-          <div className="aspect-square rounded-full border border-cyber-blue/10 flex items-center justify-center relative bg-gradient-to-tr from-cyber-blue/5 to-surface/50 shadow-[0_0_50px_rgba(41,121,255,0.05)]">
-             <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#050B14] to-transparent z-10 rounded-b-full"></div>
+          <div className="aspect-square rounded-full border border-sky-100 flex items-center justify-center relative bg-gradient-to-tr from-sky-50 to-white shadow-xl overflow-hidden">
+             <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-sky-100/50 to-transparent z-10"></div>
              <motion.div
                animate={{ y: [0, -10, 0] }}
                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                className="relative z-20"
              >
-               <div className="w-64 h-64 border-2 border-dashed border-cyber-blue/30 rounded-full flex items-center justify-center bg-black/50 overflow-hidden relative group">
-                 <img src="/logo.png" alt="DSUC Logo" className="w-32 h-32 object-contain opacity-20 grayscale brightness-200 pointer-events-none" />
-                 <div className="absolute inset-0 bg-cyber-blue/10 flex items-center justify-center mix-blend-overlay">
-                    <Video className="w-12 h-12 text-cyber-blue/50 drop-shadow-[0_0_10px_rgba(41,121,255,0.8)]" />
+               <div className="w-64 h-64 border-4 border-white shadow-lg rounded-full flex items-center justify-center bg-sky-50 overflow-hidden relative group">
+                 <img src="/logo.png" alt="DSUC Logo" className="w-32 h-32 object-contain opacity-20 pointer-events-none" />
+                 <div className="absolute inset-0 bg-sky-200/20 flex items-center justify-center mix-blend-overlay">
+                    <Video className="w-16 h-16 text-sky-600 drop-shadow-md" />
                  </div>
                </div>
              </motion.div>
@@ -199,113 +199,113 @@ export function Meet() {
     );
   }
 
-  // Active Meeting View
+  // Active Meeting View (Rethemed)
   return (
-    <div className="h-[90vh] bg-black flex flex-col pt-4">
+    <div className="h-[90vh] bg-slate-900 flex flex-col pt-4">
        <div className={`flex-1 p-4 grid gap-4 auto-rows-fr ${isScreenSharing ? 'grid-cols-1 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
 
           {/* Screen Share View */}
           {isScreenSharing && (
-            <div className="bg-surface/80 rounded-2xl border border-cyber-blue/50 overflow-hidden relative col-span-1 lg:col-span-3 shadow-[0_0_40px_rgba(41,121,255,0.2)]">
-              <video ref={screenRef} autoPlay playsInline muted className="w-full h-full object-contain bg-zinc-900" />
+            <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden relative col-span-1 lg:col-span-3 shadow-md">
+              <video ref={screenRef} autoPlay playsInline muted className="w-full h-full object-contain bg-black" />
               <div className="absolute top-4 left-4 flex gap-2">
-                 <div className="bg-cyber-blue/80 px-3 py-1 rounded-md border border-cyber-blue font-bold text-black text-xs uppercase tracking-widest animate-pulse">
-                    Screen Shared
+                 <div className="bg-sky-500/90 px-3 py-1.5 rounded-lg font-bold text-white text-xs uppercase tracking-widest animate-pulse border border-sky-400">
+                    Đang chia sẻ MH
                  </div>
               </div>
             </div>
           )}
 
           {/* Main User Camera */}
-          <div className={`bg-surface/80 rounded-2xl border border-white/10 overflow-hidden relative group shadow-[0_0_40px_rgba(0,0,0,0.5)] ${isScreenSharing ? 'col-span-1' : 'col-span-1 md:col-span-2 lg:col-span-2'}`}>
+          <div className={`bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden relative group shadow-md ${isScreenSharing ? 'col-span-1' : 'col-span-1 md:col-span-2 lg:col-span-2'}`}>
             {isVideoOn ? (
-               <div className="w-full h-full bg-zinc-900 flex items-center justify-center relative overflow-hidden">
+               <div className="w-full h-full bg-slate-950 flex items-center justify-center relative overflow-hidden">
                  <video autoPlay playsInline muted ref={videoRef} className="absolute w-full h-full object-cover -scale-x-100" />
                </div>
             ) : (
-               <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
-                 <div className="w-32 h-32 rounded-full border border-white/20 flex items-center justify-center overflow-hidden bg-black/50 shadow-lg">
+               <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                 <div className="w-32 h-32 rounded-full border-4 border-slate-700 flex items-center justify-center overflow-hidden bg-slate-900 shadow-xl">
                     {currentUser?.avatar ? (
                       <img src={currentUser.avatar} alt="You" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-4xl text-white/50">{currentUser?.name?.[0] || '?'}</span>
+                      <span className="text-4xl font-display font-medium text-slate-400">{currentUser?.name?.[0] || '?'}</span>
                     )}
                  </div>
                </div>
             )}
             <div className="absolute top-4 left-4 flex gap-2 z-10">
                {!isMicOn && (
-                 <div className="bg-red-500/80 px-2 py-1 rounded-md border border-red-400">
-                    <MicOff className="w-4 h-4 text-white" />
+                 <div className="bg-rose-500/90 px-2 py-2 rounded-full shadow-sm text-white">
+                    <MicOff className="w-4 h-4" />
                  </div>
                )}
             </div>
-            <div className="absolute bottom-4 left-4 text-white font-display font-medium text-lg drop-shadow-md bg-black/50 px-3 py-1 rounded border border-white/10 z-10 backdrop-blur-sm">
-              {currentUser?.name || 'You'} (Operative)
+            <div className="absolute bottom-4 left-4 text-white font-medium drop-shadow-md bg-slate-900/60 px-3 py-1.5 rounded-lg border border-slate-700 z-10 backdrop-blur-sm text-sm">
+              {currentUser?.name || 'Bạn'}
             </div>
           </div>
 
           {/* Other participant placeholder */}
-          <div className="bg-surface/80 rounded-2xl border border-white/10 overflow-hidden relative shadow-[0_0_40px_rgba(0,0,0,0.5)]">
-            <div className="w-full h-full bg-zinc-900 flex items-center justify-center relative">
-              <div className="w-24 h-24 rounded-full border border-white/10 flex items-center justify-center bg-black/50 shadow-lg relative">
-                  <span className="text-3xl text-white/50 font-display">C</span>
+          <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden relative shadow-md">
+            <div className="w-full h-full bg-slate-800 flex items-center justify-center relative">
+              <div className="w-24 h-24 rounded-full border-4 border-slate-700 flex items-center justify-center bg-slate-900 shadow-xl relative">
+                  <span className="text-3xl font-display font-medium text-slate-400">C</span>
               </div>
             </div>
-            <div className="absolute bottom-4 left-4 text-white font-display font-medium bg-black/50 px-3 py-1 rounded border border-white/10 backdrop-blur-sm">
-              Commander HQ
+            <div className="absolute bottom-4 left-4 text-white font-medium bg-slate-900/60 px-3 py-1.5 rounded-lg border border-slate-700 backdrop-blur-sm text-sm">
+              Quản trị viên
             </div>
-            <div className="absolute top-4 left-4 bg-red-500/80 px-2 py-1 rounded-md border border-red-400">
+            <div className="absolute top-4 left-4 bg-rose-500/90 p-2 rounded-full shadow-sm">
               <MicOff className="w-4 h-4 text-white" />
             </div>
           </div>
        </div>
 
        {/* Controls Bar */}
-       <div className="h-24 px-6 flex items-center justify-between">
-          <div className="flexitems-center gap-4 w-1/3">
-             <div className="text-white/80 font-mono text-sm tracking-widest bg-white/5 px-3 py-2 rounded border border-white/10 flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                {meetingCode || 'hq-xyz'}
+       <div className="h-24 px-6 flex items-center justify-between border-t border-slate-800">
+          <div className="flex items-center gap-4 w-1/3">
+             <div className="text-slate-300 font-medium text-sm tracking-wide bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-700 flex items-center gap-3">
+                <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full relative"><div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-75"></div></div>
+                {meetingCode || 'dsuc-meet-abc'}
              </div>
           </div>
 
-          <div className="flex items-center justify-center gap-3 w-1/3">
+          <div className="flex items-center justify-center gap-4 w-1/3">
             <button
               onClick={toggleAudio}
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${isMicOn ? 'bg-surface border border-white/20 hover:bg-white/10 text-white' : 'bg-red-500 hover:bg-red-600 text-white'}`}
+              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isMicOn ? 'bg-slate-800 border border-slate-700 hover:bg-slate-700 text-white' : 'bg-rose-500 hover:bg-rose-600 text-white shadow-lg'}`}
             >
-               {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+               {isMicOn ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
             </button>
             <button
               onClick={toggleVideo}
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${isVideoOn ? 'bg-surface border border-white/20 hover:bg-white/10 text-white' : 'bg-red-500 hover:bg-red-600 text-white'}`}
+              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isVideoOn ? 'bg-slate-800 border border-slate-700 hover:bg-slate-700 text-white' : 'bg-rose-500 hover:bg-rose-600 text-white shadow-lg'}`}
             >
-               {isVideoOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+               {isVideoOn ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
             </button>
             <button
               onClick={toggleScreenShare}
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors hidden sm:flex ${isScreenSharing ? 'bg-cyber-blue text-black border border-cyber-blue shadow-[0_0_15px_rgba(41,121,255,0.4)]' : 'bg-surface border border-white/20 text-white hover:bg-white/10'}`}
+              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all hidden sm:flex ${isScreenSharing ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/30' : 'bg-slate-800 border border-slate-700 text-white hover:bg-slate-700'}`}
             >
-               <MonitorUp className="w-5 h-5" />
+               <MonitorUp className="w-6 h-6" />
             </button>
-            <button className="w-12 h-12 rounded-full bg-surface border border-white/20 text-white flex items-center justify-center hover:bg-white/10 transition-colors hidden sm:flex">
-               <Settings className="w-5 h-5" />
+            <button className="w-14 h-14 rounded-full bg-slate-800 border border-slate-700 text-white flex items-center justify-center hover:bg-slate-700 transition-colors hidden sm:flex">
+               <Settings className="w-6 h-6" />
             </button>
             <button
               onClick={handleLeave}
-              className="w-14 h-12 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors px-4 ml-2"
+              className="w-20 h-14 rounded-3xl bg-rose-500 text-white flex items-center justify-center hover:bg-rose-600 transition-colors ml-4 shadow-lg"
             >
-               <PhoneOff className="w-5 h-5" />
+               <PhoneOff className="w-6 h-6" />
             </button>
           </div>
 
-          <div className="flex items-center justify-end gap-3 w-1/3">
-            <button className="text-white/60 hover:text-white transition-colors relative">
+          <div className="flex items-center justify-end gap-5 w-1/3">
+            <button className="text-slate-400 hover:text-white transition-colors relative">
                <Users className="w-6 h-6" />
-               <span className="absolute -top-1 -right-1 bg-cyber-blue text-black text-[10px] font-bold px-1.5 rounded-full">2</span>
+               <span className="absolute -top-1 -right-2 bg-sky-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-slate-900">2</span>
             </button>
-            <button className="text-white/60 hover:text-white transition-colors ml-4 hidden sm:block">
+            <button className="text-slate-400 hover:text-white transition-colors hidden sm:block">
                <MessageSquare className="w-6 h-6" />
             </button>
           </div>

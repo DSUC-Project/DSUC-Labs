@@ -42,8 +42,8 @@ function flattenCourseUnits(course: AcademyV2CourseDetail): FlatUnit[] {
 
 function unitStateText(unit: AcademyV2UnitSummary) {
   return unit.section === 'practice'
-    ? 'Hands-on lab, challenge checks, and reinforcement.'
-    : 'Concept lesson and guided explanation for this module.';
+    ? 'Thực hành tương tác, kiểm tra thử thách và củng cố kiến thức.'
+    : 'Bài giảng lý thuyết và giải thích chi tiết cho phần này.';
 }
 
 function countCompletedModuleUnits(
@@ -58,14 +58,14 @@ function countCompletedModuleUnits(
 
 function difficultyLabel(value: AcademyV2CourseDetail['difficulty']) {
   if (value === 'advanced') {
-    return 'Advanced';
+    return 'Nâng cao';
   }
 
   if (value === 'intermediate') {
-    return 'Intermediate';
+    return 'Trung cấp';
   }
 
-  return 'Beginner';
+  return 'Cơ bản';
 }
 
 function moduleAnchor(moduleId: string) {
@@ -116,7 +116,7 @@ export function AcademyCourse() {
         }
       } catch (err: any) {
         if (!cancelled) {
-          setError(err.message || 'Failed to load academy course.');
+          setError(err.message || 'Không thể tải khóa học.');
         }
       } finally {
         if (!cancelled) {
@@ -133,18 +133,18 @@ export function AcademyCourse() {
 
   if (loading) {
     return (
-      <div className="space-y-6 pb-20">
-        <div className="h-72 animate-pulse rounded-[30px] border border-white/10 bg-surface/55" />
+      <div className="space-y-6 pb-20 mt-10">
+        <div className="h-72 animate-pulse rounded-3xl bg-white border border-slate-100 shadow-sm" />
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-5">
             {Array.from({ length: 3 }).map((_, index) => (
               <div
                 key={index}
-                className="h-64 animate-pulse rounded-[28px] border border-white/10 bg-surface/55"
+                className="h-64 animate-pulse rounded-3xl bg-white border border-slate-100 shadow-sm"
               />
             ))}
           </div>
-          <div className="h-80 animate-pulse rounded-[28px] border border-white/10 bg-surface/55" />
+          <div className="h-80 animate-pulse rounded-3xl bg-white border border-slate-100 shadow-sm" />
         </div>
       </div>
     );
@@ -152,29 +152,29 @@ export function AcademyCourse() {
 
   if (!course) {
     return (
-      <div className="rounded-[26px] border border-red-400/35 bg-red-500/10 p-6 text-red-100">
-        <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-red-200/80">
-          Course unavailable
+      <div className="rounded-2xl border border-rose-100 bg-rose-50 p-8 text-center mt-10">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-rose-100 text-rose-500 mb-4">
+           <Code2 className="w-6 h-6" />
         </div>
-        <h1 className="mt-3 font-display text-2xl font-black uppercase tracking-[0.1em] text-white">
-          Could not open this course
+        <h1 className="font-display text-2xl font-bold text-slate-800">
+          Không thể mở khóa học này
         </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-red-100/85">
-          {error || 'The course could not be loaded from the Academy catalog right now.'}
+        <p className="mt-2 max-w-xl mx-auto text-sm text-slate-500">
+          {error || 'Khóa học không thể tải được từ danh mục ngay lúc này. Vui lòng thử lại sau.'}
         </p>
-        <div className="mt-5 flex flex-wrap gap-3">
+        <div className="mt-8 flex flex-wrap justify-center gap-4">
           <button
             type="button"
             onClick={() => setReloadNonce((value) => value + 1)}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-cyber-yellow px-5 text-sm font-display font-bold uppercase tracking-[0.16em] text-black transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="inline-flex items-center gap-2 rounded-full bg-sky-600 px-6 py-3 text-sm font-bold tracking-wider text-white transition-all hover:bg-sky-700 hover:shadow-md"
           >
-            Retry load
+            Tải lại
           </button>
           <Link
             to="/academy"
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/12 bg-white/5 px-5 text-sm font-display font-bold uppercase tracking-[0.16em] text-white transition-colors hover:border-cyber-blue/40 hover:text-cyber-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-bold tracking-wider text-slate-700 transition-all hover:bg-slate-50 hover:text-sky-600"
           >
-            Back to Academy
+            Quay lại học viện
           </Link>
         </div>
       </div>
@@ -202,246 +202,258 @@ export function AcademyCourse() {
   }).length;
 
   return (
-    <div className="space-y-8 pb-20">
-      <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(255,214,0,0.18),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(41,121,255,0.18),transparent_28%),linear-gradient(180deg,rgba(6,10,18,0.95),rgba(8,12,20,0.78))] p-6 shadow-[0_24px_70px_rgba(0,0,0,0.22)] sm:p-8 lg:p-10">
-        <div className="absolute inset-0 bg-grid-pattern bg-[size:32px_32px] opacity-[0.08]" />
-        <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1.3fr)_360px] lg:items-end">
-          <div className="space-y-6">
-            <Link
-              to={course.path_id ? `/academy/path/${course.path_id}` : '/academy'}
-              className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-black/25 px-4 text-[11px] font-mono font-bold uppercase tracking-[0.24em] text-cyber-blue transition-colors hover:border-cyber-blue/45 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-              Back to {course.path_title || 'Academy'}
-            </Link>
+    <div className="space-y-12 pb-20 mt-10">
+      <section className="bg-brutal-blue border-4 border-brutal-black p-6 sm:p-10 relative overflow-hidden brutal-card rounded-none shadow-neo-xl flex flex-col xl:flex-row xl:items-start xl:justify-between gap-8">
+        <div className="absolute right-0 top-0 w-64 h-64 bg-brutal-yellow rounded-full border-8 border-brutal-black translate-x-1/2 -translate-y-1/2 pointer-events-none" />
 
-            <div className="flex flex-wrap gap-2">
-              <span className="inline-flex min-h-10 items-center rounded-full border border-cyber-blue/20 bg-cyber-blue/10 px-4 text-[10px] font-mono font-bold uppercase tracking-[0.28em] text-cyber-blue">
-                {course.path_title || 'Curated course'}
-              </span>
-              <span className="inline-flex min-h-10 items-center rounded-full border border-white/10 bg-white/5 px-4 text-[10px] font-mono uppercase tracking-[0.24em] text-white/58">
-                {difficultyLabel(course.difficulty)}
-              </span>
-              <span className="inline-flex min-h-10 items-center rounded-full border border-cyber-yellow/20 bg-cyber-yellow/10 px-4 text-[10px] font-mono uppercase tracking-[0.24em] text-cyber-yellow">
-                Stage {String(Math.max(1, course.track_level || 1)).padStart(2, '0')}
-              </span>
-            </div>
+        <div className="relative z-10 space-y-6 flex-1 max-w-4xl">
+          <Link
+            to={course.path_id ? `/academy/path/${course.path_id}` : '/academy'}
+            className="inline-flex min-h-12 items-center justify-center gap-3 bg-white border-4 border-brutal-black px-5 py-2 text-sm font-black uppercase tracking-widest text-brutal-black shadow-neo hover:-translate-y-1 hover:shadow-neo-lg transition-all w-fit pointer-events-auto"
+          >
+            <ArrowLeft className="h-5 w-5" strokeWidth={3} aria-hidden="true" />
+            Về {course.path_title ? 'Lộ trình' : 'Học viện'}
+          </Link>
 
-            <div className="space-y-4">
-              <h1 className="max-w-5xl font-display text-4xl font-black uppercase leading-[0.94] tracking-[0.12em] text-white sm:text-6xl">
-                {course.title}
-              </h1>
-              <p className="max-w-4xl text-base leading-8 text-white/72">{course.description}</p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {course.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="inline-flex min-h-10 items-center rounded-full border border-white/10 bg-white/5 px-3 text-[10px] font-mono uppercase tracking-[0.22em] text-white/60"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3 xl:max-w-3xl">
-              <CourseMetric
-                icon={<Flame className="h-4 w-4" aria-hidden="true" />}
-                label="Effort"
-                value={`${course.duration_hours}h`}
-              />
-              <CourseMetric
-                icon={<Layers3 className="h-4 w-4" aria-hidden="true" />}
-                label="Modules"
-                value={String(course.module_count)}
-              />
-              <CourseMetric
-                icon={<Sparkles className="h-4 w-4" aria-hidden="true" />}
-                label="Practice"
-                value={String(course.practice_unit_count)}
-              />
-            </div>
+          <div className="flex flex-wrap gap-3">
+            <span className="inline-flex items-center justify-center bg-brutal-black px-4 py-2 text-xs font-black uppercase tracking-widest text-white shadow-neo-sm">
+              {course.path_title || 'Khóa học'}
+            </span>
+            <span className="inline-flex items-center justify-center bg-brutal-yellow px-4 py-2 text-xs font-black uppercase tracking-widest text-brutal-black border-4 border-brutal-black shadow-neo-sm transform -rotate-2">
+              {difficultyLabel(course.difficulty)}
+            </span>
+            <span className="inline-flex items-center justify-center bg-brutal-green px-4 py-2 text-xs font-black uppercase tracking-widest text-brutal-black border-4 border-brutal-black shadow-neo-sm">
+              Chặng {String(Math.max(1, course.track_level || 1)).padStart(2, '0')}
+            </span>
           </div>
 
-          <div className="rounded-[28px] border border-cyber-yellow/20 bg-black/24 p-5 shadow-[0_0_24px_rgba(255,214,0,0.07)] backdrop-blur-sm">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-cyber-yellow/78">
-                  Continue
-                </div>
-                <h2 className="mt-3 font-display text-2xl font-black uppercase tracking-[0.1em] text-white">
-                  {firstIncomplete ? firstIncomplete.title : 'Course complete'}
-                </h2>
-                <p className="mt-3 text-sm leading-7 text-white/66">
-                  {firstIncomplete
-                    ? `Next up in ${firstIncomplete.moduleTitle}: open the next unlocked unit and keep the route moving.`
-                    : 'Every learn and practice unit in this course is marked complete.'}
-                </p>
+          <div>
+            <h1 className="font-display text-5xl font-black text-white sm:text-6xl uppercase tracking-tighter" style={{ textShadow: '4px 4px 0 #111827' }}>
+              {course.title}
+            </h1>
+            <p className="mt-4 max-w-3xl text-sm font-bold text-gray-800 bg-white/90 border-4 border-brutal-black p-4 shadow-neo-sm">
+               {course.description}
+            </p>
+          </div>
+
+          {course.tags.length > 0 && (
+             <div className="flex flex-wrap gap-2">
+               {course.tags.map((tag) => (
+                 <span
+                   key={tag}
+                   className="inline-flex items-center bg-white border-2 border-brutal-black px-2 py-1 text-[10px] font-black uppercase tracking-widest text-brutal-black shadow-neo-sm"
+                 >
+                   {tag}
+                 </span>
+               ))}
+             </div>
+          )}
+
+          <div className="grid gap-4 sm:grid-cols-3 max-w-2xl pt-2">
+            <CourseMetric
+              icon={<Flame className="h-5 w-5 text-white" strokeWidth={3} aria-hidden="true" />}
+              label="Thời lượng"
+              value={`${course.duration_hours}h`}
+              color="bg-brutal-black text-white"
+            />
+            <CourseMetric
+              icon={<Layers3 className="h-5 w-5 text-brutal-black" strokeWidth={3} aria-hidden="true" />}
+              label="Chương"
+              value={String(course.module_count)}
+              color="bg-white"
+            />
+            <CourseMetric
+              icon={<Sparkles className="h-5 w-5 text-brutal-black" strokeWidth={3} aria-hidden="true" />}
+              label="Thực hành"
+              value={String(course.practice_unit_count)}
+              color="bg-brutal-pink"
+            />
+          </div>
+        </div>
+
+        <div className="relative z-10 w-full xl:w-[400px] shrink-0 pointer-events-auto">
+          <div className="bg-white p-6 shadow-neo-lg relative overflow-hidden border-4 border-brutal-black brutal-card transform hover:translate-y-1 transition-transform duration-300">
+             <div className="absolute top-0 right-0 w-24 h-24 bg-brutal-blue rounded-full border-8 border-brutal-black translate-x-10 -translate-y-10 pointer-events-none" />
+            
+            <div className="relative z-10 border-b-4 border-brutal-black pb-4 mb-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-brutal-pink mb-1">
+                Tiếp tục học
               </div>
-              <div className="rounded-2xl border border-cyber-blue/20 bg-cyber-blue/10 px-3 py-2 text-right">
-                <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/46">
-                  Completed
-                </div>
-                <div className="mt-1 font-display text-2xl font-black text-white">
-                  {completedCount}/{course.total_unit_count}
-                </div>
-              </div>
+              <h2 className="font-display text-2xl font-black text-brutal-black uppercase tracking-tight line-clamp-2">
+                {firstIncomplete ? firstIncomplete.title : 'ĐÃ HOÀN TẤT!'}
+              </h2>
             </div>
 
-            <div className="mt-5 overflow-hidden rounded-full border border-white/10 bg-black/30">
-              <div
-                className="h-3 rounded-full bg-gradient-to-r from-cyber-blue via-white to-cyber-yellow transition-[width] duration-500"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
+            <div className="relative z-10 space-y-4">
+               {firstIncomplete ? (
+                 <p className="text-sm font-bold bg-brutal-yellow/20 border-2 border-brutal-black p-3">
+                   {firstIncomplete.moduleTitle}
+                 </p>
+               ) : (
+                 <p className="text-sm font-bold bg-brutal-green/20 border-2 border-brutal-black p-3">
+                   Tuyệt vời, bạn đã hoàn thành khóa học này!
+                 </p>
+               )}
 
-            <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-[20px] border border-white/10 bg-white/5 px-4 py-3">
-                <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/42">
-                  Modules cleared
-                </div>
-                <div className="mt-2 font-display text-xl font-black text-white">
-                  {completedModules}/{course.module_count}
-                </div>
-              </div>
-              <div className="rounded-[20px] border border-white/10 bg-white/5 px-4 py-3">
-                <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/42">
-                  Challenge labs
-                </div>
-                <div className="mt-2 font-display text-xl font-black text-white">
-                  {course.practice_unit_count}
-                </div>
-              </div>
-            </div>
+               <div>
+                 <div className="flex justify-between items-center text-[10px] font-black text-brutal-black uppercase tracking-widest mb-2">
+                   <span>Tiến độ</span>
+                   <span className="text-brutal-blue">{Math.round(progressPercent)}%</span>
+                 </div>
+                 <div className="border-2 border-brutal-black bg-gray-100 relative h-3 w-full">
+                   <div
+                     className="absolute top-0 left-0 h-full bg-brutal-blue border-r-2 border-brutal-black transition-all duration-1000 ease-out"
+                     style={{ width: `${progressPercent}%` }}
+                   />
+                 </div>
+               </div>
 
-            <button
-              type="button"
-              onClick={() =>
-                firstIncomplete
-                  ? navigate(`/academy/unit/${course.id}/${firstIncomplete.id}`)
-                  : navigate(course.path_id ? `/academy/path/${course.path_id}` : '/academy')
-              }
-              className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-cyber-yellow px-5 text-sm font-display font-bold uppercase tracking-[0.16em] text-black transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              {firstIncomplete ? 'Resume route' : 'Back to path'}
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </button>
+               <div className="grid grid-cols-2 gap-3">
+                 <div className="bg-white border-2 border-brutal-black px-3 py-2 text-center">
+                   <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Đã xong</div>
+                   <div className="font-display text-2xl font-black text-brutal-black">{completedModules}/{course.module_count}</div>
+                 </div>
+                 <div className="bg-white border-2 border-brutal-black px-3 py-2 text-center">
+                   <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Thực hành</div>
+                   <div className="font-display text-2xl font-black text-brutal-black">{course.practice_unit_count}</div>
+                 </div>
+               </div>
+
+               <button
+                 type="button"
+                 onClick={() =>
+                   firstIncomplete
+                     ? navigate(`/academy/unit/${course.id}/${firstIncomplete.id}`)
+                     : navigate(course.path_id ? `/academy/path/${course.path_id}` : '/academy')
+                 }
+                 className="mt-2 inline-flex min-h-12 w-full items-center justify-center gap-3 bg-brutal-black px-5 text-xs font-black uppercase tracking-widest text-white hover:bg-brutal-yellow hover:text-brutal-black border-4 border-transparent hover:border-brutal-black hover:shadow-neo-sm transition-all"
+               >
+                 {firstIncomplete ? 'TIẾP TỤC HỌC' : 'QUAY LẠI LỘ TRÌNH'}
+                 <ArrowRight className="h-4 w-4" strokeWidth={3} aria-hidden="true" />
+               </button>
+            </div>
           </div>
         </div>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="space-y-5">
-          <div>
-            <div>
-              <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-cyber-blue/75">
-                Curriculum
-              </div>
-              <h2 className="mt-2 font-display text-3xl font-black uppercase tracking-[0.12em] text-white">
-                Learn, then practice
-              </h2>
-            </div>
+      <div className="grid gap-12 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <section className="space-y-10">
+          <div className="flex items-center gap-3 px-2">
+             <div className="w-10 h-2 bg-brutal-black" />
+             <span className="text-brutal-black font-black text-sm uppercase tracking-widest bg-brutal-yellow px-2 py-1 border-2 border-brutal-black shadow-neo-sm">Lộ trình bài giảng</span>
+          </div>
+          
+          <div className="px-2">
+             <h2 className="font-display text-4xl sm:text-5xl font-black text-brutal-black uppercase tracking-tighter decoration-brutal-pink decoration-4 underline underline-offset-8 mt-4">
+                Học thuyết & thực hành
+             </h2>
+             <p className="mt-6 max-w-2xl text-lg font-bold text-gray-700 bg-white border-l-8 border-brutal-black pl-4 py-2">
+                Nội dung mỗi chương được thiết kế để kết hợp hài hòa giữa việc nạp lý thuyết mới và áp dụng ngay vào bài tập thực tế.
+             </p>
           </div>
 
-          {course.modules.map((module, index) => {
-            const moduleCompleted = countCompletedModuleUnits(
-              module,
-              progress.state.completedLessons,
-              course.id
-            );
-            const moduleTotal = module.learn_units.length + module.practice_units.length;
-            const modulePercent = moduleTotal > 0 ? Math.round((moduleCompleted / moduleTotal) * 100) : 0;
+          <div className="space-y-10 mt-10">
+             {course.modules.map((module, index) => {
+               const moduleCompleted = countCompletedModuleUnits(
+                 module,
+                 progress.state.completedLessons,
+                 course.id
+               );
+               const moduleTotal = module.learn_units.length + module.practice_units.length;
+               const modulePercent = moduleTotal > 0 ? Math.round((moduleCompleted / moduleTotal) * 100) : 0;
 
-            return (
-              <section
-                key={module.id}
-                id={moduleAnchor(module.id)}
-                className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]"
-              >
-                <div className="absolute right-[-72px] top-[-72px] h-40 w-40 rounded-full bg-cyber-blue/8 blur-3xl" />
-                <div className="relative flex flex-col gap-6 border-b border-white/8 pb-6 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-4">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="inline-flex min-h-10 items-center rounded-full border border-cyber-blue/20 bg-cyber-blue/10 px-3 text-[10px] font-mono font-bold uppercase tracking-[0.28em] text-cyber-blue">
-                        Module {String(index + 1).padStart(2, '0')}
-                      </span>
-                      <span className="inline-flex min-h-10 items-center rounded-full border border-white/10 bg-white/5 px-3 text-[10px] font-mono uppercase tracking-[0.22em] text-white/58">
-                        {moduleCompleted}/{moduleTotal} units complete
-                      </span>
-                    </div>
-                    <div>
-                      <h3 className="font-display text-2xl font-black uppercase tracking-[0.1em] text-white sm:text-3xl">
-                        {module.title}
-                      </h3>
-                      <p className="mt-3 max-w-4xl text-sm leading-7 text-white/64">
-                        {module.description || 'This module is part of the curated route and keeps concept work separate from practice work.'}
-                      </p>
-                    </div>
-                  </div>
+               return (
+                 <section
+                   key={module.id}
+                   id={moduleAnchor(module.id)}
+                   className="bg-white border-4 border-brutal-black shadow-neo"
+                 >
+                   <div className="flex flex-col gap-6 p-6 lg:p-8 border-b-4 border-brutal-black lg:flex-row lg:items-start lg:justify-between relative overflow-hidden bg-white">
+                     <div className="absolute top-0 left-0 w-full h-2 bg-gray-200 border-b-2 border-brutal-black">
+                        <div className="h-full bg-brutal-pink border-r-2 border-brutal-black transition-all ease-out duration-1000" style={{ width: `${modulePercent}%` }} />
+                     </div>
+                     <div className="flex-1 space-y-4 py-2">
+                       <div className="flex flex-wrap items-center gap-3">
+                         <span className="inline-flex items-center justify-center bg-brutal-blue border-4 border-brutal-black text-white px-3 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-neo-sm transform -rotate-1">
+                           Chương {String(index + 1).padStart(2, '0')}
+                         </span>
+                         <span className="inline-flex items-center justify-center bg-gray-100 border-4 border-brutal-black px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
+                           {moduleCompleted}/{moduleTotal} hoàn thành
+                         </span>
+                       </div>
+                       <div>
+                         <h3 className="font-display text-3xl font-black uppercase tracking-tight text-brutal-black w-full break-words">
+                           {module.title}
+                         </h3>
+                         {module.description && (
+                           <p className="mt-3 text-sm font-bold text-gray-700 bg-gray-50 p-3 border-2 border-brutal-black w-full border-dashed">
+                             {module.description}
+                           </p>
+                         )}
+                       </div>
+                     </div>
 
-                  <div className="grid gap-3 sm:grid-cols-3 lg:w-[320px]">
-                    <CompactMetric label="Learn" value={String(module.learn_units.length)} />
-                    <CompactMetric label="Practice" value={String(module.practice_units.length)} />
-                    <CompactMetric label="Progress" value={`${modulePercent}%`} />
-                  </div>
-                </div>
+                     <div className="grid gap-3 grid-cols-3 lg:w-[280px] shrink-0 xl:w-[320px]">
+                       <CompactMetric label="Lý thuyết" value={String(module.learn_units.length)} color="bg-white" />
+                       <CompactMetric label="Thực hành" value={String(module.practice_units.length)} color="bg-brutal-yellow" />
+                       <CompactMetric label="Hoàn thành" value={`${modulePercent}%`} color="bg-brutal-green" />
+                     </div>
+                   </div>
 
-                <div className="mt-5 overflow-hidden rounded-full border border-white/10 bg-black/22">
-                  <div
-                    className="h-2 rounded-full bg-gradient-to-r from-cyber-blue via-white to-cyber-yellow transition-[width] duration-500"
-                    style={{ width: `${modulePercent}%` }}
-                  />
-                </div>
-
-                <div className="mt-6 grid gap-6 xl:grid-cols-2">
-                  <UnitLane
-                    title="Learn"
-                    subtitle="Read, watch, and anchor the core concepts."
-                    units={module.learn_units}
-                    courseId={course.id}
-                    flatUnits={flatUnits}
-                    completedLessons={progress.state.completedLessons}
-                  />
-                  <UnitLane
-                    title="Practice"
-                    subtitle="Apply the lesson with challenge-style reinforcement."
-                    units={module.practice_units}
-                    courseId={course.id}
-                    flatUnits={flatUnits}
-                    completedLessons={progress.state.completedLessons}
-                  />
-                </div>
-              </section>
-            );
-          })}
+                   <div className="p-4 lg:p-6 bg-gray-100 border-b-4 border-brutal-black">
+                     <div className="grid gap-6 xl:grid-cols-2">
+                       <UnitLane
+                         title="Lý thuyết"
+                         subtitle="Đọc và xem nội dung."
+                         units={module.learn_units}
+                         courseId={course.id}
+                         flatUnits={flatUnits}
+                         completedLessons={progress.state.completedLessons}
+                       />
+                       <UnitLane
+                         title="Thực hành"
+                         subtitle="Áp dụng kiến thức."
+                         units={module.practice_units}
+                         courseId={course.id}
+                         flatUnits={flatUnits}
+                         completedLessons={progress.state.completedLessons}
+                       />
+                     </div>
+                   </div>
+                 </section>
+               );
+             })}
+          </div>
         </section>
 
-        <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
+        <aside className="space-y-6 xl:sticky xl:top-24 xl:self-start">
           {course.instructor && (
-            <div className="rounded-[26px] border border-white/10 bg-surface/72 p-5 shadow-[0_12px_32px_rgba(0,0,0,0.16)]">
-              <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-cyber-yellow/72">
-                Instructor
-              </div>
-              <div className="mt-4 flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyber-yellow/20 bg-cyber-yellow/10 text-cyber-yellow">
-                  <User className="h-5 w-5" aria-hidden="true" />
-                </div>
-                <div>
-                  <div className="font-display text-xl font-black uppercase tracking-[0.08em] text-white">
-                    {course.instructor.name}
-                  </div>
-                  <p className="mt-3 text-sm leading-7 text-white/62">{course.instructor.bio}</p>
-                </div>
+            <div className="bg-white p-6 border-4 border-brutal-black shadow-neo relative overflow-hidden brutal-card">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-brutal-yellow rounded-full blur-none border-8 border-brutal-black translate-x-10 -translate-y-10" />
+              <div className="relative z-10">
+                 <div className="text-[10px] font-black uppercase tracking-widest text-brutal-black bg-white border-2 border-brutal-black shadow-neo-sm px-2 py-1 inline-block mb-6">
+                   Giảng viên
+                 </div>
+                 <div className="flex flex-col gap-4">
+                   <div className="flex h-20 w-20 items-center justify-center bg-brutal-blue border-4 border-brutal-black shadow-neo-sm text-white">
+                     <User className="h-10 w-10" strokeWidth={3} aria-hidden="true" />
+                   </div>
+                   <div>
+                     <div className="font-display text-2xl font-black text-brutal-black mb-2 uppercase">
+                       {course.instructor.name}
+                     </div>
+                     <p className="text-sm font-bold text-gray-800 leading-relaxed bg-gray-100 p-3 border-2 border-brutal-black">{course.instructor.bio}</p>
+                   </div>
+                 </div>
               </div>
             </div>
           )}
 
-          <div className="rounded-[26px] border border-white/10 bg-surface/72 p-5 shadow-[0_12px_32px_rgba(0,0,0,0.16)]">
-            <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-cyber-blue/75">
-              Jump to module
+          <div className="bg-white p-6 border-4 border-brutal-black shadow-neo brutal-card lg:max-h-[calc(100vh-200px)] overflow-y-auto brutal-scrollbar">
+            <div className="text-[11px] font-black uppercase tracking-widest text-brutal-pink mb-6 border-b-4 border-brutal-black pb-2">
+              Mục lục khóa học
             </div>
-            <div className="mt-4 space-y-3">
+            <div className="space-y-4">
               {course.modules.map((module, index) => {
                 const completed = countCompletedModuleUnits(
                   module,
@@ -455,22 +467,22 @@ export function AcademyCourse() {
                   <a
                     key={module.id}
                     href={`#${moduleAnchor(module.id)}`}
-                    className="group block rounded-[20px] border border-white/10 bg-white/4 p-4 transition-colors hover:border-cyber-blue/38 hover:bg-cyber-blue/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    className="group block bg-white border-4 border-brutal-black p-4 transition-all hover:translate-x-1 hover:-translate-y-1 hover:shadow-neo-sm"
                   >
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center justify-between gap-4">
                       <div>
-                        <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/38">
-                          Module {String(index + 1).padStart(2, '0')}
+                        <div className="text-[10px] font-black uppercase tracking-widest text-brutal-blue group-hover:text-brutal-pink transition-colors">
+                          Chương {String(index + 1).padStart(2, '0')}
                         </div>
-                        <div className="mt-2 font-display text-lg font-black uppercase tracking-[0.08em] text-white transition-colors group-hover:text-cyber-yellow">
+                        <div className="mt-1 font-display text-sm font-black text-brutal-black line-clamp-2 uppercase">
                           {module.title}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-cyber-blue">
+                      <div className="text-right border-l-4 border-brutal-black pl-3 shrink-0">
+                        <div className="text-sm font-black text-brutal-black bg-brutal-yellow px-1 py-0.5 border-2 border-brutal-black shadow-neo-sm">
                           {percent}%
                         </div>
-                        <div className="mt-1 text-xs text-white/46">
+                        <div className="text-[11px] font-black text-gray-600 mt-1 uppercase">
                           {completed}/{total}
                         </div>
                       </div>
@@ -505,36 +517,35 @@ function UnitLane({
 
   if (units.length === 0) {
     return (
-      <div className="rounded-[24px] border border-dashed border-white/12 bg-black/18 p-5">
-        <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-cyber-yellow/75">
-          {title}
+      <div className="border-4 border-dashed border-brutal-black p-8 bg-white flex flex-col items-center justify-center text-center shadow-neo">
+        <div className="w-16 h-16 bg-gray-200 border-4 border-brutal-black grid place-items-center mb-6 shadow-neo-sm">
+           <BookOpen className="w-8 h-8 text-brutal-black" strokeWidth={2} />
         </div>
-        <h4 className="mt-2 font-display text-xl font-black uppercase tracking-[0.1em] text-white">
-          {subtitle}
-        </h4>
-        <p className="mt-4 text-sm leading-7 text-white/50">No units are attached to this lane yet.</p>
+        <div className="text-[11px] font-black uppercase tracking-widest bg-brutal-black text-white px-2 py-1 shadow-neo-sm mb-3">
+          Phần {title}
+        </div>
+        <p className="text-sm text-gray-800 font-bold max-w-[200px]">Chưa có bài học nào được thêm vào đây.</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-[24px] border border-white/10 bg-black/18 p-5">
-      <div className="flex items-center justify-between gap-4">
+    <div className="flex flex-col h-full bg-white border-4 border-brutal-black shadow-neo">
+      <div className="flex items-center justify-between gap-4 border-b-4 border-brutal-black p-5 bg-brutal-blue">
         <div>
-          <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-cyber-yellow/75">
-            {title}
+          <div className="text-[10px] font-black uppercase tracking-widest text-white mb-1 border-b-2 border-white pb-0.5 inline-block">
+            Phần {title}
           </div>
-          <h4 className="mt-2 font-display text-xl font-black uppercase tracking-[0.1em] text-white">
+          <h4 className="font-display text-xl font-black text-white uppercase tracking-tight" style={{ textShadow: '2px 2px 0 #111827' }}>
             {subtitle}
           </h4>
         </div>
-        <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-mono uppercase tracking-[0.22em] text-white/52">
-          {units.length} units
+        <div className="bg-brutal-yellow border-4 border-brutal-black px-3 py-1 text-[10px] font-black uppercase tracking-widest text-brutal-black shrink-0 shadow-neo-sm">
+          {units.length} Bài
         </div>
       </div>
 
-      <div className="relative mt-5 space-y-3 pl-7">
-        <div className="absolute bottom-3 left-2 top-3 w-px bg-gradient-to-b from-cyber-blue/45 via-white/10 to-cyber-yellow/35" />
+      <div className="flex-1 p-3 space-y-3 bg-white">
         {units.map((unit) => {
           const flatIndex = flatUnits.findIndex((item) => item.id === unit.id);
           const previous = flatIndex > 0 ? flatUnits[flatIndex - 1] : null;
@@ -543,77 +554,61 @@ function UnitLane({
           const done = isAcademyV2UnitCompleted(completedLessons, courseId, unit.id);
 
           return (
-            <div key={unit.id} className="relative">
-              <div
-                className={`absolute -left-[1.625rem] top-6 h-3 w-3 rounded-full border ${
-                  done
-                    ? 'border-cyber-yellow bg-cyber-yellow shadow-[0_0_10px_rgba(255,214,0,0.45)]'
-                    : locked
-                      ? 'border-white/20 bg-background'
-                      : unit.section === 'practice'
-                        ? 'border-cyber-blue bg-cyber-blue/90 shadow-[0_0_10px_rgba(41,121,255,0.45)]'
-                        : 'border-white/20 bg-white/30'
-                }`}
-              />
-              <button
+             <button
+                key={unit.id}
                 type="button"
                 disabled={locked}
                 onClick={() => !locked && navigate(`/academy/unit/${courseId}/${unit.id}`)}
-                className={`group w-full rounded-[20px] border px-4 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                className={`group w-full p-4 text-left transition-all border-4 border-brutal-black relative overflow-hidden flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 ${
                   locked
-                    ? 'cursor-not-allowed border-white/10 bg-white/4 opacity-55'
+                    ? 'cursor-not-allowed bg-gray-100 opacity-80'
                     : done
-                      ? 'border-cyber-yellow/25 bg-cyber-yellow/10 transition-colors hover:bg-cyber-yellow/14'
-                      : 'border-white/10 bg-white/4 transition-colors transition-transform hover:-translate-y-0.5 hover:border-cyber-blue/38 hover:bg-cyber-blue/8'
+                      ? 'bg-brutal-green hover:translate-x-0.5 hover:-translate-y-0.5 hover:shadow-neo focus-visible:outline-none focus:ring-2 focus:ring-brutal-blue'
+                      : 'bg-white hover:translate-x-0.5 hover:-translate-y-0.5 hover:shadow-neo hover:bg-brutal-yellow focus-visible:outline-none focus:ring-2 focus:ring-brutal-blue'
                 }`}
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-[0.22em] text-white/42">
-                      <span>{unit.type}</span>
-                      <span className="text-white/24">/</span>
-                      <span>{unit.section}</span>
-                      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-white/58">
-                        {unit.xp_reward} XP
-                      </span>
-                      {unit.language && (
-                        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-white/58">
-                          {unit.language}
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-3 font-display text-lg font-black uppercase tracking-[0.08em] text-white transition-colors group-hover:text-cyber-yellow">
-                      {unit.title}
-                    </div>
-                    <p className="mt-2 text-sm leading-7 text-white/58">
-                      {locked
-                        ? 'Finish the previous route step first to unlock this unit.'
-                        : done
-                          ? 'This unit is already marked complete in your course progress.'
-                          : unitStateText(unit)}
-                    </p>
-                  </div>
+                {done && (
+                   <div className="absolute top-0 right-0 w-12 h-12 bg-white rounded-full translate-x-6 -translate-y-6 opacity-20 pointer-events-none" />
+                )}
 
-                  <div className="flex shrink-0 items-center gap-2">
-                    {locked ? (
-                      <Lock className="h-4 w-4 text-white/35" aria-hidden="true" />
-                    ) : done ? (
-                      <CheckCircle2 className="h-5 w-5 text-cyber-yellow" aria-hidden="true" />
-                    ) : unit.section === 'practice' ? (
-                      <Code2 className="h-5 w-5 text-cyber-blue" aria-hidden="true" />
-                    ) : (
-                      <BookOpen className="h-5 w-5 text-white/46" aria-hidden="true" />
-                    )}
-                    {!locked && (
-                      <ChevronRight
-                        className="h-4 w-4 text-cyber-blue transition-transform group-hover:translate-x-1 group-hover:text-cyber-yellow"
-                        aria-hidden="true"
-                      />
-                    )}
+                <div className="flex-1 min-w-0 pr-2">
+                  <div className="flex flex-wrap items-center gap-2 mb-2 text-[10px] font-black uppercase tracking-widest">
+                     {unit.section === 'learn' ? (
+                        <span className={`px-2 py-0.5 border-2 border-brutal-black shadow-neo-sm ${done ? 'bg-white text-brutal-black' : 'bg-brutal-pink text-brutal-black'}`}>{unit.type}</span>
+                     ) : (
+                        <span className={`px-2 py-0.5 border-2 border-brutal-black shadow-neo-sm ${done ? 'bg-white text-brutal-black' : 'bg-brutal-blue text-white'}`}>{unit.type}</span>
+                     )}
+                     
+                     {unit.xp_reward && (
+                       <span className="bg-white border-2 border-brutal-black px-2 py-0.5 shadow-neo-sm">
+                         {unit.xp_reward} XP
+                       </span>
+                     )}
+
+                     {unit.language && (
+                       <span className="px-2 py-0.5 bg-brutal-black text-white border-2 border-transparent shadow-neo-sm">
+                         {unit.language}
+                       </span>
+                     )}
+                  </div>
+                  
+                  <div className={`font-display text-lg font-black uppercase leading-none truncate ${locked ? 'text-gray-500' : 'text-brutal-black group-hover:underline decoration-brutal-blue decoration-2 underline-offset-2'}`}>
+                    {unit.title}
                   </div>
                 </div>
+
+                <div className="hidden sm:flex shrink-0 items-center justify-center w-10 h-10 bg-white border-4 border-brutal-black shadow-neo-sm group-hover:bg-brutal-black group-hover:text-white transition-colors">
+                  {locked ? (
+                    <Lock className="h-4 w-4" strokeWidth={3} aria-hidden="true" />
+                  ) : done ? (
+                    <CheckCircle2 className="h-5 w-5 text-brutal-green group-hover:text-white" strokeWidth={4} aria-hidden="true" />
+                  ) : unit.section === 'practice' ? (
+                    <Code2 className="h-5 w-5 transition-colors" strokeWidth={3} aria-hidden="true" />
+                  ) : (
+                    <BookOpen className="h-5 w-5 transition-colors" strokeWidth={3} aria-hidden="true" />
+                  )}
+                </div>
               </button>
-            </div>
           );
         })}
       </div>
@@ -625,27 +620,33 @@ function CourseMetric({
   icon,
   label,
   value,
+  color,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
+  color?: string;
 }) {
   return (
-    <div className="rounded-[20px] border border-white/10 bg-black/20 p-4">
-      <div className="flex items-center gap-2 text-cyber-blue">{icon}</div>
-      <div className="mt-3 font-display text-2xl font-black text-white">{value}</div>
-      <div className="mt-1 text-[10px] font-mono uppercase tracking-[0.22em] text-white/42">
-        {label}
+    <div className={`${color || 'bg-white'} border-4 border-brutal-black p-4 shadow-neo-sm hover:-translate-y-1 hover:shadow-neo transition-all`}>
+      <div className="flex items-center gap-3 mb-3">
+         <div className="w-10 h-10 border-4 border-brutal-black bg-white flex items-center justify-center shadow-neo-sm">
+            {icon}
+         </div>
+         <div className="text-[10px] font-black uppercase tracking-widest bg-white text-brutal-black px-2 py-1 border-2 border-brutal-black shadow-neo-sm">
+           {label}
+         </div>
       </div>
+      <div className="font-display text-4xl font-black">{value}</div>
     </div>
   );
 }
 
-function CompactMetric({ label, value }: { label: string; value: string }) {
+function CompactMetric({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
-    <div className="rounded-[18px] border border-white/10 bg-black/18 px-4 py-3">
-      <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/40">{label}</div>
-      <div className="mt-2 font-display text-xl font-black text-white">{value}</div>
+    <div className={`${color || 'bg-white'} border-4 border-brutal-black p-2 flex flex-col items-center justify-center text-center shadow-neo-sm hover:-translate-y-1 transition-transform`}>
+      <div className="text-[10px] font-black uppercase tracking-widest text-brutal-black w-full border-b-2 border-brutal-black pb-1 mb-1 truncate">{label}</div>
+      <div className="font-display text-2xl font-black text-brutal-black leading-none">{value}</div>
     </div>
   );
 }

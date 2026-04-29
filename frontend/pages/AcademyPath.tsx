@@ -14,7 +14,6 @@ function pluralize(value: number, singular: string, plural: string) {
 
 function isCourseCompleted(pathState: ReturnType<typeof useAcademyProgressState>['state'], course: AcademyV2Path['courses'][number]) {
   const completed = countCompletedAcademyV2CourseUnits(pathState.completedLessons, course.id);
-
   return course.total_unit_count > 0 && completed >= course.total_unit_count;
 }
 
@@ -58,7 +57,7 @@ export function AcademyPath() {
 
         if (!cancelled) {
           if (!found) {
-            setError('Learning path not found.');
+            setError('Không tìm thấy lộ trình học.');
             setPath(null);
           } else {
             setPath(found);
@@ -66,7 +65,7 @@ export function AcademyPath() {
         }
       } catch (err: any) {
         if (!cancelled) {
-          setError(err.message || 'Failed to load learning path.');
+          setError(err.message || 'Không thể tải lộ trình học.');
         }
       } finally {
         if (!cancelled) {
@@ -83,9 +82,9 @@ export function AcademyPath() {
 
   if (loading) {
     return (
-      <div className="space-y-5">
+      <div className="space-y-6 mt-10">
         {Array.from({ length: 3 }).map((_, index) => (
-          <div key={index} className="h-40 animate-pulse rounded-[24px] border border-white/10 bg-surface/55" />
+          <div key={index} className="h-48 animate-pulse rounded-3xl bg-white border border-slate-100 shadow-sm" />
         ))}
       </div>
     );
@@ -93,8 +92,8 @@ export function AcademyPath() {
 
   if (!path) {
     return (
-      <div className="rounded-[24px] border border-red-400/35 bg-red-500/10 p-6 text-sm leading-7 text-red-100">
-        {error || 'Path not found.'}
+      <div className="mt-10 rounded-2xl bg-rose-50 p-6 text-sm font-bold text-rose-600 text-center border border-rose-100">
+        {error || 'Không tìm thấy lộ trình.'}
       </div>
     );
   }
@@ -102,57 +101,61 @@ export function AcademyPath() {
   const completedCourses = path.courses.filter((course) => isCourseCompleted(progress.state, course)).length;
 
   return (
-    <div className="space-y-10 pb-20">
-      <section className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(41,121,255,0.14),rgba(5,10,20,0.92))] p-6 shadow-[0_18px_60px_rgba(41,121,255,0.08)] sm:p-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-5">
-            <Link
-              to="/academy"
-              className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-black/20 px-4 text-[11px] font-mono font-bold uppercase tracking-[0.24em] text-cyber-blue transition-colors hover:border-cyber-blue/45 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-              Back to Academy
-            </Link>
-            <div>
-              <div className="inline-flex min-h-10 items-center rounded-full border border-cyber-yellow/25 bg-cyber-yellow/10 px-4 text-[10px] font-mono font-bold uppercase tracking-[0.28em] text-cyber-yellow">
-                {path.tag || path.difficulty}
-              </div>
-              <h1 className="mt-4 font-display text-4xl font-black uppercase tracking-[0.12em] text-white sm:text-6xl">
-                {path.title}
-              </h1>
-            </div>
-            <p className="max-w-3xl text-base leading-8 text-white/68">{path.description}</p>
-          </div>
+    <div className="space-y-12 pb-20 mt-10">
+      <section className="bg-brutal-blue border-4 border-brutal-black rounded-none p-6 sm:p-10 relative overflow-hidden shadow-neo-xl flex flex-col lg:flex-row gap-8 lg:items-center justify-between">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-brutal-pink rounded-full border-8 border-brutal-black translate-x-1/2 -translate-y-1/2 pointer-events-none" />
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            <PathMetric value={String(path.course_count)} label={pluralize(path.course_count, 'course', 'courses')} icon={<BookOpen className="h-4 w-4" aria-hidden="true" />} />
-            <PathMetric value={String(path.practice_unit_count)} label={pluralize(path.practice_unit_count, 'lab', 'labs')} icon={<Sparkles className="h-4 w-4" aria-hidden="true" />} />
-            <PathMetric value={String(completedCourses)} label="completed" icon={<Trophy className="h-4 w-4" aria-hidden="true" />} />
+        <div className="relative z-10 flex flex-col gap-6 max-w-3xl">
+          <Link
+            to="/academy"
+            className="inline-flex min-h-12 items-center justify-center gap-3 bg-white border-4 border-brutal-black px-5 py-2 text-sm font-black uppercase tracking-widest text-brutal-black shadow-neo hover:-translate-y-1 hover:shadow-neo-lg transition-all w-fit"
+          >
+            <ArrowLeft className="h-5 w-5" strokeWidth={3} aria-hidden="true" />
+            Về Học Viện
+          </Link>
+          
+          <div>
+            <div className="inline-flex items-center justify-center bg-brutal-yellow border-4 border-brutal-black px-4 py-1.5 text-xs font-black uppercase tracking-widest text-brutal-black shadow-neo-sm transform -rotate-2">
+              {path.tag || path.difficulty}
+            </div>
+            <h1 className="mt-4 font-display text-5xl font-black text-white sm:text-6xl uppercase tracking-tighter" style={{ textShadow: '4px 4px 0 #111827' }}>
+              {path.title}
+            </h1>
           </div>
+        </div>
+
+        <div className="relative z-10 grid gap-4 w-full lg:w-auto grid-cols-3 shrink-0">
+          <PathMetric value={String(path.course_count)} label={pluralize(path.course_count, 'Khóa', 'Khóa')} icon={<BookOpen className="h-6 w-6 text-brutal-black" strokeWidth={3} aria-hidden="true" />} color="bg-brutal-yellow" />
+          <PathMetric value={String(path.practice_unit_count)} label={pluralize(path.practice_unit_count, 'Thực hành', 'Thực hành')} icon={<Sparkles className="h-6 w-6 text-brutal-black" strokeWidth={3} aria-hidden="true" />} color="bg-brutal-pink" />
+          <PathMetric value={String(completedCourses)} label="Hoàn thành" icon={<Trophy className="h-6 w-6 text-brutal-black" strokeWidth={3} aria-hidden="true" />} color="bg-brutal-green" />
         </div>
       </section>
 
-      <section className="space-y-5">
-        <div className="flex items-center justify-between gap-4">
+      <section className="space-y-8 mt-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-2">
           <div>
-            <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-cyber-blue/75">
-              Ordered journey
+            <div className="flex items-center gap-3 mb-2">
+               <div className="w-10 h-2 bg-brutal-black" />
+               <span className="text-brutal-black font-black text-sm uppercase tracking-widest bg-brutal-yellow px-2 py-1 border-2 border-brutal-black shadow-neo-sm">Hành trình học tập</span>
             </div>
-            <h2 className="mt-2 font-display text-3xl font-black uppercase tracking-[0.12em] text-white">
-              Courses in this path
+            <h2 className="font-display text-4xl sm:text-5xl font-black text-brutal-black uppercase tracking-tighter decoration-brutal-pink decoration-4 underline underline-offset-8 mt-4">
+              Các khóa học
             </h2>
           </div>
-          <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-mono uppercase tracking-[0.2em] text-white/52">
-            Sequential unlock
+          <div className="bg-brutal-black border-2 border-brutal-black px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white shadow-neo-sm hidden sm:block">
+            Mở khóa lần lượt
           </div>
         </div>
 
         {path.courses.length === 0 ? (
-          <div className="rounded-[24px] border border-dashed border-white/15 bg-surface/55 p-8 text-sm leading-7 text-white/58">
-            Path này đang được giữ chỗ nhưng chưa có course nào được seed vào catalog.
+          <div className="bg-gray-100 border-4 border-brutal-black p-12 text-center shadow-neo brutal-card mt-8">
+             <div className="mx-auto w-24 h-24 bg-white border-4 border-brutal-black shadow-neo-sm flex items-center justify-center mb-6">
+                <BookOpen className="h-12 w-12 text-brutal-black" strokeWidth={2} />
+             </div>
+             <p className="text-brutal-black font-black uppercase text-xl">Lộ trình này đang được xây dựng. Các khóa học sẽ sớm được cập nhật.</p>
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-8 mt-8">
             {path.courses.map((course, index) => {
               const completed = countCompletedAcademyV2CourseUnits(progress.state.completedLessons, course.id);
               const isCompleted = course.total_unit_count > 0 && completed >= course.total_unit_count;
@@ -169,63 +172,68 @@ export function AcademyPath() {
                   type="button"
                   disabled={locked}
                   onClick={() => !locked && navigate(`/academy/course/${course.id}`)}
-                  className={`group flex w-full flex-col gap-5 rounded-[26px] border p-6 text-left transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                  className={`group flex w-full flex-col p-6 text-left transition-all border-4 border-brutal-black shadow-neo relative overflow-hidden ${
                     locked
-                      ? 'cursor-not-allowed border-white/10 bg-surface/45 opacity-60'
-                      : 'border-white/10 bg-surface/70 hover:-translate-y-1 hover:border-cyber-blue/45 hover:shadow-[0_18px_50px_rgba(41,121,255,0.08)]'
+                      ? 'cursor-not-allowed bg-gray-200 opacity-90 brightness-95'
+                      : 'bg-white transform hover:scale-[1.01] hover:-rotate-1 hover:shadow-neo-lg focus-visible:outline-none focus:ring-4 focus:ring-brutal-blue'
                   }`}
                 >
-                  <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="space-y-4">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="inline-flex min-h-10 items-center rounded-full border border-cyber-blue/20 bg-cyber-blue/10 px-3 text-[10px] font-mono font-bold uppercase tracking-[0.28em] text-cyber-blue">
-                          Stage {String(index + 1).padStart(2, '0')}
-                        </span>
-                        <span className="inline-flex min-h-10 items-center rounded-full border border-white/10 bg-white/5 px-3 text-[10px] font-mono uppercase tracking-[0.24em] text-white/56">
-                          {course.difficulty}
-                        </span>
-                        {locked ? (
-                          <span className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 text-[10px] font-mono uppercase tracking-[0.24em] text-white/56">
-                            <Lock className="h-3.5 w-3.5" aria-hidden="true" />
-                            Locked
-                          </span>
-                        ) : isCompleted ? (
-                          <span className="inline-flex min-h-10 items-center gap-2 rounded-full border border-cyber-yellow/25 bg-cyber-yellow/10 px-3 text-[10px] font-mono uppercase tracking-[0.24em] text-cyber-yellow">
-                            <Flame className="h-3.5 w-3.5" aria-hidden="true" />
-                            Completed
-                          </span>
-                        ) : null}
-                      </div>
-                      <div>
-                        <h3 className="font-display text-3xl font-black uppercase tracking-[0.12em] text-white transition-colors group-hover:text-cyber-yellow">
-                          {course.title}
-                        </h3>
-                        <p className="mt-3 max-w-4xl text-sm leading-7 text-white/64">{course.description}</p>
-                      </div>
-                    </div>
-
-                    <div className="grid shrink-0 grid-cols-2 gap-3 lg:w-[280px]">
-                      <PathMetric value={String(course.module_count)} label="modules" icon={<BookOpen className="h-4 w-4" aria-hidden="true" />} />
-                      <PathMetric value={String(course.practice_unit_count)} label="labs" icon={<Sparkles className="h-4 w-4" aria-hidden="true" />} />
-                      <PathMetric value={`${completionPercent}%`} label="progress" icon={<Trophy className="h-4 w-4" aria-hidden="true" />} />
-                      <PathMetric value={`${course.duration_hours}h`} label="effort" icon={<Flame className="h-4 w-4" aria-hidden="true" />} />
-                    </div>
-                  </div>
-
-                  <div className="overflow-hidden rounded-full border border-white/10 bg-black/20">
-                    <div
-                      className="h-2 rounded-full bg-gradient-to-r from-cyber-blue via-white to-cyber-yellow transition-all duration-500"
-                      style={{ width: `${completionPercent}%` }}
+                  <div className="absolute top-0 left-0 w-full h-2 bg-gray-200 border-b-4 border-brutal-black">
+                    <div 
+                      className={`h-full transition-all duration-1000 ease-out border-r-4 border-brutal-black ${isCompleted ? 'bg-brutal-green' : 'bg-brutal-blue'}`}
+                      style={{ width: `${completionPercent}%` }} 
                     />
                   </div>
 
-                  <div className="flex items-center justify-between gap-4 text-sm">
-                    <div className="text-white/56">
-                      {completed}/{course.total_unit_count} {pluralize(course.total_unit_count, 'unit', 'units')}
+                  <div className="flex flex-col xl:flex-row xl:items-start lg:justify-between w-full mt-2 gap-6">
+                    <div className="flex-1 w-full xl:max-w-[65%]">
+                      <div className="flex flex-wrap items-center gap-3 mb-4">
+                        <span className="inline-flex items-center justify-center bg-brutal-blue border-4 border-brutal-black px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white shadow-neo-sm transform group-hover:rotate-2 transition-transform">
+                          Chặng {String(index + 1).padStart(2, '0')}
+                        </span>
+                        <span className="inline-flex items-center justify-center bg-gray-100 border-4 border-brutal-black px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
+                          {course.difficulty}
+                        </span>
+                        {locked ? (
+                          <span className="inline-flex items-center gap-1.5 bg-brutal-black border-4 border-brutal-black px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white shadow-neo-sm">
+                            <Lock className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
+                            Đã khóa
+                          </span>
+                        ) : isCompleted ? (
+                          <span className="inline-flex items-center gap-1.5 bg-brutal-green border-4 border-brutal-black px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
+                            <Flame className="h-4 w-4" strokeWidth={3} aria-hidden="true" />
+                            Hoàn thành
+                          </span>
+                        ) : null}
+                      </div>
+
+                      <div className="w-full">
+                        <h3 className={`font-display text-4xl leading-none font-black uppercase tracking-tighter mb-4 transition-colors break-words ${locked ? 'text-gray-500' : 'text-brutal-black group-hover:underline decoration-brutal-blue decoration-4 underline-offset-4'}`}>
+                          {course.title}
+                        </h3>
+                        <p className="text-base font-bold text-gray-700 leading-relaxed bg-white/50 border-2 border-brutal-black p-4 w-full xl:min-h-[80px]">
+                          {course.description}
+                        </p>
+                      </div>
                     </div>
-                    <span className="inline-flex items-center gap-2 font-semibold text-cyber-blue transition-colors group-hover:text-cyber-yellow">
-                      {locked ? 'Finish previous course first' : 'Open course'}
-                      <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+
+                    <div className="grid grid-cols-2 gap-3 w-full xl:w-[35%] shrink-0">
+                      <CourseMetric value={String(course.module_count)} label="Chương bài" icon={<BookOpen className="h-5 w-5 text-brutal-black" strokeWidth={3} />} />
+                      <CourseMetric value={String(course.practice_unit_count)} label="Thực hành" icon={<Sparkles className="h-5 w-5 text-brutal-black" strokeWidth={3} />} />
+                      <CourseMetric value={`${completionPercent}%`} label="Tiến độ" icon={<Trophy className="h-5 w-5 text-brutal-black" strokeWidth={3} />} />
+                      <CourseMetric value={`${course.duration_hours} giờ`} label="Thời lượng" icon={<Flame className="h-5 w-5 text-brutal-black" strokeWidth={3} />} />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 mt-6 border-t-4 border-brutal-black text-sm font-black w-full text-brutal-black">
+                    <div className="bg-white border-2 border-brutal-black px-4 py-2 shadow-neo-sm">
+                      <span className={isCompleted ? "text-brutal-green" : "text-brutal-blue"}>{completed}</span>
+                      <span className="mx-2">/</span>
+                      {course.total_unit_count} {pluralize(course.total_unit_count, 'bài học', 'bài học')}
+                    </div>
+                    <span className={`inline-flex items-center gap-3 transition-all uppercase tracking-widest ${locked ? 'text-gray-500' : 'text-brutal-blue group-hover:gap-5'}`}>
+                      {locked ? 'HÃY HOÀN THÀNH KHÓA HỌC TRƯỚC' : 'MỞ KHÓA HỌC'}
+                      <ChevronRight className={`h-6 w-6 border-2 border-brutal-black rounded-full p-0.5 ${locked ? '' : 'group-hover:bg-brutal-yellow group-hover:text-brutal-black transition-colors'}`} strokeWidth={3} aria-hidden="true" />
                     </span>
                   </div>
                 </button>
@@ -242,16 +250,44 @@ function PathMetric({
   value,
   label,
   icon,
+  color,
+}: {
+  value: string;
+  label: string;
+  icon: React.ReactNode;
+  color?: string;
+}) {
+  return (
+    <div className={`${color || 'bg-white'} border-4 border-brutal-black shadow-neo-sm p-4 hover:-translate-y-1 hover:shadow-neo transition-all`}>
+      <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center justify-center w-12 h-12 bg-white border-4 border-brutal-black shadow-neo-sm shrink-0">
+          {icon}
+        </div>
+        <div className="text-[10px] font-black uppercase tracking-widest text-brutal-black bg-white px-2 py-1 border-2 border-brutal-black shadow-neo-sm line-clamp-1 break-all">{label}</div>
+      </div>
+      <div className="font-display text-3xl font-black text-brutal-black mt-2" style={{ textShadow: '2px 2px 0 #fff' }}>{value}</div>
+    </div>
+  );
+}
+
+function CourseMetric({
+  value,
+  label,
+  icon,
 }: {
   value: string;
   label: string;
   icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-[20px] border border-white/10 bg-black/18 p-4">
-      <div className="flex items-center gap-2 text-cyber-blue">{icon}</div>
-      <div className="mt-3 font-display text-2xl font-black text-white">{value}</div>
-      <div className="mt-1 text-[10px] font-mono uppercase tracking-[0.22em] text-white/40">{label}</div>
+    <div className="bg-white border-4 border-brutal-black p-3 shadow-neo-sm flex flex-col items-start gap-2 h-full">
+      <div className="flex items-center gap-2 w-full border-b-2 border-brutal-black pb-2">
+        <div className="bg-brutal-yellow border-2 border-brutal-black p-0.5 shadow-neo-sm shrink-0">
+          {icon}
+        </div>
+        <div className="text-[10px] font-black uppercase tracking-widest text-brutal-black truncate">{label}</div>
+      </div>
+      <div className="font-display text-2xl font-black text-brutal-black leading-none uppercase tracking-tighter mt-1">{value}</div>
     </div>
   );
 }
