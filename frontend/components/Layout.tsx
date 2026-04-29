@@ -73,6 +73,10 @@ export function Layout({ children }: { children?: React.ReactNode }) {
 
     window.localStorage.setItem('dsuc-theme', theme);
     document.documentElement.dataset.theme = theme;
+    document.documentElement.classList.toggle('theme-dark', theme === 'dark');
+    document.documentElement.classList.toggle('theme-light', theme !== 'dark');
+    document.body.classList.toggle('theme-dark', theme === 'dark');
+    document.body.classList.toggle('theme-light', theme !== 'dark');
   }, [theme]);
 
   const openAuthModal = (mode: AuthIntent) => {
@@ -108,7 +112,7 @@ export function Layout({ children }: { children?: React.ReactNode }) {
 
 function Background() {
   return (
-    <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none opacity-20 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+CjxwYXRoIGQ9Ik0wIDBoNDB2NDBIMHoiIGZpbGw9Im5vbmUiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMiIgZmlsbD0iIzExMTgyNyIvPgo8L3N2Zz4=')]"></div>
+    <div className="dsuc-dot-grid fixed inset-0 z-0 overflow-hidden pointer-events-none opacity-20"></div>
   );
 }
 
@@ -237,6 +241,14 @@ function Navbar({
                       transition={{ duration: 0.2 }}
                       className="absolute top-full left-0 mt-2 w-52 bg-white brutal-card p-2 flex flex-col gap-1 z-50 overflow-hidden"
                     >
+                      <button
+                        type="button"
+                        onClick={onToggleTheme}
+                        className="mb-1 flex items-center gap-2 border-2 border-brutal-black bg-white px-3 py-2 text-xs font-display font-bold uppercase tracking-wider text-brutal-black transition-all hover:bg-brutal-yellow"
+                      >
+                        {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+                        {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+                      </button>
                       {workspaceLinks.map((link) => (
                         link.locked ? (
                           <div
@@ -274,15 +286,6 @@ function Navbar({
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
-              <button
-                onClick={onToggleTheme}
-                className="hidden lg:inline-flex min-h-11 items-center gap-2 border-4 border-brutal-black bg-white px-4 py-2 text-[11px] font-display font-black uppercase tracking-widest text-brutal-black shadow-neo-sm transition-all hover:-translate-y-1 hover:bg-brutal-yellow hover:shadow-neo"
-                aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                type="button"
-              >
-                {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-                <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
-              </button>
               <button
                 onClick={() => setMobileMenuOpen(true)}
                 className="lg:hidden text-brutal-black hover:bg-brutal-yellow border-2 border-transparent hover:border-brutal-black hover:shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all p-2"
@@ -362,14 +365,6 @@ function Navbar({
 
               {/* Navigation Links */}
               <div className="flex flex-col gap-2 p-6 flex-1 overflow-y-auto">
-                <button
-                  type="button"
-                  onClick={onToggleTheme}
-                  className="mb-2 flex min-h-12 items-center gap-4 border-4 border-brutal-black bg-white p-4 text-left text-lg font-display font-bold uppercase transition-all hover:-translate-y-1 hover:bg-brutal-yellow hover:shadow-brutal"
-                >
-                  {theme === 'dark' ? <Sun size={22} className="text-brutal-black" /> : <Moon size={22} className="text-brutal-black" />}
-                  <span className="flex-1 text-brutal-black">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
-                </button>
                 {allLinks.map((link) => (
                   link.locked ? (
                     <div
@@ -425,6 +420,20 @@ function Navbar({
                     )}
                   </NavLink>
                 )}
+
+                <div className="mt-4 border-t-4 border-brutal-black pt-4">
+                  <div className="mb-2 text-[11px] font-black uppercase tracking-widest text-gray-500">
+                    Operations
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onToggleTheme}
+                    className="flex min-h-12 w-full items-center gap-4 border-4 border-brutal-black bg-white p-4 text-left text-lg font-display font-bold uppercase transition-all hover:-translate-y-1 hover:bg-brutal-yellow hover:shadow-brutal"
+                  >
+                    {theme === 'dark' ? <Sun size={22} className="text-brutal-black" /> : <Moon size={22} className="text-brutal-black" />}
+                    <span className="flex-1 text-brutal-black">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+                  </button>
+                </div>
               </div>
 
               {/* Footer - Sign In Button for mobile */}

@@ -119,7 +119,7 @@ function EventItem({ event, index }: { event: Event, index: number, key?: React.
             </div>
           </div>
 
-          <h3 className="text-2xl font-display font-black mb-4 text-brutal-black group-hover:underline decoration-brutal-pink decoration-4 underline-offset-4 transition-colors uppercase">{event.title}</h3>
+          <h3 className="text-2xl font-display font-black mb-4 text-brutal-black transition-colors uppercase">{event.title}</h3>
 
           <div className="flex items-center gap-2 text-brutal-black font-bold bg-brutal-yellow p-3 border-2 border-brutal-black shadow-neo-sm w-fit">
             <MapPin size={18} className="text-brutal-black" />

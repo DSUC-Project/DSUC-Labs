@@ -10,12 +10,9 @@ export function Dashboard() {
   const { events, backendStatus } = useStore();
   const { openContactModal } = useContactModal();
 
-  const now = new Date();
-  const pastEvents = [...events]
-    .filter(e => new Date(e.date) <= now)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-  const eventHistory = pastEvents.slice(0, 3);
+  const eventHistory = [...events]
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 3);
 
   const statusConfig = {
     connecting: { text: 'ĐANG KHỞI TẠO...', color: 'text-amber-500', icon: Loader2, pulse: true, spin: true },
@@ -108,7 +105,7 @@ export function Dashboard() {
           <div className="w-12 h-12 bg-brutal-pink border-4 border-brutal-black shadow-neo flex items-center justify-center">
             <Globe size={24} className="text-brutal-black" />
           </div>
-          <span className="text-brutal-black font-display font-black text-3xl uppercase tracking-tighter">Sự kiện đã qua</span>
+          <span className="text-brutal-black font-display font-black text-3xl uppercase tracking-tighter">Sự kiện gần đây</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -172,7 +169,7 @@ function EventCard({ event, idx }: { event: any, idx: number }) {
         </div>
       </div>
 
-      <h3 className="text-xl font-display font-black mb-3 text-brutal-black group-hover:underline decoration-brutal-blue decoration-4 underline-offset-4 transition-colors line-clamp-2 leading-tight uppercase">
+      <h3 className="text-xl font-display font-black mb-3 text-brutal-black transition-colors line-clamp-2 leading-tight uppercase">
         {event.title}
       </h3>
       <p className="w-fit border-2 border-brutal-black bg-gray-50 p-2 font-mono text-xs font-bold uppercase text-brutal-blue shadow-neo-sm">

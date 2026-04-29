@@ -137,7 +137,7 @@ function BountyCard({ bounty }: { bounty: Bounty; key?: React.Key }) {
          </span>
          <span className="text-brutal-black bg-brutal-yellow font-black text-sm px-2 py-1 border-2 border-brutal-black shadow-neo-sm uppercase">{bounty.reward}</span>
       </div>
-      <h4 className="font-black font-display text-brutal-black text-xl leading-tight mb-4 group-hover:underline decoration-brutal-blue decoration-4 underline-offset-2 uppercase">{bounty.title}</h4>
+      <h4 className="font-black font-display text-brutal-black text-xl leading-tight mb-4 uppercase">{bounty.title}</h4>
       <div className="flex flex-wrap gap-2 mb-6">
         {bounty.tags.map(tag => (
           <span key={tag} className="text-[10px] text-brutal-black font-black uppercase tracking-wider border-2 border-brutal-black px-2.5 py-1 bg-white shadow-neo-sm">#{tag}</span>
@@ -186,7 +186,7 @@ function RepoList() {
                 <Code size={32} />
               </div>
               <div className="flex-1">
-                <h3 className="text-xl font-display font-black text-brutal-black group-hover:underline decoration-brutal-pink decoration-4 underline-offset-4 tracking-tight uppercase line-clamp-1">{repo.name}</h3>
+                <h3 className="text-xl font-display font-black text-brutal-black tracking-tight uppercase line-clamp-1">{repo.name}</h3>
                 <p className="text-brutal-black font-bold text-sm mt-2 line-clamp-2">{repo.description}</p>
               </div>
             </div>

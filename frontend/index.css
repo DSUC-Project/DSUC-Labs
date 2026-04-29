@@ -12,6 +12,7 @@ html,
 body,
 #root {
   min-height: 100%;
+  background-color: var(--brutal-bg);
 }
 
 body {
@@ -96,6 +97,11 @@ body {
   background: var(--brutal-pink);
 }
 
+.dsuc-dot-grid {
+  background-image: radial-gradient(circle at 2px 2px, rgba(17, 24, 39, 0.18) 1px, transparent 0);
+  background-size: 32px 32px;
+}
+
 .animate-in {
   animation-duration: 500ms;
   animation-fill-mode: both;
@@ -173,9 +179,25 @@ html[data-theme='dark'] body {
   color: #f8fafc;
 }
 
+html.theme-dark,
+body.theme-dark {
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(244, 114, 182, 0.08), transparent 30%),
+    #0d1117;
+}
+
 .theme-dark {
   --brutal-bg: #0d1117;
   --brutal-black: #f8fafc;
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(244, 114, 182, 0.08), transparent 30%),
+    #0d1117;
+}
+
+.theme-dark .dsuc-dot-grid {
+  background-image: radial-gradient(circle at 2px 2px, rgba(248, 250, 252, 0.12) 1px, transparent 0);
 }
 
 .theme-dark .brutal-card {
@@ -210,6 +232,11 @@ html[data-theme='dark'] body {
 }
 
 .theme-dark .bg-white,
+.theme-dark .bg-white\/90,
+.theme-dark .bg-white\/80,
+.theme-dark .bg-white\/70,
+.theme-dark .bg-white\/60,
+.theme-dark .bg-white\/50,
 .theme-dark .bg-gray-50,
 .theme-dark .bg-gray-100,
 .theme-dark .bg-gray-200,

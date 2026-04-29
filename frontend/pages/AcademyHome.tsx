@@ -199,10 +199,6 @@ export function AcademyHome() {
         <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_460px] lg:items-stretch">
           <div className="space-y-6">
             <div className="flex flex-wrap gap-3">
-              <div className="inline-flex items-center gap-2 border-4 border-brutal-black bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
-                <Sparkles size={14} />
-                Poster streak
-              </div>
               <div className="inline-flex items-center gap-2 border-4 border-brutal-black bg-brutal-yellow px-4 py-2 text-[10px] font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
                 <Trophy size={14} />
                 {currentUser ? `${firstName} đang học` : 'Khách xem thử'}
@@ -210,16 +206,29 @@ export function AcademyHome() {
             </div>
 
             <div className="max-w-4xl border-4 border-brutal-black bg-white p-6 shadow-neo lg:p-8">
-              <div className="mb-3 inline-flex items-center gap-2 border-2 border-brutal-black bg-brutal-pink px-3 py-1 text-[10px] font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
-                Bảng thành tích builder
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="mb-3 inline-flex items-center gap-2 border-2 border-brutal-black bg-brutal-pink px-3 py-1 text-[10px] font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
+                    Bảng thành tích builder
+                  </div>
+                  <h1 className="font-display text-5xl font-black uppercase tracking-tighter text-brutal-black sm:text-6xl lg:text-7xl">
+                    HỌC VIỆN
+                    <span className="mt-2 block text-brutal-blue">DSUC</span>
+                  </h1>
+                  <p className="mt-5 max-w-2xl border-l-4 border-brutal-black pl-4 text-sm font-bold leading-7 text-brutal-black sm:text-base">
+                    Học Solana theo lộ trình rõ ràng, hoàn thành bài tập thực chiến và nhìn thấy tiến độ của mình ngay trên một bảng streak đủ đẹp để giữ động lực quay lại mỗi ngày.
+                  </p>
+                </div>
+                {currentUser?.avatar ? (
+                  <div className="shrink-0 self-start border-4 border-brutal-black bg-brutal-yellow p-2 shadow-neo-sm sm:rotate-2">
+                    <img
+                      src={currentUser.avatar}
+                      alt={currentUser.name || 'Academy learner'}
+                      className="h-20 w-20 border-4 border-brutal-black object-cover shadow-neo-sm sm:h-24 sm:w-24"
+                    />
+                  </div>
+                ) : null}
               </div>
-              <h1 className="font-display text-5xl font-black uppercase tracking-tighter text-brutal-black sm:text-6xl lg:text-7xl">
-                HỌC VIỆN
-                <span className="mt-2 block text-brutal-blue">DSUC</span>
-              </h1>
-              <p className="mt-5 max-w-2xl border-l-4 border-brutal-black pl-4 text-sm font-bold leading-7 text-brutal-black sm:text-base">
-                Học Solana theo lộ trình rõ ràng, hoàn thành bài tập thực chiến, và giữ streak đủ đẹp để chụp một tấm khoe bạn bè ngay trên trang này.
-              </p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">
@@ -311,9 +320,6 @@ export function AcademyHome() {
              </div>
           )}
         </div>
-            <div className="absolute -bottom-4 -right-4 hidden border-4 border-brutal-black bg-brutal-yellow px-4 py-3 text-xs font-black uppercase tracking-widest text-brutal-black shadow-neo lg:block">
-              Chụp ảnh khoe đi
-            </div>
           </div>
         </div>
       </section>
@@ -380,7 +386,7 @@ export function AcademyHome() {
                     </div>
                   </div>
 
-                  <h3 className="font-display text-4xl leading-none font-black text-brutal-black mb-6 uppercase tracking-tighter group-hover:underline decoration-brutal-blue decoration-4 underline-offset-4 text-left">
+                  <h3 className="font-display text-4xl leading-none font-black text-brutal-black mb-6 uppercase tracking-tighter text-left">
                     {path.title}
                   </h3>
 
@@ -441,7 +447,7 @@ export function AcademyHome() {
                     </div>
                   </div>
                   
-                  <h3 className="font-display text-3xl leading-none font-black text-brutal-black mb-4 uppercase tracking-tighter group-hover:underline decoration-brutal-blue decoration-4 underline-offset-4 line-clamp-2">
+                  <h3 className="font-display text-3xl leading-none font-black text-brutal-black mb-4 uppercase tracking-tighter line-clamp-2">
                     Luyện thêm Module {idx + 1}
                   </h3>
                   

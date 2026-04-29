@@ -118,9 +118,11 @@ export function AcademyPath() {
             <div className="inline-flex items-center justify-center bg-brutal-yellow border-4 border-brutal-black px-4 py-1.5 text-xs font-black uppercase tracking-widest text-brutal-black shadow-neo-sm transform -rotate-2">
               {path.tag || path.difficulty}
             </div>
-            <h1 className="mt-4 font-display text-5xl font-black text-white sm:text-6xl uppercase tracking-tighter" style={{ textShadow: '4px 4px 0 #111827' }}>
-              {path.title}
-            </h1>
+            <div className="mt-4 inline-block border-4 border-brutal-black bg-white px-5 py-4 shadow-neo-sm">
+              <h1 className="font-display text-5xl font-black text-brutal-black sm:text-6xl uppercase tracking-tighter">
+                {path.title}
+              </h1>
+            </div>
           </div>
         </div>
 
@@ -208,7 +210,7 @@ export function AcademyPath() {
                       </div>
 
                       <div className="w-full">
-                        <h3 className={`font-display text-4xl leading-none font-black uppercase tracking-tighter mb-4 transition-colors break-words ${locked ? 'text-gray-500' : 'text-brutal-black group-hover:underline decoration-brutal-blue decoration-4 underline-offset-4'}`}>
+                        <h3 className={`font-display text-4xl leading-none font-black uppercase tracking-tighter mb-4 transition-colors break-words ${locked ? 'text-gray-500' : 'text-brutal-black'}`}>
                           {course.title}
                         </h3>
                         <p className="text-base font-bold text-gray-700 leading-relaxed bg-white/50 border-2 border-brutal-black p-4 w-full xl:min-h-[80px]">

@@ -40,6 +40,14 @@ const MOCK_PUBLIC_KEYS = {
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
+function normalizeChallengeSource(code: string) {
+  return String(code || '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, '')
+    .replace(/\s+/g, '')
+    .trim();
+}
+
 function stripImportBlocks(code: string) {
   return String(code || '').replace(/^\s*import[\s\S]*?;\s*$/gm, '');
 }
@@ -965,6 +973,20 @@ function runRustHeuristicChallenge(unit: AcademyV2UnitDetail): ChallengeRunRepor
     return null;
   }
 
+  if (unit.solution && normalizeChallengeSource(unit.code) === normalizeChallengeSource(unit.solution)) {
+    const runtimeLabel =
+      unit.build_type === 'buildable' ? 'Rust scaffold verifier' : 'Guided Rust verifier';
+
+    return buildHeuristicReport(
+      unit,
+      runtimeLabel,
+      extractRustPrimaryFunctionName(unit.code),
+      unit.tests.map(() => buildHeuristicCase(true, undefined)),
+      buildRustRuntimeMessage(unit, true),
+      buildRustRuntimeMessage(unit, false)
+    );
+  }
+
   const caseResults = buildRustHeuristicCases(unit);
   if (!caseResults) {
     return null;
@@ -991,6 +1013,41 @@ export function canRunAcademyChallenge(unit: AcademyV2UnitDetail) {
 }
 
 export async function runAcademyChallenge(unit: AcademyV2UnitDetail): Promise<ChallengeRunReport> {
+  if (unit.solution && normalizeChallengeSource(unit.code) === normalizeChallengeSource(unit.solution)) {
+    const cases: ChallengeRunCase[] = unit.tests.map((test) => ({
+      id: test.id,
+      description: test.description,
+      hidden: test.hidden === true,
+      passed: true,
+    }));
+
+    const visibleCases = cases.filter((item) => item.hidden !== true);
+    const hiddenCases = cases.filter((item) => item.hidden === true);
+    const primaryFunction =
+      unit.language === 'rust' ? extractRustPrimaryFunctionName(unit.code) : extractPrimaryFunctionName(unit.code);
+    const runtimeLabel =
+      unit.language === 'rust'
+        ? unit.build_type === 'buildable'
+          ? 'Rust scaffold verifier'
+          : 'Guided Rust verifier'
+        : 'Browser challenge runner';
+
+    return {
+      supported: true,
+      allPassed: true,
+      passedCount: cases.length,
+      totalCount: cases.length,
+      visiblePassedCount: visibleCases.length,
+      visibleTotalCount: visibleCases.length,
+      hiddenPassedCount: hiddenCases.length,
+      hiddenTotalCount: hiddenCases.length,
+      primaryFunction,
+      runtimeLabel,
+      message: 'The submitted source matches the reference solution for this challenge.',
+      cases,
+    };
+  }
+
   const rustReport = runRustHeuristicChallenge(unit);
   if (rustReport) {
     return rustReport;

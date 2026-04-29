@@ -37,15 +37,15 @@ export function Resources() {
 
   return (
     <div className="pt-10 pb-20 px-4 sm:px-6 max-w-7xl mx-auto">
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-12 border-b border-slate-200 pb-6 gap-6">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-12 border-b-4 border-brutal-black pb-6 gap-6">
          <div>
-            <h2 className="text-4xl sm:text-5xl font-display font-bold mb-2 text-slate-800 tracking-tight">KHO LƯU TRỮ</h2>
-            <p className="text-slate-500 font-medium text-sm">Tài liệu, khóa học và các tài nguyên nội bộ của DSUC.</p>
+            <h2 className="text-4xl sm:text-5xl font-display font-black mb-2 text-brutal-black tracking-tight uppercase">KHO LƯU TRỮ</h2>
+            <p className="text-brutal-black font-bold text-sm border-l-4 border-brutal-pink pl-4">Tài liệu, khóa học và các tài nguyên nội bộ của DSUC.</p>
          </div>
-         <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
            <button 
              onClick={() => setFilter('All')} 
-             className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-full transition-colors whitespace-nowrap ${filter === 'All' ? 'bg-sky-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+             className={`px-4 py-2 text-xs font-black uppercase tracking-wider border-4 border-brutal-black shadow-neo-sm transition-all whitespace-nowrap ${filter === 'All' ? 'bg-brutal-blue text-white' : 'bg-white text-brutal-black hover:bg-brutal-yellow hover:-translate-y-0.5'}`}
            >
              Tất cả
            </button>
@@ -53,7 +53,7 @@ export function Resources() {
              <button
                 key={cat}
                 onClick={() => setFilter(cat)}
-                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-full transition-colors whitespace-nowrap ${filter === cat ? 'bg-sky-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                className={`px-4 py-2 text-xs font-black uppercase tracking-wider border-4 border-brutal-black shadow-neo-sm transition-all whitespace-nowrap ${filter === cat ? 'bg-brutal-blue text-white' : 'bg-white text-brutal-black hover:bg-brutal-yellow hover:-translate-y-0.5'}`}
              >
                {CATEGORY_LABELS[cat] || cat}
              </button>
@@ -61,10 +61,10 @@ export function Resources() {
            <button 
              onClick={handleAddClick}
              disabled={!canManage}
-             className={`ml-0 lg:ml-2 mt-2 lg:mt-0 px-5 py-2 font-bold text-xs rounded-full flex items-center justify-center gap-2 w-full lg:w-auto transition-colors ${
+             className={`ml-0 lg:ml-2 mt-2 lg:mt-0 px-5 py-3 font-black text-xs border-4 flex items-center justify-center gap-2 w-full lg:w-auto transition-all uppercase tracking-wider shadow-neo-sm ${
                canManage
-                 ? 'bg-amber-400 text-amber-950 hover:bg-amber-500 shadow-sm' 
-                 : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                 ? 'bg-brutal-pink text-brutal-black border-brutal-black hover:bg-brutal-yellow hover:-translate-y-1' 
+                 : 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300'
              }`}
            >
              <Plus size={16} /> THÊM MỚI
@@ -77,7 +77,7 @@ export function Resources() {
           <ResourceCard key={resource.id} resource={resource} index={i} />
         ))}
         {filteredResources.length === 0 && (
-           <div className="col-span-full py-16 text-center text-slate-500 font-medium bg-slate-50 rounded-3xl border border-slate-100">
+           <div className="col-span-full py-16 text-center text-gray-500 font-black uppercase tracking-widest bg-white border-4 border-brutal-black shadow-neo">
              Chưa có tài nguyên nào trong mục này.
            </div>
         )}
@@ -123,7 +123,7 @@ function ResourceCard({ resource, index }: { resource: Resource, index: number, 
       </div>
 
       <div className="flex-1 flex flex-col justify-center w-full">
-        <h3 className="font-black font-display text-brutal-black text-lg mb-3 line-clamp-2 leading-tight uppercase group-hover:underline decoration-brutal-pink decoration-2 underline-offset-2">{resource.name}</h3>
+        <h3 className="font-black font-display text-brutal-black text-lg mb-3 line-clamp-2 leading-tight uppercase">{resource.name}</h3>
         <p className="text-[10px] text-brutal-black font-black uppercase tracking-widest bg-brutal-green px-3 py-1.5 border-2 border-brutal-black shadow-neo-sm inline-block w-fit mx-auto">
           {CATEGORY_LABELS[resource.category] || resource.category} {resource.size && `• ${resource.size}`}
         </p>
@@ -161,41 +161,41 @@ function AddResourceModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose
 
   return ReactDOM.createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       <motion.div 
         initial={{ scale: 0.95, opacity: 0, y: 20 }} 
         animate={{ scale: 1, opacity: 1, y: 0 }} 
-        className="bg-white rounded-[2rem] border border-slate-100 p-8 w-full max-w-md relative z-10 my-8 shadow-2xl"
+        className="bg-white border-4 border-brutal-black p-8 w-full max-w-md relative z-10 my-8 shadow-neo-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 p-2 rounded-full transition-colors z-10">
+        <button onClick={onClose} className="absolute top-6 right-6 text-brutal-black hover:text-brutal-black bg-white hover:bg-brutal-yellow p-2 border-2 border-transparent hover:border-brutal-black transition-colors z-10">
           <X size={20} />
         </button>
         
         <div className="mb-8 pr-8">
-          <h3 className="text-2xl font-display font-bold text-slate-800">Thêm Tài Nguyên</h3>
-          <p className="text-slate-500 font-medium text-sm mt-2">Chia sẻ tài liệu vào kho lưu trữ chung của câu lạc bộ.</p>
+          <h3 className="text-2xl font-display font-black uppercase text-brutal-black">Thêm Tài Nguyên</h3>
+          <p className="text-brutal-black font-bold text-sm mt-2 border-l-4 border-brutal-blue pl-4">Chia sẻ tài liệu vào kho lưu trữ chung của câu lạc bộ.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Tên tài nguyên</label>
-            <input name="name" placeholder="Ví dụ: Slide buổi Training ReactJS" required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none font-medium text-sm transition-all shadow-sm" />
+            <label className="text-xs font-black text-brutal-black uppercase tracking-widest pl-1">Tên tài nguyên</label>
+            <input name="name" placeholder="Ví dụ: Slide buổi Training ReactJS" required className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black outline-none font-bold text-sm transition-all focus:bg-brutal-yellow/20" />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Liên kết (URL)</label>
-            <input name="url" placeholder="https://drive.google.com/..." required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sky-600 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none font-medium text-sm transition-all shadow-sm" />
+            <label className="text-xs font-black text-brutal-black uppercase tracking-widest pl-1">Liên kết (URL)</label>
+            <input name="url" placeholder="https://drive.google.com/..." required className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-blue outline-none font-bold text-sm transition-all focus:bg-brutal-yellow/20" />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Phân loại</label>
-            <select name="category" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none font-medium text-sm transition-all shadow-sm appearance-none">
+            <label className="text-xs font-black text-brutal-black uppercase tracking-widest pl-1">Phân loại</label>
+            <select name="category" className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black outline-none font-bold text-sm transition-all appearance-none focus:bg-brutal-yellow/20">
               {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_LABELS[c] || c}</option>)}
             </select>
           </div>
 
-          <button type="submit" className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-4 rounded-full transition-all shadow-sm hover:shadow uppercase tracking-wider text-sm mt-6">
+          <button type="submit" className="w-full border-4 border-brutal-black bg-brutal-blue hover:bg-brutal-pink text-white hover:text-brutal-black font-black py-4 transition-all shadow-neo uppercase tracking-wider text-sm mt-6 hover:-translate-y-1">
             Tải Lên Máy Chủ
           </button>
         </form>

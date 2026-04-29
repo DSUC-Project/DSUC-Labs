@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ExternalLink, Layers, Terminal, Plus, X, Github, Rocket, ArrowRight } from 'lucide-react';
+import { Layers, Terminal, Plus, X, Rocket, ArrowRight } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { Project } from '../types';
 import { Link } from 'react-router-dom';
@@ -25,23 +25,23 @@ export function Projects() {
 
   return (
     <div className="space-y-12 pt-10 pb-20 px-4 sm:px-6 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-200 pb-6 gap-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b-4 border-brutal-black pb-6 gap-6">
         <div>
-          <h2 className="text-4xl sm:text-5xl font-display font-bold mb-2 text-slate-800 tracking-tight">DỰ ÁN KHỞI NGHIỆP</h2>
-          <p className="text-slate-500 font-medium text-sm">Các sản phẩm đã triển khai và dự án đang được phát triển.</p>
+          <h2 className="text-4xl sm:text-5xl font-display font-black mb-2 text-brutal-black tracking-tight uppercase">DỰ ÁN KHỞI NGHIỆP</h2>
+          <p className="text-brutal-black font-bold text-sm border-l-4 border-brutal-blue pl-4">Các sản phẩm đã triển khai và dự án đang được phát triển.</p>
         </div>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full md:w-auto">
-           <div className="font-bold text-xs text-sky-700 border border-sky-200 px-4 py-2 bg-sky-50 rounded-full flex items-center gap-2">
+           <div className="font-black text-xs text-brutal-black border-4 border-brutal-black px-4 py-2 bg-brutal-yellow flex items-center gap-2 shadow-neo-sm uppercase tracking-wider">
               <Rocket size={16} />
               {projects.length} DỰ ÁN
            </div>
            <button 
              onClick={handleAddClick}
              disabled={!canManage}
-             className={`font-bold text-sm px-6 py-2.5 rounded-full flex items-center justify-center gap-2 transition-all w-full sm:w-auto shadow-sm ${
+             className={`font-black text-sm px-6 py-3 border-4 flex items-center justify-center gap-2 transition-all w-full sm:w-auto shadow-neo-sm uppercase tracking-wider ${
                canManage
-                 ? 'bg-sky-600 text-white hover:bg-sky-700 hover:shadow-md' 
-                 : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                 ? 'bg-brutal-pink text-brutal-black border-brutal-black hover:bg-brutal-yellow hover:-translate-y-1' 
+                 : 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300'
              }`}
            >
              <Plus size={16} /> THÊM DỰ ÁN
@@ -74,7 +74,7 @@ export function Projects() {
                 <span className="text-[10px] font-bold uppercase tracking-widest px-3 py-1 bg-brutal-green text-brutal-black border-2 border-brutal-black inline-block mb-4 shadow-neo-sm">
                   {project.category}
                 </span>
-                <h3 className="text-2xl font-display font-black text-brutal-black mb-3 group-hover:underline decoration-brutal-blue decoration-4 underline-offset-4 tracking-tight line-clamp-1 uppercase">
+                <h3 className="text-2xl font-display font-black text-brutal-black mb-3 tracking-tight line-clamp-1 uppercase">
                   {project.name}
                 </h3>
                 <p className="text-brutal-black font-bold text-sm leading-relaxed line-clamp-3">
@@ -125,56 +125,56 @@ function AddProjectModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose:
 
   return ReactDOM.createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto" onClick={onClose}>
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       <motion.div 
         initial={{ scale: 0.95, opacity: 0, y: 20 }} 
         animate={{ scale: 1, opacity: 1, y: 0 }} 
-        className="bg-white rounded-[2rem] border border-slate-100 p-8 w-full max-w-lg relative z-10 my-8 max-h-[90vh] overflow-y-auto shadow-2xl"
+        className="bg-white border-4 border-brutal-black p-8 w-full max-w-lg relative z-10 my-8 max-h-[90vh] overflow-y-auto shadow-neo-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 p-2 rounded-full transition-colors z-10">
+        <button onClick={onClose} className="absolute top-6 right-6 text-brutal-black hover:text-brutal-black bg-white hover:bg-brutal-yellow p-2 border-2 border-transparent hover:border-brutal-black transition-colors z-10">
           <X size={20} />
         </button>
         
         <div className="mb-8 pr-10">
-          <h3 className="text-2xl font-display font-bold text-slate-800">Thêm Dự Án Mới</h3>
-          <p className="text-slate-500 text-sm font-medium mt-2">Đăng tải sản phẩm lên danh mục của câu lạc bộ.</p>
+          <h3 className="text-2xl font-display font-black text-brutal-black uppercase">Thêm Dự Án Mới</h3>
+          <p className="text-brutal-black text-sm font-bold mt-2 border-l-4 border-brutal-pink pl-4">Đăng tải sản phẩm lên danh mục của câu lạc bộ.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Tên dự án</label>
-            <input name="name" placeholder="Ví dụ: DSUC Academy" required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none font-medium text-sm transition-all shadow-sm" />
+            <label className="text-xs font-black text-brutal-black uppercase tracking-widest pl-1">Tên dự án</label>
+            <input name="name" placeholder="Ví dụ: DSUC Academy" required className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black outline-none font-bold text-sm transition-all focus:bg-brutal-yellow/20" />
           </div>
           
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Mô tả ngắn</label>
-            <textarea name="description" placeholder="Nền tảng học hỏi và phát triển..." rows={3} required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none font-medium text-sm transition-all shadow-sm resize-none" />
+            <label className="text-xs font-black text-brutal-black uppercase tracking-widest pl-1">Mô tả ngắn</label>
+            <textarea name="description" placeholder="Nền tảng học hỏi và phát triển..." rows={3} required className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black outline-none font-bold text-sm transition-all focus:bg-brutal-yellow/20 resize-none" />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Danh mục</label>
-            <input name="category" placeholder="Ví dụ: EdTech, Defi, Web3..." required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none font-medium text-sm transition-all shadow-sm" />
+            <label className="text-xs font-black text-brutal-black uppercase tracking-widest pl-1">Danh mục</label>
+            <input name="category" placeholder="Ví dụ: EdTech, Defi, Web3..." required className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black outline-none font-bold text-sm transition-all focus:bg-brutal-yellow/20" />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Đội ngũ (Cách nhau bằng dấu phẩy)</label>
-            <input name="builders" placeholder="Zah, Cuong, Hieu..." required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none font-medium text-sm transition-all shadow-sm" />
+            <label className="text-xs font-black text-brutal-black uppercase tracking-widest pl-1">Đội ngũ (Cách nhau bằng dấu phẩy)</label>
+            <input name="builders" placeholder="Zah, Cuong, Hieu..." required className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black outline-none font-bold text-sm transition-all focus:bg-brutal-yellow/20" />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Link Website</label>
-              <input name="link" placeholder="https://" required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sky-600 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none font-medium text-sm transition-all shadow-sm" />
+              <label className="text-xs font-black text-brutal-black uppercase tracking-widest pl-1">Link Website</label>
+              <input name="link" placeholder="https://" required className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-blue outline-none font-bold text-sm transition-all focus:bg-brutal-yellow/20" />
             </div>
             
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Link GitHub Repo</label>
-              <input name="repoLink" placeholder="https://github.com/..." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-600 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none font-medium text-sm transition-all shadow-sm" />
+              <label className="text-xs font-black text-brutal-black uppercase tracking-widest pl-1">Link GitHub Repo</label>
+              <input name="repoLink" placeholder="https://github.com/..." className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black outline-none font-bold text-sm transition-all focus:bg-brutal-yellow/20" />
             </div>
           </div>
 
-          <button type="submit" className="w-full bg-sky-600 text-white font-bold py-4 rounded-full hover:bg-sky-700 transition-all shadow-sm hover:shadow uppercase tracking-wider text-sm mt-4">Tạo Dự Án</button>
+          <button type="submit" className="w-full border-4 border-brutal-black bg-brutal-blue text-white font-black py-4 hover:bg-brutal-pink hover:text-brutal-black transition-all shadow-neo uppercase tracking-wider text-sm mt-4 hover:-translate-y-1">Tạo Dự Án</button>
         </form>
       </motion.div>
     </div>,

@@ -2,6 +2,7 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { CodeSurface } from '@/components/academy/CodeSurface';
 
 function textFromChildren(children: React.ReactNode): string {
   return React.Children.toArray(children)
@@ -19,6 +20,22 @@ function textFromChildren(children: React.ReactNode): string {
     .join(' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function rawTextFromChildren(children: React.ReactNode): string {
+  return React.Children.toArray(children)
+    .map((child) => {
+      if (typeof child === 'string' || typeof child === 'number') {
+        return String(child);
+      }
+
+      if (React.isValidElement(child)) {
+        return rawTextFromChildren((child.props as { children?: React.ReactNode }).children);
+      }
+
+      return '';
+    })
+    .join('');
 }
 
 export function slugifyMarkdownHeading(value: string) {
@@ -112,16 +129,8 @@ const markdownComponents: Components = {
   ),
   td: ({ children }) => <td className="px-4 py-3 border-r-4 border-brutal-black last:border-r-0 text-base">{children}</td>,
   pre: ({ children }) => (
-    <div className="my-6 border-4 border-brutal-black bg-brutal-black shadow-neo">
-      <div className="flex bg-gray-200 border-b-4 border-brutal-black px-4 py-2 gap-2 h-10 items-center">
-        <div className="w-3 h-3 rounded-full bg-brutal-red border-2 border-brutal-black"></div>
-        <div className="w-3 h-3 rounded-full bg-brutal-yellow border-2 border-brutal-black"></div>
-        <div className="w-3 h-3 rounded-full bg-brutal-green border-2 border-brutal-black"></div>
-        <div className="ml-auto font-mono text-[10px] uppercase font-black tracking-widest text-gray-500">Playground</div>
-      </div>
-      <pre className="overflow-x-auto p-5 text-sm leading-relaxed text-green-400 font-mono">
-        {children}
-      </pre>
+    <div className="my-6">
+      <CodeSurface code={rawTextFromChildren(children)} label="lesson code" />
     </div>
   ),
   code: ({ className, children, ...props }: any) => {
@@ -134,11 +143,7 @@ const markdownComponents: Components = {
       );
     }
 
-    return (
-      <code className={`font-mono text-[0.92em] text-green-400 ${className || ''}`.trim()}>
-        {content}
-      </code>
-    );
+    return <code className={className || ''}>{content}</code>;
   },
   input: ({ type, checked }) => {
     if (type === 'checkbox') {

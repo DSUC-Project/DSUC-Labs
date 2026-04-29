@@ -228,9 +228,11 @@ export function AcademyCourse() {
           </div>
 
           <div>
-            <h1 className="font-display text-5xl font-black text-white sm:text-6xl uppercase tracking-tighter" style={{ textShadow: '4px 4px 0 #111827' }}>
-              {course.title}
-            </h1>
+            <div className="inline-block border-4 border-brutal-black bg-white px-5 py-4 shadow-neo-sm">
+              <h1 className="font-display text-5xl font-black text-brutal-black sm:text-6xl uppercase tracking-tighter">
+                {course.title}
+              </h1>
+            </div>
             <p className="mt-4 max-w-3xl text-sm font-bold text-gray-800 bg-white/90 border-4 border-brutal-black p-4 shadow-neo-sm">
                {course.description}
             </p>
@@ -592,7 +594,7 @@ function UnitLane({
                      )}
                   </div>
                   
-                  <div className={`font-display text-lg font-black uppercase leading-none truncate ${locked ? 'text-gray-500' : 'text-brutal-black group-hover:underline decoration-brutal-blue decoration-2 underline-offset-2'}`}>
+                  <div className={`font-display text-lg font-black uppercase leading-none truncate ${locked ? 'text-gray-500' : 'text-brutal-black'}`}>
                     {unit.title}
                   </div>
                 </div>

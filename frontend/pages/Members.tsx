@@ -80,7 +80,7 @@ function MemberCard({ member, type }: { member: Member; type: 'official' | 'comm
           </div>
 
           <div className="mb-4 min-h-[96px] w-full">
-            <h3 className="mb-2 line-clamp-2 min-h-[56px] text-lg font-display font-black uppercase leading-tight tracking-tight text-brutal-black group-hover:underline decoration-brutal-pink decoration-4 underline-offset-2">
+            <h3 className="mb-2 line-clamp-2 min-h-[56px] text-lg font-display font-black uppercase leading-tight tracking-tight text-brutal-black">
               {member.name}
             </h3>
             <p className={`inline-block border-2 border-brutal-black px-3 py-1 text-[10px] font-black uppercase tracking-widest shadow-neo-sm ${type === 'official' ? 'bg-brutal-yellow' : 'bg-brutal-blue text-white'}`}>
