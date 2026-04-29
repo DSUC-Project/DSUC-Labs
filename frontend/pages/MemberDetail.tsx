@@ -249,11 +249,7 @@ export function MemberDetail() {
             </div>
           </div>
 
-          <div className="border-t-4 border-brutal-black pt-8 mt-12 flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-3 text-brutal-black text-xs font-black uppercase tracking-widest bg-white border-4 border-brutal-black px-4 py-2 shadow-neo-sm">
-              <Globe size={20} className="text-brutal-blue" />
-              Được xác thực bởi DSUC Database
-            </div>
+          <div className="border-t-4 border-brutal-black pt-8 mt-12 flex flex-col sm:flex-row items-center justify-end gap-6">
             <button onClick={() => setShowContactPopup(true)} className="bg-brutal-pink hover:bg-brutal-yellow text-brutal-black px-8 py-4 border-4 border-brutal-black font-black text-sm uppercase tracking-wider transition-all w-full sm:w-auto text-center shadow-neo hover:shadow-neo-lg flex items-center justify-center gap-2 brutal-btn">
               <Mail size={24} /> Đề xuất hợp tác
             </button>

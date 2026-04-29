@@ -82,3 +82,7 @@ Goal: Rebuild DSUC Academy with Superteam-like UX and learning flow while keepin
 - [2026-04-29] Replaced the Academy streak calendar mock with learner stats from DSUC progress/activity, and normalized Academy day keys to the `Asia/Ho_Chi_Minh` timezone for more reliable streak rendering.
 - [2026-04-29] Restyled Academy markdown, shared Academy cards/buttons, and lesson/workbench surfaces so the new Academy shell no longer falls back to the older cyber palette.
 - [2026-04-29] Wired dashboard past-event history to live event data, removed the empty-state timeline artifact, refreshed the contact modal, compacted member cards, and brought the Finance page into the same brutal frontend system.
+- [2026-04-29] Reverted the global frontend font stack to `Open Sans + Chakra Petch`, which was the last stable typography setup before the `zip` merge.
+- [2026-04-29] Added a persistent light/dark mode toggle in the shared layout and introduced a theme-layer CSS override system so the existing brutal utility-heavy UI can switch themes without a full design-system rewrite.
+- [2026-04-29] Reworked the Academy hero and streak board into a more poster-like share surface, and added a compact streak badge directly beside the user avatar in profile.
+- [2026-04-29] Pulled the Academy markdown, lesson, quiz, and playground presentation back toward the exact `zip` styling while keeping DSUC progress logic and authenticated sync intact.

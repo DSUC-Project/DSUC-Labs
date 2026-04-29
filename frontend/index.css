@@ -17,6 +17,7 @@ body,
 body {
   background-color: var(--brutal-bg);
   color: var(--brutal-black);
+  font-family: 'Open Sans', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -52,6 +53,10 @@ body {
 }
 
 .shadow-brutal-sm {
+  box-shadow: 2px 2px 0 0 var(--brutal-black);
+}
+
+.shadow-neo-sm-sm {
   box-shadow: 2px 2px 0 0 var(--brutal-black);
 }
 
@@ -157,4 +162,100 @@ body {
     opacity: 1;
     transform: translateX(0);
   }
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+html[data-theme='dark'] body {
+  background-color: #0d1117;
+  color: #f8fafc;
+}
+
+.theme-dark {
+  --brutal-bg: #0d1117;
+  --brutal-black: #f8fafc;
+}
+
+.theme-dark .brutal-card {
+  background: #161b22;
+  border-color: #f8fafc;
+  box-shadow: 4px 4px 0 0 #f8fafc;
+}
+
+.theme-dark .brutal-btn {
+  border-color: #f8fafc;
+  box-shadow: 4px 4px 0 0 #f8fafc;
+}
+
+.theme-dark .shadow-neo,
+.theme-dark .shadow-brutal {
+  box-shadow: 4px 4px 0 0 #f8fafc !important;
+}
+
+.theme-dark .shadow-neo-sm,
+.theme-dark .shadow-brutal-sm,
+.theme-dark .shadow-neo-sm-sm {
+  box-shadow: 2px 2px 0 0 #f8fafc !important;
+}
+
+.theme-dark .shadow-neo-lg,
+.theme-dark .shadow-brutal-hover {
+  box-shadow: 6px 6px 0 0 #f8fafc !important;
+}
+
+.theme-dark .shadow-neo-xl {
+  box-shadow: 10px 10px 0 0 #f8fafc !important;
+}
+
+.theme-dark .bg-white,
+.theme-dark .bg-gray-50,
+.theme-dark .bg-gray-100,
+.theme-dark .bg-gray-200,
+.theme-dark .bg-brutal-bg {
+  background-color: #161b22 !important;
+}
+
+.theme-dark .border-brutal-black {
+  border-color: #f8fafc !important;
+}
+
+.theme-dark .text-brutal-black {
+  color: #f8fafc !important;
+}
+
+.theme-dark .bg-brutal-yellow,
+.theme-dark .bg-brutal-pink,
+.theme-dark .bg-brutal-green {
+  color: #111827 !important;
+}
+
+.theme-dark .bg-brutal-yellow .text-brutal-black,
+.theme-dark .bg-brutal-pink .text-brutal-black,
+.theme-dark .bg-brutal-green .text-brutal-black,
+.theme-dark .bg-brutal-yellow.text-brutal-black,
+.theme-dark .bg-brutal-pink.text-brutal-black,
+.theme-dark .bg-brutal-green.text-brutal-black {
+  color: #111827 !important;
+}
+
+.theme-dark .text-gray-500 {
+  color: #94a3b8 !important;
+}
+
+.theme-dark .text-gray-600 {
+  color: #cbd5e1 !important;
+}
+
+.theme-dark .text-gray-700,
+.theme-dark .text-gray-800,
+.theme-dark .text-gray-900 {
+  color: #e2e8f0 !important;
+}
+
+.theme-dark .bg-black\/70,
+.theme-dark .bg-black\/60,
+.theme-dark .bg-brutal-black\/80 {
+  background-color: rgba(2, 6, 23, 0.8) !important;
 }

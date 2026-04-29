@@ -2,7 +2,7 @@ import React, { useState, useEffect, createContext, useContext } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
-import { Home, Users, Calendar, Calculator, Briefcase, Folder, Menu, X, Terminal, User, Rocket, HelpCircle, GraduationCap, Trophy, Video } from 'lucide-react';
+import { Home, Users, Calendar, Calculator, Briefcase, Folder, Menu, X, Terminal, User, Rocket, HelpCircle, GraduationCap, Trophy, Video, Moon, Sun } from 'lucide-react';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import { useStore } from '../store/useStore';
@@ -23,12 +23,23 @@ interface GoogleJWTPayload {
   email_verified: boolean;
 }
 
+type AppTheme = 'light' | 'dark';
+
+function readStoredTheme(): AppTheme {
+  if (typeof window === 'undefined') {
+    return 'light';
+  }
+
+  return window.localStorage.getItem('dsuc-theme') === 'dark' ? 'dark' : 'light';
+}
+
 export function Layout({ children }: { children?: React.ReactNode }) {
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthIntent>('login');
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [showLoginNotification, setShowLoginNotification] = useState(false);
   const [lastLoginInfo, setLastLoginInfo] = useState<{ name?: string; method?: 'wallet' | 'google' }>({});
+  const [theme, setTheme] = useState<AppTheme>(() => readStoredTheme());
   const { currentUser, authMethod } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -55,6 +66,15 @@ export function Layout({ children }: { children?: React.ReactNode }) {
     }
   }, [location.pathname, navigate, requiresProfileCompletion]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.localStorage.setItem('dsuc-theme', theme);
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
   const openAuthModal = (mode: AuthIntent) => {
     setAuthMode(mode);
     setIsWalletModalOpen(true);
@@ -62,9 +82,9 @@ export function Layout({ children }: { children?: React.ReactNode }) {
 
   return (
     <ContactModalContext.Provider value={{ openContactModal: () => setIsContactModalOpen(true) }}>
-      <div className="min-h-screen bg-brutal-bg text-brutal-black font-sans selection:bg-brutal-pink selection:text-white">
+      <div className={`min-h-screen bg-brutal-bg text-brutal-black font-sans selection:bg-brutal-pink selection:text-white ${theme === 'dark' ? 'theme-dark' : 'theme-light'}`}>
         <Background />
-        <Navbar onAuthClick={openAuthModal} />
+        <Navbar onAuthClick={openAuthModal} theme={theme} onToggleTheme={() => setTheme((value) => (value === 'dark' ? 'light' : 'dark'))} />
         <main className="pt-32 pb-20 px-4 md:px-8 max-w-7xl mx-auto relative z-10">
           {children}
         </main>
@@ -99,7 +119,15 @@ type NavItem = {
   locked?: boolean;
 };
 
-function Navbar({ onAuthClick }: { onAuthClick: (mode: AuthIntent) => void }) {
+function Navbar({
+  onAuthClick,
+  onToggleTheme,
+  theme,
+}: {
+  onAuthClick: (mode: AuthIntent) => void;
+  onToggleTheme: () => void;
+  theme: AppTheme;
+}) {
   const { currentUser } = useStore();
   const location = useLocation();
   const navigate = useNavigate();
@@ -247,6 +275,15 @@ function Navbar({ onAuthClick }: { onAuthClick: (mode: AuthIntent) => void }) {
 
             <div className="flex items-center gap-3 shrink-0">
               <button
+                onClick={onToggleTheme}
+                className="hidden lg:inline-flex min-h-11 items-center gap-2 border-4 border-brutal-black bg-white px-4 py-2 text-[11px] font-display font-black uppercase tracking-widest text-brutal-black shadow-neo-sm transition-all hover:-translate-y-1 hover:bg-brutal-yellow hover:shadow-neo"
+                aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                type="button"
+              >
+                {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+                <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+              </button>
+              <button
                 onClick={() => setMobileMenuOpen(true)}
                 className="lg:hidden text-brutal-black hover:bg-brutal-yellow border-2 border-transparent hover:border-brutal-black hover:shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all p-2"
                 aria-label="Open menu"
@@ -325,6 +362,14 @@ function Navbar({ onAuthClick }: { onAuthClick: (mode: AuthIntent) => void }) {
 
               {/* Navigation Links */}
               <div className="flex flex-col gap-2 p-6 flex-1 overflow-y-auto">
+                <button
+                  type="button"
+                  onClick={onToggleTheme}
+                  className="mb-2 flex min-h-12 items-center gap-4 border-4 border-brutal-black bg-white p-4 text-left text-lg font-display font-bold uppercase transition-all hover:-translate-y-1 hover:bg-brutal-yellow hover:shadow-brutal"
+                >
+                  {theme === 'dark' ? <Sun size={22} className="text-brutal-black" /> : <Moon size={22} className="text-brutal-black" />}
+                  <span className="flex-1 text-brutal-black">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+                </button>
                 {allLinks.map((link) => (
                   link.locked ? (
                     <div

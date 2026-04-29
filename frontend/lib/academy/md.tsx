@@ -40,40 +40,47 @@ function heading<Tag extends 'h1' | 'h2' | 'h3' | 'h4'>(tag: Tag, className: str
 const markdownComponents: Components = {
   h1: heading(
     'h1',
-    'mt-8 scroll-mt-28 text-3xl font-display font-black uppercase tracking-[0.14em] text-brutal-black first:mt-0 sm:text-4xl'
+    'mt-8 mb-4 decoration-brutal-yellow underline decoration-4 underline-offset-8 text-3xl font-display font-black uppercase tracking-widest text-brutal-black first:mt-0 sm:text-4xl'
   ),
   h2: heading(
     'h2',
-    'mt-8 scroll-mt-28 border-l-4 border-brutal-blue pl-4 text-2xl font-display font-black uppercase tracking-[0.12em] text-brutal-black first:mt-0 sm:text-3xl'
+    'mt-8 mb-4 border-l-8 border-brutal-black bg-brutal-blue px-4 py-2 text-2xl font-display font-black uppercase tracking-wider text-brutal-black first:mt-0 sm:text-3xl shadow-neo-sm'
   ),
   h3: heading(
     'h3',
-    'mt-6 scroll-mt-28 text-xl font-display font-black uppercase tracking-[0.08em] text-brutal-blue sm:text-2xl'
+    'mt-6 mb-3 text-xl font-display font-black uppercase tracking-wide text-brutal-black sm:text-2xl flex items-center gap-2 before:content-[""] before:w-3 before:h-3 before:bg-brutal-pink before:border-2 before:border-brutal-black'
   ),
   h4: heading(
     'h4',
-    'mt-5 scroll-mt-28 text-lg font-display font-black uppercase tracking-[0.08em] text-brutal-black sm:text-xl'
+    'mt-5 mb-2 text-lg font-display font-black uppercase tracking-wide text-brutal-black sm:text-xl'
   ),
   p: ({ children }) => (
-    <p className="mt-4 text-base leading-8 text-gray-900 first:mt-0 sm:text-[1.05rem]">
+    <p className="mt-4 mb-4 text-base font-bold text-gray-800 first:mt-0 sm:text-lg">
       {children}
     </p>
   ),
-  strong: ({ children }) => <strong className="font-black text-brutal-black">{children}</strong>,
-  em: ({ children }) => <em className="italic text-brutal-blue">{children}</em>,
+  strong: ({ children }) => <strong className="font-black text-brutal-black bg-brutal-yellow px-1 border-2 border-brutal-black">{children}</strong>,
+  em: ({ children }) => <em className="italic font-bold text-brutal-blue">{children}</em>,
   ul: ({ children }) => (
-    <ul className="mt-4 list-disc space-y-3 pl-6 text-base leading-8 text-gray-900 marker:text-brutal-blue sm:text-[1.02rem]">
-      {children}
+    <ul className="mt-4 mb-4 list-none space-y-2 pl-4 text-base font-bold text-gray-800 sm:text-lg border-l-4 border-brutal-black">
+      {React.Children.map(children, (child) => {
+        if (React.isValidElement(child)) {
+          return React.cloneElement(child, {
+            className: `${(child.props as any).className || ''} relative before:content-[""] before:absolute before:-left-[18px] before:top-2.5 before:w-2 before:h-2 before:bg-brutal-black`
+          } as any);
+        }
+        return child;
+      })}
     </ul>
   ),
   ol: ({ children }) => (
-    <ol className="mt-4 list-decimal space-y-3 pl-6 text-base leading-8 text-gray-900 marker:font-bold marker:text-brutal-pink sm:text-[1.02rem]">
+    <ol className="mt-4 mb-4 list-decimal space-y-2 pl-6 text-base font-bold text-gray-800 marker:font-black marker:text-brutal-black sm:text-lg">
       {children}
     </ol>
   ),
-  li: ({ children }) => <li className="pl-1">{children}</li>,
+  li: ({ children, className }) => <li className={`pl-2 ${className || ''}`}>{children}</li>,
   blockquote: ({ children }) => (
-    <blockquote className="mt-5 border-4 border-brutal-black bg-[#fff1b8] px-5 py-4 text-base italic leading-8 text-brutal-black shadow-neo-sm">
+    <blockquote className="mt-5 mb-5 border-4 border-brutal-black bg-brutal-yellow p-5 text-lg font-black text-brutal-black shadow-neo-sm">
       {children}
     </blockquote>
   ),
@@ -82,45 +89,53 @@ const markdownComponents: Components = {
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="font-black text-brutal-blue underline decoration-brutal-blue underline-offset-4 transition-colors hover:text-brutal-black"
+      className="font-black text-white bg-brutal-blue border-b-4 border-brutal-black hover:bg-brutal-pink px-1 transition-colors hover:-translate-y-1 inline-block"
     >
       {children}
     </a>
   ),
-  hr: () => <hr className="my-8 border-t-4 border-brutal-black" />,
+  hr: () => <hr className="my-8 border-[2px] border-brutal-black border-dashed" />,
   table: ({ children }) => (
-    <div className="my-6 overflow-x-auto border-4 border-brutal-black bg-white shadow-neo-sm">
-      <table className="min-w-full border-collapse text-left text-sm text-brutal-black">
+    <div className="my-6 overflow-x-auto border-4 border-brutal-black bg-white shadow-neo">
+      <table className="min-w-full border-collapse text-left text-sm font-bold text-brutal-black">
         {children}
       </table>
     </div>
   ),
-  thead: ({ children }) => <thead className="bg-brutal-yellow">{children}</thead>,
+  thead: ({ children }) => <thead className="bg-brutal-blue border-b-4 border-brutal-black">{children}</thead>,
   tbody: ({ children }) => <tbody className="divide-y-4 divide-brutal-black">{children}</tbody>,
-  tr: ({ children }) => <tr className="align-top">{children}</tr>,
+  tr: ({ children }) => <tr className="align-top hover:bg-brutal-yellow/50 transition-colors">{children}</tr>,
   th: ({ children }) => (
-    <th className="border-b-4 border-brutal-black px-4 py-3 font-display text-xs font-black uppercase tracking-[0.18em] text-brutal-black">
+    <th className="border-r-4 border-brutal-black last:border-r-0 px-4 py-3 font-display text-sm font-black uppercase tracking-wider text-white">
       {children}
     </th>
   ),
-  td: ({ children }) => <td className="px-4 py-3 leading-7 text-gray-900">{children}</td>,
+  td: ({ children }) => <td className="px-4 py-3 border-r-4 border-brutal-black last:border-r-0 text-base">{children}</td>,
   pre: ({ children }) => (
-    <pre className="my-6 overflow-x-auto border-4 border-brutal-black bg-slate-950 p-5 text-sm leading-7 text-slate-100 shadow-neo-sm">
-      {children}
-    </pre>
+    <div className="my-6 border-4 border-brutal-black bg-brutal-black shadow-neo">
+      <div className="flex bg-gray-200 border-b-4 border-brutal-black px-4 py-2 gap-2 h-10 items-center">
+        <div className="w-3 h-3 rounded-full bg-brutal-red border-2 border-brutal-black"></div>
+        <div className="w-3 h-3 rounded-full bg-brutal-yellow border-2 border-brutal-black"></div>
+        <div className="w-3 h-3 rounded-full bg-brutal-green border-2 border-brutal-black"></div>
+        <div className="ml-auto font-mono text-[10px] uppercase font-black tracking-widest text-gray-500">Playground</div>
+      </div>
+      <pre className="overflow-x-auto p-5 text-sm leading-relaxed text-green-400 font-mono">
+        {children}
+      </pre>
+    </div>
   ),
   code: ({ className, children, ...props }: any) => {
     const content = String(children).replace(/\n$/, '');
     if (props.inline) {
       return (
-        <code className="border-2 border-brutal-black bg-[#fff1b8] px-1.5 py-0.5 font-mono text-[0.92em] font-bold text-brutal-black">
+        <code className="border-2 border-brutal-black bg-gray-200 px-1.5 py-0.5 font-mono text-sm font-bold text-brutal-pink">
           {content}
         </code>
       );
     }
 
     return (
-      <code className={`font-mono text-[0.92em] text-slate-100 ${className || ''}`.trim()}>
+      <code className={`font-mono text-[0.92em] text-green-400 ${className || ''}`.trim()}>
         {content}
       </code>
     );
@@ -133,19 +148,21 @@ const markdownComponents: Components = {
           checked={checked}
           readOnly
           disabled
-          className="mr-2 h-4 w-4 accent-brutal-blue"
+          className="mr-2 h-4 w-4 appearance-none border-2 border-brutal-black checked:bg-brutal-blue checked:focus:bg-brutal-blue relative checked:before:content-['✓'] checked:before:absolute checked:before:text-white checked:before:text-xs checked:before:font-black checked:before:left-0.5 checked:before:-top-0.5"
         />
       );
     }
 
-    return <input type={type} checked={checked} readOnly disabled />;
+    return <input type={type} checked={checked} readOnly disabled className="border-2 border-brutal-black" />;
   },
 };
 
 export function renderMd(md: string) {
   return (
-    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-      {md}
-    </ReactMarkdown>
+    <div className="markdown-body">
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+        {md}
+      </ReactMarkdown>
+    </div>
   );
 }

@@ -764,7 +764,7 @@ export function AcademyLesson() {
               {lesson.title}
             </h1>
 
-            <div className="mb-8 max-w-none border-4 border-brutal-black bg-[#fffdf6] p-6 text-base font-medium leading-relaxed text-brutal-black shadow-neo-sm">
+            <div className="mb-8 max-w-none text-base font-medium leading-relaxed text-slate-800">
               {renderMd(lesson.content_md)}
             </div>
 

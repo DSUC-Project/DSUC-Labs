@@ -534,7 +534,7 @@ export function AcademyUnit() {
                     </div>
                   )}
                 </div>
-                <div className="max-w-none">
+                <div className="markdown-body prose prose-slate max-w-none prose-headings:font-display prose-headings:font-black prose-headings:text-brutal-black prose-headings:uppercase prose-p:text-gray-800 prose-p:font-medium hover:prose-a:text-brutal-blue prose-a:font-bold prose-strong:font-black">
                   {renderMd(unit.content_md)}
                 </div>
               </section>
@@ -584,12 +584,12 @@ export function AcademyUnit() {
                   </div>
                 </div>
                 {/* Note: In React Markdown, ensuring standard markdown styling */}
-                <div className="max-w-none">
+                <div className="markdown-body prose prose-slate max-w-none prose-headings:font-display prose-headings:font-black prose-headings:text-brutal-black prose-headings:uppercase prose-p:text-gray-800 prose-p:font-medium hover:prose-a:text-brutal-blue prose-a:font-bold prose-strong:font-black">
                   {renderMd(unit.content_md)}
                 </div>
               </section>
 
-              <section className="bg-brutal-black border-4 border-brutal-black overflow-hidden shadow-neo flex flex-col mb-12">
+              <section className="bg-brutal-bg border-4 border-brutal-black overflow-hidden shadow-neo flex flex-col mb-12">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-4 border-brutal-black bg-white px-4 py-3 gap-4">
                    <div className="flex gap-4 items-center">
                      <LabTabButton
@@ -649,42 +649,42 @@ export function AcademyUnit() {
                    </div>
                 </div>
 
-                <div className="flex items-center gap-2 bg-slate-900 px-4 py-3 border-b-4 border-brutal-black text-[10px] font-black tracking-widest uppercase overflow-x-auto text-slate-100">
+                <div className="flex items-center gap-2 bg-brutal-bg px-4 py-3 border-b-4 border-brutal-black text-[10px] font-black tracking-widest uppercase overflow-x-auto text-brutal-black">
                   {runnerSupported ? (
-                     <span className="text-brutal-black border-2 border-brutal-black bg-brutal-green px-2 py-0.5 shadow-neo-sm">● {runtimeLabel} Sẵn sàng</span>
+                     <span className="text-brutal-black border-2 border-brutal-black bg-brutal-green px-2 py-0.5 shadow-neo-sm-sm">● {runtimeLabel} Sẵn sàng</span>
                   ) : (
-                     <span className="text-white border-2 border-brutal-black bg-brutal-blue px-2 py-0.5 shadow-neo-sm">Không gian hướng dẫn</span>
+                     <span className="text-white border-2 border-brutal-black bg-brutal-blue px-2 py-0.5 shadow-neo-sm-sm">Không gian hướng dẫn</span>
                   )}
 
                   {draftDirty && (
-                     <span className="text-brutal-black border-2 border-brutal-black bg-brutal-yellow px-2 py-0.5 shadow-neo-sm">Đã sửa đổi</span>
+                     <span className="text-brutal-black border-2 border-brutal-black bg-brutal-yellow px-2 py-0.5 shadow-neo-sm-sm">Đã sửa đổi</span>
                   )}
                   {runReport && !runReportIsFresh && (
-                     <span className="text-brutal-black border-2 border-brutal-black bg-brutal-pink px-2 py-0.5 shadow-neo-sm">Cần chạy lại</span>
+                     <span className="text-brutal-black border-2 border-brutal-black bg-brutal-pink px-2 py-0.5 shadow-neo-sm-sm">Cần chạy lại</span>
                   )}
                   {activeRunReport?.allPassed && (
-                     <span className="text-brutal-black border-2 border-brutal-black bg-brutal-green px-2 py-0.5 shadow-neo-sm">Đã vượt qua</span>
+                     <span className="text-brutal-black border-2 border-brutal-black bg-brutal-green px-2 py-0.5 shadow-neo-sm-sm">Đã vượt qua</span>
                   )}
                 </div>
 
-                <div className="flex-1 bg-slate-950">
+                <div className="flex-1 bg-white">
                   {activeWorkspaceTab === 'editor' && (
                     <div className="h-[600px] relative">
-                      <div className="absolute top-2 right-4 text-[10px] font-black text-slate-500 uppercase tracking-widest pointer-events-none">
+                      <div className="absolute top-2 right-4 text-[10px] font-black text-gray-400 uppercase tracking-widest pointer-events-none">
                          {unit.language || 'text'}
                       </div>
                       <textarea
                         value={draftCode}
                         onChange={(event) => setDraftCode(event.target.value)}
                         spellCheck={false}
-                        className="h-full w-full resize-none bg-slate-950 p-6 font-mono text-[14px] leading-relaxed text-slate-100 outline-none transition-colors selection:bg-brutal-pink focus:bg-slate-900"
+                        className="w-full h-full bg-white text-brutal-black font-mono text-[14px] leading-relaxed p-6 outline-none resize-none selection:bg-brutal-pink focus:bg-brutal-yellow/10 transition-colors"
                         placeholder="Bắt đầu viết code ở đây..."
                       />
                     </div>
                   )}
 
                   {activeWorkspaceTab === 'results' && (
-                    <div className="min-h-[600px] max-h-[600px] overflow-y-auto bg-white p-6 text-brutal-black brutal-scrollbar">
+                    <div className="p-6 text-brutal-black min-h-[600px] max-h-[600px] overflow-y-auto">
                       {!runReport ? (
                         <div className="flex flex-col items-center justify-center py-20 text-center border-4 border-dashed border-brutal-black bg-gray-50 h-full">
                            <div className="w-16 h-16 bg-white border-4 border-brutal-black shadow-neo-sm flex items-center justify-center mb-6">
@@ -700,7 +700,7 @@ export function AcademyUnit() {
                                <div className="text-sm font-black uppercase tracking-widest text-brutal-black flex items-center gap-2">
                                  Kết quả chạy
                                </div>
-                               <span className={`px-2 py-1 text-[10px] font-black uppercase tracking-widest border-2 border-brutal-black shadow-neo-sm ${runReportIsFresh ? runReport.allPassed ? 'bg-brutal-green text-brutal-black' : 'bg-brutal-pink text-brutal-black' : 'bg-brutal-yellow text-brutal-black'}`}>
+                               <span className={`px-2 py-1 text-[10px] font-black uppercase tracking-widest border-2 border-brutal-black shadow-neo-sm-sm ${runReportIsFresh ? runReport.allPassed ? 'bg-brutal-green text-brutal-black' : 'bg-brutal-pink text-brutal-black' : 'bg-brutal-yellow text-brutal-black'}`}>
                                  {runReportIsFresh ? runReport.allPassed ? 'Thành công toàn bộ' : 'Thất bại' : 'Cần chạy lại'}
                                </span>
                              </div>
@@ -756,7 +756,7 @@ export function AcademyUnit() {
                                       {caseItem.description}
                                     </div>
                                     {caseItem.error && (
-                                       <div className="mt-4 overflow-x-auto whitespace-pre-wrap border-4 border-brutal-black bg-slate-950 p-4 font-mono text-xs font-bold text-pink-300 shadow-neo-sm">
+                                       <div className="mt-4 bg-white p-4 border-4 border-brutal-black shadow-neo-sm text-brutal-pink font-mono text-xs overflow-x-auto whitespace-pre-wrap font-bold">
                                           {caseItem.error}
                                        </div>
                                     )}
@@ -774,7 +774,7 @@ export function AcademyUnit() {
                   )}
 
                   {activeWorkspaceTab === 'solution' && (
-                    <div className="min-h-[600px] bg-white p-6 text-brutal-black">
+                    <div className="p-6 min-h-[600px] bg-white text-brutal-black">
                        {!solutionUnlocked ? (
                          <div className="flex flex-col items-center justify-center py-24 text-center border-4 border-dashed border-brutal-black bg-gray-50 h-full">
                             <div className="w-16 h-16 bg-white border-4 border-brutal-black shadow-neo-sm flex items-center justify-center mb-6">
@@ -805,15 +805,15 @@ export function AcademyUnit() {
                                          setNotice('Đáp án đã được copy');
                                       }
                                   }}
-                                  className="text-[10px] font-black tracking-widest text-brutal-black bg-white border-2 border-brutal-black px-3 py-1.5 shadow-neo-sm uppercase hover:bg-brutal-yellow disabled:opacity-50 transition-colors flex items-center gap-1.5"
+                                  className="text-[10px] font-black tracking-widest text-brutal-black bg-white border-2 border-brutal-black px-3 py-1.5 shadow-neo-sm-sm uppercase hover:bg-brutal-yellow disabled:opacity-50 transition-colors flex items-center gap-1.5"
                                >
                                   <ClipboardCopy className="w-3.5 h-3.5" />
                                   Copy
                                </button>
                             </div>
                             {unit.solution ? (
-                               <div className="overflow-hidden border-4 border-brutal-black bg-slate-950 shadow-neo-sm brutal-scrollbar">
-                                  <pre className="max-h-[500px] overflow-x-auto overflow-y-auto p-4 text-[14px] font-mono font-bold leading-relaxed text-slate-100 brutal-scrollbar selection:bg-brutal-pink">
+                               <div className="bg-white border-4 border-brutal-black shadow-neo-sm overflow-hidden brutal-scrollbar">
+                                  <pre className="p-4 overflow-x-auto text-[14px] font-mono font-bold text-brutal-black leading-relaxed max-h-[500px] overflow-y-auto brutal-scrollbar selection:bg-brutal-pink">
                                     <code>{unit.solution}</code>
                                   </pre>
                                </div>

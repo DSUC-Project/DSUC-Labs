@@ -222,12 +222,18 @@ export function MyProfile() {
           >
             <div className="flex flex-col items-center relative z-10">
               <div className="w-32 h-32 p-1 border-4 border-brutal-black mb-6 relative group/avatar bg-brutal-yellow shadow-neo-sm transition-transform duration-500 hover:scale-105">
-                <img src={avatar || `https://i.pravatar.cc/150?u=${currentUser.id}`} alt="Avatar" className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300" />
+                <img src={avatar || `https://i.pravatar.cc/150?u=${currentUser.id}`} alt="Avatar" className="w-full h-full object-cover transition-all duration-300" />
                 <label className="absolute inset-0 bg-brutal-black/80 flex flex-col items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer">
                   <Upload className="text-white mb-1" size={24} />
                   <span className="text-[10px] font-black text-white uppercase tracking-widest mt-1">Sửa</span>
                   <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                 </label>
+              </div>
+
+              <div className="mb-6 flex w-fit items-center gap-2 border-4 border-brutal-black bg-brutal-pink px-4 py-2 font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
+                <Flame size={18} className="text-brutal-black" />
+                <span className="font-display text-2xl leading-none">{currentUser.streak || 0}</span>
+                <span className="text-[10px]">ngày</span>
               </div>
 
               <div className="w-full space-y-6">

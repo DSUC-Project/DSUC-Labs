@@ -5,6 +5,8 @@ import {
   BookOpen,
   Boxes,
   Flame,
+  Sparkles,
+  Trophy,
 } from 'lucide-react';
 
 import type { AcademyLearnerStats, AcademyV2CommunityTrack, AcademyV2Path } from '@/types';
@@ -156,7 +158,16 @@ export function AcademyHome() {
   );
 
   const today = new Date();
+  const firstName = currentUser?.name?.split(' ')[0] || 'Builder';
   const currentStreak = learnerStats?.streak ?? 0;
+  const streakHeadline =
+    currentStreak >= 30
+      ? 'Huy hiệu quá khủng'
+      : currentStreak >= 7
+        ? 'Giữ nhịp cực tốt'
+        : currentStreak >= 1
+          ? 'Bắt đầu vào guồng'
+          : 'Khởi động streak mới';
   const lastActivityLabel = learnerStats?.last_activity
     ? new Date(learnerStats.last_activity).toLocaleDateString('vi-VN', {
         timeZone: ACADEMY_TIME_ZONE,
@@ -180,24 +191,81 @@ export function AcademyHome() {
   return (
     <div className="space-y-16 pb-20 mt-10">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-brutal-blue border-4 border-brutal-black rounded-none p-6 sm:p-10 shadow-neo-xl brutal-card flex justify-between items-center flex-col lg:flex-row gap-8">
-        <h1 className="font-display text-5xl font-black text-white sm:text-6xl lg:text-7xl leading-none tracking-tighter uppercase" style={{ textShadow: '4px 4px 0 #111827' }}>
-          HỌC VIỆN DSUC
-        </h1>
+      <section className="relative overflow-hidden border-4 border-brutal-black bg-brutal-blue p-6 shadow-neo-xl sm:p-10">
+        <div className="pointer-events-none absolute -left-10 top-10 h-32 w-32 rotate-12 border-4 border-brutal-black bg-brutal-yellow shadow-neo"></div>
+        <div className="pointer-events-none absolute -right-8 bottom-8 h-24 w-24 rounded-full border-4 border-brutal-black bg-brutal-pink shadow-neo"></div>
+        <div className="pointer-events-none absolute right-20 top-12 h-14 w-14 rotate-45 border-4 border-brutal-black bg-white shadow-neo-sm"></div>
 
-        {/* Streak Board */}
-        <div className="w-full lg:w-auto overflow-hidden bg-white border-4 border-brutal-black shadow-neo-lg p-6">
+        <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_460px] lg:items-stretch">
+          <div className="space-y-6">
+            <div className="flex flex-wrap gap-3">
+              <div className="inline-flex items-center gap-2 border-4 border-brutal-black bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
+                <Sparkles size={14} />
+                Poster streak
+              </div>
+              <div className="inline-flex items-center gap-2 border-4 border-brutal-black bg-brutal-yellow px-4 py-2 text-[10px] font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
+                <Trophy size={14} />
+                {currentUser ? `${firstName} đang học` : 'Khách xem thử'}
+              </div>
+            </div>
+
+            <div className="max-w-4xl border-4 border-brutal-black bg-white p-6 shadow-neo lg:p-8">
+              <div className="mb-3 inline-flex items-center gap-2 border-2 border-brutal-black bg-brutal-pink px-3 py-1 text-[10px] font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
+                Bảng thành tích builder
+              </div>
+              <h1 className="font-display text-5xl font-black uppercase tracking-tighter text-brutal-black sm:text-6xl lg:text-7xl">
+                HỌC VIỆN
+                <span className="mt-2 block text-brutal-blue">DSUC</span>
+              </h1>
+              <p className="mt-5 max-w-2xl border-l-4 border-brutal-black pl-4 text-sm font-bold leading-7 text-brutal-black sm:text-base">
+                Học Solana theo lộ trình rõ ràng, hoàn thành bài tập thực chiến, và giữ streak đủ đẹp để chụp một tấm khoe bạn bè ngay trên trang này.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <MetricCard
+                icon={<BookOpen className="h-4 w-4" aria-hidden="true" />}
+                label="Lộ trình"
+                value={String(paths.length)}
+                detail="curated paths"
+                color="bg-brutal-yellow"
+              />
+              <MetricCard
+                icon={<Boxes className="h-4 w-4" aria-hidden="true" />}
+                label="Tổng bài"
+                value={String(totalCuratedUnits)}
+                detail="learn + practice"
+                color="bg-white"
+              />
+              <MetricCard
+                icon={<Flame className="h-4 w-4" aria-hidden="true" />}
+                label="Đã xong"
+                value={String(totalCompletedUnits)}
+                detail="units completed"
+                color="bg-brutal-pink"
+              />
+            </div>
+          </div>
+
+          {/* Streak Board */}
+          <div className="relative">
+        <div className="w-full overflow-hidden border-4 border-brutal-black bg-white p-6 shadow-neo-lg lg:h-full">
           {currentUser ? (
               <div className="space-y-6">
-                 <div className="flex justify-between items-center bg-brutal-yellow p-4 border-4 border-brutal-black shadow-neo-sm">
-                   <div className="font-black uppercase tracking-widest text-brutal-black">Chuỗi ngày học liên tiếp</div>
-                   <div className="flex items-center gap-2">
-                     <span className="font-display text-3xl font-black text-brutal-black">{currentStreak}</span>
-                     <Flame className="w-8 h-8 text-brutal-pink fill-brutal-pink" strokeWidth={2} />
+                 <div className="flex items-end justify-between gap-4 border-b-4 border-brutal-black pb-5">
+                   <div>
+                     <div className="mb-2 inline-flex items-center gap-2 border-2 border-brutal-black bg-brutal-yellow px-3 py-1 text-[10px] font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
+                       Chuỗi học thật
+                     </div>
+                     <div className="font-display text-5xl font-black uppercase leading-none text-brutal-black sm:text-6xl">{currentStreak}</div>
+                     <div className="mt-2 text-xs font-black uppercase tracking-widest text-gray-500">{streakHeadline}</div>
+                   </div>
+                   <div className="flex h-16 w-16 items-center justify-center border-4 border-brutal-black bg-brutal-pink shadow-neo-sm">
+                     <Flame className="w-8 h-8 text-brutal-black fill-brutal-black" strokeWidth={2} />
                    </div>
                  </div>
-                 
-                 <div className="grid grid-cols-7 gap-3 pb-1">
+
+                 <div className="grid grid-cols-7 gap-3 border-4 border-brutal-black bg-brutal-bg p-4 shadow-neo-sm">
                     {streakDays.map((day, idx) => (
                        <div key={idx} className="flex flex-col items-center gap-2">
                           <span className="text-[10px] font-bold text-gray-500 uppercase">
@@ -217,23 +285,36 @@ export function AcademyHome() {
                     ))}
                  </div>
                  <div className="grid gap-3 sm:grid-cols-2">
-                   <p className="border-4 border-brutal-black bg-white px-4 py-3 text-sm font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
-                     Streak hiện tại: {currentStreak} ngày liên tiếp
-                   </p>
-                   <p className="border-4 border-brutal-black bg-white px-4 py-3 text-sm font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
-                     {lastActivityLabel ? `Hoạt động gần nhất: ${lastActivityLabel}` : 'Chưa có hoạt động học được ghi nhận'}
-                   </p>
+                   <div className="border-4 border-brutal-black bg-brutal-yellow px-4 py-4 text-brutal-black shadow-neo-sm">
+                     <div className="text-[10px] font-black uppercase tracking-widest">Streak hiện tại</div>
+                     <div className="mt-2 font-display text-2xl font-black uppercase">{currentStreak} ngày</div>
+                   </div>
+                   <div className="border-4 border-brutal-black bg-white px-4 py-4 text-brutal-black shadow-neo-sm">
+                     <div className="text-[10px] font-black uppercase tracking-widest">Hoạt động gần nhất</div>
+                     <div className="mt-2 text-sm font-black uppercase tracking-wide">
+                       {lastActivityLabel || 'Chưa có'}
+                     </div>
+                   </div>
                  </div>
               </div>
           ) : (
-             <div className="text-center py-4">
-                 <div className="text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Học viện</div>
-                 <h2 className="font-display text-xl font-black text-brutal-black uppercase tracking-tight mb-4">Theo dõi chuỗi ngày học của bạn</h2>
+             <div className="flex h-full flex-col justify-between text-center py-4">
+                 <div>
+                   <div className="mb-3 inline-flex items-center gap-2 border-2 border-brutal-black bg-brutal-yellow px-3 py-1 text-[10px] font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
+                     Xem thử
+                   </div>
+                   <h2 className="font-display text-2xl font-black text-brutal-black uppercase tracking-tight mb-4">Theo dõi chuỗi ngày học của bạn</h2>
+                 </div>
                  <p className="bg-brutal-pink border-4 border-brutal-black px-4 py-3 font-black uppercase shadow-neo text-sm text-brutal-black">
                    Đăng nhập để lưu streak và đồng bộ tiến độ học tập.
                  </p>
              </div>
           )}
+        </div>
+            <div className="absolute -bottom-4 -right-4 hidden border-4 border-brutal-black bg-brutal-yellow px-4 py-3 text-xs font-black uppercase tracking-widest text-brutal-black shadow-neo lg:block">
+              Chụp ảnh khoe đi
+            </div>
+          </div>
         </div>
       </section>
 
