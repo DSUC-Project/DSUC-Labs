@@ -6,7 +6,7 @@ import {
   requireAcademyAccess,
   requireExecutiveAdmin,
 } from '../middleware/auth';
-import { calculateLearningStreak } from '../utils/academyStats';
+import { academyDateKey, calculateLearningStreak } from '../utils/academyStats';
 import {
   academyV2CourseIdFromProgressTrack,
   getAcademyV2Course,
@@ -137,6 +137,15 @@ function safeJsonParse(value: string, fallback: unknown) {
   } catch {
     return fallback;
   }
+}
+
+function academyActiveDayKeys(rows: any[]) {
+  return [...new Set(
+    rows
+      .map((row) => row?.recorded_at || row?.updated_at || row?.created_at)
+      .filter(Boolean)
+      .map((value) => academyDateKey(new Date(value)))
+  )].sort();
 }
 
 async function loadCommunityTrackSummaries() {
@@ -1532,6 +1541,75 @@ router.get(
 );
 
 // GET /api/academy/progress - get all progress rows for current user
+router.get('/stats', authenticateUser as any, requireAcademyAccess, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'User authentication is required',
+      });
+    }
+
+    const [
+      { data: progressRows, error: progressError },
+      { data: activityRows, error: activityError },
+    ] = await Promise.all([
+      db
+        .from('academy_progress')
+        .select('*')
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false }),
+      db
+        .from('academy_activity')
+        .select('*')
+        .eq('user_id', userId)
+        .order('recorded_at', { ascending: false }),
+    ]);
+
+    if (progressError || activityError) {
+      return res.status(500).json({
+        error: 'Database Error',
+        message: progressError?.message || activityError?.message,
+      });
+    }
+
+    const progress = progressRows || [];
+    const activity = activityRows || [];
+    const timelineRows = [...activity, ...progress];
+    const activeDays = academyActiveDayKeys(timelineRows);
+    const xp = progress.reduce(
+      (sum: number, row: any) => sum + Number(row.xp_awarded || 0),
+      0
+    );
+    const completedLessons = progress.filter((row: any) => row.lesson_completed).length;
+    const quizPassed = progress.filter((row: any) => row.quiz_passed).length;
+    const lastActivity = timelineRows
+      .map((row: any) => row.recorded_at || row.updated_at || row.created_at)
+      .filter(Boolean)
+      .sort()
+      .pop() || null;
+
+    res.json({
+      success: true,
+      data: {
+        user_id: userId,
+        streak: calculateLearningStreak(timelineRows),
+        academy_xp: xp,
+        completed_lessons: completedLessons,
+        quiz_passed: quizPassed,
+        last_activity: lastActivity,
+        active_days: activeDays,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message,
+    });
+  }
+});
+
 router.get('/progress', authenticateUser as any, requireAcademyAccess, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;

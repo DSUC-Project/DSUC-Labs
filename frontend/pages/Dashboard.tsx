@@ -11,40 +11,11 @@ export function Dashboard() {
   const { openContactModal } = useContactModal();
 
   const now = new Date();
-  
-  // Mock data for past events
-  const mockEvents = [
-    {
-      id: 'mock-1',
-      title: 'Solana Devnet Bootchamp 2026',
-      date: '2026-03-15T08:00:00Z',
-      type: 'Bootcamp',
-      description: 'Chương trình đào tạo chuyên sâu về Solana blockchain.',
-      luma_link: '#'
-    },
-    {
-      id: 'mock-2',
-      title: 'Web3 & Blockchain Workshop',
-      date: '2026-02-20T08:00:00Z',
-      type: 'Workshop',
-      description: 'Giới thiệu các khái niệm cơ bản về Web3 và cách ứng dụng.',
-      luma_link: '#'
-    },
-    {
-      id: 'mock-3',
-      title: 'DSUC Hackathon Spring',
-      date: '2026-01-10T08:00:00Z',
-      type: 'Hackathon',
-      description: 'Cuộc thi lập trình dành cho sinh viên DSUC.',
-      luma_link: '#'
-    }
-  ];
-
   const pastEvents = [...events]
     .filter(e => new Date(e.date) <= now)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  const eventHistory = pastEvents.length > 0 ? pastEvents.slice(0, 3) : mockEvents;
+  const eventHistory = pastEvents.slice(0, 3);
 
   const statusConfig = {
     connecting: { text: 'ĐANG KHỞI TẠO...', color: 'text-amber-500', icon: Loader2, pulse: true, spin: true },
@@ -159,6 +130,13 @@ export function Dashboard() {
 
 function EventCard({ event, idx }: { event: any, idx: number }) {
   const luma_link = event.luma_link;
+  const eventDate = event.date ? new Date(event.date) : null;
+  const dayLabel = eventDate
+    ? String(eventDate.getDate()).padStart(2, '0')
+    : '--';
+  const monthLabel = eventDate
+    ? eventDate.toLocaleString('vi-VN', { month: 'short' })
+    : '---';
 
   const handleClick = () => {
     if (luma_link) {
@@ -186,10 +164,10 @@ function EventCard({ event, idx }: { event: any, idx: number }) {
         </span>
         <div className="text-right">
           <div className="text-3xl font-display font-black text-brutal-black group-hover:text-brutal-blue transition-colors leading-none">
-            {event.date?.split('-')[2] || '--'}
+            {dayLabel}
           </div>
           <div className="text-xs font-bold text-gray-500 uppercase mt-1">
-            {event.date ? new Date(event.date).toLocaleString('vi-VN', { month: 'short' }) : '---'}
+            {monthLabel}
           </div>
         </div>
       </div>
@@ -197,7 +175,9 @@ function EventCard({ event, idx }: { event: any, idx: number }) {
       <h3 className="text-xl font-display font-black mb-3 text-brutal-black group-hover:underline decoration-brutal-blue decoration-4 underline-offset-4 transition-colors line-clamp-2 leading-tight uppercase">
         {event.title}
       </h3>
-      <p className="text-brutal-blue font-mono font-bold text-xs uppercase bg-gray-50 p-2 border-2 border-brutal-black shadow-neo-sm w-fit">{event.location}</p>
+      <p className="w-fit border-2 border-brutal-black bg-gray-50 p-2 font-mono text-xs font-bold uppercase text-brutal-blue shadow-neo-sm">
+        {event.location || 'Đang cập nhật địa điểm'}
+      </p>
     </motion.div>
   );
 }

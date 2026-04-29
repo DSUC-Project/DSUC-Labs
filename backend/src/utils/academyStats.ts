@@ -16,8 +16,20 @@ const EMPTY_STATS: AcademyStats = {
   last_activity: null,
 };
 
-function dateKey(value: Date) {
-  return value.toISOString().slice(0, 10);
+const ACADEMY_TIME_ZONE = 'Asia/Ho_Chi_Minh';
+const ACADEMY_DATE_FORMATTER = new Intl.DateTimeFormat('en-CA', {
+  timeZone: ACADEMY_TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+export function academyDateKey(value: Date) {
+  const parts = ACADEMY_DATE_FORMATTER.formatToParts(value);
+  const year = parts.find((part) => part.type === 'year')?.value || '0000';
+  const month = parts.find((part) => part.type === 'month')?.value || '00';
+  const day = parts.find((part) => part.type === 'day')?.value || '00';
+  return `${year}-${month}-${day}`;
 }
 
 function shiftDays(value: Date, days: number) {
@@ -31,16 +43,16 @@ export function calculateLearningStreak(rows: any[], now = new Date()) {
     rows
       .map((row) => row?.recorded_at || row?.updated_at || row?.created_at)
       .filter(Boolean)
-      .map((value) => dateKey(new Date(value)))
+      .map((value) => academyDateKey(new Date(value)))
   );
 
   if (activeDays.size === 0) {
     return 0;
   }
 
-  const today = dateKey(now);
+  const today = academyDateKey(now);
   const yesterdayDate = shiftDays(now, -1);
-  const yesterday = dateKey(yesterdayDate);
+  const yesterday = academyDateKey(yesterdayDate);
 
   if (!activeDays.has(today) && !activeDays.has(yesterday)) {
     return 0;
@@ -49,7 +61,7 @@ export function calculateLearningStreak(rows: any[], now = new Date()) {
   let cursor = activeDays.has(today) ? now : yesterdayDate;
   let streak = 0;
 
-  while (activeDays.has(dateKey(cursor))) {
+  while (activeDays.has(academyDateKey(cursor))) {
     streak += 1;
     cursor = shiftDays(cursor, -1);
   }

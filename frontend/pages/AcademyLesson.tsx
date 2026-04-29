@@ -147,7 +147,7 @@ export function AcademyLesson() {
   const lessonId = String(params.lesson || '').trim();
   if (!track || !lessonId) {
     return (
-      <div className="py-20 text-center font-mono text-slate-400 uppercase tracking-widest">
+      <div className="py-20 text-center font-mono font-black uppercase tracking-widest text-gray-500">
         Không tìm thấy bài học
       </div>
     );
@@ -700,7 +700,7 @@ export function AcademyLesson() {
 
   if (!lesson || !trackInfo) {
     return (
-      <div className="py-20 text-center text-slate-500 font-bold uppercase tracking-widest bg-white rounded-3xl border border-slate-200 m-8">
+      <div className="m-8 border-4 border-brutal-black bg-white py-20 text-center text-sm font-black uppercase tracking-widest text-gray-500 shadow-neo">
         {err || 'Không tìm thấy bài học'}
       </div>
     );
@@ -744,8 +744,8 @@ export function AcademyLesson() {
         </div>
 
         <div className="flex items-center justify-between px-2 font-mono text-[10px] font-black uppercase tracking-widest text-brutal-black">
-          <span className="bg-white border-2 border-brutal-black px-3 py-1 shadow-neo-sm shadow-brutal-black/50">{trackTitle}</span>
-          <span className="bg-white border-2 border-brutal-black px-3 py-1 shadow-neo-sm shadow-brutal-black/50">
+          <span className="bg-white border-2 border-brutal-black px-3 py-1 shadow-neo-sm">{trackTitle}</span>
+          <span className="bg-white border-2 border-brutal-black px-3 py-1 shadow-neo-sm">
             Bước {currentStep + 1}/{totalSteps}
           </span>
         </div>
@@ -764,7 +764,7 @@ export function AcademyLesson() {
               {lesson.title}
             </h1>
 
-            <div className="mb-8 max-w-none text-base font-medium leading-relaxed text-slate-800">
+            <div className="mb-8 max-w-none border-4 border-brutal-black bg-[#fffdf6] p-6 text-base font-medium leading-relaxed text-brutal-black shadow-neo-sm">
               {renderMd(lesson.content_md)}
             </div>
 
@@ -988,7 +988,7 @@ function CompletionCelebration({
           animate={{ opacity: 1 }}
           exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
           transition={{ duration: reduceMotion ? 0 : 0.3, ease: 'easeOut' }}
-          className="fixed inset-0 z-[10020] flex items-center justify-center overflow-hidden p-4 bg-slate-900/60 backdrop-blur-sm"
+          className="fixed inset-0 z-[10020] flex items-center justify-center overflow-hidden p-4 bg-black/70 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="academy-completion-title"
@@ -1056,7 +1056,7 @@ function CompletionCelebration({
               <Sparkles size={48} aria-hidden="true" strokeWidth={3} />
             </motion.div>
 
-            <div className="relative mx-auto mb-6 flex w-fit items-center gap-2 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-brutal-black border-4 border-brutal-black shadow-neo-sm shadow-brutal-black">
+            <div className="relative mx-auto mb-6 flex w-fit items-center gap-2 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-brutal-black border-4 border-brutal-black shadow-neo-sm">
               <span className="h-3 w-3 bg-brutal-green animate-pulse border-2 border-brutal-black" />
               ĐÃ MỞ KHÓA TỐT NGHIỆP
             </div>

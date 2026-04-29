@@ -71,33 +71,40 @@ function MemberCard({ member, type }: { member: Member; type: 'official' | 'comm
   return (
     <Link to={`/member/${member.id}`} className="block h-full">
       <motion.div
-        whileHover={{ y: -5, x: -5 }}
+        whileHover={{ y: -3, x: -3 }}
         className="relative group cursor-pointer h-full brutal-card"
       >
-        <div className="bg-white p-6 h-full flex flex-col items-center text-center">
-           <div className={`w-24 h-24 shrink-0 relative mb-5 border-4 border-brutal-black transition-transform duration-300 group-hover:scale-110 shadow-neo-sm ${type === 'official' ? 'bg-brutal-yellow' : 'bg-brutal-blue'}`}>
-            <img src={member.avatar || 'https://via.placeholder.com/150'} alt={member.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300" />
+        <div className="flex h-full flex-col items-center bg-white p-4 text-center">
+           <div className={`relative mb-4 h-20 w-20 shrink-0 border-4 border-brutal-black shadow-neo-sm transition-transform duration-300 group-hover:scale-105 ${type === 'official' ? 'bg-brutal-yellow' : 'bg-brutal-blue'}`}>
+            <img src={member.avatar || 'https://via.placeholder.com/150'} alt={member.name} className="h-full w-full object-cover" />
           </div>
 
-          <div className="mb-5">
-            <h3 className={`text-xl font-display font-black leading-tight flex-1 tracking-tight mb-2 uppercase group-hover:underline decoration-brutal-pink decoration-4 underline-offset-2 ${type === 'official' ? 'text-brutal-black' : 'text-brutal-black'}`}>{member.name}</h3>
-            <p className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 border-2 border-brutal-black shadow-neo-sm inline-block ${type === 'official' ? 'bg-brutal-yellow' : 'bg-brutal-blue text-white'}`}>
+          <div className="mb-4 min-h-[96px] w-full">
+            <h3 className="mb-2 line-clamp-2 min-h-[56px] text-lg font-display font-black uppercase leading-tight tracking-tight text-brutal-black group-hover:underline decoration-brutal-pink decoration-4 underline-offset-2">
+              {member.name}
+            </h3>
+            <p className={`inline-block border-2 border-brutal-black px-3 py-1 text-[10px] font-black uppercase tracking-widest shadow-neo-sm ${type === 'official' ? 'bg-brutal-yellow' : 'bg-brutal-blue text-white'}`}>
               {type === 'community' ? 'Cộng đồng' : member.role || 'Thành viên'}
             </p>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-2 mb-6 w-full">
-            {member.skills.slice(0, 3).map(skill => (
-              <span key={skill} className="text-[10px] uppercase font-black tracking-wider px-2 py-1 bg-white border-2 border-brutal-black text-brutal-black transition-colors group-hover:bg-brutal-pink shadow-neo-sm">
+          <div className="mb-4 flex min-h-[64px] w-full flex-wrap justify-center gap-2">
+            {member.skills.slice(0, 2).map(skill => (
+              <span key={skill} className="border-2 border-brutal-black bg-white px-2 py-1 text-[10px] font-black uppercase tracking-wider text-brutal-black shadow-neo-sm transition-colors group-hover:bg-brutal-pink">
                 {skill}
               </span>
             ))}
+            {member.skills.length === 0 && (
+              <span className="border-2 border-brutal-black bg-gray-100 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-gray-500 shadow-neo-sm">
+                Chưa thêm kỹ năng
+              </span>
+            )}
           </div>
 
-          <div className="flex gap-4 mt-auto border-t-4 border-brutal-black pt-4 w-full justify-center">
-            {member.socials.github && <Github size={20} className="text-brutal-black hover:-translate-y-1 transition-transform" />}
-            {member.socials.twitter && <Twitter size={20} className="text-brutal-black hover:-translate-y-1 transition-transform" />}
-            {member.socials.telegram && <Send size={20} className="text-brutal-black hover:-translate-y-1 transition-transform" />}
+          <div className="mt-auto flex w-full justify-center gap-4 border-t-4 border-brutal-black pt-3">
+            {member.socials.github && <Github size={18} className="text-brutal-black transition-transform hover:-translate-y-1" />}
+            {member.socials.twitter && <Twitter size={18} className="text-brutal-black transition-transform hover:-translate-y-1" />}
+            {member.socials.telegram && <Send size={18} className="text-brutal-black transition-transform hover:-translate-y-1" />}
           </div>
         </div>
       </motion.div>

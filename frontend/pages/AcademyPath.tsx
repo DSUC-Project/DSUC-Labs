@@ -84,7 +84,7 @@ export function AcademyPath() {
     return (
       <div className="space-y-6 mt-10">
         {Array.from({ length: 3 }).map((_, index) => (
-          <div key={index} className="h-48 animate-pulse rounded-3xl bg-white border border-slate-100 shadow-sm" />
+          <div key={index} className="h-48 animate-pulse border-4 border-brutal-black bg-white shadow-neo" />
         ))}
       </div>
     );
@@ -92,7 +92,7 @@ export function AcademyPath() {
 
   if (!path) {
     return (
-      <div className="mt-10 rounded-2xl bg-rose-50 p-6 text-sm font-bold text-rose-600 text-center border border-rose-100">
+      <div className="mt-10 border-4 border-brutal-black bg-brutal-pink p-6 text-center text-sm font-black uppercase tracking-widest text-brutal-black shadow-neo">
         {error || 'Không tìm thấy lộ trình.'}
       </div>
     );

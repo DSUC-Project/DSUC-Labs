@@ -168,6 +168,16 @@ export interface AcademyActivity {
   recorded_at: string;
 }
 
+export interface AcademyLearnerStats {
+  user_id: string;
+  streak: number;
+  academy_xp: number;
+  completed_lessons: number;
+  quiz_passed: number;
+  last_activity: string | null;
+  active_days: string[];
+}
+
 export interface AcademyQuestionChoice {
   id: string;
   label: string;

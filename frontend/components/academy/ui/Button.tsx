@@ -17,22 +17,22 @@ export function Button({
   fullWidth?: boolean;
 }) {
   const base =
-    'inline-flex items-center justify-center font-semibold rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 disabled:opacity-50 disabled:cursor-not-allowed';
+    'inline-flex items-center justify-center border-4 border-brutal-black font-black uppercase tracking-widest transition-all duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-brutal-blue disabled:cursor-not-allowed disabled:opacity-50';
 
   const sizes: Record<Size, string> = {
-    sm: 'text-sm px-4 py-2',
-    md: 'text-sm px-5 py-2.5',
-    lg: 'text-base px-6 py-3',
+    sm: 'px-4 py-2 text-xs',
+    md: 'px-5 py-2.5 text-sm',
+    lg: 'px-6 py-3 text-base',
   };
 
   const variants: Record<Variant, string> = {
     primary:
-      'bg-white text-slate-900 hover:bg-slate-100 shadow-lg shadow-white/10',
+      'bg-brutal-yellow text-brutal-black shadow-neo-sm hover:-translate-x-1 hover:-translate-y-1 hover:bg-brutal-blue hover:text-white hover:shadow-neo',
     secondary:
-      'border border-slate-700 bg-slate-800/50 text-slate-200 hover:bg-white hover:text-slate-900',
+      'bg-brutal-blue text-white shadow-neo-sm hover:-translate-x-1 hover:-translate-y-1 hover:bg-brutal-pink hover:text-brutal-black hover:shadow-neo',
     outline:
-      'border border-white/10 bg-transparent text-slate-300 hover:bg-white/5',
-    ghost: 'bg-transparent text-slate-400 hover:text-white hover:bg-white/5',
+      'bg-white text-brutal-black shadow-neo-sm hover:-translate-x-1 hover:-translate-y-1 hover:bg-brutal-yellow hover:shadow-neo',
+    ghost: 'border-transparent bg-transparent text-brutal-black hover:border-brutal-black hover:bg-brutal-yellow',
   };
 
   return (

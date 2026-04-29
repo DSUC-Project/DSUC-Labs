@@ -40,40 +40,40 @@ function heading<Tag extends 'h1' | 'h2' | 'h3' | 'h4'>(tag: Tag, className: str
 const markdownComponents: Components = {
   h1: heading(
     'h1',
-    'mt-8 scroll-mt-28 text-3xl font-display font-black uppercase tracking-[0.14em] text-cyber-yellow first:mt-0 sm:text-4xl'
+    'mt-8 scroll-mt-28 text-3xl font-display font-black uppercase tracking-[0.14em] text-brutal-black first:mt-0 sm:text-4xl'
   ),
   h2: heading(
     'h2',
-    'mt-8 scroll-mt-28 border-l-4 border-cyber-blue pl-4 text-2xl font-display font-bold uppercase tracking-[0.12em] text-white first:mt-0 sm:text-3xl'
+    'mt-8 scroll-mt-28 border-l-4 border-brutal-blue pl-4 text-2xl font-display font-black uppercase tracking-[0.12em] text-brutal-black first:mt-0 sm:text-3xl'
   ),
   h3: heading(
     'h3',
-    'mt-6 scroll-mt-28 text-xl font-display font-bold uppercase tracking-[0.08em] text-cyber-blue sm:text-2xl'
+    'mt-6 scroll-mt-28 text-xl font-display font-black uppercase tracking-[0.08em] text-brutal-blue sm:text-2xl'
   ),
   h4: heading(
     'h4',
-    'mt-5 scroll-mt-28 text-lg font-display font-semibold uppercase tracking-[0.08em] text-white sm:text-xl'
+    'mt-5 scroll-mt-28 text-lg font-display font-black uppercase tracking-[0.08em] text-brutal-black sm:text-xl'
   ),
   p: ({ children }) => (
-    <p className="mt-4 text-base leading-8 text-white/84 first:mt-0 sm:text-[1.05rem]">
+    <p className="mt-4 text-base leading-8 text-gray-900 first:mt-0 sm:text-[1.05rem]">
       {children}
     </p>
   ),
-  strong: ({ children }) => <strong className="font-bold text-white">{children}</strong>,
-  em: ({ children }) => <em className="italic text-cyber-yellow/90">{children}</em>,
+  strong: ({ children }) => <strong className="font-black text-brutal-black">{children}</strong>,
+  em: ({ children }) => <em className="italic text-brutal-blue">{children}</em>,
   ul: ({ children }) => (
-    <ul className="mt-4 list-disc space-y-3 pl-6 text-base leading-8 text-white/82 marker:text-cyber-blue sm:text-[1.02rem]">
+    <ul className="mt-4 list-disc space-y-3 pl-6 text-base leading-8 text-gray-900 marker:text-brutal-blue sm:text-[1.02rem]">
       {children}
     </ul>
   ),
   ol: ({ children }) => (
-    <ol className="mt-4 list-decimal space-y-3 pl-6 text-base leading-8 text-white/82 marker:font-bold marker:text-cyber-yellow sm:text-[1.02rem]">
+    <ol className="mt-4 list-decimal space-y-3 pl-6 text-base leading-8 text-gray-900 marker:font-bold marker:text-brutal-pink sm:text-[1.02rem]">
       {children}
     </ol>
   ),
   li: ({ children }) => <li className="pl-1">{children}</li>,
   blockquote: ({ children }) => (
-    <blockquote className="mt-5 border-l-4 border-cyber-yellow/70 bg-cyber-yellow/6 px-5 py-4 text-base italic leading-8 text-white/82">
+    <blockquote className="mt-5 border-4 border-brutal-black bg-[#fff1b8] px-5 py-4 text-base italic leading-8 text-brutal-black shadow-neo-sm">
       {children}
     </blockquote>
   ),
@@ -82,30 +82,30 @@ const markdownComponents: Components = {
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="font-semibold text-cyber-blue underline decoration-cyber-blue/35 underline-offset-4 transition-colors hover:text-white"
+      className="font-black text-brutal-blue underline decoration-brutal-blue underline-offset-4 transition-colors hover:text-brutal-black"
     >
       {children}
     </a>
   ),
-  hr: () => <hr className="my-8 border-white/12" />,
+  hr: () => <hr className="my-8 border-t-4 border-brutal-black" />,
   table: ({ children }) => (
-    <div className="my-6 overflow-x-auto rounded-xl border border-white/12 bg-black/28">
-      <table className="min-w-full border-collapse text-left text-sm text-white/86">
+    <div className="my-6 overflow-x-auto border-4 border-brutal-black bg-white shadow-neo-sm">
+      <table className="min-w-full border-collapse text-left text-sm text-brutal-black">
         {children}
       </table>
     </div>
   ),
-  thead: ({ children }) => <thead className="bg-cyber-blue/12">{children}</thead>,
-  tbody: ({ children }) => <tbody className="divide-y divide-white/8">{children}</tbody>,
+  thead: ({ children }) => <thead className="bg-brutal-yellow">{children}</thead>,
+  tbody: ({ children }) => <tbody className="divide-y-4 divide-brutal-black">{children}</tbody>,
   tr: ({ children }) => <tr className="align-top">{children}</tr>,
   th: ({ children }) => (
-    <th className="border-b border-cyber-blue/20 px-4 py-3 font-display text-xs font-bold uppercase tracking-[0.18em] text-cyber-blue">
+    <th className="border-b-4 border-brutal-black px-4 py-3 font-display text-xs font-black uppercase tracking-[0.18em] text-brutal-black">
       {children}
     </th>
   ),
-  td: ({ children }) => <td className="px-4 py-3 leading-7 text-white/82">{children}</td>,
+  td: ({ children }) => <td className="px-4 py-3 leading-7 text-gray-900">{children}</td>,
   pre: ({ children }) => (
-    <pre className="my-6 overflow-x-auto rounded-xl border border-cyber-blue/18 bg-black/62 p-5 text-sm leading-7 text-cyan-100 shadow-[0_0_18px_rgba(41,121,255,0.08)]">
+    <pre className="my-6 overflow-x-auto border-4 border-brutal-black bg-slate-950 p-5 text-sm leading-7 text-slate-100 shadow-neo-sm">
       {children}
     </pre>
   ),
@@ -113,14 +113,14 @@ const markdownComponents: Components = {
     const content = String(children).replace(/\n$/, '');
     if (props.inline) {
       return (
-        <code className="rounded-md border border-white/10 bg-white/6 px-1.5 py-0.5 font-mono text-[0.92em] text-cyber-yellow">
+        <code className="border-2 border-brutal-black bg-[#fff1b8] px-1.5 py-0.5 font-mono text-[0.92em] font-bold text-brutal-black">
           {content}
         </code>
       );
     }
 
     return (
-      <code className={`font-mono text-[0.92em] text-cyan-100 ${className || ''}`.trim()}>
+      <code className={`font-mono text-[0.92em] text-slate-100 ${className || ''}`.trim()}>
         {content}
       </code>
     );
@@ -133,7 +133,7 @@ const markdownComponents: Components = {
           checked={checked}
           readOnly
           disabled
-          className="mr-2 h-4 w-4 accent-cyber-blue"
+          className="mr-2 h-4 w-4 accent-brutal-blue"
         />
       );
     }

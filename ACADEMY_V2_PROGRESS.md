@@ -79,3 +79,6 @@ Goal: Rebuild DSUC Academy with Superteam-like UX and learning flow while keepin
 - [2026-04-29] Began merging the updated frontend visual layer from the local `zip/` drop while deliberately keeping DSUC store/auth/backend logic unchanged.
 - [2026-04-29] Added brutal-theme compatibility tokens, fallback shadow utilities, and lightweight animation helpers so the merged `zip/` UI can run on the current Tailwind-CDN setup without waiting for a build-system migration.
 - [2026-04-29] Fixed AcademyHome guest runtime safety plus several invalid utility classes copied from the `zip/` frontend (`border-3`, `shadow-neo-sm-sm`, `pl-21`) to keep the merged UI checkable.
+- [2026-04-29] Replaced the Academy streak calendar mock with learner stats from DSUC progress/activity, and normalized Academy day keys to the `Asia/Ho_Chi_Minh` timezone for more reliable streak rendering.
+- [2026-04-29] Restyled Academy markdown, shared Academy cards/buttons, and lesson/workbench surfaces so the new Academy shell no longer falls back to the older cyber palette.
+- [2026-04-29] Wired dashboard past-event history to live event data, removed the empty-state timeline artifact, refreshed the contact modal, compacted member cards, and brought the Finance page into the same brutal frontend system.

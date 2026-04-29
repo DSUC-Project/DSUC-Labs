@@ -134,17 +134,17 @@ export function AcademyCourse() {
   if (loading) {
     return (
       <div className="space-y-6 pb-20 mt-10">
-        <div className="h-72 animate-pulse rounded-3xl bg-white border border-slate-100 shadow-sm" />
+        <div className="h-72 animate-pulse border-4 border-brutal-black bg-white shadow-neo" />
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-5">
             {Array.from({ length: 3 }).map((_, index) => (
               <div
                 key={index}
-                className="h-64 animate-pulse rounded-3xl bg-white border border-slate-100 shadow-sm"
+                className="h-64 animate-pulse border-4 border-brutal-black bg-white shadow-neo"
               />
             ))}
           </div>
-          <div className="h-80 animate-pulse rounded-3xl bg-white border border-slate-100 shadow-sm" />
+          <div className="h-80 animate-pulse border-4 border-brutal-black bg-white shadow-neo" />
         </div>
       </div>
     );
@@ -152,27 +152,27 @@ export function AcademyCourse() {
 
   if (!course) {
     return (
-      <div className="rounded-2xl border border-rose-100 bg-rose-50 p-8 text-center mt-10">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-rose-100 text-rose-500 mb-4">
+      <div className="mt-10 border-4 border-brutal-black bg-brutal-pink p-8 text-center shadow-neo">
+        <div className="mb-4 inline-flex h-14 w-14 items-center justify-center border-4 border-brutal-black bg-white text-brutal-black shadow-neo-sm">
            <Code2 className="w-6 h-6" />
         </div>
-        <h1 className="font-display text-2xl font-bold text-slate-800">
+        <h1 className="font-display text-2xl font-black uppercase tracking-tight text-brutal-black">
           Không thể mở khóa học này
         </h1>
-        <p className="mt-2 max-w-xl mx-auto text-sm text-slate-500">
+        <p className="mx-auto mt-4 max-w-xl border-4 border-brutal-black bg-white px-4 py-3 text-sm font-bold text-brutal-black shadow-neo-sm">
           {error || 'Khóa học không thể tải được từ danh mục ngay lúc này. Vui lòng thử lại sau.'}
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-4">
           <button
             type="button"
             onClick={() => setReloadNonce((value) => value + 1)}
-            className="inline-flex items-center gap-2 rounded-full bg-sky-600 px-6 py-3 text-sm font-bold tracking-wider text-white transition-all hover:bg-sky-700 hover:shadow-md"
+            className="inline-flex items-center gap-2 border-4 border-brutal-black bg-brutal-blue px-6 py-3 text-sm font-black uppercase tracking-widest text-white shadow-neo-sm transition-all hover:-translate-y-1 hover:bg-brutal-black hover:shadow-neo"
           >
             Tải lại
           </button>
           <Link
             to="/academy"
-            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-bold tracking-wider text-slate-700 transition-all hover:bg-slate-50 hover:text-sky-600"
+            className="inline-flex items-center gap-2 border-4 border-brutal-black bg-white px-6 py-3 text-sm font-black uppercase tracking-widest text-brutal-black shadow-neo-sm transition-all hover:-translate-y-1 hover:bg-brutal-yellow hover:shadow-neo"
           >
             Quay lại học viện
           </Link>

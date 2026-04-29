@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { motion } from 'framer-motion';
-import { Check, X, ScanLine, ArrowRight, Zap, Search, Upload } from 'lucide-react';
+import { Check, X, ScanLine, ArrowRight, Zap, Upload } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { FinanceRequest, Member } from '../types';
 import { BANKS } from '../data/mockData';
@@ -17,6 +17,12 @@ export function Finance() {
   const visibleTabs = canModerateFinance
     ? ['submit', 'direct', 'pending', 'history']
     : ['submit', 'direct', 'history'];
+  const tabLabels: Record<string, string> = {
+    submit: 'Yêu cầu',
+    direct: 'Chuyển khoản',
+    pending: 'Chờ duyệt',
+    history: 'Lịch sử',
+  };
 
   // Fetch members on mount (needed for bank info lookup in ApprovalModal)
   useEffect(() => {
@@ -47,15 +53,15 @@ export function Finance() {
 
   if (!currentUser || !isOfficialMember) {
     return (
-      <div className="max-w-5xl mx-auto space-y-8">
-        <div className="flex flex-col items-center justify-center min-h-[500px] space-y-6">
-          <div className="text-6xl">🔒</div>
-          <h2 className="text-3xl font-display font-bold text-white">RESTRICTED ACCESS</h2>
-          <p className="text-cyber-blue font-mono text-sm text-center max-w-md">
-            Please sign in with your DSUC account to access the Finance module.
+      <div className="mx-auto max-w-5xl space-y-8 pt-10">
+        <div className="flex min-h-[500px] flex-col items-center justify-center space-y-6 border-4 border-brutal-black bg-white px-8 py-12 text-center shadow-neo">
+          <div className="flex h-20 w-20 items-center justify-center border-4 border-brutal-black bg-brutal-yellow text-4xl shadow-neo-sm">🔒</div>
+          <h2 className="font-display text-3xl font-black uppercase tracking-tight text-brutal-black">Finance chỉ dành cho member</h2>
+          <p className="max-w-md border-4 border-brutal-black bg-brutal-pink px-4 py-3 text-sm font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
+            Hãy đăng nhập bằng tài khoản DSUC member để truy cập module Finance.
           </p>
-          <div className="text-white/40 font-mono text-xs text-center max-w-lg">
-            This section is only available to official DSUC members.
+          <div className="max-w-lg text-xs font-bold uppercase tracking-widest text-gray-500">
+            Tài khoản community không có quyền truy cập khu vực này.
           </div>
         </div>
       </div>
@@ -63,23 +69,23 @@ export function Finance() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-end border-b border-cyber-blue/20 pb-6">
+    <div className="mx-auto max-w-6xl space-y-8 pb-20 pt-10 px-4 sm:px-6">
+      <div className="flex flex-col items-start justify-between gap-6 border-b-4 border-brutal-black pb-6 md:flex-row md:items-end">
         <div>
-          <h2 className="text-4xl font-display font-bold mb-1 text-white">Finance</h2>
-          <p className="text-cyber-blue font-mono text-sm">View transactions and payment history.</p>
+          <h2 className="mb-3 text-4xl font-display font-black uppercase tracking-tighter text-brutal-black decoration-brutal-yellow decoration-4 underline underline-offset-4">Finance</h2>
+          <p className="border-l-4 border-brutal-blue pl-4 text-sm font-bold text-brutal-black">Tạo yêu cầu thanh toán, chuyển khoản trực tiếp và theo dõi lịch sử giao dịch.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 border-4 border-brutal-black bg-white p-2 shadow-neo-sm">
           {visibleTabs.map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab as any)}
-              className={`px-6 py-2 font-display font-bold uppercase transition-all cyber-button text-sm flex items-center gap-2 ${activeTab === tab ? 'bg-cyber-yellow text-black' : 'bg-white/5 text-white/40 hover:text-white border border-white/10'}`}
+              className={`flex items-center gap-2 border-4 px-4 py-3 text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'border-brutal-black bg-brutal-yellow text-brutal-black shadow-neo-sm' : 'border-transparent bg-white text-gray-500 hover:border-brutal-black hover:bg-brutal-pink hover:text-brutal-black'}`}
             >
               {tab === 'direct' && <Zap size={14} />}
-              {tab}
+              {tabLabels[tab] || tab}
               {tab === 'pending' && financeRequests.length > 0 && (
-                <span className="ml-1 bg-cyber-blue text-white text-[10px] px-1.5 py-0.5 rounded-full">{financeRequests.length}</span>
+                <span className="ml-1 border-2 border-brutal-black bg-brutal-blue px-1.5 py-0.5 text-[10px] font-black text-white shadow-neo-sm">{financeRequests.length}</span>
               )}
             </button>
           ))}
@@ -121,11 +127,9 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
     e.preventDefault();
 
     if (!currentUser) {
-      alert('Please sign in first!');
+      alert('Vui lòng đăng nhập trước.');
       return;
     }
-
-    console.log('[Finance] Submitting request with image:', billImage?.substring(0, 50));
 
     try {
       await submitFinanceRequest({
@@ -148,34 +152,39 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
 
       onSubmitted();
     } catch (err) {
-      console.error('[Finance] Submit failed:', err);
-      alert('Failed to submit request. Check console for details.');
+      alert('Không thể gửi yêu cầu thanh toán. Vui lòng thử lại.');
     }
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-2 gap-12">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="space-y-6">
-        <h3 className="text-xl font-display font-bold text-cyber-blue uppercase tracking-widest">Request Payment</h3>
-        <p className="text-xs font-mono text-white/40">Request reimbursement for club expenses. Upload bill/receipt as proof. QR code will be generated based on your bank info.</p>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <div className="mb-3 inline-flex items-center gap-2 border-4 border-brutal-black bg-brutal-blue px-3 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-neo-sm">
+            <Zap size={14} />
+            Yêu cầu thanh toán
+          </div>
+          <h3 className="font-display text-3xl font-black uppercase tracking-tight text-brutal-black">Gửi yêu cầu thanh toán</h3>
+          <p className="mt-4 border-l-4 border-brutal-pink pl-4 text-sm font-bold text-brutal-black">Tạo request hoàn tiền cho chi phí hoạt động của câu lạc bộ. Hóa đơn là bắt buộc để lưu hồ sơ.</p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-6 border-4 border-brutal-black bg-white p-6 shadow-neo">
           <div className="space-y-2">
-            <label className="text-[10px] font-mono text-white/40 uppercase">Amount (VND)</label>
-            <input value={amount} onChange={e => setAmount(e.target.value)} type="number" required className="w-full bg-surface border border-cyber-blue/30 p-4 text-xl font-mono text-white focus:border-cyber-yellow outline-none" placeholder="500,000" />
+            <label className="text-[10px] font-black uppercase tracking-widest text-brutal-black">Amount (VND)</label>
+            <input value={amount} onChange={e => setAmount(e.target.value)} type="number" required className="w-full border-4 border-brutal-black bg-white p-4 font-mono text-xl font-bold text-brutal-black outline-none transition-colors focus:bg-brutal-yellow/20" placeholder="500000" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-mono text-white/40 uppercase">Target Date</label>
-            <input value={date} onChange={e => setDate(e.target.value)} type="date" required className="w-full bg-surface border border-cyber-blue/30 p-4 font-mono text-white focus:border-cyber-yellow outline-none text-sm" />
+            <label className="text-[10px] font-black uppercase tracking-widest text-brutal-black">Target Date</label>
+            <input value={date} onChange={e => setDate(e.target.value)} type="date" required className="w-full border-4 border-brutal-black bg-white p-4 font-mono text-sm font-bold text-brutal-black outline-none transition-colors focus:bg-brutal-yellow/20" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-mono text-white/40 uppercase">Justification</label>
-            <textarea value={reason} onChange={e => setReason(e.target.value)} required rows={4} className="w-full bg-surface border border-cyber-blue/30 p-4 font-mono text-white focus:border-cyber-yellow outline-none text-sm" placeholder="Server costs for Q4..." />
+            <label className="text-[10px] font-black uppercase tracking-widest text-brutal-black">Justification</label>
+            <textarea value={reason} onChange={e => setReason(e.target.value)} required rows={4} className="w-full border-4 border-brutal-black bg-white p-4 text-sm font-bold text-brutal-black outline-none transition-colors focus:bg-brutal-yellow/20" placeholder="Mô tả lý do chi tiêu..." />
           </div>
 
           {/* Bill/Receipt Upload */}
           <div className="space-y-2">
-            <label className="text-[10px] font-mono text-white/40 uppercase">Bill / Receipt (Required)</label>
-            <div className="relative border-2 border-dashed border-cyber-blue/30 bg-surface/50 hover:border-cyber-yellow/50 transition-colors">
+            <label className="text-[10px] font-black uppercase tracking-widest text-brutal-black">Bill / Receipt</label>
+            <div className="relative border-4 border-dashed border-brutal-black bg-brutal-bg transition-colors hover:bg-brutal-yellow/20">
               <input
                 type="file"
                 accept="image/*"
@@ -185,28 +194,37 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
               />
               {billImage ? (
                 <div className="p-4">
-                  <img src={billImage} alt="Bill preview" className="w-full max-h-40 object-contain mb-2 border border-cyber-blue/20" />
-                  <div className="text-cyber-blue font-mono text-xs flex items-center justify-center gap-2">
+                  <img src={billImage} alt="Bill preview" className="mb-2 max-h-40 w-full border-4 border-brutal-black object-contain bg-white" />
+                  <div className="flex items-center justify-center gap-2 font-mono text-xs font-bold text-brutal-blue">
                     <Check size={14} /> {billFile?.name}
                   </div>
                 </div>
               ) : (
                 <div className="p-8 text-center">
-                  <Upload size={32} className="mx-auto mb-2 text-cyber-blue/40" />
-                  <div className="text-white/40 font-mono text-xs mb-1">Click to upload bill/receipt</div>
-                  <div className="text-white/20 font-mono text-[10px]">PNG, JPG up to 10MB</div>
+                  <Upload size={32} className="mx-auto mb-2 text-brutal-blue" />
+                  <div className="mb-1 font-mono text-xs font-bold text-brutal-black">Click để tải hóa đơn</div>
+                  <div className="font-mono text-[10px] font-bold text-gray-500">PNG, JPG tối đa 10MB</div>
                 </div>
               )}
             </div>
           </div>
 
-          <button type="submit" className="w-full bg-cyber-yellow text-black font-display font-bold py-4 cyber-button hover:bg-white transition-colors text-sm tracking-widest uppercase">
-            ENCRYPT & SUBMIT
+          <button type="submit" className="w-full border-4 border-brutal-black bg-brutal-yellow py-4 text-sm font-black uppercase tracking-widest text-brutal-black transition-all hover:-translate-y-1 hover:bg-brutal-blue hover:text-white hover:shadow-neo">
+            Gửi yêu cầu
           </button>
         </form>
       </div>
-      <div className="hidden md:flex items-center justify-center opacity-30">
-        <ScanLine size={200} className="text-cyber-blue animate-pulse" />
+      <div className="hidden h-full border-4 border-brutal-black bg-brutal-yellow p-8 shadow-neo lg:flex lg:flex-col lg:justify-between">
+        <div className="inline-flex w-fit items-center gap-2 border-4 border-brutal-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
+          <ScanLine size={14} />
+          Kênh tài chính
+        </div>
+        <div>
+          <h4 className="font-display text-3xl font-black uppercase tracking-tight text-brutal-black">Minh bạch từng khoản chi</h4>
+          <p className="mt-4 border-4 border-brutal-black bg-white px-4 py-3 text-sm font-bold text-brutal-black shadow-neo-sm">
+            Mọi request, phê duyệt và lịch sử thanh toán đều được gom tại đây để President và Vice-President quản lý tập trung.
+          </p>
+        </div>
       </div>
     </motion.div>
   );
@@ -247,10 +265,10 @@ function DirectTransferTool() {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Left: Member Selection */}
       <div className="space-y-6">
-        <h3 className="text-xl font-display font-bold text-cyber-yellow uppercase tracking-widest flex items-center gap-2">
+        <h3 className="flex items-center gap-2 font-display text-2xl font-black uppercase tracking-widest text-brutal-black">
           <Zap size={20} /> QUICK TRANSFER LINK
         </h3>
-        <p className="text-xs font-mono text-white/40">Select a member to generate a payment request. Receipt or bill is required for record keeping.</p>
+        <p className="border-l-4 border-brutal-blue pl-4 text-sm font-bold text-brutal-black">Chọn member để tạo QR chuyển khoản nhanh và lưu lại ảnh chụp hóa đơn.</p>
 
         {!selectedMember ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2">
@@ -260,28 +278,28 @@ function DirectTransferTool() {
                 <button
                   key={member.id}
                   onClick={() => setSelectedMember(member)}
-                  className="flex flex-col gap-2 p-4 cyber-card hover:bg-cyber-blue/10 transition-colors border-l-2 border-transparent hover:border-l-cyber-blue text-left"
+                  className="flex flex-col gap-2 border-4 border-brutal-black bg-white p-4 text-left shadow-neo-sm transition-all hover:-translate-y-1 hover:bg-brutal-yellow/20 hover:shadow-neo"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10">
+                    <div className="h-12 w-12 overflow-hidden border-4 border-brutal-black bg-brutal-yellow shadow-neo-sm">
                       <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1">
-                      <div className="font-bold font-display text-white">{member.name}</div>
-                      <div className="text-[10px] font-mono text-white/40">{member.role}</div>
+                      <div className="font-display text-lg font-black text-brutal-black">{member.name}</div>
+                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-500">{member.role}</div>
                     </div>
                   </div>
                   {memberBankInfo && (
                     <div className="pl-14 space-y-1">
-                      <div className="text-[9px] font-mono text-cyan-400/70">
+                      <div className="text-[9px] font-mono font-bold text-brutal-blue">
                         {BANKS.find(b => b.id === memberBankInfo.bankId)?.shortName || memberBankInfo.bankId}
                       </div>
                       {memberBankInfo.accountName && (
-                        <div className="text-[9px] font-mono text-white/30">
+                        <div className="text-[9px] font-mono text-gray-500">
                           {memberBankInfo.accountName}
                         </div>
                       )}
-                      <div className="text-[9px] font-mono text-white/30">
+                      <div className="text-[9px] font-mono text-gray-500">
                         {memberBankInfo.accountNo}
                       </div>
                     </div>
@@ -290,38 +308,38 @@ function DirectTransferTool() {
               );
             })}
             {eligibleMembers.length === 0 && (
-              <div className="col-span-2 text-center text-white/30 font-mono text-sm py-10">NO MEMBERS WITH BANK DATA FOUND</div>
+              <div className="col-span-2 border-4 border-brutal-black bg-white py-10 text-center text-sm font-black uppercase tracking-widest text-gray-500 shadow-neo">Không tìm thấy member có dữ liệu ngân hàng</div>
             )}
           </div>
         ) : (
-          <div className="space-y-6 cyber-card p-6 bg-surface/50">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div className="space-y-6 border-4 border-brutal-black bg-white p-6 shadow-neo">
+            <div className="flex items-center justify-between border-b-4 border-brutal-black pb-4">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full overflow-hidden border border-cyber-yellow">
+                <div className="h-12 w-12 overflow-hidden border-4 border-brutal-black bg-brutal-yellow shadow-neo-sm">
                   <img src={selectedMember.avatar} alt={selectedMember.name} className="w-full h-full object-cover" />
                 </div>
                 <div>
-                  <div className="font-bold font-display text-lg text-white">{selectedMember.name}</div>
-                  <div className="text-[10px] font-mono text-cyber-yellow">RECEIVER SELECTED</div>
+                  <div className="font-display text-lg font-black text-brutal-black">{selectedMember.name}</div>
+                      <div className="text-[10px] font-black uppercase tracking-widest text-brutal-blue">Đã chọn người nhận</div>
                 </div>
               </div>
-              <button onClick={() => { setSelectedMember(null); setShowQR(false); }} className="text-white/40 hover:text-white"><X size={20} /></button>
+              <button onClick={() => { setSelectedMember(null); setShowQR(false); }} className="border-2 border-transparent p-2 text-brutal-black transition-colors hover:border-brutal-black hover:bg-brutal-yellow"><X size={20} /></button>
             </div>
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-mono text-white/40 uppercase">Amount</label>
-                <input value={amount} onChange={e => setAmount(e.target.value)} type="number" className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-yellow outline-none font-mono" placeholder="0" />
+                <label className="text-[10px] font-black uppercase tracking-widest text-brutal-black">Amount</label>
+                <input value={amount} onChange={e => setAmount(e.target.value)} type="number" className="w-full border-4 border-brutal-black bg-white p-3 font-mono font-bold text-brutal-black outline-none transition-colors focus:bg-brutal-yellow/20" placeholder="0" />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-mono text-white/40 uppercase">Message</label>
-                <input value={content} onChange={e => setContent(e.target.value)} type="text" className="w-full bg-black/50 border border-white/10 p-3 text-white focus:border-cyber-yellow outline-none font-mono" placeholder="Payment for..." />
+                <label className="text-[10px] font-black uppercase tracking-widest text-brutal-black">Message</label>
+                <input value={content} onChange={e => setContent(e.target.value)} type="text" className="w-full border-4 border-brutal-black bg-white p-3 font-bold text-brutal-black outline-none transition-colors focus:bg-brutal-yellow/20" placeholder="Payment for..." />
               </div>
 
               {/* Image Upload */}
               <div className="space-y-2">
-                <label className="text-[10px] font-mono text-white/40 uppercase">Proof of Bill (Image)</label>
-                <div className="relative border border-dashed border-white/20 bg-black/30 p-4 text-center hover:border-cyber-blue/50 transition-colors">
+                <label className="text-[10px] font-black uppercase tracking-widest text-brutal-black">Proof of Bill</label>
+                <div className="relative border-4 border-dashed border-brutal-black bg-brutal-bg p-4 text-center transition-colors hover:bg-brutal-yellow/20">
                   <input
                     type="file"
                     accept="image/*"
@@ -329,12 +347,12 @@ function DirectTransferTool() {
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
                   {billFile ? (
-                    <div className="text-cyber-blue font-mono text-xs flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-2 font-mono text-xs font-bold text-brutal-blue">
                       <Check size={14} /> {billFile.name}
                     </div>
                   ) : (
-                    <div className="text-white/40 font-mono text-xs flex items-center justify-center gap-2">
-                      <Upload size={14} /> Upload Screenshot
+                    <div className="flex items-center justify-center gap-2 font-mono text-xs font-bold text-gray-500">
+                      <Upload size={14} /> Tải ảnh hóa đơn
                     </div>
                   )}
                 </div>
@@ -343,9 +361,9 @@ function DirectTransferTool() {
               <button
                 onClick={() => setShowQR(true)}
                 disabled={!amount}
-                className="w-full bg-cyber-blue text-white font-display font-bold py-3 cyber-button hover:bg-white hover:text-black transition-colors uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full border-4 border-brutal-black bg-brutal-blue py-3 font-display text-sm font-black uppercase tracking-widest text-white transition-all hover:-translate-y-1 hover:bg-brutal-yellow hover:text-brutal-black hover:shadow-neo disabled:cursor-not-allowed disabled:opacity-50"
               >
-                GENERATE QR CODE
+                Tạo mã QR
               </button>
             </div>
           </div>
@@ -353,24 +371,24 @@ function DirectTransferTool() {
       </div>
 
       {/* Right: QR Display */}
-      <div className="flex items-center justify-center bg-white/5 cyber-card border border-white/5 relative">
+      <div className="relative flex items-center justify-center border-4 border-brutal-black bg-white shadow-neo min-h-[360px]">
         {showQR && selectedMember && bankInfo ? (
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center p-8 bg-white w-full h-full flex flex-col items-center justify-center">
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex h-full w-full flex-col items-center justify-center bg-white p-8 text-center">
             <img src={qrUrl} alt="VietQR" className="max-w-[250px] mix-blend-multiply mb-4" />
-            <div className="text-black font-mono text-xs font-bold uppercase">Scan to Pay {selectedMember.name}</div>
-            <div className="text-black/50 font-mono text-[10px] mt-1">
+            <div className="border-2 border-brutal-black bg-brutal-yellow px-3 py-2 text-xs font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">Scan to Pay {selectedMember.name}</div>
+            <div className="mt-3 font-mono text-[10px] font-bold text-gray-500">
               Bank: {BANKS.find(b => b.id === bankInfo.bankId)?.shortName || bankInfo.bankId}
             </div>
             {bankInfo.accountName && (
-              <div className="text-black/40 font-mono text-[9px] mt-0.5">
+              <div className="mt-0.5 font-mono text-[9px] text-gray-500">
                 {bankInfo.accountName}
               </div>
             )}
           </motion.div>
         ) : (
-          <div className="text-center opacity-30">
-            <ScanLine size={100} className="mx-auto mb-4" />
-            <p className="font-mono text-xs">QR GENERATOR IDLE</p>
+          <div className="text-center opacity-60">
+            <ScanLine size={100} className="mx-auto mb-4 text-brutal-black" />
+            <p className="font-mono text-xs font-black uppercase tracking-widest text-brutal-black">QR generator idle</p>
           </div>
         )}
       </div>
@@ -384,8 +402,8 @@ function PendingRequestsList() {
 
   if (financeRequests.length === 0) {
     return (
-      <div className="h-64 flex items-center justify-center text-white/30 font-mono text-sm border border-dashed border-white/10">
-        NO PENDING TRANSACTIONS
+      <div className="flex h-64 items-center justify-center border-4 border-brutal-black bg-white text-sm font-black uppercase tracking-widest text-gray-500 shadow-neo">
+        Không có yêu cầu chờ duyệt
       </div>
     );
   }
@@ -393,19 +411,19 @@ function PendingRequestsList() {
   return (
     <div className="space-y-4">
       {financeRequests.map(req => (
-        <div key={req.id} className="cyber-card p-6 border-l border-l-cyber-yellow flex justify-between items-center group hover:bg-cyber-blue/5 transition-all">
+        <div key={req.id} className="group flex items-center justify-between border-4 border-brutal-black bg-white p-6 shadow-neo-sm transition-all hover:-translate-y-1 hover:shadow-neo">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <span className="text-cyber-yellow font-mono font-bold text-lg">{parseInt(req.amount).toLocaleString()} VND</span>
-              <span className="text-[10px] font-mono bg-white/5 border border-white/10 px-2 py-0.5 text-white/50">{req.date}</span>
+              <span className="bg-brutal-yellow px-3 py-1 text-lg font-black text-brutal-black border-2 border-brutal-black shadow-neo-sm">{parseInt(req.amount).toLocaleString()} VND</span>
+              <span className="border-2 border-brutal-black bg-white px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-gray-500">{req.date}</span>
             </div>
-            <p className="font-display font-bold text-white group-hover:text-cyber-blue transition-colors">{req.reason}</p>
-            <p className="text-[10px] font-mono text-white/30 uppercase mt-1">Req by: {req.requesterName}</p>
+            <p className="font-display font-black text-brutal-black transition-colors group-hover:text-brutal-blue">{req.reason}</p>
+            <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-gray-500">Người gửi: {req.requesterName}</p>
           </div>
 
           <button
             onClick={() => setSelectedReq(req)}
-            className="bg-white/5 hover:bg-cyber-blue hover:text-white text-cyber-blue p-3 cyber-button transition-colors border border-white/5"
+            className="border-4 border-brutal-black bg-white p-3 text-brutal-black shadow-neo-sm transition-all hover:-translate-y-1 hover:bg-brutal-blue hover:text-white"
           >
             <ArrowRight size={20} />
           </button>
@@ -432,22 +450,14 @@ function ApprovalModal({ request, onClose, onApprove, onReject }: { request: Fin
   // Find requester to get their bank info
   const requester = members.find(m => m.id === request.requesterId);
 
-  console.log("[ApprovalModal] Request:", request);
-  console.log("[ApprovalModal] Looking for requesterId:", request.requesterId);
-  console.log("[ApprovalModal] Found requester:", requester);
-  console.log("[ApprovalModal] All members:", members.map(m => ({ id: m.id, name: m.name, bankInfo: m.bankInfo })));
-
   // Get normalized bank info - handle both camelCase and snake_case
   const rawBankInfo = requester ? (requester.bankInfo || (requester as any).bank_info) : null;
-  console.log("[ApprovalModal] Raw bank info:", rawBankInfo);
 
   const requesterBankInfo = rawBankInfo ? {
     bankId: rawBankInfo.bankId || (rawBankInfo as any).bank_id,
     accountNo: rawBankInfo.accountNo || (rawBankInfo as any).account_no,
     accountName: rawBankInfo.accountName || (rawBankInfo as any).account_name
   } : null;
-
-  console.log("[ApprovalModal] Normalized bank info:", requesterBankInfo);
 
   // Default Club Account if requester has no bank info
   const DEFAULT_ACCOUNT_NO = "0356616096";
@@ -463,59 +473,59 @@ function ApprovalModal({ request, onClose, onApprove, onReject }: { request: Fin
 
   return ReactDOM.createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       <motion.div
         initial={{ scale: 0.95 }}
         animate={{ scale: 1 }}
-        className="bg-surface cyber-card border border-cyber-blue/50 p-8 w-full max-w-2xl relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8"
+        className="relative z-10 grid w-full max-w-2xl grid-cols-1 gap-8 border-4 border-brutal-black bg-white p-8 shadow-neo-xl md:grid-cols-2"
         onClick={(e) => e.stopPropagation()}
       >
 
         {/* Left: Details */}
         <div>
-          <h3 className="text-xl font-display font-bold text-cyber-yellow mb-6 uppercase tracking-wider">Validate Request</h3>
-          <div className="space-y-4 font-mono text-xs">
-            <div className="flex justify-between border-b border-white/10 pb-2">
-              <span className="text-white/40">Amount</span>
-              <span className="font-bold text-lg text-white">{parseInt(request.amount).toLocaleString()}</span>
+          <h3 className="mb-6 font-display text-2xl font-black uppercase tracking-wider text-brutal-black">Xét duyệt yêu cầu</h3>
+          <div className="space-y-4 text-xs font-bold">
+            <div className="flex justify-between border-b-4 border-brutal-black pb-2">
+              <span className="uppercase tracking-widest text-gray-500">Số tiền</span>
+              <span className="text-lg font-black text-brutal-black">{parseInt(request.amount).toLocaleString()}</span>
             </div>
-            <div className="flex justify-between border-b border-white/10 pb-2">
-              <span className="text-white/40">Requester</span>
-              <span className="text-white">{request.requesterName}</span>
+            <div className="flex justify-between border-b-4 border-brutal-black pb-2">
+              <span className="uppercase tracking-widest text-gray-500">Người gửi</span>
+              <span className="text-brutal-black">{request.requesterName}</span>
             </div>
-            <div className="flex justify-between border-b border-white/10 pb-2">
-              <span className="text-white/40">Target Bank</span>
-              <span className="text-cyber-blue">{bankName}</span>
+            <div className="flex justify-between border-b-4 border-brutal-black pb-2">
+              <span className="uppercase tracking-widest text-gray-500">Ngân hàng</span>
+              <span className="text-brutal-blue">{bankName}</span>
             </div>
-            <div className="flex justify-between border-b border-white/10 pb-2">
-              <span className="text-white/40">Account</span>
-              <span className="text-white">{accountNo}</span>
+            <div className="flex justify-between border-b-4 border-brutal-black pb-2">
+              <span className="uppercase tracking-widest text-gray-500">Số tài khoản</span>
+              <span className="text-brutal-black">{accountNo}</span>
             </div>
             <div>
-              <span className="text-white/40 block mb-1">Reason</span>
-              <p className="text-white/80 border border-white/10 p-2 bg-black/50">{request.reason}</p>
+              <span className="mb-1 block uppercase tracking-widest text-gray-500">Lý do</span>
+              <p className="border-4 border-brutal-black bg-brutal-bg p-3 text-sm text-brutal-black">{request.reason}</p>
             </div>
           </div>
 
           {!showQR && (
             <div className="grid grid-cols-2 gap-4 mt-8">
-              <button onClick={onReject} className="py-3 cyber-button bg-red-900/20 text-red-500 hover:bg-red-500 hover:text-white font-bold font-display text-sm border border-red-500/20">REJECT</button>
-              <button onClick={() => setShowQR(true)} className="py-3 cyber-button bg-cyber-blue text-white hover:bg-white hover:text-black font-bold font-display text-sm">TRANSFER (GEN QR)</button>
+              <button onClick={onReject} className="border-4 border-brutal-black bg-brutal-red py-3 text-sm font-black uppercase tracking-widest text-white transition-all hover:-translate-y-1 hover:shadow-neo">Reject</button>
+              <button onClick={() => setShowQR(true)} className="border-4 border-brutal-black bg-brutal-blue py-3 text-sm font-black uppercase tracking-widest text-white transition-all hover:-translate-y-1 hover:bg-brutal-yellow hover:text-brutal-black hover:shadow-neo">Transfer</button>
             </div>
           )}
         </div>
 
         {/* Right: QR Area */}
-        <div className="bg-white p-4 flex flex-col items-center justify-center relative overflow-hidden cyber-clip-bottom">
+        <div className="relative flex flex-col items-center justify-center overflow-hidden border-4 border-brutal-black bg-brutal-yellow p-4">
           {showQR ? (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center w-full">
               <img src={qrUrl} className="w-full mb-4 mix-blend-multiply" alt="VietQR" />
-              <button onClick={onApprove} className="w-full bg-black text-white py-3 font-bold font-display hover:bg-cyber-blue text-xs uppercase tracking-widest">Confirm Transfer</button>
+              <button onClick={onApprove} className="w-full border-4 border-brutal-black bg-brutal-black py-3 text-xs font-black uppercase tracking-widest text-white transition-all hover:-translate-y-1 hover:bg-brutal-blue hover:shadow-neo">Confirm transfer</button>
             </motion.div>
           ) : (
-            <div className="text-black/20 flex flex-col items-center text-center">
+            <div className="flex flex-col items-center text-center text-brutal-black/40">
               <ScanLine size={64} />
-              <p className="mt-4 font-mono text-xs font-bold uppercase">Awaiting Authorization</p>
+              <p className="mt-4 text-xs font-black uppercase tracking-widest">Chờ xác nhận chuyển khoản</p>
             </div>
           )}
         </div>
@@ -531,34 +541,34 @@ function HistoryList() {
 
   return (
     <div className="space-y-4">
-      <div className="bg-cyber-blue/5 border border-cyber-blue/20 p-4 mb-6">
-        <p className="text-xs font-mono text-cyber-blue">
-          <span className="font-bold">PUBLIC LEDGER:</span> All approved and rejected transactions are logged here for full transparency.
+      <div className="mb-6 border-4 border-brutal-black bg-brutal-yellow p-4 shadow-neo-sm">
+        <p className="text-xs font-black uppercase tracking-widest text-brutal-black">
+          <span className="font-display">Public ledger:</span> tất cả giao dịch đã duyệt hoặc từ chối đều được lưu ở đây để đảm bảo minh bạch.
         </p>
       </div>
 
-      <div className="grid grid-cols-4 text-[10px] font-mono text-cyber-blue uppercase px-4 mb-2 tracking-wider">
+      <div className="grid grid-cols-4 px-4 mb-2 text-[10px] font-black uppercase tracking-wider text-gray-500">
         <span>Status</span>
         <span>Amount</span>
         <span>Reason</span>
         <span className="text-right">Date</span>
       </div>
       {financeHistory.map(req => (
-        <div key={req.id} className="cyber-card p-4 flex items-center justify-between text-xs font-mono border-l-2 border-transparent hover:border-l-cyber-blue">
+        <div key={req.id} className="flex items-center justify-between border-4 border-brutal-black bg-white p-4 text-xs shadow-neo-sm transition-all hover:-translate-y-1 hover:shadow-neo">
           <div className="w-1/4">
             {req.status === 'completed' ? (
-              <span className="text-green-400 flex items-center gap-1"><Check size={12} /> PAID</span>
+              <span className="flex items-center gap-1 font-black uppercase tracking-widest text-brutal-green"><Check size={12} /> Paid</span>
             ) : (
-              <span className="text-red-400 flex items-center gap-1"><X size={12} /> REJECTED</span>
+              <span className="flex items-center gap-1 font-black uppercase tracking-widest text-brutal-red"><X size={12} /> Rejected</span>
             )}
           </div>
-          <div className="w-1/4 font-bold text-white">{parseInt(req.amount).toLocaleString()}</div>
-          <div className="w-1/4 truncate pr-2 text-white/70">{req.reason}</div>
-          <div className="w-1/4 text-right text-white/40">{req.date}</div>
+          <div className="w-1/4 font-black text-brutal-black">{parseInt(req.amount).toLocaleString()}</div>
+          <div className="w-1/4 truncate pr-2 font-bold text-gray-700">{req.reason}</div>
+          <div className="w-1/4 text-right font-bold text-gray-500">{req.date}</div>
         </div>
       ))}
       {financeHistory.length === 0 && (
-        <div className="text-center text-white/20 py-10 font-mono text-xs">NO ARCHIVED RECORDS</div>
+        <div className="border-4 border-brutal-black bg-white py-10 text-center text-xs font-black uppercase tracking-widest text-gray-500 shadow-neo">Chưa có giao dịch lưu trữ</div>
       )}
     </div>
   );

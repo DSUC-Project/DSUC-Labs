@@ -4,21 +4,41 @@ import {
   ArrowRight,
   BookOpen,
   Boxes,
-  ChevronRight,
   Flame,
-  Layers3,
-  Terminal,
-  Trophy,
 } from 'lucide-react';
 
-import type { AcademyV2CommunityTrack, AcademyV2Path } from '@/types';
+import type { AcademyLearnerStats, AcademyV2CommunityTrack, AcademyV2Path } from '@/types';
 import { fetchAcademyV2Catalog } from '@/lib/academy/v2Api';
 import { useAcademyProgressState } from '@/lib/academy/useAcademyProgress';
 import { countCompletedAcademyV2CourseUnits } from '@/lib/academy/v2Progress';
 import { useStore } from '@/store/useStore';
 
+const ACADEMY_TIME_ZONE = 'Asia/Ho_Chi_Minh';
+const academyDayFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: ACADEMY_TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+const academyWeekdayFormatter = new Intl.DateTimeFormat('vi-VN', {
+  timeZone: ACADEMY_TIME_ZONE,
+  weekday: 'short',
+});
+const academyDayNumberFormatter = new Intl.DateTimeFormat('vi-VN', {
+  timeZone: ACADEMY_TIME_ZONE,
+  day: '2-digit',
+});
+
 function pluralize(value: number, singular: string, plural: string) {
   return value === 1 ? singular : plural;
+}
+
+function academyDayKey(value: Date) {
+  const parts = academyDayFormatter.formatToParts(value);
+  const year = parts.find((part) => part.type === 'year')?.value || '0000';
+  const month = parts.find((part) => part.type === 'month')?.value || '00';
+  const day = parts.find((part) => part.type === 'day')?.value || '00';
+  return `${year}-${month}-${day}`;
 }
 
 export function AcademyHome() {
@@ -26,6 +46,7 @@ export function AcademyHome() {
   const { currentUser, walletAddress, authToken } = useStore();
   const [paths, setPaths] = useState<AcademyV2Path[]>([]);
   const [communityTracks, setCommunityTracks] = useState<AcademyV2CommunityTrack[]>([]);
+  const [learnerStats, setLearnerStats] = useState<AcademyLearnerStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -81,6 +102,48 @@ export function AcademyHome() {
     };
   }, [authToken, walletAddress]);
 
+  useEffect(() => {
+    if (!currentUser) {
+      setLearnerStats(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadLearnerStats() {
+      try {
+        const base = (import.meta as any).env.VITE_API_BASE_URL || '';
+        const token = authToken || localStorage.getItem('auth_token');
+        const headers: Record<string, string> = {};
+
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        } else if (walletAddress) {
+          headers['x-wallet-address'] = walletAddress;
+        }
+
+        const response = await fetch(`${base}/api/academy/stats`, {
+          headers,
+          credentials: 'include',
+        });
+        const result = await response.json().catch(() => null);
+
+        if (!cancelled && response.ok && result?.success && result?.data) {
+          setLearnerStats(result.data as AcademyLearnerStats);
+        }
+      } catch {
+        if (!cancelled) {
+          setLearnerStats(null);
+        }
+      }
+    }
+
+    void loadLearnerStats();
+    return () => {
+      cancelled = true;
+    };
+  }, [authToken, currentUser, walletAddress]);
+
   const totalCuratedUnits = paths.reduce((sum, path) => sum + path.total_unit_count, 0);
   const totalCompletedUnits = paths.reduce(
     (sum, path) =>
@@ -92,15 +155,24 @@ export function AcademyHome() {
     0
   );
 
-  // Mocked Streak Data for the calendar
   const today = new Date();
-  const mockStreakDays = Array.from({ length: 14 }).map((_, i) => {
+  const currentStreak = learnerStats?.streak ?? 0;
+  const lastActivityLabel = learnerStats?.last_activity
+    ? new Date(learnerStats.last_activity).toLocaleDateString('vi-VN', {
+        timeZone: ACADEMY_TIME_ZONE,
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      })
+    : '';
+  const activeDays = new Set(learnerStats?.active_days || []);
+  const streakDays = Array.from({ length: 14 }).map((_, i) => {
     const d = new Date(today);
     d.setDate(today.getDate() - (13 - i));
-    const isPlayed = i > 5 && i % 3 !== 0; // Some random completed days
+    const dayKey = academyDayKey(d);
     return {
       date: d,
-      completed: isPlayed,
+      completed: activeDays.has(dayKey),
       isToday: i === 13
     };
   });
@@ -120,25 +192,37 @@ export function AcademyHome() {
                  <div className="flex justify-between items-center bg-brutal-yellow p-4 border-4 border-brutal-black shadow-neo-sm">
                    <div className="font-black uppercase tracking-widest text-brutal-black">Chuỗi ngày học liên tiếp</div>
                    <div className="flex items-center gap-2">
-                     <span className="font-display text-3xl font-black text-brutal-black">{currentUser?.streak ?? 5}</span>
+                     <span className="font-display text-3xl font-black text-brutal-black">{currentStreak}</span>
                      <Flame className="w-8 h-8 text-brutal-pink fill-brutal-pink" strokeWidth={2} />
                    </div>
                  </div>
                  
-                 <div className="flex items-center gap-3 overflow-x-auto pb-4 scrollbar-hide snap-x">
-                    {mockStreakDays.map((day, idx) => (
-                       <div key={idx} className="flex flex-col items-center gap-2 snap-center shrink-0">
-                          <span className="text-[10px] font-bold text-gray-500 uppercase">{day.date.toLocaleDateString('vi-VN', { weekday: 'short' })}</span>
-                          <div className={`w-12 h-12 flex items-center justify-center border-4 border-brutal-black rounded-full shadow-neo-sm ${day.completed ? 'bg-brutal-pink' : 'bg-brutal-bg opacity-50 grayscale'} ${day.isToday ? 'scale-110 border-brutal-blue shadow-neo-lg bg-brutal-yellow' : ''}`}>
+                 <div className="grid grid-cols-7 gap-3 pb-1">
+                    {streakDays.map((day, idx) => (
+                       <div key={idx} className="flex flex-col items-center gap-2">
+                          <span className="text-[10px] font-bold text-gray-500 uppercase">
+                            {academyWeekdayFormatter.format(day.date)}
+                          </span>
+                          <div className={`flex h-14 w-14 items-center justify-center border-4 border-brutal-black shadow-neo-sm transition-transform ${day.completed ? 'bg-brutal-pink' : 'bg-white opacity-70'} ${day.isToday ? 'scale-105 border-brutal-blue shadow-neo-lg bg-brutal-yellow' : ''}`}>
                              {day.completed || day.isToday ? (
                                 <Flame className="w-6 h-6 text-brutal-black fill-brutal-black" />
                              ) : (
-                                <div className="w-6 h-6 rotate-45 border-4 border-brutal-black bg-white" />
+                                <div className="h-6 w-6 rotate-45 border-4 border-brutal-black bg-brutal-bg" />
                              )}
                           </div>
-                          <span className={`text-[10px] font-black ${day.isToday ? 'text-brutal-blue' : 'text-brutal-black'}`}>{day.date.getDate()}</span>
+                          <span className={`text-[10px] font-black ${day.isToday ? 'text-brutal-blue' : 'text-brutal-black'}`}>
+                            {academyDayNumberFormatter.format(day.date)}
+                          </span>
                        </div>
                     ))}
+                 </div>
+                 <div className="grid gap-3 sm:grid-cols-2">
+                   <p className="border-4 border-brutal-black bg-white px-4 py-3 text-sm font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
+                     Streak hiện tại: {currentStreak} ngày liên tiếp
+                   </p>
+                   <p className="border-4 border-brutal-black bg-white px-4 py-3 text-sm font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
+                     {lastActivityLabel ? `Hoạt động gần nhất: ${lastActivityLabel}` : 'Chưa có hoạt động học được ghi nhận'}
+                   </p>
                  </div>
               </div>
           ) : (

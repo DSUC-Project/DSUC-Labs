@@ -256,13 +256,13 @@ export function AcademyUnit() {
   if (loading) {
     return (
       <div className="space-y-6 pb-20 mt-10 max-w-[1400px] mx-auto w-full px-4 sm:px-6 lg:px-8">
-        <div className="h-64 animate-pulse rounded-3xl bg-white border border-slate-100 shadow-sm" />
+        <div className="h-64 animate-pulse border-4 border-brutal-black bg-gray-100 shadow-neo" />
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-6">
-            <div className="h-96 animate-pulse rounded-3xl bg-white border border-slate-100 shadow-sm" />
-            <div className="h-64 animate-pulse rounded-3xl bg-white border border-slate-100 shadow-sm" />
+            <div className="h-96 animate-pulse border-4 border-brutal-black bg-gray-100 shadow-neo" />
+            <div className="h-64 animate-pulse border-4 border-brutal-black bg-gray-100 shadow-neo" />
           </div>
-          <div className="h-96 animate-pulse rounded-3xl bg-white border border-slate-100 shadow-sm" />
+          <div className="h-96 animate-pulse border-4 border-brutal-black bg-gray-100 shadow-neo" />
         </div>
       </div>
     );
@@ -270,27 +270,27 @@ export function AcademyUnit() {
 
   if (!unitData) {
     return (
-      <div className="rounded-2xl border border-rose-100 bg-rose-50 p-8 text-center mt-10 max-w-4xl mx-auto">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-rose-100 text-rose-500 mb-4">
+      <div className="mx-auto mt-10 max-w-4xl border-4 border-brutal-black bg-white p-8 text-center shadow-neo">
+        <div className="mb-4 inline-flex h-12 w-12 items-center justify-center border-4 border-brutal-black bg-brutal-red text-white shadow-neo-sm">
            <Code2 className="w-6 h-6" />
         </div>
-        <h1 className="font-display text-2xl font-bold text-slate-800">
+        <h1 className="font-display text-2xl font-black uppercase tracking-tight text-brutal-black">
           Không thể mở bài học này
         </h1>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-4 border-4 border-brutal-black bg-brutal-yellow/30 p-4 text-sm font-bold text-brutal-black">
           {error || 'Bài học hiện không mở được. Vui lòng thử lại sau.'}
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-4">
            <button
             type="button"
             onClick={() => setReloadNonce((value) => value + 1)}
-            className="inline-flex items-center gap-2 rounded-full bg-sky-600 px-6 py-3 text-sm font-bold tracking-wider text-white transition-all hover:bg-sky-700 hover:shadow-md"
+            className="inline-flex items-center gap-2 border-4 border-brutal-black bg-brutal-blue px-6 py-3 text-sm font-black uppercase tracking-wider text-white transition-all hover:-translate-y-1 hover:bg-brutal-pink hover:text-brutal-black hover:shadow-neo"
           >
             Tải lại
           </button>
           <Link
             to="/academy"
-            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-bold tracking-wider text-slate-700 transition-all hover:bg-slate-50 hover:text-sky-600"
+            className="inline-flex items-center gap-2 border-4 border-brutal-black bg-white px-6 py-3 text-sm font-black uppercase tracking-wider text-brutal-black transition-all hover:-translate-y-1 hover:bg-brutal-yellow hover:shadow-neo"
           >
             Về trang chủ Học Viện
           </Link>
@@ -534,7 +534,7 @@ export function AcademyUnit() {
                     </div>
                   )}
                 </div>
-                <div className="markdown-body prose prose-slate max-w-none prose-headings:font-display prose-headings:font-black prose-headings:text-brutal-black prose-headings:uppercase prose-p:text-gray-800 prose-p:font-medium hover:prose-a:text-brutal-blue prose-a:font-bold prose-strong:font-black">
+                <div className="max-w-none">
                   {renderMd(unit.content_md)}
                 </div>
               </section>
@@ -584,12 +584,12 @@ export function AcademyUnit() {
                   </div>
                 </div>
                 {/* Note: In React Markdown, ensuring standard markdown styling */}
-                <div className="markdown-body prose prose-slate max-w-none prose-headings:font-display prose-headings:font-black prose-headings:text-brutal-black prose-headings:uppercase prose-p:text-gray-800 prose-p:font-medium hover:prose-a:text-brutal-blue prose-a:font-bold prose-strong:font-black">
+                <div className="max-w-none">
                   {renderMd(unit.content_md)}
                 </div>
               </section>
 
-              <section className="bg-brutal-bg border-4 border-brutal-black overflow-hidden shadow-neo flex flex-col mb-12">
+              <section className="bg-brutal-black border-4 border-brutal-black overflow-hidden shadow-neo flex flex-col mb-12">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-4 border-brutal-black bg-white px-4 py-3 gap-4">
                    <div className="flex gap-4 items-center">
                      <LabTabButton
@@ -649,7 +649,7 @@ export function AcademyUnit() {
                    </div>
                 </div>
 
-                <div className="flex items-center gap-2 bg-brutal-bg px-4 py-3 border-b-4 border-brutal-black text-[10px] font-black tracking-widest uppercase overflow-x-auto text-brutal-black">
+                <div className="flex items-center gap-2 bg-slate-900 px-4 py-3 border-b-4 border-brutal-black text-[10px] font-black tracking-widest uppercase overflow-x-auto text-slate-100">
                   {runnerSupported ? (
                      <span className="text-brutal-black border-2 border-brutal-black bg-brutal-green px-2 py-0.5 shadow-neo-sm">● {runtimeLabel} Sẵn sàng</span>
                   ) : (
@@ -667,24 +667,24 @@ export function AcademyUnit() {
                   )}
                 </div>
 
-                <div className="flex-1 bg-white">
+                <div className="flex-1 bg-slate-950">
                   {activeWorkspaceTab === 'editor' && (
                     <div className="h-[600px] relative">
-                      <div className="absolute top-2 right-4 text-[10px] font-black text-gray-400 uppercase tracking-widest pointer-events-none">
+                      <div className="absolute top-2 right-4 text-[10px] font-black text-slate-500 uppercase tracking-widest pointer-events-none">
                          {unit.language || 'text'}
                       </div>
                       <textarea
                         value={draftCode}
                         onChange={(event) => setDraftCode(event.target.value)}
                         spellCheck={false}
-                        className="w-full h-full bg-white text-brutal-black font-mono text-[14px] leading-relaxed p-6 outline-none resize-none selection:bg-brutal-pink focus:bg-brutal-yellow/10 transition-colors"
+                        className="h-full w-full resize-none bg-slate-950 p-6 font-mono text-[14px] leading-relaxed text-slate-100 outline-none transition-colors selection:bg-brutal-pink focus:bg-slate-900"
                         placeholder="Bắt đầu viết code ở đây..."
                       />
                     </div>
                   )}
 
                   {activeWorkspaceTab === 'results' && (
-                    <div className="p-6 text-brutal-black min-h-[600px] max-h-[600px] overflow-y-auto">
+                    <div className="min-h-[600px] max-h-[600px] overflow-y-auto bg-white p-6 text-brutal-black brutal-scrollbar">
                       {!runReport ? (
                         <div className="flex flex-col items-center justify-center py-20 text-center border-4 border-dashed border-brutal-black bg-gray-50 h-full">
                            <div className="w-16 h-16 bg-white border-4 border-brutal-black shadow-neo-sm flex items-center justify-center mb-6">
@@ -756,7 +756,7 @@ export function AcademyUnit() {
                                       {caseItem.description}
                                     </div>
                                     {caseItem.error && (
-                                       <div className="mt-4 bg-white p-4 border-4 border-brutal-black shadow-neo-sm text-brutal-pink font-mono text-xs overflow-x-auto whitespace-pre-wrap font-bold">
+                                       <div className="mt-4 overflow-x-auto whitespace-pre-wrap border-4 border-brutal-black bg-slate-950 p-4 font-mono text-xs font-bold text-pink-300 shadow-neo-sm">
                                           {caseItem.error}
                                        </div>
                                     )}
@@ -774,7 +774,7 @@ export function AcademyUnit() {
                   )}
 
                   {activeWorkspaceTab === 'solution' && (
-                    <div className="p-6 min-h-[600px] bg-white text-brutal-black">
+                    <div className="min-h-[600px] bg-white p-6 text-brutal-black">
                        {!solutionUnlocked ? (
                          <div className="flex flex-col items-center justify-center py-24 text-center border-4 border-dashed border-brutal-black bg-gray-50 h-full">
                             <div className="w-16 h-16 bg-white border-4 border-brutal-black shadow-neo-sm flex items-center justify-center mb-6">
@@ -812,8 +812,8 @@ export function AcademyUnit() {
                                </button>
                             </div>
                             {unit.solution ? (
-                               <div className="bg-white border-4 border-brutal-black shadow-neo-sm overflow-hidden brutal-scrollbar">
-                                  <pre className="p-4 overflow-x-auto text-[14px] font-mono font-bold text-brutal-black leading-relaxed max-h-[500px] overflow-y-auto brutal-scrollbar selection:bg-brutal-pink">
+                               <div className="overflow-hidden border-4 border-brutal-black bg-slate-950 shadow-neo-sm brutal-scrollbar">
+                                  <pre className="max-h-[500px] overflow-x-auto overflow-y-auto p-4 text-[14px] font-mono font-bold leading-relaxed text-slate-100 brutal-scrollbar selection:bg-brutal-pink">
                                     <code>{unit.solution}</code>
                                   </pre>
                                </div>
