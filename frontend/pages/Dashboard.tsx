@@ -126,7 +126,7 @@ export function Dashboard() {
 }
 
 function EventCard({ event, idx }: { event: any, idx: number }) {
-  const luma_link = event.luma_link;
+  const lumaLink = String(event.luma_link || '').trim();
   const eventDate = event.date ? new Date(event.date) : null;
   const dayLabel = eventDate
     ? String(eventDate.getDate()).padStart(2, '0')
@@ -135,26 +135,13 @@ function EventCard({ event, idx }: { event: any, idx: number }) {
     ? eventDate.toLocaleString('vi-VN', { month: 'short' })
     : '---';
 
-  const handleClick = () => {
-    if (luma_link) {
-      window.open(luma_link, '_blank', 'noopener,noreferrer');
-    }
-  };
+  const cardClasses = clsx(
+    "bg-white p-6 relative group transition-all border-4 border-brutal-black",
+    lumaLink ? "cursor-pointer brutal-card hover:-translate-y-1 hover:-translate-x-1 hover:shadow-neo-lg" : "cursor-default shadow-neo"
+  );
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: idx * 0.1 }}
-      onClick={handleClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && handleClick()}
-      className={clsx(
-        "bg-white p-6 relative group transition-all border-4 border-brutal-black",
-        luma_link ? "cursor-pointer brutal-card hover:-translate-y-1 hover:-translate-x-1 hover:shadow-neo-lg" : "cursor-default shadow-neo"
-      )}
-    >
+  const inner = (
+    <>
       <div className="flex justify-between items-start mb-6">
         <span className="px-3 py-1 bg-brutal-yellow border-2 border-brutal-black text-brutal-black text-xs font-bold uppercase tracking-wider shadow-neo-sm">
           {event.type}
@@ -175,6 +162,30 @@ function EventCard({ event, idx }: { event: any, idx: number }) {
       <p className="w-fit border-2 border-brutal-black bg-gray-50 p-2 font-mono text-xs font-bold uppercase text-brutal-blue shadow-neo-sm">
         {event.location || 'Đang cập nhật địa điểm'}
       </p>
+    </>
+  );
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: idx * 0.1 }}
+      className="h-full"
+    >
+      {lumaLink ? (
+        <a
+          href={lumaLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`${cardClasses} block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brutal-blue focus-visible:ring-offset-2`}
+        >
+          {inner}
+        </a>
+      ) : (
+        <div className={`${cardClasses} h-full`}>
+          {inner}
+        </div>
+      )}
     </motion.div>
   );
 }

@@ -73,13 +73,7 @@ export function Events() {
 
 function EventItem({ event, index }: { event: Event, index: number, key?: React.Key }) {
   const isLeft = index % 2 === 0;
-  const luma_link = event.luma_link || event.luma_link;
-
-  const handleClick = () => {
-    if (luma_link) {
-      window.open(luma_link, '_blank', 'noopener,noreferrer');
-    }
-  };
+  const lumaLink = String(event.luma_link || '').trim();
 
   return (
     <motion.div
@@ -101,14 +95,40 @@ function EventItem({ event, index }: { event: Event, index: number, key?: React.
 
       {/* Card - Clickable */}
       <div className="md:w-1/2 w-full pl-16 md:pl-0">
-        <div
-          onClick={handleClick}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && handleClick()}
-          className={`bg-white p-6 md:p-8 border-4 border-brutal-black transition-all group relative ${luma_link ? 'cursor-pointer brutal-card hover:-translate-y-1 hover:-translate-x-1 hover:shadow-neo-lg' : 'shadow-neo'
-            }`}
-        >
+        {lumaLink ? (
+          <a
+            href={lumaLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brutal-blue focus-visible:ring-offset-2"
+          >
+            <div
+              className="bg-white p-6 md:p-8 border-4 border-brutal-black transition-all group relative cursor-pointer brutal-card hover:-translate-y-1 hover:-translate-x-1 hover:shadow-neo-lg"
+            >
+              <div className="flex justify-between items-start mb-6">
+                <span className="px-3 py-1 bg-brutal-pink text-[10px] font-bold uppercase tracking-widest text-brutal-black border-2 border-brutal-black shadow-neo-sm">
+                  {event.type}
+                </span>
+                <div className="flex items-center gap-1.5 text-brutal-black text-xs font-bold bg-brutal-green px-3 py-1 border-2 border-brutal-black shadow-neo-sm">
+                  <Users size={14} />
+                  {event.attendees}
+                </div>
+              </div>
+
+              <h3 className="text-2xl font-display font-black mb-4 text-brutal-black transition-colors uppercase">{event.title}</h3>
+
+              <div className="flex items-center gap-2 text-brutal-black font-bold bg-brutal-yellow p-3 border-2 border-brutal-black shadow-neo-sm w-fit">
+                <MapPin size={18} className="text-brutal-black" />
+                <span className="text-sm uppercase">{event.location}</span>
+              </div>
+              
+              <div className="mt-8 border-t-4 border-brutal-black pt-4 flex items-center text-brutal-black text-sm font-bold uppercase tracking-widest group-hover:text-brutal-blue transition-colors">
+                Đăng ký tham gia <span className="ml-2 font-black text-xl transition-transform group-hover:translate-x-2">→</span>
+              </div>
+            </div>
+          </a>
+        ) : (
+          <div className="bg-white p-6 md:p-8 border-4 border-brutal-black transition-all group relative shadow-neo">
           <div className="flex justify-between items-start mb-6">
             <span className="px-3 py-1 bg-brutal-pink text-[10px] font-bold uppercase tracking-widest text-brutal-black border-2 border-brutal-black shadow-neo-sm">
               {event.type}
@@ -125,13 +145,8 @@ function EventItem({ event, index }: { event: Event, index: number, key?: React.
             <MapPin size={18} className="text-brutal-black" />
             <span className="text-sm uppercase">{event.location}</span>
           </div>
-          
-          {luma_link && (
-            <div className="mt-8 border-t-4 border-brutal-black pt-4 flex items-center text-brutal-black text-sm font-bold uppercase tracking-widest group-hover:text-brutal-blue transition-colors">
-              Đăng ký tham gia <span className="ml-2 font-black text-xl transition-transform group-hover:translate-x-2">→</span>
-            </div>
-          )}
         </div>
+        )}
       </div>
     </motion.div>
   );
