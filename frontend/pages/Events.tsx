@@ -73,7 +73,7 @@ export function Events() {
 
 function EventItem({ event, index }: { event: Event, index: number, key?: React.Key }) {
   const isLeft = index % 2 === 0;
-  const lumaLink = String(event.luma_link || '').trim();
+  const lumaLink = String((event as any).luma_link || (event as any).lumaLink || (event as any).link || '').trim();
 
   return (
     <motion.div
@@ -100,7 +100,7 @@ function EventItem({ event, index }: { event: Event, index: number, key?: React.
             href={lumaLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brutal-blue focus-visible:ring-offset-2"
+            className="relative z-20 block pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brutal-blue focus-visible:ring-offset-2"
           >
             <div
               className="bg-white p-6 md:p-8 border-4 border-brutal-black transition-all group relative cursor-pointer brutal-card hover:-translate-y-1 hover:-translate-x-1 hover:shadow-neo-lg"

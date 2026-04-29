@@ -15,6 +15,13 @@ const RUST_KEYWORDS = new Set([
   'Some', 'None', 'true', 'false', 'as', 'in', 'move', 'crate',
 ]);
 
+const VS_METHOD_NAMES = new Set([
+  'map', 'filter', 'reduce', 'find', 'push', 'slice', 'split', 'trim', 'replace',
+  'from', 'fromEntries', 'entries', 'keys', 'values', 'includes', 'open', 'log',
+  'error', 'warn', 'then', 'catch', 'finally', 'test', 'exec', 'toString',
+  'extend_from_slice', 'to_le_bytes', 'as_bytes',
+]);
+
 function normalizeLanguage(input?: string): CodeLanguage {
   if (input === 'typescript' || input === 'ts' || input === 'tsx' || input === 'javascript') {
     return 'typescript';
@@ -76,6 +83,21 @@ function tokenizeLine(line: string, language: CodeLanguage) {
 
     if (keywordSet.has(text)) {
       pieces.push({ text, className: 'text-[#C586C0]' });
+      continue;
+    }
+
+    if (/^[A-Z][A-Za-z0-9_]*$/.test(text)) {
+      pieces.push({ text, className: 'text-[#4EC9B0]' });
+      continue;
+    }
+
+    if (VS_METHOD_NAMES.has(text)) {
+      pieces.push({ text, className: 'text-[#DCDCAA]' });
+      continue;
+    }
+
+    if (/^(console|window|Math|JSON|Object|Array|Promise|Number|String|Boolean|Date|SystemProgram|Transaction|PublicKey|Connection)$/.test(text)) {
+      pieces.push({ text, className: 'text-[#4FC1FF]' });
       continue;
     }
 
@@ -148,7 +170,7 @@ export function CodeSurface({
   const normalizedLanguage = normalizeLanguage(language);
 
   return (
-    <div className={`overflow-hidden border-4 border-brutal-black bg-[#1E1E1E] shadow-neo-sm ${className}`}>
+    <div className={`overflow-hidden border-4 border-brutal-black bg-[#1e1e1e] shadow-neo-sm ${className}`}>
       <div className="flex items-center gap-2 border-b-4 border-brutal-black bg-[#252526] px-4 py-2">
         <div className="h-3 w-3 rounded-full border border-black/40 bg-[#F14C4C]" />
         <div className="h-3 w-3 rounded-full border border-black/40 bg-[#CCA700]" />
@@ -158,7 +180,7 @@ export function CodeSurface({
         </div>
       </div>
       <div className={`overflow-auto brutal-scrollbar ${maxHeightClass}`}>
-        <pre className="min-w-full px-4 py-4 font-mono text-[13px] leading-6">
+        <pre className="min-w-full bg-[#1e1e1e] px-4 py-4 font-mono text-[13px] leading-6">
           <CodeLines code={code} language={normalizedLanguage} />
         </pre>
       </div>
@@ -184,7 +206,7 @@ export function CodeEditorPane({
   const gutterRef = useRef<HTMLDivElement | null>(null);
 
   return (
-    <div className={`overflow-hidden border-4 border-brutal-black bg-[#1E1E1E] shadow-neo ${className}`}>
+    <div className={`overflow-hidden border-4 border-brutal-black bg-[#1e1e1e] shadow-neo ${className}`}>
       <div className="flex items-center gap-2 border-b-4 border-brutal-black bg-[#252526] px-4 py-2">
         <div className="h-3 w-3 rounded-full border border-black/40 bg-[#F14C4C]" />
         <div className="h-3 w-3 rounded-full border border-black/40 bg-[#CCA700]" />
@@ -193,7 +215,7 @@ export function CodeEditorPane({
           {normalizedLanguage}
         </div>
       </div>
-      <div className="relative h-[620px] bg-[#1E1E1E]">
+      <div className="relative h-[620px] bg-[#1e1e1e]">
         <div
           ref={overlayRef}
           className="pointer-events-none absolute inset-0 overflow-auto brutal-scrollbar"

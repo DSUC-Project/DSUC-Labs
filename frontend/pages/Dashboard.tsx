@@ -126,7 +126,7 @@ export function Dashboard() {
 }
 
 function EventCard({ event, idx }: { event: any, idx: number }) {
-  const lumaLink = String(event.luma_link || '').trim();
+  const lumaLink = String(event.luma_link || event.lumaLink || event.link || '').trim();
   const eventDate = event.date ? new Date(event.date) : null;
   const dayLabel = eventDate
     ? String(eventDate.getDate()).padStart(2, '0')
@@ -177,7 +177,7 @@ function EventCard({ event, idx }: { event: any, idx: number }) {
           href={lumaLink}
           target="_blank"
           rel="noopener noreferrer"
-          className={`${cardClasses} block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brutal-blue focus-visible:ring-offset-2`}
+          className={`${cardClasses} block h-full relative z-10 pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brutal-blue focus-visible:ring-offset-2`}
         >
           {inner}
         </a>

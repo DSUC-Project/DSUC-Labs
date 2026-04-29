@@ -122,7 +122,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 // POST /api/events - Create new event (requires authentication)
 router.post('/', authenticateUser as any, requireOfficialMember, (async (req: Request, res: Response) => {
   try {
-    const { title, date, time, type, location } = req.body;
+    const { title, date, time, type, location, luma_link } = req.body;
 
     if (!title || !date) {
       return res.status(400).json({
@@ -137,6 +137,7 @@ router.post('/', authenticateUser as any, requireOfficialMember, (async (req: Re
       time,
       type: type || 'Workshop',
       location,
+      luma_link: luma_link || null,
       attendees: 0,
       status: 'Published',
       created_by: req.user!.id,
@@ -174,7 +175,7 @@ router.post('/', authenticateUser as any, requireOfficialMember, (async (req: Re
 router.put('/:id', authenticateUser as any, requireOfficialMember, (async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { title, date, time, type, location, attendees } = req.body;
+    const { title, date, time, type, location, attendees, luma_link } = req.body;
 
     // Check if event exists
     const { data: existingEvent, error: fetchError } = await db
@@ -206,6 +207,7 @@ router.put('/:id', authenticateUser as any, requireOfficialMember, (async (req: 
     if (time !== undefined) updateData.time = time;
     if (type) updateData.type = type;
     if (location !== undefined) updateData.location = location;
+    if (luma_link !== undefined) updateData.luma_link = luma_link || null;
     if (attendees !== undefined) updateData.attendees = attendees;
 
     const { data: updatedEvent, error } = await db

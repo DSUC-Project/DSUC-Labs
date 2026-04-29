@@ -27,6 +27,7 @@ import {
   runAcademyChallenge,
   type ChallengeRunReport,
 } from '@/lib/academy/challengeRunner';
+import { CodeEditorPane, CodeSurface } from '@/components/academy/CodeSurface';
 import { renderMd, slugifyMarkdownHeading } from '@/lib/academy/md';
 import { fetchAcademyV2Unit } from '@/lib/academy/v2Api';
 import { useAcademyProgressState } from '@/lib/academy/useAcademyProgress';
@@ -585,8 +586,8 @@ export function AcademyUnit() {
               </section>
 
               <section className="bg-brutal-bg border-4 border-brutal-black overflow-hidden shadow-neo flex flex-col mb-12">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-4 border-brutal-black bg-white px-4 py-3 gap-4">
-                   <div className="flex gap-4 items-center">
+                <div className="overflow-visible flex flex-col sm:flex-row sm:items-center justify-between border-b-4 border-brutal-black bg-white px-4 py-3 gap-4">
+                   <div className="relative z-20 isolate flex gap-4 items-center">
                      <LabTabButton
                        label="Mã nguồn"
                        active={activeWorkspaceTab === 'editor'}
@@ -664,18 +665,12 @@ export function AcademyUnit() {
 
                 <div className="flex-1 bg-white">
                   {activeWorkspaceTab === 'editor' && (
-                    <div className="h-[600px] relative">
-                      <div className="absolute top-2 right-4 text-[10px] font-black text-gray-400 uppercase tracking-widest pointer-events-none">
-                         {unit.language || 'text'}
-                      </div>
-                      <textarea
-                        value={draftCode}
-                        onChange={(event) => setDraftCode(event.target.value)}
-                        spellCheck={false}
-                        className="w-full h-full bg-white text-brutal-black font-mono text-[14px] leading-relaxed p-6 outline-none resize-none selection:bg-brutal-pink focus:bg-brutal-yellow/10 transition-colors"
-                        placeholder="Bắt đầu viết code ở đây..."
-                      />
-                    </div>
+                    <CodeEditorPane
+                      value={draftCode}
+                      onChange={setDraftCode}
+                      language={unit.language || 'text'}
+                      placeholder="Bắt đầu viết code ở đây..."
+                    />
                   )}
 
                   {activeWorkspaceTab === 'results' && (
@@ -751,8 +746,13 @@ export function AcademyUnit() {
                                       {caseItem.description}
                                     </div>
                                     {caseItem.error && (
-                                       <div className="mt-4 bg-white p-4 border-4 border-brutal-black shadow-neo-sm text-brutal-pink font-mono text-xs overflow-x-auto whitespace-pre-wrap font-bold">
-                                          {caseItem.error}
+                                       <div className="mt-4">
+                                          <CodeSurface
+                                            code={caseItem.error}
+                                            language="text"
+                                            label="error"
+                                            maxHeightClass="max-h-[180px]"
+                                          />
                                        </div>
                                     )}
                                  </div>
@@ -807,11 +807,12 @@ export function AcademyUnit() {
                                </button>
                             </div>
                             {unit.solution ? (
-                               <div className="bg-white border-4 border-brutal-black shadow-neo-sm overflow-hidden brutal-scrollbar">
-                                  <pre className="p-4 overflow-x-auto text-[14px] font-mono font-bold text-brutal-black leading-relaxed max-h-[500px] overflow-y-auto brutal-scrollbar selection:bg-brutal-pink">
-                                    <code>{unit.solution}</code>
-                                  </pre>
-                               </div>
+                               <CodeSurface
+                                 code={unit.solution}
+                                 language={unit.language || 'text'}
+                                 label="reference solution"
+                                 maxHeightClass="max-h-[500px]"
+                               />
                             ) : (
                                <div className="p-8 text-center bg-gray-50 border-4 border-dashed border-brutal-black text-gray-600 font-bold text-sm">
                                  Chưa có đáp án mẫu cho bài lab này.
@@ -1102,10 +1103,10 @@ function LabTabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`text-[10px] sm:text-xs font-black uppercase tracking-widest px-3 sm:px-4 py-2 transition-all border-4 ${
+      className={`relative text-[10px] sm:text-xs font-black uppercase tracking-widest px-3 sm:px-4 py-2 transition-all border-4 ${
         active
-          ? 'bg-brutal-pink text-brutal-black border-brutal-black border-b-0 shadow-none -mb-[4px] relative z-10'
-          : 'bg-white text-brutal-black border-brutal-black hover:bg-brutal-yellow'
+          ? 'z-20 bg-brutal-pink text-brutal-black border-brutal-black border-b-0 shadow-none -mb-[4px]'
+          : 'z-10 bg-white text-brutal-black border-brutal-black hover:z-20 hover:bg-brutal-yellow hover:-translate-y-0.5'
       }`}
     >
       {label}
