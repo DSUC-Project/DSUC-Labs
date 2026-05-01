@@ -48,7 +48,7 @@ type FlatUnit = AcademyV2UnitSummary & {
   moduleTitle: string;
 };
 
-type WorkspaceTab = 'editor' | 'results' | 'solution';
+type WorkspaceTab = 'instructions' | 'editor' | 'results' | 'solution';
 
 function getEmbedUrl(url: string): string | null {
   try {
@@ -534,7 +534,7 @@ export function AcademyUnit() {
                     </div>
                   )}
                 </div>
-                <div className="markdown-body prose prose-slate max-w-none prose-headings:font-display prose-headings:font-black prose-headings:text-brutal-black prose-headings:uppercase prose-p:text-gray-800 prose-p:font-medium hover:prose-a:text-brutal-blue prose-a:font-bold prose-strong:font-black">
+                <div className="prose-dsuc max-w-none">
                   {renderMd(unit.content_md)}
                 </div>
               </section>
@@ -565,298 +565,246 @@ export function AcademyUnit() {
               )}
             </>
           ) : (
-            <>
-              <section className="bg-white border-4 border-brutal-black shadow-neo p-6 sm:p-8 lg:p-10 mb-8 max-h-[60vh] overflow-y-auto brutal-scrollbar">
-                <div className="flex flex-col gap-6 border-b-4 border-brutal-black pb-8 sm:flex-row sm:items-end sm:justify-between mb-8">
-                  <div>
-                    <div className="inline-block bg-brutal-pink text-brutal-black px-2 py-1 text-[10px] font-black uppercase tracking-widest border-2 border-brutal-black shadow-neo-sm mb-3">
-                      Hướng dẫn thực hành
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.38fr)]">
+              <div className="space-y-6">
+                <section className="rounded-[32px] border border-border-main bg-surface p-6 sm:p-8">
+                  <div className="flex flex-col gap-4 border-b border-border-main pb-6 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <p className="section-eyebrow">Practice Brief</p>
+                      <h2 className="section-title">Instructions</h2>
                     </div>
-                    <h2 className="font-display text-4xl sm:text-5xl font-black text-brutal-black uppercase tracking-tighter decoration-brutal-blue decoration-4 underline underline-offset-8">
-                      Yêu cầu bài tập
-                    </h2>
+                    <span className="status-badge status-badge-warning">{practiceModeText(unit)}</span>
                   </div>
-                  <div className="bg-brutal-yellow px-4 py-2 text-xs font-black uppercase tracking-wider text-brutal-black border-4 border-brutal-black shadow-neo-sm whitespace-nowrap hidden sm:block transform rotate-2">
-                    {practiceModeText(unit)}
+                  <div className="prose-dsuc mt-6 max-w-none">
+                    {renderMd(unit.content_md)}
                   </div>
-                </div>
-                <div className="markdown-body prose prose-slate max-w-none prose-headings:font-display prose-headings:font-black prose-headings:text-brutal-black prose-headings:uppercase prose-p:text-gray-800 prose-p:font-medium hover:prose-a:text-brutal-blue prose-a:font-bold prose-strong:font-black">
-                  {renderMd(unit.content_md)}
-                </div>
-              </section>
+                </section>
 
-              <section className="bg-brutal-bg border-4 border-brutal-black overflow-visible shadow-neo flex flex-col mb-12 relative">
-                <div className="overflow-visible flex flex-col sm:flex-row sm:items-center justify-between border-b-4 border-brutal-black bg-white px-4 py-3 gap-4">
-                   <div className="relative z-20 isolate flex flex-wrap items-end gap-3">
-                     <LabTabButton
-                       label="Mã nguồn"
-                       active={activeWorkspaceTab === 'editor'}
-                       onClick={() => setActiveWorkspaceTab('editor')}
-                     />
-                     <LabTabButton
-                       label="Kết quả"
-                       active={activeWorkspaceTab === 'results'}
-                       onClick={() => setActiveWorkspaceTab('results')}
-                     />
-                     <LabTabButton
-                       label="Đáp án"
-                       active={activeWorkspaceTab === 'solution'}
-                       onClick={() => setActiveWorkspaceTab('solution')}
-                     />
-                   </div>
-                   
-                   <div className="flex items-center gap-3">
-                      {runnerSupported && (
-                         <button
-                           type="button"
-                           onClick={() => void handleRunChallenge()}
-                           disabled={runLoading}
-                           className="inline-flex items-center gap-2 bg-brutal-green hover:bg-brutal-yellow text-brutal-black border-2 border-brutal-black shadow-neo-sm px-4 py-1.5 text-xs font-black uppercase tracking-widest transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-                         >
-                            {runLoading ? (
-                               <LoaderCircle className="w-4 h-4 animate-spin" />
-                            ) : (
-                               <Play className="w-4 h-4 fill-current" />
-                            )}
-                            {runLoading ? 'Đang chạy' : 'Chạy code'}
-                         </button>
-                      )}
-                     
-                      {activeWorkspaceTab === 'editor' && (
-                         <div className="flex flex-row bg-white border-2 border-brutal-black shadow-neo-sm">
-                           <button
-                             type="button"
-                             onClick={copyDraft}
-                             className="p-2 hover:bg-brutal-yellow text-brutal-black border-r-2 border-brutal-black transition-colors"
-                             title="Sao chép"
-                           >
-                             <ClipboardCopy className="w-4 h-4" />
-                           </button>
-                           <button
-                             type="button"
-                             onClick={resetDraft}
-                             className="p-2 hover:bg-brutal-pink text-brutal-black transition-colors"
-                             title="Khôi phục code gốc"
-                           >
-                             <AlertTriangle className="w-4 h-4" />
-                           </button>
-                         </div>
-                      )}
-                   </div>
-                </div>
+                {unit.hints.length > 0 ? (
+                  <section className="rounded-[32px] border border-border-main bg-surface p-6">
+                    <div className="flex items-center justify-between gap-4 border-b border-border-main pb-4">
+                      <div>
+                        <p className="section-eyebrow">Hints</p>
+                        <h2 className="section-title">Need a nudge?</h2>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setRevealedHints((value) => Math.min(value + 1, unit.hints.length))
+                        }
+                        disabled={revealedHints >= unit.hints.length}
+                        className="action-button action-button-ghost"
+                      >
+                        Reveal More
+                      </button>
+                    </div>
+                    <div className="mt-5 space-y-3">
+                      {unit.hints.slice(0, revealedHints).map((hint, index) => (
+                        <div
+                          key={`${hint}-${index}`}
+                          className="rounded-[20px] border border-border-main bg-main-bg px-4 py-3 text-sm leading-7 text-text-main"
+                        >
+                          {hint}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
 
-                <div className="flex items-center gap-2 bg-brutal-bg px-4 py-3 border-b-4 border-brutal-black text-[10px] font-black tracking-widest uppercase overflow-x-auto text-brutal-black">
-                  {runnerSupported ? (
-                     <span className="text-brutal-black border-2 border-brutal-black bg-brutal-green px-2 py-0.5 shadow-neo-sm-sm">● {runtimeLabel} Sẵn sàng</span>
-                  ) : (
-                     <span className="text-white border-2 border-brutal-black bg-brutal-blue px-2 py-0.5 shadow-neo-sm-sm">Không gian hướng dẫn</span>
-                  )}
+                <section className="rounded-[32px] border border-border-main bg-surface p-6">
+                  <div className="border-b border-border-main pb-4">
+                    <p className="section-eyebrow">Challenge Config</p>
+                    <h2 className="section-title">Environment</h2>
+                  </div>
+                  <div className="mt-4 space-y-0">
+                    <ProfileRow label="Test cases" value={String(unit.tests.length)} />
+                    <ProfileRow label="Hints" value={String(unit.hints.length)} />
+                    <ProfileRow label="Language" value={unit.language || 'Text'} />
+                    <ProfileRow label="Build type" value={unit.build_type || 'Standard'} />
+                  </div>
+                </section>
+              </div>
 
-                  {draftDirty && (
-                     <span className="text-brutal-black border-2 border-brutal-black bg-brutal-yellow px-2 py-0.5 shadow-neo-sm-sm">Đã sửa đổi</span>
-                  )}
-                  {runReport && !runReportIsFresh && (
-                     <span className="text-brutal-black border-2 border-brutal-black bg-brutal-pink px-2 py-0.5 shadow-neo-sm-sm">Cần chạy lại</span>
-                  )}
-                  {activeRunReport?.allPassed && (
-                     <span className="text-brutal-black border-2 border-brutal-black bg-brutal-green px-2 py-0.5 shadow-neo-sm-sm">Đã vượt qua</span>
-                  )}
-                </div>
+              <div className="space-y-6">
+                <section className="overflow-hidden rounded-[32px] border border-border-main bg-surface-elevated shadow-soft-lg">
+                  <div className="border-b border-border-main px-4 py-4">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="flex flex-wrap gap-2">
+                        <span className="status-badge status-badge-info">
+                          {unit.language === 'rust' ? 'challenge.rs' : 'challenge.ts'}
+                        </span>
+                        <span className="status-badge">
+                          {runnerSupported ? runtimeLabel : 'Guided practice'}
+                        </span>
+                        {draftDirty ? <span className="status-badge status-badge-warning">Draft changed</span> : null}
+                        {runReport && !runReportIsFresh ? <span className="status-badge status-badge-warning">Run again</span> : null}
+                        {activeRunReport?.allPassed ? <span className="status-badge status-badge-success">All tests passed</span> : null}
+                      </div>
 
-                <div className="flex-1 bg-white">
-                  {activeWorkspaceTab === 'editor' && (
+                      <div className="flex flex-wrap gap-2">
+                        <div className="flex gap-2 xl:hidden">
+                          <LabTabButton
+                            label="Hướng dẫn"
+                            active={activeWorkspaceTab === 'instructions'}
+                            onClick={() => setActiveWorkspaceTab('instructions')}
+                          />
+                          <LabTabButton
+                            label="Code"
+                            active={activeWorkspaceTab === 'editor'}
+                            onClick={() => setActiveWorkspaceTab('editor')}
+                          />
+                          <LabTabButton
+                            label="Kết quả"
+                            active={activeWorkspaceTab === 'results'}
+                            onClick={() => setActiveWorkspaceTab('results')}
+                          />
+                          <LabTabButton
+                            label="Đáp án"
+                            active={activeWorkspaceTab === 'solution'}
+                            onClick={() => setActiveWorkspaceTab('solution')}
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={copyDraft}
+                          className="action-button action-button-ghost"
+                        >
+                          <ClipboardCopy className="h-4 w-4" />
+                          Copy
+                        </button>
+                        <button
+                          type="button"
+                          onClick={resetDraft}
+                          className="action-button action-button-ghost"
+                        >
+                          <AlertTriangle className="h-4 w-4" />
+                          Reset
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveWorkspaceTab('solution');
+                            if (!solutionUnlocked) {
+                              setSolutionUnlocked(false);
+                            }
+                          }}
+                          className="action-button action-button-secondary"
+                        >
+                          <Lightbulb className="h-4 w-4" />
+                          Solution
+                        </button>
+                        {runnerSupported ? (
+                          <button
+                            type="button"
+                            onClick={() => void handleRunChallenge()}
+                            disabled={runLoading}
+                            className="action-button action-button-primary"
+                          >
+                            {runLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 fill-current" />}
+                            {runLoading ? 'Running...' : 'Run Checks'}
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 xl:hidden">
+                    {activeWorkspaceTab === 'instructions' ? (
+                      <div className="prose-dsuc max-w-none rounded-[24px] border border-border-main bg-surface p-4">
+                        {renderMd(unit.content_md)}
+                      </div>
+                    ) : null}
+
+                    {activeWorkspaceTab === 'editor' ? (
+                      <CodeEditorPane
+                        value={draftCode}
+                        onChange={setDraftCode}
+                        language={unit.language || 'text'}
+                        placeholder="Bắt đầu viết code ở đây..."
+                      />
+                    ) : null}
+
+                    {activeWorkspaceTab === 'results' ? (
+                      <ResultTerminalPanel
+                        runReport={runReport}
+                        runReportIsFresh={runReportIsFresh}
+                        activeRunReport={activeRunReport}
+                        runtimeLabel={runtimeLabel}
+                      />
+                    ) : null}
+
+                    {activeWorkspaceTab === 'solution' ? (
+                      <SolutionReferencePanel
+                        unit={unit}
+                        solutionUnlocked={solutionUnlocked}
+                        onUnlock={() => setSolutionUnlocked(true)}
+                        onBackToEditor={() => setActiveWorkspaceTab('editor')}
+                        onCopySolution={() => {
+                          if (unit.solution) {
+                            navigator.clipboard.writeText(unit.solution);
+                            setNotice('Đáp án đã được copy');
+                          }
+                        }}
+                      />
+                    ) : null}
+                  </div>
+
+                  <div className="hidden p-4 xl:block">
                     <CodeEditorPane
                       value={draftCode}
                       onChange={setDraftCode}
                       language={unit.language || 'text'}
                       placeholder="Bắt đầu viết code ở đây..."
                     />
-                  )}
-
-                  {activeWorkspaceTab === 'results' && (
-                    <div className="p-6 text-brutal-black min-h-[600px] max-h-[600px] overflow-y-auto">
-                      {!runReport ? (
-                        <div className="flex flex-col items-center justify-center py-20 text-center border-4 border-dashed border-brutal-black bg-gray-50 h-full">
-                           <div className="w-16 h-16 bg-white border-4 border-brutal-black shadow-neo-sm flex items-center justify-center mb-6">
-                             <TerminalSquare className="w-8 h-8 text-brutal-black" strokeWidth={2} />
-                           </div>
-                           <h3 className="font-display text-2xl font-black uppercase text-brutal-black mb-2">Chưa có kết quả</h3>
-                           <p className="text-sm font-bold text-gray-700 max-w-sm">Chạy code của bạn để xem kết quả kiểm tra với các ca kiểm thử công khai và ẩn.</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-6">
-                           <div className="bg-white p-6 border-4 border-brutal-black shadow-neo-sm">
-                             <div className="flex items-center justify-between gap-4 mb-4 border-b-4 border-brutal-black pb-4">
-                               <div className="text-sm font-black uppercase tracking-widest text-brutal-black flex items-center gap-2">
-                                 Kết quả chạy
-                               </div>
-                               <span className={`px-2 py-1 text-[10px] font-black uppercase tracking-widest border-2 border-brutal-black shadow-neo-sm-sm ${runReportIsFresh ? runReport.allPassed ? 'bg-brutal-green text-brutal-black' : 'bg-brutal-pink text-brutal-black' : 'bg-brutal-yellow text-brutal-black'}`}>
-                                 {runReportIsFresh ? runReport.allPassed ? 'Thành công toàn bộ' : 'Thất bại' : 'Cần chạy lại'}
-                               </span>
-                             </div>
-
-                             <p className="text-base font-bold text-gray-800 leading-relaxed mb-6">
-                               {runReportIsFresh ? runReport.message : 'Bạn đã chỉnh sửa trình soạn thảo sau lần chạy gần nhất. Hãy chạy lại để kết quả phản ánh đoạn code mới nhất.'}
-                             </p>
-
-                             <div className="grid grid-cols-2 gap-4">
-                               <div className="bg-gray-100 p-4 border-4 border-brutal-black shadow-neo-sm">
-                                  <div className="text-[10px] font-black text-gray-600 uppercase tracking-widest w-full border-b-2 border-brutal-black pb-1 mb-2">
-                                    Thành công
-                                  </div>
-                                  <div className={`font-display text-3xl font-black ${runReport.allPassed ? 'text-brutal-green' : 'text-brutal-black'}`}>
-                                    {runReport.passedCount} <span className="text-gray-500 text-xl">/ {runReport.totalCount}</span>
-                                  </div>
-                               </div>
-                               <div className="bg-gray-100 p-4 border-4 border-brutal-black shadow-neo-sm">
-                                  <div className="text-[10px] font-black text-gray-600 uppercase tracking-widest w-full border-b-2 border-brutal-black pb-1 mb-2">
-                                    Hàm gọi chính
-                                  </div>
-                                  <div className="font-mono text-sm font-bold text-brutal-blue mt-1.5 truncate">
-                                    {runReport.primaryFunction || 'Không xác định'}
-                                  </div>
-                               </div>
-                             </div>
-                           </div>
-
-                           <div className="space-y-4">
-                             <div className="flex items-center gap-2">
-                               <div className="w-6 h-2 bg-brutal-black" />
-                               <div className="text-xs font-black tracking-widest uppercase text-brutal-black">
-                                 Chi tiết Test Cases
-                               </div>
-                             </div>
-                             {(runReport.cases || []).length > 0 ? (
-                               runReport.cases.map((caseItem, index) => (
-                                 <div
-                                   key={caseItem.id}
-                                   className={`p-5 border-4 border-brutal-black transition-transform hover:-translate-y-0.5 ${caseItem.passed ? 'bg-brutal-green/20' : 'bg-brutal-pink/20'}`}
-                                 >
-                                    <div className="flex items-center justify-between gap-4 mb-3 border-b-2 border-brutal-black pb-2">
-                                       <div className="text-[10px] font-black uppercase tracking-widest text-brutal-black flex items-center gap-2">
-                                          {caseItem.passed ? (
-                                             <div className="bg-brutal-green border-2 border-brutal-black p-0.5"><CheckCircle2 className="w-3 h-3 text-brutal-black" strokeWidth={3} /></div>
-                                          ) : (
-                                             <div className="bg-brutal-pink border-2 border-brutal-black p-0.5"><AlertTriangle className="w-3 h-3 text-brutal-black" strokeWidth={3} /></div>
-                                          )}
-                                          {caseItem.hidden ? `Test Ẩn ${index + 1}` : `Test Công Khai ${index + 1}`}
-                                       </div>
-                                    </div>
-                                    <div className="text-sm text-brutal-black font-bold leading-relaxed">
-                                      {caseItem.description}
-                                    </div>
-                                    {caseItem.error && (
-                                       <div className="mt-4">
-                                          <CodeSurface
-                                            code={caseItem.error}
-                                            language="text"
-                                            label="error"
-                                            maxHeightClass="max-h-[180px]"
-                                          />
-                                       </div>
-                                    )}
-                                 </div>
-                               ))
-                             ) : (
-                                <div className="p-4 border-4 border-dashed border-brutal-black bg-gray-50 text-sm font-bold text-gray-500 text-center">
-                                  Trình chạy không trả về kết quả cấu trúc cho bài lab này.
-                                </div>
-                             )}
-                           </div>
-                        </div>
-                      )}
+                    <div className="mt-4">
+                      <ResultTerminalPanel
+                        runReport={runReport}
+                        runReportIsFresh={runReportIsFresh}
+                        activeRunReport={activeRunReport}
+                        runtimeLabel={runtimeLabel}
+                      />
                     </div>
-                  )}
-
-                  {activeWorkspaceTab === 'solution' && (
-                    <div className="p-6 min-h-[600px] bg-white text-brutal-black">
-                       {!solutionUnlocked ? (
-                         <div className="flex flex-col items-center justify-center py-24 text-center border-4 border-dashed border-brutal-black bg-gray-50 h-full">
-                            <div className="w-16 h-16 bg-white border-4 border-brutal-black shadow-neo-sm flex items-center justify-center mb-6">
-                              <Lightbulb className="w-8 h-8 text-brutal-yellow fill-current" strokeWidth={2} />
-                            </div>
-                            <h3 className="font-display font-black text-2xl uppercase text-brutal-black mb-2">Đáp án tham khảo đã bị ẩn</h3>
-                            <p className="text-sm font-bold text-gray-700 max-w-md mx-auto mb-8 leading-relaxed">
-                               Hãy tự mình thử sức trước tiên. Giải pháp tham khảo chỉ dùng khi bạn muốn so sánh cách làm hoặc khi đã cố gắng nhưng vẫn bế tắc.
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() => setSolutionUnlocked(true)}
-                              className="bg-brutal-black text-white text-xs font-black uppercase tracking-widest px-6 py-3 border-4 border-brutal-black hover:bg-brutal-yellow hover:text-brutal-black shadow-neo hover:-translate-y-1 transition-all"
-                            >
-                              Hiển thị đáp án
-                            </button>
-                         </div>
-                       ) : (
-                         <div className="space-y-4">
-                            <div className="flex items-center justify-between border-b-4 border-brutal-black pb-4 mb-4">
-                               <div className="text-sm font-black uppercase tracking-widest text-brutal-black">Bài giải mẫu</div>
-                               <button
-                                  type="button"
-                                  disabled={!unit.solution}
-                                  onClick={() => {
-                                      if (unit.solution) {
-                                         navigator.clipboard.writeText(unit.solution);
-                                         setNotice('Đáp án đã được copy');
-                                      }
-                                  }}
-                                  className="text-[10px] font-black tracking-widest text-brutal-black bg-white border-2 border-brutal-black px-3 py-1.5 shadow-neo-sm-sm uppercase hover:bg-brutal-yellow disabled:opacity-50 transition-colors flex items-center gap-1.5"
-                               >
-                                  <ClipboardCopy className="w-3.5 h-3.5" />
-                                  Copy
-                               </button>
-                            </div>
-                            {unit.solution ? (
-                               <CodeSurface
-                                 code={unit.solution}
-                                 language={unit.language || 'text'}
-                                 label="reference solution"
-                                 maxHeightClass="max-h-[500px]"
-                               />
-                            ) : (
-                               <div className="p-8 text-center bg-gray-50 border-4 border-dashed border-brutal-black text-gray-600 font-bold text-sm">
-                                 Chưa có đáp án mẫu cho bài lab này.
-                               </div>
-                            )}
-                         </div>
-                       )}
+                    <div className="mt-4">
+                      <SolutionReferencePanel
+                        unit={unit}
+                        solutionUnlocked={solutionUnlocked}
+                        onUnlock={() => setSolutionUnlocked(true)}
+                        onBackToEditor={() => setActiveWorkspaceTab('editor')}
+                        onCopySolution={() => {
+                          if (unit.solution) {
+                            navigator.clipboard.writeText(unit.solution);
+                            setNotice('Đáp án đã được copy');
+                          }
+                        }}
+                      />
                     </div>
-                  )}
-                </div>
-              </section>
-              
-              <div className="grid md:grid-cols-2 gap-8 mt-10">
-                 {unit.hints.length > 0 && (
-                   <section className="bg-white border-4 border-brutal-black shadow-neo p-6 sm:p-8 h-fit">
-                     <div className="flex items-center justify-between gap-4 mb-8 border-b-4 border-brutal-black pb-4">
-                       <div className="flex items-center gap-3">
-                         <div className="w-10 h-10 border-4 border-brutal-black bg-brutal-yellow flex items-center justify-center shadow-neo-sm">
-                           <Lightbulb className="h-6 w-6 text-brutal-black" strokeWidth={3} aria-hidden="true" />
-                         </div>
-                         <h3 className="font-display font-black text-2xl uppercase text-brutal-black">Gợi ý</h3>
-                       </div>
-                       <button
-                           type="button"
-                           onClick={() =>
-                             setRevealedHints((value) => Math.min(value + 1, unit.hints.length))
-                           }
-                           disabled={revealedHints >= unit.hints.length}
-                           className="text-[10px] font-black uppercase tracking-widest text-brutal-black bg-white border-2 border-brutal-black px-4 py-2 hover:bg-brutal-yellow transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-neo-sm hover:-translate-y-0.5"
-                       >
-                           Xem thêm
-                       </button>
-                     </div>
-                     <div className="space-y-4">
-                        {unit.hints.slice(0, revealedHints).map((hint, index) => (
-                           <div key={`${hint}-${index}`} className="bg-gray-100 p-5 border-4 border-brutal-black text-sm text-brutal-black shadow-neo-sm font-bold">
-                              {hint}
-                           </div>
-                        ))}
-                     </div>
-                   </section>
-                 )}
+                  </div>
+                </section>
+
+                <CompletionDockPanel
+                  unitDone={unitDone}
+                  isPractice={isPractice}
+                  nextUnit={next_unit}
+                  courseId={course.id}
+                  completionBlocked={completionBlocked}
+                  runLoading={runLoading}
+                  noticeText={
+                    unitDone
+                      ? 'Completed. You can move forward or review the results again.'
+                      : runnerSupported
+                        ? 'Pass all visible and hidden tests before marking this unit complete.'
+                        : 'Review the instructions, finish your changes, then mark the unit complete.'
+                  }
+                  onComplete={() => void handleComplete()}
+                  onBackToCourse={() => navigate(`/academy/course/${course.id}`)}
+                  onNextUnit={
+                    next_unit ? () => navigate(`/academy/unit/${course.id}/${next_unit.id}`) : undefined
+                  }
+                  onReviewResults={() => setActiveWorkspaceTab('results')}
+                />
               </div>
-            </>
+            </div>
           )}
         </div>
 
@@ -1078,13 +1026,15 @@ function SidebarPanel({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`border-4 border-brutal-black p-6 shadow-neo ${accent}`}>
-      <div className={`text-base font-black uppercase tracking-widest mb-6 border-b-4 border-brutal-black pb-4 ${headerText}`}>
-         {title}
+    <div className="rounded-[28px] border border-border-main bg-surface p-6 shadow-soft-sm">
+      <div className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-text-main">
+        {title}
       </div>
       <div>{children}</div>
       {footer && (
-        <div className={`mt-6 pt-4 border-t-4 border-brutal-black text-xs font-black uppercase tracking-widest text-center ${headerText}`}>{footer}</div>
+        <div className="mt-5 border-t border-border-main pt-4 text-xs uppercase tracking-[0.18em] text-text-muted">
+          {footer}
+        </div>
       )}
     </div>
   );
@@ -1103,10 +1053,10 @@ function LabTabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`relative text-[10px] sm:text-xs font-black uppercase tracking-widest px-3 sm:px-4 py-2 transition-all border-4 ${
+      className={`rounded-full border px-4 py-2 text-xs uppercase tracking-[0.18em] transition-colors ${
         active
-          ? 'z-30 -translate-y-1 bg-brutal-pink text-brutal-black border-brutal-black shadow-neo-sm'
-          : 'z-10 bg-white text-brutal-black border-brutal-black shadow-neo-sm-sm hover:z-20 hover:-translate-y-0.5 hover:bg-brutal-yellow hover:shadow-neo-sm'
+          ? 'border-primary bg-primary text-main-bg'
+          : 'border-border-main bg-surface text-text-main hover:bg-main-bg'
       }`}
     >
       {label}
@@ -1116,10 +1066,242 @@ function LabTabButton({
 
 function ProfileRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b-4 border-brutal-black last:border-0">
-      <div className="text-xs font-black uppercase tracking-widest text-gray-600">{label}</div>
-      <div className="font-bold text-sm text-brutal-black">
-        {value}
+    <div className="flex items-center justify-between border-b border-border-main py-3 last:border-0">
+      <div className="text-xs uppercase tracking-[0.18em] text-text-muted">{label}</div>
+      <div className="text-sm font-medium text-text-main">{value}</div>
+    </div>
+  );
+}
+
+function ResultTerminalPanel({
+  runReport,
+  runReportIsFresh,
+  activeRunReport,
+  runtimeLabel,
+}: {
+  runReport: ChallengeRunReport | null;
+  runReportIsFresh: boolean;
+  activeRunReport: ChallengeRunReport | null;
+  runtimeLabel: string;
+}) {
+  return (
+    <div className="overflow-hidden rounded-[24px] border border-border-main bg-[#0d1117]">
+      <div className="flex items-center justify-between gap-4 border-b border-white/10 bg-[#161b22] px-4 py-3">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[#9da7b3]">
+          <TerminalSquare className="h-4 w-4" />
+          Terminal Results
+        </div>
+        <span className="text-[11px] uppercase tracking-[0.18em] text-[#7f8b99]">{runtimeLabel}</span>
+      </div>
+
+      {!runReport ? (
+        <div className="px-4 py-6 text-sm text-[#9da7b3]">
+          Run checks to populate the terminal output and structured test results.
+        </div>
+      ) : (
+        <div className="space-y-4 px-4 py-5">
+          <div className="flex flex-wrap items-center gap-3">
+            <span
+              className={`rounded-full px-3 py-1 text-xs uppercase tracking-[0.18em] ${
+                runReportIsFresh
+                  ? runReport.allPassed
+                    ? 'bg-emerald-400/15 text-emerald-300'
+                    : 'bg-rose-400/15 text-rose-300'
+                  : 'bg-amber-400/15 text-amber-300'
+              }`}
+            >
+              {runReportIsFresh
+                ? runReport.allPassed
+                  ? 'All checks passed'
+                  : 'Checks failed'
+                : 'Editor changed since last run'}
+            </span>
+            <span className="text-sm text-[#d0d7de]">
+              {activeRunReport?.passedCount ?? runReport.passedCount}/{activeRunReport?.totalCount ?? runReport.totalCount} cases passing
+            </span>
+          </div>
+
+          <p className="text-sm leading-7 text-[#d0d7de]">
+            {runReportIsFresh
+              ? runReport.message
+              : 'The editor has changed since the last run. Run checks again to validate the current draft.'}
+          </p>
+
+          {(runReport.cases || []).length > 0 ? (
+            <div className="space-y-3">
+              {runReport.cases.map((caseItem, index) => (
+                <div
+                  key={caseItem.id}
+                  className="rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-3"
+                >
+                  <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[#9da7b3]">
+                    {caseItem.passed ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+                    ) : (
+                      <AlertTriangle className="h-4 w-4 text-rose-300" />
+                    )}
+                    {caseItem.hidden ? `Hidden Test ${index + 1}` : `Visible Test ${index + 1}`}
+                  </div>
+                  <p className="mt-2 text-sm leading-7 text-[#d0d7de]">{caseItem.description}</p>
+                  {caseItem.error ? (
+                    <div className="mt-3">
+                      <CodeSurface
+                        code={caseItem.error}
+                        language="text"
+                        label="stderr"
+                        maxHeightClass="max-h-[180px]"
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-[18px] border border-dashed border-white/15 px-4 py-4 text-sm text-[#9da7b3]">
+              Structured test cases were not returned for this run.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SolutionReferencePanel({
+  unit,
+  solutionUnlocked,
+  onUnlock,
+  onBackToEditor,
+  onCopySolution,
+}: {
+  unit: AcademyV2UnitDetail;
+  solutionUnlocked: boolean;
+  onUnlock: () => void;
+  onBackToEditor: () => void;
+  onCopySolution: () => void;
+}) {
+  return (
+    <div className="rounded-[24px] border border-border-main bg-surface p-5">
+      {!solutionUnlocked ? (
+        <div className="text-center">
+          <p className="section-eyebrow">Reference Solution</p>
+          <h3 className="section-title">Try on your own first</h3>
+          <p className="section-subtitle">
+            Revealing the reference solution does not complete the unit or replace your draft.
+          </p>
+          <div className="mt-5 flex justify-center">
+            <button type="button" onClick={onUnlock} className="action-button action-button-secondary">
+              Reveal Solution
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="section-eyebrow">Reference Solution</p>
+              <h3 className="section-title">Visible for comparison</h3>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={onBackToEditor} className="action-button action-button-ghost">
+                Back to Editor
+              </button>
+              <button
+                type="button"
+                disabled={!unit.solution}
+                onClick={onCopySolution}
+                className="action-button action-button-secondary"
+              >
+                <ClipboardCopy className="h-4 w-4" />
+                Copy Solution
+              </button>
+            </div>
+          </div>
+          {unit.solution ? (
+            <CodeSurface
+              code={unit.solution}
+              language={unit.language || 'text'}
+              label="reference solution"
+              maxHeightClass="max-h-[420px]"
+            />
+          ) : (
+            <div className="rounded-[18px] border border-dashed border-border-main px-4 py-4 text-sm text-text-muted">
+              No reference solution is attached to this unit yet.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CompletionDockPanel({
+  unitDone,
+  isPractice,
+  nextUnit,
+  courseId,
+  completionBlocked,
+  runLoading,
+  noticeText,
+  onComplete,
+  onBackToCourse,
+  onNextUnit,
+  onReviewResults,
+}: {
+  unitDone: boolean;
+  isPractice: boolean;
+  nextUnit: AcademyV2UnitSummary | null;
+  courseId: string;
+  completionBlocked: boolean;
+  runLoading: boolean;
+  noticeText: string;
+  onComplete: () => void;
+  onBackToCourse: () => void;
+  onNextUnit?: () => void;
+  onReviewResults: () => void;
+}) {
+  return (
+    <div className="rounded-[32px] border border-border-main bg-surface p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="section-eyebrow">{unitDone ? 'Completed' : 'Completion Dock'}</p>
+          <h2 className="section-title">{unitDone ? 'Unit complete' : 'Ready to finish?'}</h2>
+          <p className="section-subtitle">{noticeText}</p>
+        </div>
+        <span className={`status-badge ${unitDone ? 'status-badge-success' : 'status-badge-info'}`}>
+          {unitDone ? 'Completed' : isPractice ? 'Practice Unit' : 'Content Unit'}
+        </span>
+      </div>
+
+      <div className="mt-6 flex flex-wrap gap-3">
+        {!unitDone ? (
+          <button
+            type="button"
+            onClick={onComplete}
+            disabled={completionBlocked || runLoading}
+            className="action-button action-button-primary"
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            {isPractice ? 'Mark Practice Complete' : 'Mark Complete'}
+          </button>
+        ) : null}
+
+        {nextUnit ? (
+          <button type="button" onClick={onNextUnit} className="action-button action-button-secondary">
+            Next Unit
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        ) : null}
+
+        <button type="button" onClick={onBackToCourse} className="action-button action-button-ghost">
+          Back to Course
+        </button>
+
+        {isPractice ? (
+          <button type="button" onClick={onReviewResults} className="action-button action-button-ghost">
+            Review Results
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -1150,13 +1332,13 @@ function NavUnitLink({
    return (
       <Link
         to={href}
-        className={`w-full sm:w-[48%] group p-8 border-4 border-brutal-black bg-white hover:bg-brutal-blue hover:text-white shadow-neo hover:shadow-neo-lg hover:-translate-y-1 transition-all flex flex-col ${align === 'right' ? 'sm:text-right sm:items-end items-start' : 'items-start'}`}
+        className={`w-full sm:w-[48%] rounded-[28px] border border-border-main bg-surface p-8 transition-colors hover:bg-main-bg ${align === 'right' ? 'sm:text-right sm:items-end items-start' : 'items-start'}`}
       >
-        <div className="text-xs uppercase font-black tracking-widest text-gray-500 group-hover:text-brutal-yellow mb-2">{label}</div>
-        <div className="font-display font-black text-3xl text-brutal-black group-hover:text-white truncate max-w-full">
+        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-text-muted">{label}</div>
+        <div className="max-w-full truncate font-heading text-3xl font-semibold text-text-main">
            {unit?.title}
         </div>
-        <div className="text-xs mt-3 uppercase font-black tracking-widest bg-brutal-yellow text-brutal-black px-3 py-1 border-2 border-brutal-black shadow-neo-sm inline-block">
+        <div className="mt-3 inline-block rounded-full border border-border-main bg-main-bg px-3 py-1 text-xs uppercase tracking-[0.18em] text-text-main">
            {unit?.section === 'practice' ? 'Thực hành' : 'Lý thuyết'}
         </div>
       </Link>

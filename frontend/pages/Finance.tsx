@@ -1,49 +1,103 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { motion } from 'framer-motion';
-import { Check, X, ScanLine, ArrowRight, Zap, Upload } from 'lucide-react';
-import { useStore } from '../store/useStore';
-import { FinanceRequest, Member } from '../types';
-import { BANKS } from '../data/mockData';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  ArrowRight,
+  CheckCircle2,
+  Landmark,
+  ScanLine,
+  ShieldCheck,
+  Upload,
+  Wallet,
+  X,
+  XCircle,
+} from 'lucide-react';
+
+import { useUiPreview } from '@/components/Layout';
+import {
+  EmptyState,
+  PageHeader,
+  PermissionCard,
+  SectionHeader,
+  StatusBadge,
+  SurfaceCard,
+} from '@/components/ui/Primitives';
+import { BANKS } from '@/data/mockData';
+import { useStore } from '@/store/useStore';
+import type { FinanceRequest, Member } from '@/types';
+
+type FinanceTab = 'submit' | 'direct' | 'pending' | 'history';
+
+function isOfficialMember(member: Member | null) {
+  return (member?.memberType || member?.member_type) === 'member';
+}
+
+function canModerateFinanceByUser(member: Member | null) {
+  return isOfficialMember(member) && ['President', 'Vice-President'].includes(member?.role || '');
+}
+
+function getBankInfo(member: Member | null) {
+  const info = member?.bankInfo || (member?.bank_info as any);
+  if (!info) {
+    return null;
+  }
+
+  return {
+    bankId: info.bankId || info.bank_id || '',
+    accountNo: info.accountNo || info.account_no || '',
+    accountName: info.accountName || info.account_name || member?.name || '',
+  };
+}
+
+function formatAmount(value: string | number | undefined) {
+  const numeric = Number(value || 0);
+  if (Number.isNaN(numeric)) {
+    return String(value || '0');
+  }
+  return `${numeric.toLocaleString('vi-VN')} VND`;
+}
 
 export function Finance() {
-  const [activeTab, setActiveTab] = useState<'submit' | 'pending' | 'history' | 'direct'>('submit');
-  const { financeRequests, financeHistory, fetchPendingRequests, fetchFinanceHistory, fetchMembers, currentUser } = useStore();
-  const isOfficialMember = currentUser?.memberType === 'member';
-  const canModerateFinance =
-    isOfficialMember &&
-    ['President', 'Vice-President'].includes(currentUser?.role || '');
-  const visibleTabs = canModerateFinance
-    ? ['submit', 'direct', 'pending', 'history']
-    : ['submit', 'direct', 'history'];
-  const tabLabels: Record<string, string> = {
-    submit: 'Yêu cầu',
-    direct: 'Chuyển khoản',
-    pending: 'Chờ duyệt',
-    history: 'Lịch sử',
-  };
+  const uiPreview = useUiPreview();
+  const {
+    financeRequests,
+    financeHistory,
+    fetchPendingRequests,
+    fetchFinanceHistory,
+    fetchMembers,
+    currentUser,
+  } = useStore();
 
-  // Fetch members on mount (needed for bank info lookup in ApprovalModal)
+  const [activeTab, setActiveTab] = useState<FinanceTab>('submit');
+  const previewMode = uiPreview.previewOnly && !currentUser;
+  const hasFinanceAccess = isOfficialMember(currentUser) || uiPreview.canAccessFinance;
+  const canModerateFinance = canModerateFinanceByUser(currentUser) || (previewMode && uiPreview.canAccessAdmin);
+
+  const visibleTabs = useMemo(
+    () =>
+      (canModerateFinance
+        ? ['submit', 'direct', 'pending', 'history']
+        : ['submit', 'direct', 'history']) as FinanceTab[],
+    [canModerateFinance]
+  );
+
   useEffect(() => {
-    if (isOfficialMember) {
+    if (isOfficialMember(currentUser)) {
       fetchMembers();
     }
-  }, [isOfficialMember, fetchMembers]);
+  }, [currentUser?.id, fetchMembers]);
 
-  // Fetch pending requests when tab changes to pending (for admin)
   useEffect(() => {
-    if (activeTab === 'pending' && canModerateFinance) {
+    if (activeTab === 'pending' && canModerateFinance && currentUser) {
       fetchPendingRequests();
     }
-  }, [activeTab, canModerateFinance, fetchPendingRequests]);
+  }, [activeTab, canModerateFinance, currentUser?.id, fetchPendingRequests]);
 
-  // Fetch finance history when tab changes to history
   useEffect(() => {
-    if (activeTab === 'history' && isOfficialMember) {
+    if (activeTab === 'history' && isOfficialMember(currentUser)) {
       fetchFinanceHistory();
     }
-  }, [activeTab, isOfficialMember, fetchFinanceHistory]);
+  }, [activeTab, currentUser?.id, fetchFinanceHistory]);
 
   useEffect(() => {
     if (activeTab === 'pending' && !canModerateFinance) {
@@ -51,86 +105,116 @@ export function Finance() {
     }
   }, [activeTab, canModerateFinance]);
 
-  if (!currentUser || !isOfficialMember) {
+  if (!hasFinanceAccess) {
     return (
-      <div className="mx-auto max-w-5xl space-y-8 pt-10">
-        <div className="flex min-h-[500px] flex-col items-center justify-center space-y-6 border-4 border-brutal-black bg-white px-8 py-12 text-center shadow-neo">
-          <div className="flex h-20 w-20 items-center justify-center border-4 border-brutal-black bg-brutal-yellow text-4xl shadow-neo-sm">🔒</div>
-          <h2 className="font-display text-3xl font-black uppercase tracking-tight text-brutal-black">Finance chỉ dành cho member</h2>
-          <p className="max-w-md border-4 border-brutal-black bg-brutal-pink px-4 py-3 text-sm font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
-            Hãy đăng nhập bằng tài khoản DSUC member để truy cập module Finance.
-          </p>
-          <div className="max-w-lg text-xs font-bold uppercase tracking-widest text-gray-500">
-            Tài khoản community không có quyền truy cập khu vực này.
-          </div>
-        </div>
+      <div className="mx-auto max-w-6xl">
+        <PermissionCard
+          title="Finance is restricted to official members"
+          message="This module stays behind the existing member permission model. Community accounts can browse the rest of the product, but Finance remains locked."
+        />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 pb-20 pt-10 px-4 sm:px-6">
-      <div className="flex flex-col items-start justify-between gap-6 border-b-4 border-brutal-black pb-6 md:flex-row md:items-end">
-        <div>
-          <h2 className="mb-3 text-4xl font-display font-black uppercase tracking-tighter text-brutal-black decoration-brutal-yellow decoration-4 underline underline-offset-4">Finance</h2>
-          <p className="border-l-4 border-brutal-blue pl-4 text-sm font-bold text-brutal-black">Tạo yêu cầu thanh toán, chuyển khoản trực tiếp và theo dõi lịch sử giao dịch.</p>
-        </div>
-        <div className="flex flex-wrap gap-2 border-4 border-brutal-black bg-white p-2 shadow-neo-sm">
-          {visibleTabs.map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab as any)}
-              className={`flex items-center gap-2 border-4 px-4 py-3 text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'border-brutal-black bg-brutal-yellow text-brutal-black shadow-neo-sm' : 'border-transparent bg-white text-gray-500 hover:border-brutal-black hover:bg-brutal-pink hover:text-brutal-black'}`}
-            >
-              {tab === 'direct' && <Zap size={14} />}
-              {tabLabels[tab] || tab}
-              {tab === 'pending' && financeRequests.length > 0 && (
-                <span className="ml-1 border-2 border-brutal-black bg-brutal-blue px-1.5 py-0.5 text-[10px] font-black text-white shadow-neo-sm">{financeRequests.length}</span>
-              )}
-            </button>
-          ))}
-        </div>
+    <div className="mx-auto flex max-w-7xl flex-col gap-8">
+      <PageHeader
+        eyebrow="Finance"
+        title="A cleaner ledger for club operations."
+        subtitle="Submit reimbursement requests, generate transfer details, review pending approvals, and track the finance history without breaking the current backend flow."
+        actions={
+          <>
+            {previewMode ? <StatusBadge tone="warning">Preview Only</StatusBadge> : null}
+            <StatusBadge tone="info">{financeRequests.length} pending</StatusBadge>
+            <StatusBadge>{financeHistory.length} history</StatusBadge>
+          </>
+        }
+      />
+
+      {previewMode ? (
+        <SurfaceCard className="p-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="section-eyebrow">Dev Role Preview</p>
+              <h2 className="section-title">Finance preview is unlocked locally</h2>
+              <p className="section-subtitle">
+                Real authentication is still required before submitting requests or approving transfers.
+              </p>
+            </div>
+            <StatusBadge tone="warning">No production auth attached</StatusBadge>
+          </div>
+        </SurfaceCard>
+      ) : null}
+
+      <div className="flex flex-wrap gap-3">
+        {visibleTabs.map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={`rounded-full border px-4 py-2 text-sm transition-colors ${
+              activeTab === tab
+                ? 'border-primary bg-primary text-main-bg'
+                : 'border-border-main bg-surface text-text-main hover:bg-main-bg'
+            }`}
+          >
+            {tab === 'submit'
+              ? 'Requests'
+              : tab === 'direct'
+                ? 'Transfer'
+                : tab === 'pending'
+                  ? 'Pending'
+                  : 'History'}
+          </button>
+        ))}
       </div>
 
-      <div className="min-h-[500px]">
-        {activeTab === 'submit' && <SubmitRequestForm onSubmitted={() => setActiveTab('pending')} />}
-        {activeTab === 'direct' && <DirectTransferTool />}
-        {activeTab === 'pending' && <PendingRequestsList />}
-        {activeTab === 'history' && <HistoryList />}
-      </div>
+      {activeTab === 'submit' ? <SubmitRequestPanel previewMode={previewMode} onSubmitted={() => setActiveTab(canModerateFinance ? 'pending' : 'history')} /> : null}
+      {activeTab === 'direct' ? <DirectTransferPanel /> : null}
+      {activeTab === 'pending' ? <PendingRequestsPanel previewMode={previewMode} canModerateFinance={canModerateFinance} /> : null}
+      {activeTab === 'history' ? <HistoryPanel /> : null}
     </div>
   );
 }
 
-function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
-  const { submitFinanceRequest, currentUser } = useStore();
+function SubmitRequestPanel({
+  previewMode,
+  onSubmitted,
+}: {
+  previewMode: boolean;
+  onSubmitted: () => void;
+}) {
+  const { currentUser, submitFinanceRequest, addToast } = useStore();
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
   const [date, setDate] = useState('');
   const [billImage, setBillImage] = useState<string | null>(null);
   const [billFile, setBillFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Convert to base64 for preview and submission
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setBillImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      setBillFile(file);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!currentUser) {
-      alert('Vui lòng đăng nhập trước.');
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
       return;
     }
 
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setBillImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    setBillFile(file);
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (previewMode || !currentUser) {
+      addToast('Preview mode cannot submit a real finance request.', 'info');
+      return;
+    }
+
+    setSubmitting(true);
     try {
       await submitFinanceRequest({
         id: Math.random().toString(),
@@ -140,97 +224,141 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
         billImage,
         status: 'pending',
         requesterName: currentUser.name || 'Unknown',
-        requesterId: currentUser.id
+        requesterId: currentUser.id,
       });
-
-      // Reset form
       setAmount('');
       setReason('');
       setDate('');
       setBillImage(null);
       setBillFile(null);
-
+      addToast('Finance request submitted.', 'success');
       onSubmitted();
-    } catch (err) {
-      alert('Không thể gửi yêu cầu thanh toán. Vui lòng thử lại.');
+    } catch {
+      addToast('Could not submit the finance request.', 'error');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="space-y-6">
-        <div>
-          <div className="mb-3 inline-flex items-center gap-2 border-4 border-brutal-black bg-brutal-blue px-3 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-neo-sm">
-            <Zap size={14} />
-            Yêu cầu thanh toán
-          </div>
-          <h3 className="font-display text-3xl font-black uppercase tracking-tight text-brutal-black">Gửi yêu cầu thanh toán</h3>
-          <p className="mt-4 border-l-4 border-brutal-pink pl-4 text-sm font-bold text-brutal-black">Tạo request hoàn tiền cho chi phí hoạt động của câu lạc bộ. Hóa đơn là bắt buộc để lưu hồ sơ.</p>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-6 border-4 border-brutal-black bg-white p-6 shadow-neo">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-brutal-black">Amount (VND)</label>
-            <input value={amount} onChange={e => setAmount(e.target.value)} type="number" required className="w-full border-4 border-brutal-black bg-white p-4 font-mono text-xl font-bold text-brutal-black outline-none transition-colors focus:bg-brutal-yellow/20" placeholder="500000" />
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-brutal-black">Target Date</label>
-            <input value={date} onChange={e => setDate(e.target.value)} type="date" required className="w-full border-4 border-brutal-black bg-white p-4 font-mono text-sm font-bold text-brutal-black outline-none transition-colors focus:bg-brutal-yellow/20" />
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-brutal-black">Justification</label>
-            <textarea value={reason} onChange={e => setReason(e.target.value)} required rows={4} className="w-full border-4 border-brutal-black bg-white p-4 text-sm font-bold text-brutal-black outline-none transition-colors focus:bg-brutal-yellow/20" placeholder="Mô tả lý do chi tiêu..." />
-          </div>
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <SurfaceCard className="p-7">
+        <SectionHeader
+          eyebrow="Request Intake"
+          title="Submit a reimbursement request"
+          subtitle="This form keeps the real finance request action intact while making the workflow easier to scan."
+        />
 
-          {/* Bill/Receipt Upload */}
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-brutal-black">Bill / Receipt</label>
-            <div className="relative border-4 border-dashed border-brutal-black bg-brutal-bg transition-colors hover:bg-brutal-yellow/20">
+        <form onSubmit={handleSubmit} className="mt-6 grid gap-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Amount (VND)">
+              <input
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+                type="number"
+                required
+                className="input-shell"
+                placeholder="500000"
+                disabled={previewMode || submitting}
+              />
+            </Field>
+            <Field label="Target date">
+              <input
+                value={date}
+                onChange={(event) => setDate(event.target.value)}
+                type="date"
+                required
+                className="input-shell"
+                disabled={previewMode || submitting}
+              />
+            </Field>
+          </div>
+          <Field label="Reason">
+            <textarea
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              required
+              rows={5}
+              className="input-shell min-h-[140px] resize-none"
+              placeholder="Explain the expense, event, or operating need."
+              disabled={previewMode || submitting}
+            />
+          </Field>
+
+          <Field label="Receipt image">
+            <label className="flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-[24px] border border-dashed border-border-main bg-main-bg px-5 py-6 text-center transition-colors hover:bg-surface">
               <input
                 type="file"
                 accept="image/*"
                 onChange={handleImageUpload}
-                required
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                required={!previewMode}
+                className="hidden"
+                disabled={previewMode || submitting}
               />
               {billImage ? (
-                <div className="p-4">
-                  <img src={billImage} alt="Bill preview" className="mb-2 max-h-40 w-full border-4 border-brutal-black object-contain bg-white" />
-                  <div className="flex items-center justify-center gap-2 font-mono text-xs font-bold text-brutal-blue">
-                    <Check size={14} /> {billFile?.name}
-                  </div>
-                </div>
+                <>
+                  <img
+                    src={billImage}
+                    alt="Receipt preview"
+                    className="mb-4 max-h-36 w-full rounded-[18px] border border-border-main object-contain bg-surface"
+                  />
+                  <span className="text-sm text-text-main">{billFile?.name || 'Receipt attached'}</span>
+                </>
               ) : (
-                <div className="p-8 text-center">
-                  <Upload size={32} className="mx-auto mb-2 text-brutal-blue" />
-                  <div className="mb-1 font-mono text-xs font-bold text-brutal-black">Click để tải hóa đơn</div>
-                  <div className="font-mono text-[10px] font-bold text-gray-500">PNG, JPG tối đa 10MB</div>
-                </div>
+                <>
+                  <Upload className="h-6 w-6 text-primary" aria-hidden="true" />
+                  <span className="mt-3 text-sm text-text-main">Upload invoice / receipt</span>
+                  <span className="mt-1 text-xs uppercase tracking-[0.18em] text-text-muted">
+                    PNG or JPG
+                  </span>
+                </>
               )}
-            </div>
-          </div>
+            </label>
+          </Field>
 
-          <button type="submit" className="w-full border-4 border-brutal-black bg-brutal-yellow py-4 text-sm font-black uppercase tracking-widest text-brutal-black transition-all hover:-translate-y-1 hover:bg-brutal-blue hover:text-white hover:shadow-neo">
-            Gửi yêu cầu
-          </button>
+          <div className="flex flex-wrap justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setAmount('');
+                setReason('');
+                setDate('');
+                setBillImage(null);
+                setBillFile(null);
+              }}
+              className="action-button action-button-ghost"
+              disabled={submitting}
+            >
+              Reset
+            </button>
+            <button
+              type="submit"
+              className="action-button action-button-primary"
+              disabled={submitting}
+            >
+              {submitting ? 'Submitting...' : 'Submit Request'}
+            </button>
+          </div>
         </form>
-      </div>
-      <div className="hidden h-full border-4 border-brutal-black bg-brutal-yellow p-8 shadow-neo lg:flex lg:flex-col lg:justify-between">
-        <div className="inline-flex w-fit items-center gap-2 border-4 border-brutal-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
-          <ScanLine size={14} />
-          Kênh tài chính
+      </SurfaceCard>
+
+      <SurfaceCard className="p-7">
+        <SectionHeader
+          eyebrow="Control Notes"
+          title="Operational guardrails"
+          subtitle="Requests stay reviewable and tied to the current user identity."
+        />
+        <div className="mt-6 space-y-4">
+          <MetricCard label="Review flow" value="Pending → Approved / Rejected" />
+          <MetricCard label="Receipt" value="Required for production" />
+          <MetricCard label="Ledger model" value="Store + backend sync" />
         </div>
-        <div>
-          <h4 className="font-display text-3xl font-black uppercase tracking-tight text-brutal-black">Minh bạch từng khoản chi</h4>
-          <p className="mt-4 border-4 border-brutal-black bg-white px-4 py-3 text-sm font-bold text-brutal-black shadow-neo-sm">
-            Mọi request, phê duyệt và lịch sử thanh toán đều được gom tại đây để President và Vice-President quản lý tập trung.
-          </p>
-        </div>
-      </div>
-    </motion.div>
+      </SurfaceCard>
+    </div>
   );
 }
 
-function DirectTransferTool() {
+function DirectTransferPanel() {
   const { members } = useStore();
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [amount, setAmount] = useState('');
@@ -238,338 +366,457 @@ function DirectTransferTool() {
   const [billFile, setBillFile] = useState<File | null>(null);
   const [showQR, setShowQR] = useState(false);
 
-  // Filter members who have bank info
-  const eligibleMembers = members.filter(
-    (m) => (m.memberType !== 'community' && m.member_type !== 'community') && (m.bankInfo || m.bank_info)
-  );
+  const eligibleMembers = members.filter((member) => {
+    const memberType = member.memberType || member.member_type;
+    return memberType !== 'community' && !!getBankInfo(member);
+  });
 
-  // Get normalized bank info - support both camelCase and snake_case
-  const getBankInfo = (member: Member) => {
-    const info = member.bankInfo || member.bank_info;
-    if (!info) return null;
-
-    // Normalize to camelCase
-    return {
-      bankId: info.bankId || (info as any).bank_id,
-      accountNo: info.accountNo || (info as any).account_no,
-      accountName: info.accountName || (info as any).account_name
-    };
-  };
-
-  const bankInfo = selectedMember ? getBankInfo(selectedMember) : null;
-  const qrUrl = bankInfo
-    ? `https://img.vietqr.io/image/${bankInfo.bankId}-${bankInfo.accountNo}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(content)}`
-    : '';
+  const bankInfo = getBankInfo(selectedMember);
+  const qrUrl =
+    bankInfo && amount
+      ? `https://img.vietqr.io/image/${bankInfo.bankId}-${bankInfo.accountNo}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(content)}`
+      : '';
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      {/* Left: Member Selection */}
-      <div className="space-y-6">
-        <h3 className="flex items-center gap-2 font-display text-2xl font-black uppercase tracking-widest text-brutal-black">
-          <Zap size={20} /> QUICK TRANSFER LINK
-        </h3>
-        <p className="border-l-4 border-brutal-blue pl-4 text-sm font-bold text-brutal-black">Chọn member để tạo QR chuyển khoản nhanh và lưu lại ảnh chụp hóa đơn.</p>
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <SurfaceCard className="p-7">
+        <SectionHeader
+          eyebrow="Direct Transfer"
+          title="Generate a clean transfer route"
+          subtitle="Select a member with bank info, fill the amount, and generate a VietQR payment target."
+        />
 
         {!selectedMember ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2">
-            {eligibleMembers.map(member => {
-              const memberBankInfo = getBankInfo(member);
-              return (
-                <button
-                  key={member.id}
-                  onClick={() => setSelectedMember(member)}
-                  className="flex flex-col gap-2 border-4 border-brutal-black bg-white p-4 text-left shadow-neo-sm transition-all hover:-translate-y-1 hover:bg-brutal-yellow/20 hover:shadow-neo"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 overflow-hidden border-4 border-brutal-black bg-brutal-yellow shadow-neo-sm">
-                      <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-display text-lg font-black text-brutal-black">{member.name}</div>
-                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-500">{member.role}</div>
-                    </div>
-                  </div>
-                  {memberBankInfo && (
-                    <div className="pl-14 space-y-1">
-                      <div className="text-[9px] font-mono font-bold text-brutal-blue">
-                        {BANKS.find(b => b.id === memberBankInfo.bankId)?.shortName || memberBankInfo.bankId}
+          eligibleMembers.length > 0 ? (
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              {eligibleMembers.map((member) => {
+                const info = getBankInfo(member);
+                return (
+                  <button
+                    key={member.id}
+                    type="button"
+                    onClick={() => setSelectedMember(member)}
+                    className="rounded-[24px] border border-border-main bg-main-bg p-4 text-left transition-colors hover:bg-surface"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="h-14 w-14 overflow-hidden rounded-[18px] border border-border-main bg-surface">
+                        <img src={member.avatar} alt={member.name} className="h-full w-full object-cover" />
                       </div>
-                      {memberBankInfo.accountName && (
-                        <div className="text-[9px] font-mono text-gray-500">
-                          {memberBankInfo.accountName}
-                        </div>
-                      )}
-                      <div className="text-[9px] font-mono text-gray-500">
-                        {memberBankInfo.accountNo}
+                      <div className="min-w-0">
+                        <p className="truncate text-base font-semibold text-text-main">{member.name}</p>
+                        <p className="truncate text-xs uppercase tracking-[0.16em] text-text-muted">
+                          {member.role}
+                        </p>
                       </div>
                     </div>
-                  )}
-                </button>
-              );
-            })}
-            {eligibleMembers.length === 0 && (
-              <div className="col-span-2 border-4 border-brutal-black bg-white py-10 text-center text-sm font-black uppercase tracking-widest text-gray-500 shadow-neo">Không tìm thấy member có dữ liệu ngân hàng</div>
-            )}
-          </div>
+                    {info ? (
+                      <div className="mt-4 space-y-1 text-sm text-text-muted">
+                        <p>{BANKS.find((bank) => bank.id === info.bankId)?.shortName || info.bankId}</p>
+                        <p>{info.accountName}</p>
+                        <p>{info.accountNo}</p>
+                      </div>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyState
+              className="mt-6"
+              title="No transfer targets yet"
+              message="Members with stored bank details will appear here for quick transfer generation."
+            />
+          )
         ) : (
-          <div className="space-y-6 border-4 border-brutal-black bg-white p-6 shadow-neo">
-            <div className="flex items-center justify-between border-b-4 border-brutal-black pb-4">
+          <div className="mt-6 grid gap-4">
+            <div className="flex items-center justify-between rounded-[24px] border border-border-main bg-main-bg p-4">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 overflow-hidden border-4 border-brutal-black bg-brutal-yellow shadow-neo-sm">
-                  <img src={selectedMember.avatar} alt={selectedMember.name} className="w-full h-full object-cover" />
+                <div className="h-14 w-14 overflow-hidden rounded-[18px] border border-border-main bg-surface">
+                  <img
+                    src={selectedMember.avatar}
+                    alt={selectedMember.name}
+                    className="h-full w-full object-cover"
+                  />
                 </div>
                 <div>
-                  <div className="font-display text-lg font-black text-brutal-black">{selectedMember.name}</div>
-                      <div className="text-[10px] font-black uppercase tracking-widest text-brutal-blue">Đã chọn người nhận</div>
+                  <p className="text-base font-semibold text-text-main">{selectedMember.name}</p>
+                  <p className="text-xs uppercase tracking-[0.16em] text-text-muted">
+                    Transfer target selected
+                  </p>
                 </div>
               </div>
-              <button onClick={() => { setSelectedMember(null); setShowQR(false); }} className="border-2 border-transparent p-2 text-brutal-black transition-colors hover:border-brutal-black hover:bg-brutal-yellow"><X size={20} /></button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedMember(null);
+                  setShowQR(false);
+                }}
+                className="icon-button"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-brutal-black">Amount</label>
-                <input value={amount} onChange={e => setAmount(e.target.value)} type="number" className="w-full border-4 border-brutal-black bg-white p-3 font-mono font-bold text-brutal-black outline-none transition-colors focus:bg-brutal-yellow/20" placeholder="0" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-brutal-black">Message</label>
-                <input value={content} onChange={e => setContent(e.target.value)} type="text" className="w-full border-4 border-brutal-black bg-white p-3 font-bold text-brutal-black outline-none transition-colors focus:bg-brutal-yellow/20" placeholder="Payment for..." />
-              </div>
-
-              {/* Image Upload */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-brutal-black">Proof of Bill</label>
-                <div className="relative border-4 border-dashed border-brutal-black bg-brutal-bg p-4 text-center transition-colors hover:bg-brutal-yellow/20">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setBillFile(e.target.files?.[0] || null)}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                  {billFile ? (
-                    <div className="flex items-center justify-center gap-2 font-mono text-xs font-bold text-brutal-blue">
-                      <Check size={14} /> {billFile.name}
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center gap-2 font-mono text-xs font-bold text-gray-500">
-                      <Upload size={14} /> Tải ảnh hóa đơn
-                    </div>
-                  )}
-                </div>
-              </div>
-
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Amount">
+                <input
+                  value={amount}
+                  onChange={(event) => setAmount(event.target.value)}
+                  type="number"
+                  className="input-shell"
+                  placeholder="0"
+                />
+              </Field>
+              <Field label="Transfer note">
+                <input
+                  value={content}
+                  onChange={(event) => setContent(event.target.value)}
+                  className="input-shell"
+                  placeholder="Payment for..."
+                />
+              </Field>
+            </div>
+            <Field label="Optional proof image">
+              <label className="flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-[24px] border border-dashed border-border-main bg-main-bg px-5 py-6 text-center transition-colors hover:bg-surface">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => setBillFile(event.target.files?.[0] || null)}
+                  className="hidden"
+                />
+                {billFile ? (
+                  <span className="text-sm text-text-main">{billFile.name}</span>
+                ) : (
+                  <>
+                    <Upload className="h-6 w-6 text-primary" aria-hidden="true" />
+                    <span className="mt-3 text-sm text-text-main">Attach a local proof image</span>
+                  </>
+                )}
+              </label>
+            </Field>
+            <div className="flex justify-end">
               <button
+                type="button"
                 onClick={() => setShowQR(true)}
                 disabled={!amount}
-                className="w-full border-4 border-brutal-black bg-brutal-blue py-3 font-display text-sm font-black uppercase tracking-widest text-white transition-all hover:-translate-y-1 hover:bg-brutal-yellow hover:text-brutal-black hover:shadow-neo disabled:cursor-not-allowed disabled:opacity-50"
+                className="action-button action-button-primary"
               >
-                Tạo mã QR
+                Generate QR
               </button>
             </div>
           </div>
         )}
-      </div>
+      </SurfaceCard>
 
-      {/* Right: QR Display */}
-      <div className="relative flex items-center justify-center border-4 border-brutal-black bg-white shadow-neo min-h-[360px]">
-        {showQR && selectedMember && bankInfo ? (
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex h-full w-full flex-col items-center justify-center bg-white p-8 text-center">
-            <img src={qrUrl} alt="VietQR" className="max-w-[250px] mix-blend-multiply mb-4" />
-            <div className="border-2 border-brutal-black bg-brutal-yellow px-3 py-2 text-xs font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">Scan to Pay {selectedMember.name}</div>
-            <div className="mt-3 font-mono text-[10px] font-bold text-gray-500">
-              Bank: {BANKS.find(b => b.id === bankInfo.bankId)?.shortName || bankInfo.bankId}
-            </div>
-            {bankInfo.accountName && (
-              <div className="mt-0.5 font-mono text-[9px] text-gray-500">
-                {bankInfo.accountName}
-              </div>
-            )}
-          </motion.div>
-        ) : (
-          <div className="text-center opacity-60">
-            <ScanLine size={100} className="mx-auto mb-4 text-brutal-black" />
-            <p className="font-mono text-xs font-black uppercase tracking-widest text-brutal-black">QR generator idle</p>
-          </div>
-        )}
-      </div>
+      <SurfaceCard className="p-7">
+        <SectionHeader
+          eyebrow="QR Output"
+          title="Transfer target"
+          subtitle="A compact payment target for the selected member."
+        />
+        <div className="mt-6 flex min-h-[360px] flex-col items-center justify-center rounded-[24px] border border-border-main bg-main-bg p-5 text-center">
+          {showQR && selectedMember && bankInfo && qrUrl ? (
+            <>
+              <img src={qrUrl} alt="VietQR" className="max-w-[240px] mix-blend-multiply" />
+              <p className="mt-4 text-sm font-semibold text-text-main">{selectedMember.name}</p>
+              <p className="mt-1 text-xs uppercase tracking-[0.16em] text-text-muted">
+                {BANKS.find((bank) => bank.id === bankInfo.bankId)?.shortName || bankInfo.bankId}
+              </p>
+            </>
+          ) : (
+            <>
+              <ScanLine className="h-10 w-10 text-primary" aria-hidden="true" />
+              <p className="mt-4 text-sm text-text-main">Select a member and enter an amount.</p>
+            </>
+          )}
+        </div>
+      </SurfaceCard>
     </div>
   );
 }
 
-function PendingRequestsList() {
-  const { financeRequests, approveFinanceRequest, rejectFinanceRequest } = useStore();
-  const [selectedReq, setSelectedReq] = useState<FinanceRequest | null>(null);
+function PendingRequestsPanel({
+  previewMode,
+  canModerateFinance,
+}: {
+  previewMode: boolean;
+  canModerateFinance: boolean;
+}) {
+  const { financeRequests, approveFinanceRequest, rejectFinanceRequest, addToast } = useStore();
+  const [selectedRequest, setSelectedRequest] = useState<FinanceRequest | null>(null);
+
+  if (!canModerateFinance) {
+    return (
+      <PermissionCard
+        title="Pending approvals are moderator-only"
+        message="Only finance moderators can approve or reject reimbursement requests."
+      />
+    );
+  }
 
   if (financeRequests.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center border-4 border-brutal-black bg-white text-sm font-black uppercase tracking-widest text-gray-500 shadow-neo">
-        Không có yêu cầu chờ duyệt
-      </div>
+      <EmptyState
+        title="No pending requests"
+        message={
+          previewMode
+            ? 'Preview mode is unlocked, but there is no real finance queue attached to this local session.'
+            : 'There are no pending finance requests to review right now.'
+        }
+      />
     );
   }
 
   return (
-    <div className="space-y-4">
-      {financeRequests.map(req => (
-        <div key={req.id} className="group flex items-center justify-between border-4 border-brutal-black bg-white p-6 shadow-neo-sm transition-all hover:-translate-y-1 hover:shadow-neo">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <span className="bg-brutal-yellow px-3 py-1 text-lg font-black text-brutal-black border-2 border-brutal-black shadow-neo-sm">{parseInt(req.amount).toLocaleString()} VND</span>
-              <span className="border-2 border-brutal-black bg-white px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-gray-500">{req.date}</span>
+    <>
+      <div className="grid gap-4">
+        {financeRequests.map((request) => (
+          <SurfaceCard key={request.id} interactive className="p-6">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  <StatusBadge tone="warning">Pending</StatusBadge>
+                  <StatusBadge>{request.date}</StatusBadge>
+                </div>
+                <h3 className="text-xl font-semibold text-text-main">{formatAmount(request.amount)}</h3>
+                <p className="text-sm leading-7 text-text-muted">{request.reason}</p>
+                <p className="text-xs uppercase tracking-[0.16em] text-text-muted">
+                  Requested by {request.requesterName}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedRequest(request)}
+                className="action-button action-button-secondary"
+              >
+                Review
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </button>
             </div>
-            <p className="font-display font-black text-brutal-black transition-colors group-hover:text-brutal-blue">{req.reason}</p>
-            <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-gray-500">Người gửi: {req.requesterName}</p>
-          </div>
+          </SurfaceCard>
+        ))}
+      </div>
 
-          <button
-            onClick={() => setSelectedReq(req)}
-            className="border-4 border-brutal-black bg-white p-3 text-brutal-black shadow-neo-sm transition-all hover:-translate-y-1 hover:bg-brutal-blue hover:text-white"
-          >
-            <ArrowRight size={20} />
-          </button>
-        </div>
-      ))}
-
-      {/* Approval Modal */}
-      {selectedReq && (
+      {selectedRequest ? (
         <ApprovalModal
-          request={selectedReq}
-          onClose={() => setSelectedReq(null)}
-          onApprove={() => { approveFinanceRequest(selectedReq.id); setSelectedReq(null); }}
-          onReject={() => { rejectFinanceRequest(selectedReq.id); setSelectedReq(null); }}
+          request={selectedRequest}
+          previewMode={previewMode}
+          onClose={() => setSelectedRequest(null)}
+          onApprove={async () => {
+            if (previewMode) {
+              addToast('Preview mode cannot approve a real transfer.', 'info');
+            } else {
+              await approveFinanceRequest(selectedRequest.id);
+              addToast('Finance request approved.', 'success');
+            }
+            setSelectedRequest(null);
+          }}
+          onReject={async () => {
+            if (previewMode) {
+              addToast('Preview mode cannot reject a real transfer.', 'info');
+            } else {
+              await rejectFinanceRequest(selectedRequest.id);
+              addToast('Finance request rejected.', 'success');
+            }
+            setSelectedRequest(null);
+          }}
         />
-      )}
-    </div>
+      ) : null}
+    </>
   );
 }
 
-function ApprovalModal({ request, onClose, onApprove, onReject }: { request: FinanceRequest, onClose: () => void, onApprove: () => void, onReject: () => void }) {
+function ApprovalModal({
+  request,
+  previewMode,
+  onClose,
+  onApprove,
+  onReject,
+}: {
+  request: FinanceRequest;
+  previewMode: boolean;
+  onClose: () => void;
+  onApprove: () => void | Promise<void>;
+  onReject: () => void | Promise<void>;
+}) {
   const { members } = useStore();
   const [showQR, setShowQR] = useState(false);
 
-  // Find requester to get their bank info
-  const requester = members.find(m => m.id === request.requesterId);
+  const requester = members.find((member) => member.id === request.requesterId) || null;
+  const requesterBank = getBankInfo(requester);
 
-  // Get normalized bank info - handle both camelCase and snake_case
-  const rawBankInfo = requester ? (requester.bankInfo || (requester as any).bank_info) : null;
-
-  const requesterBankInfo = rawBankInfo ? {
-    bankId: rawBankInfo.bankId || (rawBankInfo as any).bank_id,
-    accountNo: rawBankInfo.accountNo || (rawBankInfo as any).account_no,
-    accountName: rawBankInfo.accountName || (rawBankInfo as any).account_name
-  } : null;
-
-  // Default Club Account if requester has no bank info
-  const DEFAULT_ACCOUNT_NO = "0356616096";
-  const DEFAULT_BANK_ID = "970422"; // MB Bank
-  const DEFAULT_NAME = "DUT SUPERTEAM";
-
-  const bankId = requesterBankInfo?.bankId || DEFAULT_BANK_ID;
-  const accountNo = requesterBankInfo?.accountNo || DEFAULT_ACCOUNT_NO;
-  const accountName = requesterBankInfo?.accountName || (requester ? requester.name : DEFAULT_NAME);
-  const bankName = BANKS.find(b => b.id === bankId)?.shortName || 'Unknown Bank';
-
+  const bankId = requesterBank?.bankId || '970422';
+  const accountNo = requesterBank?.accountNo || '0356616096';
+  const accountName = requesterBank?.accountName || requester?.name || 'DUT SUPERTEAM';
+  const bankName = BANKS.find((bank) => bank.id === bankId)?.shortName || bankId;
   const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${request.amount}&addInfo=${encodeURIComponent(request.reason)}&accountName=${encodeURIComponent(accountName)}`;
 
   return ReactDOM.createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-      <motion.div
-        initial={{ scale: 0.95 }}
-        animate={{ scale: 1 }}
-        className="relative z-10 grid w-full max-w-2xl grid-cols-1 gap-8 border-4 border-brutal-black bg-white p-8 shadow-neo-xl md:grid-cols-2"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" onClick={onClose}>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        />
+        <motion.div
+          initial={{ opacity: 0, y: 12, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 12, scale: 0.97 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+          className="relative z-10 grid w-full max-w-4xl gap-6 rounded-[32px] border border-border-main bg-surface-elevated p-7 shadow-soft-xl lg:grid-cols-[minmax(0,1fr)_320px]"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <button type="button" onClick={onClose} className="icon-button absolute right-5 top-5">
+            <X className="h-4 w-4" />
+          </button>
 
-        {/* Left: Details */}
-        <div>
-          <h3 className="mb-6 font-display text-2xl font-black uppercase tracking-wider text-brutal-black">Xét duyệt yêu cầu</h3>
-          <div className="space-y-4 text-xs font-bold">
-            <div className="flex justify-between border-b-4 border-brutal-black pb-2">
-              <span className="uppercase tracking-widest text-gray-500">Số tiền</span>
-              <span className="text-lg font-black text-brutal-black">{parseInt(request.amount).toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between border-b-4 border-brutal-black pb-2">
-              <span className="uppercase tracking-widest text-gray-500">Người gửi</span>
-              <span className="text-brutal-black">{request.requesterName}</span>
-            </div>
-            <div className="flex justify-between border-b-4 border-brutal-black pb-2">
-              <span className="uppercase tracking-widest text-gray-500">Ngân hàng</span>
-              <span className="text-brutal-blue">{bankName}</span>
-            </div>
-            <div className="flex justify-between border-b-4 border-brutal-black pb-2">
-              <span className="uppercase tracking-widest text-gray-500">Số tài khoản</span>
-              <span className="text-brutal-black">{accountNo}</span>
-            </div>
+          <div className="space-y-6">
             <div>
-              <span className="mb-1 block uppercase tracking-widest text-gray-500">Lý do</span>
-              <p className="border-4 border-brutal-black bg-brutal-bg p-3 text-sm text-brutal-black">{request.reason}</p>
+              <p className="section-eyebrow">Approval Review</p>
+              <h2 className="section-title">Request details</h2>
+              <p className="section-subtitle">
+                Review the ledger entry, receipt, and bank target before approving the transfer.
+              </p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <MetricCard label="Amount" value={formatAmount(request.amount)} />
+              <MetricCard label="Requested date" value={request.date} />
+              <MetricCard label="Requester" value={request.requesterName} />
+              <MetricCard label="Bank target" value={bankName} />
+            </div>
+
+            <div className="rounded-[24px] border border-border-main bg-main-bg p-5">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-text-muted">Reason</p>
+              <p className="mt-3 text-sm leading-7 text-text-main">{request.reason}</p>
+            </div>
+
+            {request.billImage ? (
+              <div className="rounded-[24px] border border-border-main bg-main-bg p-5">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-text-muted">Receipt</p>
+                <img
+                  src={request.billImage}
+                  alt="Receipt"
+                  className="mt-4 max-h-80 w-full rounded-[18px] border border-border-main object-contain bg-surface"
+                />
+              </div>
+            ) : null}
+
+            <div className="flex flex-wrap gap-3">
+              <button type="button" onClick={onReject} className="action-button action-button-danger">
+                <XCircle className="h-4 w-4" aria-hidden="true" />
+                Reject
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowQR((value) => !value)}
+                className="action-button action-button-secondary"
+              >
+                <Landmark className="h-4 w-4" aria-hidden="true" />
+                {showQR ? 'Hide Transfer Target' : 'Show Transfer Target'}
+              </button>
+              <button type="button" onClick={onApprove} className="action-button action-button-primary">
+                <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                {previewMode ? 'Preview Approve' : 'Approve Transfer'}
+              </button>
             </div>
           </div>
 
-          {!showQR && (
-            <div className="grid grid-cols-2 gap-4 mt-8">
-              <button onClick={onReject} className="border-4 border-brutal-black bg-brutal-red py-3 text-sm font-black uppercase tracking-widest text-white transition-all hover:-translate-y-1 hover:shadow-neo">Reject</button>
-              <button onClick={() => setShowQR(true)} className="border-4 border-brutal-black bg-brutal-blue py-3 text-sm font-black uppercase tracking-widest text-white transition-all hover:-translate-y-1 hover:bg-brutal-yellow hover:text-brutal-black hover:shadow-neo">Transfer</button>
+          <div className="space-y-5">
+            <div>
+              <p className="section-eyebrow">Transfer Target</p>
+              <h2 className="section-title">Bank details</h2>
             </div>
-          )}
-        </div>
-
-        {/* Right: QR Area */}
-        <div className="relative flex flex-col items-center justify-center overflow-hidden border-4 border-brutal-black bg-brutal-yellow p-4">
-          {showQR ? (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center w-full">
-              <img src={qrUrl} className="w-full mb-4 mix-blend-multiply" alt="VietQR" />
-              <button onClick={onApprove} className="w-full border-4 border-brutal-black bg-brutal-black py-3 text-xs font-black uppercase tracking-widest text-white transition-all hover:-translate-y-1 hover:bg-brutal-blue hover:shadow-neo">Confirm transfer</button>
-            </motion.div>
-          ) : (
-            <div className="flex flex-col items-center text-center text-brutal-black/40">
-              <ScanLine size={64} />
-              <p className="mt-4 text-xs font-black uppercase tracking-widest">Chờ xác nhận chuyển khoản</p>
+            <div className="rounded-[24px] border border-border-main bg-main-bg p-5">
+              <p className="text-sm text-text-main">{accountName}</p>
+              <p className="mt-2 text-sm text-text-muted">{accountNo}</p>
+              <p className="mt-1 text-xs uppercase tracking-[0.16em] text-text-muted">{bankName}</p>
             </div>
-          )}
-        </div>
-
-      </motion.div>
-    </div>,
+            <div className="flex min-h-[280px] items-center justify-center rounded-[24px] border border-border-main bg-main-bg p-5 text-center">
+              {showQR ? (
+                <div>
+                  <img src={qrUrl} alt="VietQR" className="max-w-[240px] mix-blend-multiply" />
+                  <p className="mt-4 text-sm text-text-main">Ready to scan</p>
+                </div>
+              ) : (
+                <div>
+                  <Wallet className="mx-auto h-8 w-8 text-primary" aria-hidden="true" />
+                  <p className="mt-4 text-sm text-text-main">Reveal the transfer target to verify the payout path.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>,
     document.body
   );
 }
 
-function HistoryList() {
+function HistoryPanel() {
   const { financeHistory } = useStore();
 
-  return (
-    <div className="space-y-4">
-      <div className="mb-6 border-4 border-brutal-black bg-brutal-yellow p-4 shadow-neo-sm">
-        <p className="text-xs font-black uppercase tracking-widest text-brutal-black">
-          <span className="font-display">Public ledger:</span> tất cả giao dịch đã duyệt hoặc từ chối đều được lưu ở đây để đảm bảo minh bạch.
-        </p>
-      </div>
+  if (financeHistory.length === 0) {
+    return (
+      <EmptyState
+        title="No finance history yet"
+        message="Approved and rejected requests will appear here once the history ledger is populated."
+      />
+    );
+  }
 
-      <div className="grid grid-cols-4 px-4 mb-2 text-[10px] font-black uppercase tracking-wider text-gray-500">
-        <span>Status</span>
-        <span>Amount</span>
-        <span>Reason</span>
-        <span className="text-right">Date</span>
-      </div>
-      {financeHistory.map(req => (
-        <div key={req.id} className="flex items-center justify-between border-4 border-brutal-black bg-white p-4 text-xs shadow-neo-sm transition-all hover:-translate-y-1 hover:shadow-neo">
-          <div className="w-1/4">
-            {req.status === 'completed' ? (
-              <span className="flex items-center gap-1 font-black uppercase tracking-widest text-brutal-green"><Check size={12} /> Paid</span>
-            ) : (
-              <span className="flex items-center gap-1 font-black uppercase tracking-widest text-brutal-red"><X size={12} /> Rejected</span>
-            )}
-          </div>
-          <div className="w-1/4 font-black text-brutal-black">{parseInt(req.amount).toLocaleString()}</div>
-          <div className="w-1/4 truncate pr-2 font-bold text-gray-700">{req.reason}</div>
-          <div className="w-1/4 text-right font-bold text-gray-500">{req.date}</div>
+  return (
+    <div className="space-y-5">
+      <SectionHeader
+        eyebrow="Ledger"
+        title="Finance history"
+        subtitle="A cleaner ledger view for approved and rejected requests."
+      />
+      <SurfaceCard className="overflow-hidden p-0">
+        <div className="grid grid-cols-[120px_160px_minmax(0,1fr)_120px] gap-4 border-b border-border-main bg-main-bg px-5 py-4 text-[11px] uppercase tracking-[0.18em] text-text-muted">
+          <span>Status</span>
+          <span>Amount</span>
+          <span>Reason</span>
+          <span>Date</span>
         </div>
-      ))}
-      {financeHistory.length === 0 && (
-        <div className="border-4 border-brutal-black bg-white py-10 text-center text-xs font-black uppercase tracking-widest text-gray-500 shadow-neo">Chưa có giao dịch lưu trữ</div>
-      )}
+        <div className="divide-y divide-border-main">
+          {financeHistory.map((request) => (
+            <div
+              key={request.id}
+              className="grid grid-cols-[120px_160px_minmax(0,1fr)_120px] gap-4 px-5 py-4 text-sm text-text-main"
+            >
+              <div className="flex items-center">
+                <StatusBadge tone={request.status === 'completed' ? 'success' : 'danger'}>
+                  {request.status === 'completed' ? 'Paid' : 'Rejected'}
+                </StatusBadge>
+              </div>
+              <div className="flex items-center">{formatAmount(request.amount)}</div>
+              <div className="flex items-center truncate text-text-muted">{request.reason}</div>
+              <div className="flex items-center text-text-muted">{request.date}</div>
+            </div>
+          ))}
+        </div>
+      </SurfaceCard>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="grid gap-2">
+      <span className="text-[11px] uppercase tracking-[0.18em] text-text-muted">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function MetricCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[20px] border border-border-main bg-main-bg p-4">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-text-muted">{label}</p>
+      <p className="mt-2 text-sm font-semibold text-text-main">{value}</p>
     </div>
   );
 }

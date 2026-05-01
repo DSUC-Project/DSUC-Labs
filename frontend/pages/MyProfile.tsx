@@ -1,13 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Save, Upload, Github, Twitter, Send, Facebook, LogOut, CreditCard, Mail, Link2, CheckCircle, Edit2, Hexagon, Trophy, Flame, Code } from 'lucide-react';
-import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
+import {
+  Facebook,
+  Github,
+  LogOut,
+  Mail,
+  Save,
+  Send,
+  Twitter,
+  Upload,
+  Wallet,
+} from 'lucide-react';
+import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
-import { useStore } from '../store/useStore';
-import { BANKS } from '../data/mockData';
-import { SkillInput } from '../components/SkillInput';
-import { GoogleUserInfo } from '../types';
+
+import { SkillInput } from '@/components/SkillInput';
+import { ActionButton, PageHeader, SectionHeader, StatusBadge, SurfaceCard } from '@/components/ui/Primitives';
+import { BANKS } from '@/data/mockData';
+import { useStore } from '@/store/useStore';
+import type { GoogleUserInfo } from '@/types';
 
 interface GoogleJWTPayload {
   sub: string;
@@ -17,14 +28,29 @@ interface GoogleJWTPayload {
   email_verified: boolean;
 }
 
+type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+
+function isOfficialMember(memberType?: string) {
+  return memberType === 'member';
+}
+
 export function MyProfile() {
-  const { currentUser, updateCurrentUser, linkGoogleAccount, logout, authMethod, reconnectWallet } = useStore();
+  const {
+    currentUser,
+    updateCurrentUser,
+    linkGoogleAccount,
+    logout,
+    authMethod,
+    reconnectWallet,
+    addToast,
+  } = useStore();
+
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [isLinkingGoogle, setIsLinkingGoogle] = useState(false);
   const [isReconnectingWallet, setIsReconnectingWallet] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>('idle');
 
-  // Local state for form
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState('');
   const [skills, setSkills] = useState<string[]>([]);
@@ -32,31 +58,33 @@ export function MyProfile() {
   const [twitter, setTwitter] = useState('');
   const [telegram, setTelegram] = useState('');
   const [facebook, setFacebook] = useState('');
-
-  // Banking state
   const [bankId, setBankId] = useState('');
-  const [accountNo, setAccountNo] = useState('');
   const [accountName, setAccountName] = useState('');
-  const [isEditingBank, setIsEditingBank] = useState(false);
-  const isOfficialMember = currentUser?.memberType === 'member';
+  const [accountNo, setAccountNo] = useState('');
+
   const isOnboarding =
     searchParams.get('onboarding') === '1' || currentUser?.profile_completed === false;
-  const selectedBank =
-    BANKS.find((bank) => bank.id === bankId) ||
-    BANKS.find((bank) => bank.code.toLowerCase() === bankId.toLowerCase());
-  const hasProfileBasics =
-    name.trim().length >= 2 &&
-    (skills.length > 0 ||
-      github.trim().length > 0 ||
-      twitter.trim().length > 0 ||
-      telegram.trim().length > 0 ||
-      facebook.trim().length > 0);
+  const memberType = currentUser?.memberType || currentUser?.member_type || 'community';
+  const officialMember = isOfficialMember(memberType);
+  const selectedBank = BANKS.find((bank) => bank.id === bankId) || null;
+
+  const hasProfileBasics = useMemo(
+    () =>
+      name.trim().length >= 2 &&
+      (skills.length > 0 ||
+        github.trim().length > 0 ||
+        twitter.trim().length > 0 ||
+        telegram.trim().length > 0 ||
+        facebook.trim().length > 0),
+    [facebook, github, name, skills.length, telegram, twitter]
+  );
 
   useEffect(() => {
     if (!currentUser) {
       navigate('/');
       return;
     }
+
     setName(currentUser.name || '');
     setAvatar(currentUser.avatar || '');
     setSkills(currentUser.skills || []);
@@ -64,30 +92,48 @@ export function MyProfile() {
     setTwitter(currentUser.socials?.twitter || '');
     setTelegram(currentUser.socials?.telegram || '');
     setFacebook(currentUser.socials?.facebook || '');
-    setBankId(currentUser.bankInfo?.bankId || '');
-    setAccountNo(currentUser.bankInfo?.accountNo || '');
-    setAccountName(currentUser.bankInfo?.accountName || currentUser.name || '');
+
+    const bankInfo = currentUser.bankInfo || (currentUser.bank_info as any);
+    setBankId(bankInfo?.bankId || bankInfo?.bank_id || '');
+    setAccountName(bankInfo?.accountName || bankInfo?.account_name || currentUser.name || '');
+    setAccountNo(bankInfo?.accountNo || bankInfo?.account_no || '');
   }, [currentUser, navigate]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatar(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  useEffect(() => {
+    if (saveState === 'saved' || saveState === 'error') {
+      const timeout = window.setTimeout(() => setSaveState('idle'), 2400);
+      return () => window.clearTimeout(timeout);
     }
-  };
+    return undefined;
+  }, [saveState]);
 
-  const handleSaveAll = async () => {
-    if (isOnboarding && !hasProfileBasics) {
-      alert('Vui lòng hoàn thiện hồ sơ cơ bản: tên và ít nhất một kỹ năng hoặc mạng xã hội.');
+  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
       return;
     }
 
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAvatar(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSave = async () => {
+    if (!currentUser) {
+      return;
+    }
+
+    if (isOnboarding && !hasProfileBasics) {
+      setSaveState('error');
+      addToast('Complete your profile basics before continuing.', 'error');
+      return;
+    }
+
+    setSaveState('saving');
     try {
-      const updates: any = {
+      await updateCurrentUser({
         name,
         avatar,
         skills,
@@ -95,46 +141,26 @@ export function MyProfile() {
           github,
           twitter,
           telegram,
-          facebook
+          facebook,
         },
-        profile_completed: isOnboarding ? true : currentUser?.profile_completed,
-      };
-
-      if (isOfficialMember) {
-        updates.bankInfo = bankId && accountNo ? {
-          bankId,
-          accountNo,
-          accountName: accountName || name
-        } : undefined;
-      }
-
-      await updateCurrentUser(updates);
-      alert('Cập nhật hồ sơ thành công');
+        profile_completed: isOnboarding ? true : currentUser.profile_completed,
+        bankInfo:
+          officialMember && bankId && accountNo
+            ? {
+                bankId,
+                accountName: accountName || name,
+                accountNo,
+              }
+            : undefined,
+      });
+      setSaveState('saved');
+      addToast('Profile saved.', 'success');
       if (isOnboarding) {
         navigate('/home', { replace: true });
       }
-    } catch (err) {
-      console.error('[MyProfile] Save failed:', err);
-      alert('Lỗi cập nhật hồ sơ. Vui lòng kiểm tra console.');
-    }
-  };
-
-  const handleSaveBank = async () => {
-    if (!isOfficialMember) {
-      return;
-    }
-
-    try {
-      await updateCurrentUser({
-        bankInfo: bankId && accountNo ? {
-          bankId,
-          accountNo,
-          accountName: accountName || name
-        } : undefined
-      });
-      setIsEditingBank(false);
-    } catch (err) {
-       alert('Cập nhật tài khoản ngân hàng thất bại.');
+    } catch {
+      setSaveState('error');
+      addToast('Profile update failed.', 'error');
     }
   };
 
@@ -147,13 +173,16 @@ export function MyProfile() {
     setIsReconnectingWallet(true);
     try {
       await reconnectWallet();
+      addToast('Wallet reconnect flow started.', 'info');
     } finally {
       setIsReconnectingWallet(false);
     }
   };
 
   const handleGoogleLinkSuccess = async (credentialResponse: CredentialResponse) => {
-    if (!credentialResponse.credential) return;
+    if (!credentialResponse.credential) {
+      return;
+    }
 
     setIsLinkingGoogle(true);
     try {
@@ -164,389 +193,305 @@ export function MyProfile() {
         name: decoded.name,
         avatar: decoded.picture,
       };
-      await linkGoogleAccount(googleUserInfo);
-    } catch (error) {
-      alert('Liên kết tài khoản Google thất bại. Vui lòng thử lại.');
+      const linked = await linkGoogleAccount(googleUserInfo);
+      if (!linked) {
+        setSaveState('error');
+      }
+    } catch {
+      addToast('Google account linking failed.', 'error');
+      setSaveState('error');
     } finally {
       setIsLinkingGoogle(false);
     }
   };
 
-  if (!currentUser) return null;
+  if (!currentUser) {
+    return null;
+  }
+
+  const saveLabel =
+    saveState === 'saving'
+      ? 'Saving...'
+      : saveState === 'saved'
+        ? 'Saved'
+        : saveState === 'error'
+          ? 'Retry Save'
+          : 'Save Changes';
 
   return (
-    <div className="min-h-screen pt-10 pb-32 max-w-6xl mx-auto px-4 sm:px-6 overflow-x-hidden">
-      {isOnboarding && (
-        <div className="mb-8 bg-sky-50 border border-sky-100 p-6 rounded-2xl shadow-sm">
-          <div className="text-[11px] font-bold uppercase tracking-widest text-sky-600 mb-2">
-            Thiết lập lần đầu
-          </div>
-          <p className="text-slate-600 font-medium text-sm">
-            Vui lòng hoàn thiện hồ sơ của bạn trước khi truy cập ứng dụng. Thêm tên và ít nhất một kỹ năng hoặc thông tin liên lạc, sau đó nhấn Lưu Thay Đổi.
+    <div className="mx-auto flex max-w-7xl flex-col gap-8">
+      <PageHeader
+        eyebrow="Profile"
+        title="Manage your DSUC Labs identity."
+        subtitle="Keep profile basics, social links, and bank information consistent with the existing auth and member model."
+        actions={
+          <>
+            <StatusBadge tone={saveState === 'saved' ? 'success' : saveState === 'error' ? 'danger' : 'info'}>
+              {saveState === 'saving'
+                ? 'Saving'
+                : saveState === 'saved'
+                  ? 'Saved'
+                  : saveState === 'error'
+                    ? 'Needs attention'
+                    : 'Ready'}
+            </StatusBadge>
+            <ActionButton variant="danger" onClick={handleLogout}>
+              <LogOut className="h-4 w-4" aria-hidden="true" />
+              Logout
+            </ActionButton>
+            <ActionButton onClick={handleSave} loading={saveState === 'saving'}>
+              <Save className="h-4 w-4" aria-hidden="true" />
+              {saveLabel}
+            </ActionButton>
+          </>
+        }
+      />
+
+      {isOnboarding ? (
+        <SurfaceCard className="p-5">
+          <p className="section-eyebrow">First-time setup</p>
+          <h2 className="section-title">Complete your member profile</h2>
+          <p className="section-subtitle">
+            Add a display name and at least one skill or social link before entering the product.
           </p>
-        </div>
-      )}
+        </SurfaceCard>
+      ) : null}
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b-4 border-brutal-black pb-6 mb-8 mt-4 gap-6">
-        <div>
-          <h2 className="text-4xl sm:text-5xl font-display font-black text-brutal-black tracking-tight uppercase decoration-brutal-pink decoration-4 underline underline-offset-4">HỒ SƠ CỦA TÔI</h2>
-          <p className="text-brutal-black font-bold text-sm mt-4 border-l-4 border-brutal-yellow pl-4">Quản lý định danh và thông tin cá nhân của bạn.</p>
-        </div>
-        <div className="flex items-center gap-4 w-full md:w-auto">
-          <button
-            onClick={handleLogout}
-            className="flex-1 md:flex-none brutal-btn bg-brutal-red text-white hover:bg-brutal-pink hover:text-brutal-black font-black text-xs uppercase tracking-wider px-6 py-4 flex items-center justify-center gap-2 transition-colors border-4 border-brutal-black shadow-neo-sm"
-          >
-            <LogOut size={20} /> Đăng Xuất
-          </button>
-          <button
-            onClick={handleSaveAll}
-            className="flex-1 md:flex-none brutal-btn bg-brutal-blue hover:bg-brutal-yellow text-white hover:text-brutal-black font-black text-xs px-6 py-4 flex items-center justify-center gap-2 transition-all uppercase tracking-wider border-4 border-brutal-black shadow-neo-sm"
-          >
-            <Save size={20} /> Lưu Thay Đổi
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-        {/* Left Column: Identity & Socials */}
-        <div className="lg:col-span-4 flex flex-col gap-6">
-
-          {/* Identity Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white border-4 border-brutal-black p-8 shadow-neo relative group overflow-hidden brutal-card"
-          >
-            <div className="flex flex-col items-center relative z-10">
-              <div className="w-32 h-32 p-1 border-4 border-brutal-black mb-6 relative group/avatar bg-brutal-yellow shadow-neo-sm transition-transform duration-500 hover:scale-105">
-                <img src={avatar || `https://i.pravatar.cc/150?u=${currentUser.id}`} alt="Avatar" className="w-full h-full object-cover transition-all duration-300" />
-                <label className="absolute inset-0 bg-brutal-black/80 flex flex-col items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer">
-                  <Upload className="text-white mb-1" size={24} />
-                  <span className="text-[10px] font-black text-white uppercase tracking-widest mt-1">Sửa</span>
-                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                </label>
-              </div>
-
-              <div className="mb-6 flex w-fit items-center gap-2 border-4 border-brutal-black bg-brutal-pink px-4 py-2 font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
-                <Flame size={18} className="text-brutal-black" />
-                <span className="font-display text-2xl leading-none">{currentUser.streak || 0}</span>
-                <span className="text-[10px]">ngày</span>
-              </div>
-
-              <div className="w-full space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-brutal-black uppercase tracking-widest pl-1">Tên hiển thị</label>
-                  <input
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black focus:bg-brutal-pink focus:outline-none font-display font-black text-lg transition-colors shadow-neo-sm"
+      <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <div className="space-y-6">
+          <SurfaceCard className="p-7">
+            <div className="flex flex-col items-center text-center">
+              <label className="group relative cursor-pointer">
+                <div className="h-32 w-32 overflow-hidden rounded-[32px] border border-border-main bg-main-bg">
+                  <img
+                    src={avatar || `https://i.pravatar.cc/160?u=${currentUser.id}`}
+                    alt={currentUser.name}
+                    className="h-full w-full object-cover"
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-brutal-black uppercase tracking-widest pl-1">Cấp độ thành viên</label>
-                  <div className="w-full bg-brutal-blue border-4 border-brutal-black px-4 py-3 text-white font-black text-sm uppercase tracking-wider flex items-center justify-between shadow-neo-sm">
-                    <span>{currentUser.memberType === 'community' ? 'Cộng đồng' : currentUser.role}</span>
-                    <Hexagon size={20} className="text-white" />
+                <div className="absolute inset-0 flex items-center justify-center rounded-[32px] bg-black/55 opacity-0 transition-opacity group-hover:opacity-100">
+                  <div className="text-center text-white">
+                    <Upload className="mx-auto h-5 w-5" aria-hidden="true" />
+                    <p className="mt-2 text-xs uppercase tracking-[0.18em]">Update</p>
                   </div>
                 </div>
+                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+              </label>
+
+              <h2 className="mt-5 font-heading text-3xl font-semibold tracking-tight text-text-main">
+                {name || currentUser.name}
+              </h2>
+              <p className="mt-1 text-sm text-text-muted">{currentUser.role || 'Member'}</p>
+
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                <StatusBadge tone="info">{memberType === 'member' ? 'Official Member' : 'Community Member'}</StatusBadge>
+                <StatusBadge>{authMethod || 'Account'}</StatusBadge>
+                {currentUser.google_id ? <StatusBadge tone="success">Google Linked</StatusBadge> : null}
+              </div>
+
+              <div className="mt-6 grid w-full gap-3">
+                <MetricRow label="Streak" value={`${currentUser.streak || 0} days`} />
+                <MetricRow label="Builds" value={String(currentUser.builds || 0)} />
               </div>
             </div>
-          </motion.div>
+          </SurfaceCard>
 
-          {currentUser.wallet_address && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.08 }}
-              className="bg-white border border-slate-200 p-8 rounded-[2rem] shadow-sm"
-            >
-              <h3 className="text-xs font-bold text-slate-600 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <Hexagon size={16} className="text-slate-400" /> Lk Ví Điện Tử
-              </h3>
-              <div className="text-xs font-mono text-slate-600 break-all mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                {currentUser.wallet_address}
-              </div>
-              <button
-                onClick={handleReconnectWallet}
-                disabled={isReconnectingWallet}
-                className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider py-3 rounded-xl transition-colors shadow-sm disabled:opacity-60"
-              >
-                {isReconnectingWallet ? 'Đang kết nối lại...' : 'Kết nối lại Ví'}
-              </button>
-            </motion.div>
-          )}
+          <SurfaceCard className="p-7">
+            <SectionHeader
+              eyebrow="Access"
+              title="Account connections"
+              subtitle="Keep wallet and Google access explicit."
+            />
 
-          {/* Social Links */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white border-4 border-brutal-black p-8 shadow-neo-sm"
-          >
-            <h3 className="text-xs font-black text-brutal-black uppercase tracking-widest mb-6 flex items-center gap-2">
-              <Link2 size={16} className="text-brutal-pink" /> Liên Kết Mạng Xã Hội
-            </h3>
-            <div className="space-y-4">
-              {[
-                { icon: Github, value: github, setter: setGithub, placeholder: 'github.com/username' },
-                { icon: Twitter, value: twitter, setter: setTwitter, placeholder: 'x.com/username' },
-                { icon: Send, value: telegram, setter: setTelegram, placeholder: 't.me/username' },
-                { icon: Facebook, value: facebook, setter: setFacebook, placeholder: 'facebook.com/username' },
-              ].map((social, idx) => (
-                <div key={idx} className="flex items-center gap-3 bg-white border-4 border-brutal-black px-3 py-2 focus-within:bg-brutal-green transition-colors shadow-neo-sm">
-                  <social.icon className="text-brutal-black shrink-0" size={20} />
-                  <input
-                    type="text"
-                    value={social.value}
-                    onChange={e => social.setter(e.target.value)}
-                    placeholder={social.placeholder}
-                    className="flex-1 bg-transparent text-brutal-black outline-none font-bold text-sm placeholder:text-gray-500"
+            <div className="mt-6 space-y-4">
+              <ReadOnlyField label="Email" value={currentUser.email || 'No email connected'} icon={Mail} />
+              <ReadOnlyField label="Wallet" value={currentUser.wallet_address || 'No wallet connected'} icon={Wallet} />
+
+              {authMethod === 'wallet' && currentUser.wallet_address ? (
+                <ActionButton
+                  variant="secondary"
+                  onClick={handleReconnectWallet}
+                  loading={isReconnectingWallet}
+                  fullWidth
+                >
+                  Reconnect Wallet
+                </ActionButton>
+              ) : null}
+
+              {authMethod === 'wallet' && !currentUser.google_id ? (
+                <div className="space-y-2">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-text-muted">
+                    Link Google sign-in
+                  </p>
+                  <GoogleLogin
+                    onSuccess={handleGoogleLinkSuccess}
+                    onError={() => addToast('Google account linking failed.', 'error')}
+                    useOneTap={false}
                   />
+                  {isLinkingGoogle ? (
+                    <StatusBadge tone="info">Linking Google account...</StatusBadge>
+                  ) : null}
                 </div>
-              ))}
+              ) : null}
             </div>
-          </motion.div>
+          </SurfaceCard>
         </div>
 
-        {/* Right Column: Content */}
-        <div className="lg:col-span-8 flex flex-col gap-6">
+        <div className="space-y-6">
+          <SurfaceCard className="p-7">
+            <SectionHeader
+              eyebrow="Profile Basics"
+              title="Display identity"
+              subtitle="Your public profile uses this name, avatar, and skills list."
+            />
 
-          {/* Academy Progress Redesign */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="bg-brutal-yellow border-4 border-brutal-black relative overflow-hidden shadow-neo"
-          >
-            <div className="p-8 flex flex-col md:flex-row justify-between items-start md:items-center border-b-4 border-brutal-black relative z-10 gap-6">
-              <div>
-                <h3 className="text-2xl font-display font-black text-brutal-black uppercase flex items-center gap-3">
-                  <Trophy className="text-brutal-black" size={32} />
-                  Tiến độ học tập
-                </h3>
-                <p className="text-brutal-black font-bold text-sm mt-2">Tổng quan quá trình và thành tích của bạn</p>
-              </div>
-              <button onClick={() => navigate('/academy')} className="group flex items-center justify-center gap-2 bg-brutal-pink hover:bg-brutal-blue text-brutal-black hover:text-white border-4 border-brutal-black shadow-neo px-6 py-4 font-black text-xs uppercase tracking-wider transition-all brutal-btn">
-                Vào Học Viện <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform border-l-2 border-current pl-1" />
-              </button>
+            <div className="mt-6 grid gap-4">
+              <Field label="Display name">
+                <input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className="input-shell"
+                  placeholder="Your name"
+                />
+              </Field>
+
+              <Field label="Skills">
+                <SkillInput skills={skills} onChange={setSkills} />
+              </Field>
             </div>
+          </SurfaceCard>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 divide-x-4 divide-y-4 lg:divide-y-0 divide-brutal-black relative z-10 w-full bg-white">
-              <div className="p-8 flex flex-col items-center justify-center text-center hover:bg-brutal-pink transition-colors">
-                <Flame className="text-brutal-black mb-3" size={32} />
-                <div className="text-4xl font-display font-black text-brutal-black">{currentUser.streak || 0}</div>
-                <div className="text-[10px] font-black text-brutal-black uppercase tracking-widest mt-2 border-t-2 border-brutal-black pt-2 w-full">Chuỗi ngày học</div>
-              </div>
-              <div className="p-8 flex flex-col items-center justify-center text-center hover:bg-brutal-green transition-colors">
-                <Code className="text-brutal-black mb-3" size={32} />
-                <div className="text-4xl font-display font-black text-brutal-black">1</div>
-                <div className="text-[10px] font-black text-brutal-black uppercase tracking-widest mt-2 border-t-2 border-brutal-black pt-2 w-full">Dự án hoàn thành</div>
-              </div>
-              <div className="p-8 flex flex-col items-center justify-center text-center hover:bg-brutal-gold transition-colors">
-                <div className="font-display font-black text-brutal-black text-3xl mb-3">{'< />'}</div>
-                <div className="text-4xl font-display font-black text-brutal-black">12</div>
-                <div className="text-[10px] font-black text-brutal-black uppercase tracking-widest mt-2 border-t-2 border-brutal-black pt-2 w-full">Bài học</div>
-              </div>
-              <div className="p-8 flex flex-col items-center justify-center text-center hover:bg-brutal-blue hover:text-white transition-colors group">
-                <Hexagon className="text-brutal-black group-hover:text-white mb-3" size={32} />
-                <div className="text-2xl font-display font-black text-brutal-black group-hover:text-white mt-1">GENIN</div>
-                <div className="text-[10px] font-black text-brutal-black group-hover:text-white uppercase tracking-widest mt-2 border-t-2 border-current pt-2 w-full">Danh hiệu</div>
-              </div>
+          <SurfaceCard className="p-7">
+            <SectionHeader
+              eyebrow="Socials"
+              title="Outbound profile links"
+              subtitle="Edit, clear, and save social links without browser alerts."
+            />
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <Field label="GitHub">
+                <InputWithIcon value={github} onChange={setGithub} placeholder="https://github.com/..." icon={Github} />
+              </Field>
+              <Field label="Twitter / X">
+                <InputWithIcon value={twitter} onChange={setTwitter} placeholder="https://x.com/..." icon={Twitter} />
+              </Field>
+              <Field label="Telegram">
+                <InputWithIcon value={telegram} onChange={setTelegram} placeholder="https://t.me/..." icon={Send} />
+              </Field>
+              <Field label="Facebook">
+                <InputWithIcon value={facebook} onChange={setFacebook} placeholder="https://facebook.com/..." icon={Facebook} />
+              </Field>
             </div>
-          </motion.div>
+          </SurfaceCard>
 
-          {/* Bank Configuration */}
-          {isOfficialMember && (
-            <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-white border-4 border-brutal-black p-8 shadow-neo"
-          >
-            <div className="flex justify-between items-start mb-8 border-b-4 border-brutal-black pb-5">
-              <div>
-                <h3 className="text-xl font-display font-black text-brutal-black flex items-center gap-3">
-                  <CreditCard className="text-brutal-blue" size={24} /> THÔNG TIN NGÂN HÀNG
-                </h3>
-                <p className="text-sm text-brutal-black font-bold mt-2">Thiết lập tài khoản để nhận hỗ trợ hoặc quỹ dự án</p>
-              </div>
-              {!isEditingBank ? (
-                <button
-                  onClick={() => setIsEditingBank(true)}
-                  className="p-3 border-4 border-brutal-black bg-brutal-yellow text-brutal-black hover:bg-brutal-pink transition-colors shadow-neo-sm brutal-btn"
-                >
-                  <Edit2 size={24} />
-                </button>
-              ) : (
-                <button
-                  onClick={handleSaveBank}
-                  className="bg-brutal-green border-4 border-brutal-black text-brutal-black font-black text-xs uppercase tracking-wider px-6 py-4 shadow-neo-sm hover:bg-brutal-blue hover:text-white transition-colors brutal-btn"
-                >
-                  Lưu Ngân Hàng
-                </button>
-              )}
-            </div>
+          {officialMember ? (
+            <SurfaceCard className="p-7">
+              <SectionHeader
+                eyebrow="Banking"
+                title="Payout details"
+                subtitle="Bank, account name, then account number. Keep this order stable for Finance."
+              />
 
-            {isEditingBank ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-brutal-black uppercase tracking-widest ml-1">Ngân hàng</label>
-                  <select
-                    value={selectedBank?.id || bankId}
-                    onChange={e => setBankId(e.target.value)}
-                    className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black focus:bg-brutal-pink outline-none font-bold text-sm transition-colors shadow-neo-sm appearance-none"
-                  >
-                    <option value="">-- CHỌN NGÂN HÀNG --</option>
-                    {BANKS.map(b => (
-                      <option key={b.id} value={b.id}>{b.shortName} ({b.code}) - {b.bin}</option>
+              <div className="mt-6 grid gap-4 md:grid-cols-3">
+                <Field label="Bank">
+                  <select value={bankId} onChange={(event) => setBankId(event.target.value)} className="input-shell">
+                    <option value="">Select bank</option>
+                    {BANKS.map((bank) => (
+                      <option key={bank.id} value={bank.id}>
+                        {bank.shortName}
+                      </option>
                     ))}
                   </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-brutal-black uppercase tracking-widest ml-1">Mã Ngân Hàng (BIN)</label>
-                  <input
-                    value={bankId}
-                    onChange={e => setBankId(e.target.value)}
-                    placeholder="Ví dụ: 970422"
-                    className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black focus:bg-brutal-pink outline-none font-bold text-sm transition-colors shadow-neo-sm"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-brutal-black uppercase tracking-widest ml-1">Số Tài Khoản</label>
-                  <input
-                    value={accountNo}
-                    onChange={e => setAccountNo(e.target.value)}
-                    placeholder="Nhập số tài khoản"
-                    className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black focus:bg-brutal-pink outline-none font-bold text-sm transition-colors shadow-neo-sm"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-brutal-black uppercase tracking-widest ml-1">Tên Chủ Tài Khoản</label>
+                </Field>
+                <Field label="Account name">
                   <input
                     value={accountName}
-                    onChange={e => setAccountName(e.target.value)}
-                    placeholder="NGUYEN VAN A"
-                    className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black focus:bg-brutal-pink outline-none font-bold uppercase text-sm transition-colors shadow-neo-sm"
+                    onChange={(event) => setAccountName(event.target.value)}
+                    className="input-shell"
+                    placeholder="Account holder name"
                   />
-                </div>
+                </Field>
+                <Field label="Account number">
+                  <input
+                    value={accountNo}
+                    onChange={(event) => setAccountNo(event.target.value)}
+                    className="input-shell"
+                    placeholder="0123456789"
+                  />
+                </Field>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="bg-brutal-pink border-4 border-brutal-black p-5 shadow-neo-sm">
-                  <div className="text-[10px] font-black text-brutal-black uppercase tracking-widest mb-2 border-b-2 border-brutal-black pb-1">Ngân Hàng</div>
-                  <div className="font-display font-black text-brutal-black text-lg">
-                    {selectedBank ? `${selectedBank.shortName} (${selectedBank.bin})` : bankId || 'Chưa thiết lập'}
-                  </div>
-                </div>
-                <div className="bg-brutal-yellow border-4 border-brutal-black p-5 shadow-neo-sm">
-                  <div className="text-[10px] font-black text-brutal-black uppercase tracking-widest mb-2 border-b-2 border-brutal-black pb-1">Số Tài Khoản</div>
-                  <div className="font-mono text-brutal-black font-black text-lg tracking-wider">
-                    {accountNo ? accountNo.replace(/\d(?=\d{4})/g, '*') : 'Chưa thiết lập'}
-                  </div>
-                </div>
-                <div className="bg-brutal-green border-4 border-brutal-black p-5 shadow-neo-sm">
-                  <div className="text-[10px] font-black text-brutal-black uppercase tracking-widest mb-2 border-b-2 border-brutal-black pb-1">Mã Ngân Hàng</div>
-                  <div className="font-mono text-brutal-black font-black text-lg tracking-wider">
-                    {selectedBank?.code || 'Chưa thiết lập'}
-                  </div>
-                </div>
-                <div className="bg-brutal-blue border-4 border-brutal-black p-5 shadow-neo-sm">
-                  <div className="text-[10px] font-black text-white uppercase tracking-widest mb-2 border-b-2 border-white pb-1">Chủ Tài Khoản</div>
-                  <div className="font-black text-white text-lg uppercase">
-                    {accountName || 'Chưa thiết lập'}
-                  </div>
-                </div>
-              </div>
-            )}
-            </motion.div>
-          )}
 
-          {/* Core Skills */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="bg-white border-4 border-brutal-black p-8 shadow-neo"
-          >
-            <h3 className="text-xl font-display font-black text-brutal-black mb-6 flex items-center gap-3 border-b-4 border-brutal-black pb-5 uppercase">
-              <Hexagon className="text-brutal-pink" size={24} /> Kỹ Năng / Chuyên Môn
-            </h3>
-            <SkillInput
-              skills={skills}
-              onChange={setSkills}
-              maxSkills={5}
-            />
-          </motion.div>
-
-          {/* Google Auth - Only show if not fully integrated native */}
-          {authMethod === 'wallet' && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="bg-white border-4 border-brutal-black p-8 shadow-neo-sm mt-6"
-            >
-              <h3 className="text-xl font-display font-black text-brutal-black mb-6 flex items-center gap-3">
-                <Mail className="text-brutal-blue" size={24} /> PHƯƠNG THỨC ĐĂNG NHẬP DỰ PHÒNG
-              </h3>
-
-              {currentUser?.email ? (
-                <div className="flex items-center gap-4 bg-brutal-green border-4 border-brutal-black p-5 shadow-neo-sm">
-                  <CheckCircle className="text-brutal-black" size={32} />
-                  <div>
-                    <div className="text-xs font-black text-brutal-black uppercase tracking-widest">Đã Liên Kết</div>
-                    <div className="text-brutal-black font-bold mt-1 text-lg">{currentUser.email}</div>
-                  </div>
+              {selectedBank ? (
+                <div className="mt-5 rounded-[20px] border border-border-main bg-main-bg p-4 text-sm text-text-muted">
+                  Selected bank: <span className="font-medium text-text-main">{selectedBank.name}</span>
                 </div>
-              ) : (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-6 border-4 border-brutal-black shadow-neo-sm gap-4 relative overflow-hidden">
-                  <div className="relative z-10">
-                    <div className="font-black text-brutal-black text-xl tracking-tight uppercase">Tài khoản chưa được liên kết</div>
-                    <div className="text-sm font-bold text-gray-600 mt-1">Nên thêm phương thức dự phòng để tránh mất quyền truy cập</div>
-                  </div>
-                  <div className="relative z-10 shrink-0">
-                    {isLinkingGoogle ? (
-                      <span className="text-brutal-black font-black text-xs uppercase tracking-widest px-4 py-2 bg-brutal-yellow border-4 border-brutal-black shadow-neo-sm">Đang xử lý...</span>
-                    ) : (
-                      <div className="bg-white p-1 shadow-neo-sm border-4 border-brutal-black inline-block">
-                        <GoogleLogin
-                          onSuccess={handleGoogleLinkSuccess}
-                          onError={() => alert('Thất bại')}
-                          useOneTap={false}
-                          theme="outline"
-                          size="medium"
-                          shape="rectangular"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          )}
-
+              ) : null}
+            </SurfaceCard>
+          ) : null}
         </div>
       </div>
     </div>
   );
 }
 
-function ArrowRight(props: any) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M5 12h14" />
-      <path d="m12 5 7 7-7 7" />
-    </svg>
+    <label className="grid gap-2">
+      <span className="text-[11px] uppercase tracking-[0.18em] text-text-muted">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function ReadOnlyField({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  icon: React.ComponentType<{ className?: string }>;
+}) {
+  return (
+    <div className="rounded-[20px] border border-border-main bg-main-bg p-4">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-text-muted">{label}</p>
+      <div className="mt-2 flex items-center gap-3">
+        <Icon className="h-4 w-4 text-primary" />
+        <p className="break-all text-sm text-text-main">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function InputWithIcon({
+  value,
+  onChange,
+  placeholder,
+  icon: Icon,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  placeholder: string;
+  icon: React.ComponentType<{ className?: string }>;
+}) {
+  return (
+    <div className="relative">
+      <Icon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="input-shell pl-11"
+        placeholder={placeholder}
+      />
+    </div>
+  );
+}
+
+function MetricRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between rounded-[18px] border border-border-main bg-main-bg px-4 py-3">
+      <span className="text-sm text-text-muted">{label}</span>
+      <span className="text-sm font-semibold text-text-main">{value}</span>
+    </div>
   );
 }

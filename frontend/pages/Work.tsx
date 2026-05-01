@@ -1,350 +1,436 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { motion } from 'framer-motion';
-import { GitBranch, Star, Code, ExternalLink, Plus, X, Briefcase } from 'lucide-react';
-import { useStore } from '../store/useStore';
-import { Bounty, Repo } from '../types';
-import { clsx } from 'clsx';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  Briefcase,
+  ExternalLink,
+  GitBranch,
+  Github,
+  Plus,
+  Star,
+  X,
+} from 'lucide-react';
+
+import { useUiPreview } from '@/components/Layout';
+import {
+  EmptyState,
+  PageHeader,
+  SectionHeader,
+  StatusBadge,
+  SurfaceCard,
+} from '@/components/ui/Primitives';
+import { useStore } from '@/store/useStore';
+import type { Bounty, Repo } from '@/types';
+
+type WorkTab = 'bounties' | 'repos';
 
 export function Work() {
-  const [activeTab, setActiveTab] = useState<'bounties' | 'repos'>('bounties');
+  const { bounties, repos, addBounty, addRepo, currentUser, addToast } = useStore();
+  const uiPreview = useUiPreview();
+  const [activeTab, setActiveTab] = useState<WorkTab>('bounties');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { currentUser } = useStore();
-  const canManage = currentUser?.memberType === 'member';
+  const canManage = uiPreview.canManageWork;
+
+  const orderedBounties = useMemo(() => {
+    const order = ['Open', 'In Progress', 'Completed', 'Closed'];
+    return [...bounties].sort(
+      (left, right) => order.indexOf(left.status) - order.indexOf(right.status)
+    );
+  }, [bounties]);
 
   const handleAddClick = () => {
-    if (!currentUser) {
-      alert('Vui lòng đăng nhập trước!');
+    if (!canManage) {
+      addToast('Work publishing is locked for this role preview.', 'info');
       return;
     }
-
-    if (!canManage) {
-      alert('Tài khoản cộng đồng không thể tạo dự án/nhiệm vụ.');
-      return;
+    if (!currentUser && uiPreview.previewOnly) {
+      addToast('Preview unlocked. Real authentication is still required to submit.', 'info');
     }
     setIsModalOpen(true);
   };
 
   return (
-    <div className="space-y-8 pt-10 pb-20 px-4 sm:px-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end border-b border-slate-200 pb-6 gap-6">
-         <div>
-           <h2 className="text-4xl sm:text-5xl font-display font-bold text-slate-800 tracking-tight">HOẠT ĐỘNG</h2>
-           <p className="text-slate-500 font-medium text-sm mt-2">Nhiệm vụ (Bounties) & Mã nguồn mở từ DSUC.</p>
-         </div>
-         <button 
-           onClick={handleAddClick}
-           disabled={!canManage}
-           className={`font-black text-sm px-6 py-4 border-4 transition-all w-full flex items-center justify-center gap-2 sm:w-auto brutal-btn ${
-             canManage
-               ? 'bg-brutal-yellow text-brutal-black border-brutal-black hover:bg-brutal-pink' 
-               : 'bg-gray-200 text-gray-500 cursor-not-allowed border-gray-400'
-           }`}
-         >
-           <Plus size={20} /> THÊM {activeTab === 'bounties' ? 'BOUNTY' : 'REPO'}
-           {!canManage && <span className="text-[10px] uppercase font-black tracking-widest ml-1">(Chỉ Member)</span>}
-         </button>
+    <div className="mx-auto flex max-w-7xl flex-col gap-8">
+      <PageHeader
+        eyebrow="Work"
+        title="Club workstreams and open-source delivery."
+        subtitle="Bounties are now readable task cards, while repos stay as compact shipping records for the engineering side of DSUC Labs."
+        actions={
+          <>
+            <StatusBadge tone="info">{bounties.length} bounties</StatusBadge>
+            <StatusBadge>{repos.length} repos</StatusBadge>
+            <button type="button" onClick={handleAddClick} className="action-button action-button-primary">
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Add {activeTab === 'bounties' ? 'Bounty' : 'Repo'}
+            </button>
+          </>
+        }
+      />
+
+      <div className="flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={() => setActiveTab('bounties')}
+          className={`rounded-full border px-4 py-2 text-sm transition-colors ${
+            activeTab === 'bounties'
+              ? 'border-primary bg-primary text-main-bg'
+              : 'border-border-main bg-surface text-text-main hover:bg-main-bg'
+          }`}
+        >
+          Bounties
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('repos')}
+          className={`rounded-full border px-4 py-2 text-sm transition-colors ${
+            activeTab === 'repos'
+              ? 'border-primary bg-primary text-main-bg'
+              : 'border-border-main bg-surface text-text-main hover:bg-main-bg'
+          }`}
+        >
+          Repositories
+        </button>
       </div>
 
-      <div className="flex bg-white border-4 border-brutal-black w-fit shadow-neo-sm">
-        <TabButton active={activeTab === 'bounties'} onClick={() => setActiveTab('bounties')}>
-          Bounties (Nhiệm vụ)
-        </TabButton>
-        <TabButton active={activeTab === 'repos'} onClick={() => setActiveTab('repos')}>
-          Mã Nguồn Mở
-        </TabButton>
-      </div>
-
-      {activeTab === 'bounties' ? <BountyBoard /> : <RepoList />}
-      
-      {isModalOpen && canManage && <AddItemModal type={activeTab} onClose={() => setIsModalOpen(false)} />}
-    </div>
-  );
-}
-
-function TabButton({ children, active, onClick }: { children?: React.ReactNode, active: boolean, onClick: () => void }) {
-  return (
-    <button 
-      onClick={onClick}
-      className={clsx(
-        "px-6 py-3 text-sm font-black uppercase transition-colors whitespace-nowrap border-x-2 border-transparent first:border-l-0 last:border-r-0",
-        active ? "bg-brutal-blue text-white border-r-brutal-black hover:bg-brutal-pink hover:text-brutal-black" : "text-gray-500 hover:text-brutal-black hover:bg-brutal-yellow"
+      {activeTab === 'bounties' ? (
+        <section className="space-y-5">
+          <SectionHeader
+            eyebrow="Task Board"
+            title="Current bounties"
+            subtitle="Reward, difficulty, skills, and submission status are all visible without opening the card."
+          />
+          {orderedBounties.length > 0 ? (
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {orderedBounties.map((bounty) => (
+                <BountyCard key={bounty.id} bounty={bounty} />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="No bounties yet"
+              message="Once the store contains work items, they will appear here as structured task cards."
+            />
+          )}
+        </section>
+      ) : (
+        <section className="space-y-5">
+          <SectionHeader
+            eyebrow="Engineering Ledger"
+            title="Open-source repositories"
+            subtitle="Each repo keeps its language, traction, and outbound route visible in one line."
+          />
+          {repos.length > 0 ? (
+            <div className="grid gap-5 xl:grid-cols-2">
+              {repos.map((repo) => (
+                <RepoCard key={repo.id} repo={repo} />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="No repositories yet"
+              message="Published club repositories will appear here once the backend data is available."
+            />
+          )}
+        </section>
       )}
-    >
-      {children}
-    </button>
+
+      <AddWorkModal
+        type={activeTab}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onAddBounty={addBounty}
+        onAddRepo={addRepo}
+      />
+    </div>
   );
 }
 
-function BountyBoard() {
-  const { bounties } = useStore();
-  const columns = ['Open', 'In Progress', 'Completed', 'Closed'];
-
-  const STATUS_LABELS: Record<string, string> = {
-    'Open': 'Đang Mở',
-    'In Progress': 'Đang Thực Hiện',
-    'Completed': 'Đã Hoàn Thành',
-    'Closed': 'Đã Đóng'
-  };
-
-  const STATUS_COLORS: Record<string, string> = {
-    'Open': 'bg-brutal-green',
-    'In Progress': 'bg-brutal-blue',
-    'Completed': 'bg-brutal-yellow',
-    'Closed': 'bg-gray-300'
-  };
+function BountyCard({ bounty }: { bounty: Bounty }) {
+  const difficultyTone =
+    bounty.difficulty === 'Hard'
+      ? 'danger'
+      : bounty.difficulty === 'Medium'
+        ? 'warning'
+        : 'success';
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 tracking-tight">
-      {columns.map(status => (
-        <div key={status} className="bg-white border-4 border-brutal-black p-4 shadow-neo">
-          <div className="flex items-center gap-2 mb-4 border-b-4 border-brutal-black pb-3">
-            <div className={clsx("w-3 h-3 border-2 border-brutal-black", STATUS_COLORS[status])} />
-            <span className="font-black text-sm uppercase tracking-widest text-brutal-black shrink-0">{STATUS_LABELS[status] || status}</span>
-            <span className="ml-auto bg-brutal-pink border-2 border-brutal-black text-brutal-black text-xs font-black px-2 py-0.5 shadow-neo-sm">
-              {bounties.filter(b => b.status === status).length}
-            </span>
-          </div>
-
-          <div className="space-y-6">
-             {bounties.filter(b => b.status === status).map(bounty => (
-               <BountyCard key={bounty.id} bounty={bounty} />
-             ))}
-             {bounties.filter(b => b.status === status).length === 0 && (
-                <div className="h-24 border-4 border-dashed border-brutal-black flex items-center justify-center text-brutal-black text-xs font-black uppercase tracking-widest bg-gray-50">
-                  Trống
-                </div>
-             )}
-          </div>
+    <SurfaceCard interactive className="flex h-full flex-col p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <StatusBadge tone={difficultyTone}>{bounty.difficulty}</StatusBadge>
+          <StatusBadge>{bounty.status}</StatusBadge>
         </div>
-      ))}
-    </div>
+        <div className="rounded-[18px] border border-border-main bg-warning-soft px-4 py-3 text-lg font-semibold text-text-main">
+          {bounty.reward}
+        </div>
+      </div>
+
+      <h3 className="mt-5 font-heading text-2xl font-semibold tracking-tight text-text-main">
+        {bounty.title}
+      </h3>
+
+      <div className="mt-5 rounded-[20px] border border-border-main bg-main-bg p-4">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-text-muted">Skills / tags</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {bounty.tags.length > 0 ? (
+            bounty.tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full border border-border-main bg-surface px-3 py-1 text-xs text-text-main"
+              >
+                {tag}
+              </span>
+            ))
+          ) : (
+            <span className="text-sm text-text-muted">No tags added.</span>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-6 border-t border-border-main pt-5">
+        {bounty.submitLink ? (
+          <a
+            href={bounty.submitLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="action-button action-button-secondary"
+          >
+            <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            Open / Submit
+          </a>
+        ) : (
+          <button type="button" disabled className="action-button action-button-ghost">
+            No submission link yet
+          </button>
+        )}
+      </div>
+    </SurfaceCard>
   );
 }
 
-function BountyCard({ bounty }: { bounty: Bounty; key?: React.Key }) {
-  const DIFFICULTY_INFO = {
-    'Easy': { text: 'Dễ', color: 'text-brutal-black bg-brutal-green border-brutal-black' },
-    'Medium': { text: 'Trang bình', color: 'text-brutal-black bg-brutal-yellow border-brutal-black' },
-    'Hard': { text: 'Khó', color: 'text-white bg-brutal-red border-brutal-black' },
-  }[bounty.difficulty] || { text: bounty.difficulty, color: 'text-brutal-black bg-white border-brutal-black' };
-
-  const content = (
-    <div className="bg-white p-5 border-4 border-brutal-black shadow-neo-sm hover:shadow-neo hover:-translate-y-1 hover:-translate-x-1 transition-all group flex flex-col h-full relative cursor-pointer brutal-card">
-      <div className="flex justify-between items-start mb-4">
-         <span className={clsx("text-[10px] font-black px-2.5 py-1 uppercase border-2 shadow-neo-sm", DIFFICULTY_INFO.color)}>
-           {DIFFICULTY_INFO.text}
-         </span>
-         <span className="text-brutal-black bg-brutal-yellow font-black text-sm px-2 py-1 border-2 border-brutal-black shadow-neo-sm uppercase">{bounty.reward}</span>
-      </div>
-      <h4 className="font-black font-display text-brutal-black text-xl leading-tight mb-4 uppercase">{bounty.title}</h4>
-      <div className="flex flex-wrap gap-2 mb-6">
-        {bounty.tags.map(tag => (
-          <span key={tag} className="text-[10px] text-brutal-black font-black uppercase tracking-wider border-2 border-brutal-black px-2.5 py-1 bg-white shadow-neo-sm">#{tag}</span>
-        ))}
-      </div>
-      {bounty.submitLink && (
-        <div className="mt-auto w-full py-3 bg-brutal-pink text-brutal-black hover:bg-brutal-blue rounded-none font-black text-xs transition-all flex items-center justify-center gap-2 border-4 border-brutal-black group-hover:shadow-neo-sm">
-          TỚI TRANG NHIỆM VỤ
-          <ExternalLink size={16} className="group-hover:translate-x-1 transition-transform border-l-2 border-brutal-black pl-1" />
+function RepoCard({ repo }: { repo: Repo }) {
+  return (
+    <SurfaceCard interactive className="flex h-full flex-col p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-[18px] border border-border-main bg-main-bg text-primary">
+          <Briefcase className="h-5 w-5" aria-hidden="true" />
         </div>
-      )}
-    </div>
-  );
+        <div className="flex flex-wrap gap-2">
+          <StatusBadge tone="info">{repo.language || 'Code'}</StatusBadge>
+          <StatusBadge>{repo.status || 'Published'}</StatusBadge>
+        </div>
+      </div>
 
-  if (bounty.submitLink) {
-    return (
-      <motion.a
-        whileHover={{ y: -2 }}
-        href={bounty.submitLink}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block"
-      >
-        {content}
-      </motion.a>
-    );
+      <h3 className="mt-5 font-heading text-2xl font-semibold tracking-tight text-text-main">
+        {repo.name}
+      </h3>
+      <p className="mt-3 flex-1 text-sm leading-7 text-text-muted">{repo.description}</p>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-[20px] border border-border-main bg-main-bg p-4">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-text-muted">Stars</p>
+          <p className="mt-2 flex items-center gap-2 text-lg font-semibold text-text-main">
+            <Star className="h-4 w-4 text-primary" aria-hidden="true" />
+            {repo.stars}
+          </p>
+        </div>
+        <div className="rounded-[20px] border border-border-main bg-main-bg p-4">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-text-muted">Forks</p>
+          <p className="mt-2 flex items-center gap-2 text-lg font-semibold text-text-main">
+            <GitBranch className="h-4 w-4 text-primary" aria-hidden="true" />
+            {repo.forks}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-6 border-t border-border-main pt-5">
+        {repo.repoLink ? (
+          <a
+            href={repo.repoLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="action-button action-button-secondary"
+          >
+            <Github className="h-4 w-4" aria-hidden="true" />
+            Open Repository
+          </a>
+        ) : (
+          <button type="button" disabled className="action-button action-button-ghost">
+            Repository link unavailable
+          </button>
+        )}
+      </div>
+    </SurfaceCard>
+  );
+}
+
+function AddWorkModal({
+  type,
+  isOpen,
+  onClose,
+  onAddBounty,
+  onAddRepo,
+}: {
+  type: WorkTab;
+  isOpen: boolean;
+  onClose: () => void;
+  onAddBounty: (bounty: Bounty) => void;
+  onAddRepo: (repo: Repo) => void;
+}) {
+  if (!isOpen) {
+    return null;
   }
 
-  return (
-    <motion.div whileHover={{ y: -2 }} className="block">
-      {content}
-    </motion.div>
-  );
-}
-
-function RepoList() {
-  const { repos } = useStore();
-
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {repos.map((repo) => {
-        const content = (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10 w-full h-full">
-            <div className="flex items-start sm:items-center gap-5 flex-1">
-              <div className="w-16 h-16 bg-brutal-blue flex items-center justify-center text-white border-4 border-brutal-black shadow-neo-sm shrink-0 group-hover:scale-110 group-hover:-rotate-3 transition-transform">
-                <Code size={32} />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-display font-black text-brutal-black tracking-tight uppercase line-clamp-1">{repo.name}</h3>
-                <p className="text-brutal-black font-bold text-sm mt-2 line-clamp-2">{repo.description}</p>
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center gap-4 pl-5 shrink-0 sm:mt-0 sm:pl-0">
-               <div className="flex items-center gap-2 text-brutal-black font-black text-[10px] uppercase tracking-widest bg-brutal-yellow px-3 py-1.5 border-2 border-brutal-black shadow-neo-sm">
-                  <div className="w-2 h-2 rounded-full bg-brutal-black" />
-                  {repo.language}
-               </div>
-               <div className="flex items-center gap-4 text-sm font-black text-brutal-black bg-white px-3 py-1.5 border-2 border-brutal-black shadow-neo-sm">
-                  <div className="flex items-center gap-1.5"><Star size={16} className="text-brutal-black" /> {repo.stars}</div>
-                  <div className="flex items-center gap-1.5"><GitBranch size={16} className="text-brutal-black" /> {repo.forks}</div>
-               </div>
-               <div className="p-2 text-brutal-black bg-brutal-pink border-2 border-brutal-black shadow-neo-sm group-hover:-rotate-12 transition-transform sm:block hidden">
-                 <ExternalLink size={20} />
-               </div>
-            </div>
-          </div>
-        );
-
-        const className = clsx(
-          "bg-white p-6 md:p-8 flex flex-col justify-center border-4 border-brutal-black transition-all shadow-neo relative overflow-hidden group brutal-card duration-300 h-full",
-          repo.repoLink
-            ? "hover:-translate-y-1 hover:-translate-x-1 hover:shadow-neo-lg cursor-pointer"
-            : "opacity-75 cursor-default"
-        );
-
-        if (repo.repoLink) {
-          return (
-            <motion.a
-              key={repo.id}
-              whileHover={{ scale: 1.01 }}
-              href={repo.repoLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={className}
-            >
-              <div className="absolute top-0 bottom-0 left-0 w-1 bg-sky-400 scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom" />
-              {content}
-            </motion.a>
-          );
-        }
-
-        return (
-          <motion.div key={repo.id} whileHover={{ scale: 1.01 }} className={className}>
-            {content}
-          </motion.div>
-        );
-      })}
-    </div>
-  );
-}
-
-function AddItemModal({ type, onClose }: { type: 'bounties' | 'repos', onClose: () => void }) {
-  const { addBounty, addRepo } = useStore();
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const form = e.target as HTMLFormElement;
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const form = event.target as HTMLFormElement;
     const formData = new FormData(form);
 
     if (type === 'bounties') {
-      addBounty({
+      onAddBounty({
         id: Math.random().toString(),
-        title: formData.get('title') as string,
-        reward: formData.get('reward') as string,
-        difficulty: formData.get('difficulty') as any,
-        tags: (formData.get('tags') as string).split(',').map(s => s.trim()),
-        status: 'Open',
-        submitLink: formData.get('submitLink') as string || undefined
+        title: String(formData.get('title') || ''),
+        reward: String(formData.get('reward') || ''),
+        difficulty: String(formData.get('difficulty') || 'Easy') as Bounty['difficulty'],
+        status: String(formData.get('status') || 'Open') as Bounty['status'],
+        tags: String(formData.get('tags') || '')
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean),
+        submitLink: String(formData.get('submitLink') || '') || undefined,
       });
     } else {
-      addRepo({
+      onAddRepo({
         id: Math.random().toString(),
-        name: formData.get('name') as string,
-        description: formData.get('description') as string,
-        language: formData.get('language') as string,
-        stars: 0,
-        forks: 0,
-        repoLink: formData.get('repoLink') as string || undefined
+        name: String(formData.get('name') || ''),
+        description: String(formData.get('description') || ''),
+        language: String(formData.get('language') || ''),
+        stars: Number(formData.get('stars') || 0),
+        forks: Number(formData.get('forks') || 0),
+        repoLink: String(formData.get('repoLink') || '') || undefined,
       });
     }
+
     onClose();
   };
 
   return ReactDOM.createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6" onClick={onClose}>
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
-      <motion.div 
-        initial={{ scale: 0.95, opacity: 0, y: 20 }} 
-        animate={{ scale: 1, opacity: 1, y: 0 }} 
-        className="bg-white rounded-[2rem] border border-slate-100 p-8 w-full max-w-lg relative z-10 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 p-2 rounded-full transition-colors z-10">
-          <X size={20} />
-        </button>
-        <div className="mb-8 pr-10">
-          <h3 className="text-2xl font-display font-bold text-slate-800">THÊM {type === 'bounties' ? 'NHIỆM VỤ' : 'MÃ NGUỒN'}</h3>
-          <p className="text-slate-500 text-sm font-medium mt-1">
-            {type === 'bounties' ? 'Đăng tải nhiệm vụ để các thành viên khác thực hiện và nhận thưởng.' : 'Chia sẻ mã nguồn mở cho cộng đồng cùng tham khảo và đóng góp.'}
-          </p>
-        </div>
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" onClick={onClose}>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        />
+        <motion.div
+          initial={{ opacity: 0, y: 12, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 12, scale: 0.97 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+          className="relative z-10 w-full max-w-2xl rounded-[32px] border border-border-main bg-surface-elevated p-7 shadow-soft-xl"
+          onClick={(innerEvent) => innerEvent.stopPropagation()}
+        >
+          <button type="button" onClick={onClose} className="icon-button absolute right-5 top-5">
+            <X className="h-4 w-4" />
+          </button>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">{type === 'bounties' ? 'Tên nhiệm vụ' : 'Tên Repo'}</label>
-            <input name={type === 'bounties' ? 'title' : 'name'} placeholder={type === 'bounties' ? 'Ví dụ: Sửa bug UI trang đăng nhập' : 'DSUC-Labs-Core'} required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none font-medium text-sm transition-all shadow-sm" />
+          <div className="space-y-2">
+            <p className="section-eyebrow">{type === 'bounties' ? 'Bounty Intake' : 'Repo Intake'}</p>
+            <h2 className="font-heading text-3xl font-semibold tracking-tight text-text-main">
+              {type === 'bounties' ? 'Publish a new bounty' : 'Register a repository'}
+            </h2>
+            <p className="text-sm leading-6 text-text-muted">
+              This stays connected to the current store actions. Preview mode only unlocks the interface.
+            </p>
           </div>
-          
-          {type === 'bounties' ? (
-             <div className="space-y-4">
-               <div className="grid grid-cols-2 gap-4">
-                 <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Phần Thưởng</label>
-                    <input name="reward" placeholder="Ví dụ: $500, 100 Điểm..." required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sky-600 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none font-medium text-sm transition-all shadow-sm font-bold" />
-                 </div>
-                 <div className="space-y-1.5">
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Độ khó</label>
-                     <select name="difficulty" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none font-medium text-sm transition-all shadow-sm appearance-none">
-                       <option value="Easy">Dễ</option>
-                       <option value="Medium">Trung bình</option>
-                       <option value="Hard">Khó</option>
-                     </select>
-                 </div>
-               </div>
-               <div className="space-y-1.5">
-                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Tags (Cách nhau dấu phẩy)</label>
-                 <input name="tags" placeholder="UI, React, Bugfix..." required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none font-medium text-sm transition-all shadow-sm" />
-               </div>
-               <div className="space-y-1.5">
-                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Link nhiệm vụ/Issue (Tuỳ chọn)</label>
-                 <input name="submitLink" placeholder="https://github.com/.../issues/1" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none font-medium text-sm transition-all shadow-sm" />
-               </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Mô tả</label>
-                <textarea name="description" placeholder="Giới thiệu sơ lược về repository..." rows={3} required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none font-medium text-sm transition-all shadow-sm resize-none" />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                 <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Ngôn ngữ chính</label>
-                    <input name="language" placeholder="Ví dụ: TypeScript, Rust..." required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none font-medium text-sm transition-all shadow-sm" />
-                 </div>
-                 <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Link Repository</label>
-                    <input name="repoLink" placeholder="https://github.com/..." required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sky-600 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none font-medium text-sm transition-all shadow-sm" />
-                 </div>
-              </div>
-            </div>
-          )}
 
-          <button type="submit" className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-4 rounded-full transition-all shadow-sm hover:shadow uppercase tracking-wider text-sm mt-6">TẠO MỚI</button>
-        </form>
-      </motion.div>
-    </div>,
+          <form onSubmit={handleSubmit} className="mt-6 grid gap-4">
+            {type === 'bounties' ? (
+              <>
+                <Field label="Title">
+                  <input name="title" required className="input-shell" placeholder="Build the Academy progress chart" />
+                </Field>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field label="Reward">
+                    <input name="reward" required className="input-shell" placeholder="2,000,000 VND" />
+                  </Field>
+                  <Field label="Difficulty">
+                    <select name="difficulty" className="input-shell">
+                      <option value="Easy">Easy</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Hard">Hard</option>
+                    </select>
+                  </Field>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field label="Status">
+                    <select name="status" className="input-shell">
+                      <option value="Open">Open</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Completed">Completed</option>
+                      <option value="Closed">Closed</option>
+                    </select>
+                  </Field>
+                  <Field label="Tags">
+                    <input name="tags" className="input-shell" placeholder="frontend, academy, charts" />
+                  </Field>
+                </div>
+                <Field label="Submission URL">
+                  <input name="submitLink" type="url" className="input-shell" placeholder="https://..." />
+                </Field>
+              </>
+            ) : (
+              <>
+                <Field label="Repository name">
+                  <input name="name" required className="input-shell" placeholder="dsuc-labs-frontend" />
+                </Field>
+                <Field label="Description">
+                  <textarea
+                    name="description"
+                    rows={4}
+                    required
+                    className="input-shell min-h-[120px] resize-none"
+                    placeholder="What this repository is for."
+                  />
+                </Field>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Field label="Language">
+                    <input name="language" required className="input-shell" placeholder="TypeScript" />
+                  </Field>
+                  <Field label="Stars">
+                    <input name="stars" type="number" min="0" className="input-shell" defaultValue="0" />
+                  </Field>
+                  <Field label="Forks">
+                    <input name="forks" type="number" min="0" className="input-shell" defaultValue="0" />
+                  </Field>
+                </div>
+                <Field label="Repository URL">
+                  <input name="repoLink" type="url" className="input-shell" placeholder="https://github.com/..." />
+                </Field>
+              </>
+            )}
+            <div className="mt-2 flex justify-end gap-3">
+              <button type="button" onClick={onClose} className="action-button action-button-ghost">
+                Cancel
+              </button>
+              <button type="submit" className="action-button action-button-primary">
+                {type === 'bounties' ? 'Create Bounty' : 'Register Repo'}
+              </button>
+            </div>
+          </form>
+        </motion.div>
+      </div>
+    </AnimatePresence>,
     document.body
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="grid gap-2">
+      <span className="text-[11px] uppercase tracking-[0.18em] text-text-muted">{label}</span>
+      {children}
+    </label>
   );
 }

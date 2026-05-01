@@ -1,18 +1,30 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, BookOpen, ChevronRight, Flame, Lock, Sparkles, Trophy } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Lock, Sparkles } from 'lucide-react';
 
 import type { AcademyV2Path } from '@/types';
 import { fetchAcademyV2Catalog } from '@/lib/academy/v2Api';
 import { useAcademyProgressState } from '@/lib/academy/useAcademyProgress';
 import { countCompletedAcademyV2CourseUnits } from '@/lib/academy/v2Progress';
 import { useStore } from '@/store/useStore';
+import {
+  ActionButton,
+  EmptyState,
+  PageHeader,
+  SectionHeader,
+  SkeletonBlock,
+  StatusBadge,
+  SurfaceCard,
+} from '@/components/ui/Primitives';
 
 function pluralize(value: number, singular: string, plural: string) {
   return value === 1 ? singular : plural;
 }
 
-function isCourseCompleted(pathState: ReturnType<typeof useAcademyProgressState>['state'], course: AcademyV2Path['courses'][number]) {
+function isCourseCompleted(
+  pathState: ReturnType<typeof useAcademyProgressState>['state'],
+  course: AcademyV2Path['courses'][number]
+) {
   const completed = countCompletedAcademyV2CourseUnits(pathState.completedLessons, course.id);
   return course.total_unit_count > 0 && completed >= course.total_unit_count;
 }
@@ -57,7 +69,7 @@ export function AcademyPath() {
 
         if (!cancelled) {
           if (!found) {
-            setError('Không tìm thấy lộ trình học.');
+            setError('Path not found.');
             setPath(null);
           } else {
             setPath(found);
@@ -65,7 +77,7 @@ export function AcademyPath() {
         }
       } catch (err: any) {
         if (!cancelled) {
-          setError(err.message || 'Không thể tải lộ trình học.');
+          setError(err.message || 'Unable to load this path.');
         }
       } finally {
         if (!cancelled) {
@@ -82,9 +94,10 @@ export function AcademyPath() {
 
   if (loading) {
     return (
-      <div className="space-y-6 mt-10">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+        <SkeletonBlock className="h-44 w-full" />
         {Array.from({ length: 3 }).map((_, index) => (
-          <div key={index} className="h-48 animate-pulse border-4 border-brutal-black bg-white shadow-neo" />
+          <SkeletonBlock key={index} className="h-52 w-full" />
         ))}
       </div>
     );
@@ -92,153 +105,170 @@ export function AcademyPath() {
 
   if (!path) {
     return (
-      <div className="mt-10 border-4 border-brutal-black bg-brutal-pink p-6 text-center text-sm font-black uppercase tracking-widest text-brutal-black shadow-neo">
-        {error || 'Không tìm thấy lộ trình.'}
-      </div>
+      <EmptyState
+        title="Path unavailable"
+        message={error || 'This academy path could not be opened right now.'}
+        action={
+          <Link to="/academy">
+            <ActionButton variant="secondary">Back To Academy</ActionButton>
+          </Link>
+        }
+      />
     );
   }
 
-  const completedCourses = path.courses.filter((course) => isCourseCompleted(progress.state, course)).length;
+  const completedCourses = path.courses.filter((course) =>
+    isCourseCompleted(progress.state, course)
+  ).length;
 
   return (
-    <div className="space-y-12 pb-20 mt-10">
-      <section className="bg-brutal-blue border-4 border-brutal-black rounded-none p-6 sm:p-10 relative overflow-hidden shadow-neo-xl flex flex-col lg:flex-row gap-8 lg:items-center justify-between">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-brutal-pink rounded-full border-8 border-brutal-black translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+    <div className="mx-auto flex max-w-6xl flex-col gap-10">
+      <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)]">
+        <SurfaceCard className="p-7 md:p-8">
+          <PageHeader
+            eyebrow="Curated Path"
+            title={path.title}
+            subtitle={path.description}
+            actions={
+              <Link to="/academy">
+                <ActionButton variant="secondary">
+                  <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                  Back To Academy
+                </ActionButton>
+              </Link>
+            }
+          />
+        </SurfaceCard>
 
-        <div className="relative z-10 flex flex-col gap-6 max-w-3xl">
-          <Link
-            to="/academy"
-            className="inline-flex min-h-12 items-center justify-center gap-3 bg-white border-4 border-brutal-black px-5 py-2 text-sm font-black uppercase tracking-widest text-brutal-black shadow-neo hover:-translate-y-1 hover:shadow-neo-lg transition-all w-fit"
-          >
-            <ArrowLeft className="h-5 w-5" strokeWidth={3} aria-hidden="true" />
-            Về Học Viện
-          </Link>
-          
-          <div>
-            <div className="inline-flex items-center justify-center bg-brutal-yellow border-4 border-brutal-black px-4 py-1.5 text-xs font-black uppercase tracking-widest text-brutal-black shadow-neo-sm transform -rotate-2">
-              {path.tag || path.difficulty}
-            </div>
-            <div className="mt-4 inline-block border-4 border-brutal-black bg-white px-5 py-4 shadow-neo-sm">
-              <h1 className="font-display text-5xl font-black text-brutal-black sm:text-6xl uppercase tracking-tighter">
-                {path.title}
-              </h1>
-            </div>
+        <SurfaceCard className="p-6">
+          <StatusBadge tone="info">{path.tag || path.difficulty}</StatusBadge>
+          <div className="mt-5 grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+            <Summary label="Courses" value={String(path.course_count)} />
+            <Summary label="Practice units" value={String(path.practice_unit_count)} />
+            <Summary label="Completed" value={`${completedCourses}/${path.course_count}`} />
           </div>
-        </div>
-
-        <div className="relative z-10 grid gap-4 w-full lg:w-auto grid-cols-3 shrink-0">
-          <PathMetric value={String(path.course_count)} label={pluralize(path.course_count, 'Khóa', 'Khóa')} icon={<BookOpen className="h-6 w-6 text-brutal-black" strokeWidth={3} aria-hidden="true" />} color="bg-brutal-yellow" />
-          <PathMetric value={String(path.practice_unit_count)} label={pluralize(path.practice_unit_count, 'Thực hành', 'Thực hành')} icon={<Sparkles className="h-6 w-6 text-brutal-black" strokeWidth={3} aria-hidden="true" />} color="bg-brutal-pink" />
-          <PathMetric value={String(completedCourses)} label="Hoàn thành" icon={<Trophy className="h-6 w-6 text-brutal-black" strokeWidth={3} aria-hidden="true" />} color="bg-brutal-green" />
-        </div>
+        </SurfaceCard>
       </section>
 
-      <section className="space-y-8 mt-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-2">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-               <div className="w-10 h-2 bg-brutal-black" />
-               <span className="text-brutal-black font-black text-sm uppercase tracking-widest bg-brutal-yellow px-2 py-1 border-2 border-brutal-black shadow-neo-sm">Hành trình học tập</span>
-            </div>
-            <h2 className="font-display text-4xl sm:text-5xl font-black text-brutal-black uppercase tracking-tighter decoration-brutal-pink decoration-4 underline underline-offset-8 mt-4">
-              Các khóa học
-            </h2>
-          </div>
-          <div className="bg-brutal-black border-2 border-brutal-black px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white shadow-neo-sm hidden sm:block">
-            Mở khóa lần lượt
-          </div>
-        </div>
+      <section className="space-y-6">
+        <SectionHeader
+          eyebrow="Roadmap"
+          title="Follow the sequence"
+          subtitle="Courses unlock in order. Each card explains whether it is ready, in progress, or still locked behind the previous stage."
+        />
 
         {path.courses.length === 0 ? (
-          <div className="bg-gray-100 border-4 border-brutal-black p-12 text-center shadow-neo brutal-card mt-8">
-             <div className="mx-auto w-24 h-24 bg-white border-4 border-brutal-black shadow-neo-sm flex items-center justify-center mb-6">
-                <BookOpen className="h-12 w-12 text-brutal-black" strokeWidth={2} />
-             </div>
-             <p className="text-brutal-black font-black uppercase text-xl">Lộ trình này đang được xây dựng. Các khóa học sẽ sớm được cập nhật.</p>
-          </div>
+          <EmptyState
+            title="This path has no courses yet"
+            message="The roadmap is set up, but course content has not been attached to it yet."
+          />
         ) : (
-          <div className="space-y-8 mt-8">
+          <div className="relative space-y-6">
+            <div className="absolute left-5 top-0 hidden h-full w-px bg-border-main lg:block" />
             {path.courses.map((course, index) => {
-              const completed = countCompletedAcademyV2CourseUnits(progress.state.completedLessons, course.id);
-              const isCompleted = course.total_unit_count > 0 && completed >= course.total_unit_count;
+              const completed = countCompletedAcademyV2CourseUnits(
+                progress.state.completedLessons,
+                course.id
+              );
+              const isCompleted =
+                course.total_unit_count > 0 && completed >= course.total_unit_count;
               const previous = index > 0 ? path.courses[index - 1] : null;
               const previousDone = previous ? isCourseCompleted(progress.state, previous) : true;
               const locked = !previousDone;
-              const completionPercent = course.total_unit_count > 0
-                ? Math.round((completed / course.total_unit_count) * 100)
-                : 0;
+              const isCurrent = !locked && !isCompleted;
+              const completionPercent =
+                course.total_unit_count > 0
+                  ? Math.round((completed / course.total_unit_count) * 100)
+                  : 0;
 
               return (
-                <button
-                  key={course.id}
-                  type="button"
-                  disabled={locked}
-                  onClick={() => !locked && navigate(`/academy/course/${course.id}`)}
-                  className={`group flex w-full flex-col p-6 text-left transition-all border-4 border-brutal-black shadow-neo relative overflow-hidden ${
-                    locked
-                      ? 'cursor-not-allowed bg-gray-200 opacity-90 brightness-95'
-                      : 'bg-white transform hover:scale-[1.01] hover:-rotate-1 hover:shadow-neo-lg focus-visible:outline-none focus:ring-4 focus:ring-brutal-blue'
-                  }`}
-                >
-                  <div className="absolute top-0 left-0 w-full h-2 bg-gray-200 border-b-4 border-brutal-black">
-                    <div 
-                      className={`h-full transition-all duration-1000 ease-out border-r-4 border-brutal-black ${isCompleted ? 'bg-brutal-green' : 'bg-brutal-blue'}`}
-                      style={{ width: `${completionPercent}%` }} 
-                    />
+                <div key={course.id} className="relative lg:pl-16">
+                  <div className="absolute left-0 top-8 hidden lg:flex h-10 w-10 items-center justify-center rounded-full border border-border-main bg-main-bg text-sm font-semibold text-text-main">
+                    {String(index + 1).padStart(2, '0')}
                   </div>
+                  <button
+                    type="button"
+                    disabled={locked}
+                    onClick={() => !locked && navigate(`/academy/course/${course.id}`)}
+                    className={`w-full text-left ${
+                      locked ? 'cursor-not-allowed opacity-80' : ''
+                    }`}
+                  >
+                    <SurfaceCard interactive={!locked} className="p-6 md:p-7">
+                      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="space-y-4">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <StatusBadge tone={isCompleted ? 'success' : isCurrent ? 'info' : 'warning'}>
+                              {isCompleted ? 'Completed' : isCurrent ? 'Current' : 'Locked'}
+                            </StatusBadge>
+                            <span className="font-mono text-xs uppercase tracking-[0.18em] text-text-muted">
+                              Step {String(index + 1).padStart(2, '0')}
+                            </span>
+                          </div>
+                          <div>
+                            <h3 className="font-heading text-3xl font-semibold tracking-tight text-text-main">
+                              {course.title}
+                            </h3>
+                            <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
+                              {course.description}
+                            </p>
+                          </div>
 
-                  <div className="flex flex-col xl:flex-row xl:items-start lg:justify-between w-full mt-2 gap-6">
-                    <div className="flex-1 w-full xl:max-w-[65%]">
-                      <div className="flex flex-wrap items-center gap-3 mb-4">
-                        <span className="inline-flex items-center justify-center bg-brutal-blue border-4 border-brutal-black px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white shadow-neo-sm transform group-hover:rotate-2 transition-transform">
-                          Chặng {String(index + 1).padStart(2, '0')}
-                        </span>
-                        <span className="inline-flex items-center justify-center bg-gray-100 border-4 border-brutal-black px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
-                          {course.difficulty}
-                        </span>
-                        {locked ? (
-                          <span className="inline-flex items-center gap-1.5 bg-brutal-black border-4 border-brutal-black px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white shadow-neo-sm">
-                            <Lock className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
-                            Đã khóa
-                          </span>
-                        ) : isCompleted ? (
-                          <span className="inline-flex items-center gap-1.5 bg-brutal-green border-4 border-brutal-black px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-brutal-black shadow-neo-sm">
-                            <Flame className="h-4 w-4" strokeWidth={3} aria-hidden="true" />
-                            Hoàn thành
-                          </span>
-                        ) : null}
+                          <div className="grid gap-3 sm:grid-cols-3">
+                            <Metric label="Modules" value={String(course.module_count)} />
+                            <Metric label="Units" value={String(course.total_unit_count)} />
+                            <Metric label="Practice" value={String(course.practice_unit_count)} />
+                          </div>
+                        </div>
+
+                        <div className="w-full max-w-sm space-y-4 lg:w-[320px]">
+                          <div className="rounded-[24px] border border-border-main bg-main-bg p-4">
+                            <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-text-muted">
+                              <span>Progress</span>
+                              <span>{completionPercent}%</span>
+                            </div>
+                            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/60 dark:bg-white/5">
+                              <div
+                                className="h-full rounded-full bg-primary"
+                                style={{ width: `${completionPercent}%` }}
+                              />
+                            </div>
+                            <p className="mt-3 text-sm text-text-muted">
+                              {completed} / {course.total_unit_count}{' '}
+                              {pluralize(course.total_unit_count, 'unit', 'units')} finished.
+                            </p>
+                          </div>
+
+                          <div className="rounded-[24px] border border-border-main bg-main-bg p-4 text-sm leading-6 text-text-muted">
+                            {locked ? (
+                              <div className="flex items-start gap-3">
+                                <Lock className="mt-0.5 h-4 w-4 text-text-muted" aria-hidden="true" />
+                                <span>Finish the previous course to unlock this step.</span>
+                              </div>
+                            ) : isCompleted ? (
+                              <div className="flex items-start gap-3">
+                                <CheckCircle2 className="mt-0.5 h-4 w-4 text-success" aria-hidden="true" />
+                                <span>This course is complete. You can revisit it anytime.</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-start gap-3">
+                                <Sparkles className="mt-0.5 h-4 w-4 text-primary" aria-hidden="true" />
+                                <span>This is the active course in your roadmap.</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex justify-end">
+                            <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                              {locked ? 'Locked' : 'Open Course'}
+                              {!locked ? <ArrowRight className="h-4 w-4" aria-hidden="true" /> : null}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-
-                      <div className="w-full">
-                        <h3 className={`font-display text-4xl leading-none font-black uppercase tracking-tighter mb-4 transition-colors break-words ${locked ? 'text-gray-500' : 'text-brutal-black'}`}>
-                          {course.title}
-                        </h3>
-                        <p className="text-base font-bold text-gray-700 leading-relaxed bg-white/50 border-2 border-brutal-black p-4 w-full xl:min-h-[80px]">
-                          {course.description}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 w-full xl:w-[35%] shrink-0">
-                      <CourseMetric value={String(course.module_count)} label="Chương bài" icon={<BookOpen className="h-5 w-5 text-brutal-black" strokeWidth={3} />} />
-                      <CourseMetric value={String(course.practice_unit_count)} label="Thực hành" icon={<Sparkles className="h-5 w-5 text-brutal-black" strokeWidth={3} />} />
-                      <CourseMetric value={`${completionPercent}%`} label="Tiến độ" icon={<Trophy className="h-5 w-5 text-brutal-black" strokeWidth={3} />} />
-                      <CourseMetric value={`${course.duration_hours} giờ`} label="Thời lượng" icon={<Flame className="h-5 w-5 text-brutal-black" strokeWidth={3} />} />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 mt-6 border-t-4 border-brutal-black text-sm font-black w-full text-brutal-black">
-                    <div className="bg-white border-2 border-brutal-black px-4 py-2 shadow-neo-sm">
-                      <span className={isCompleted ? "text-brutal-green" : "text-brutal-blue"}>{completed}</span>
-                      <span className="mx-2">/</span>
-                      {course.total_unit_count} {pluralize(course.total_unit_count, 'bài học', 'bài học')}
-                    </div>
-                    <span className={`inline-flex items-center gap-3 transition-all uppercase tracking-widest ${locked ? 'text-gray-500' : 'text-brutal-blue group-hover:gap-5'}`}>
-                      {locked ? 'HÃY HOÀN THÀNH KHÓA HỌC TRƯỚC' : 'MỞ KHÓA HỌC'}
-                      <ChevronRight className={`h-6 w-6 border-2 border-brutal-black rounded-full p-0.5 ${locked ? '' : 'group-hover:bg-brutal-yellow group-hover:text-brutal-black transition-colors'}`} strokeWidth={3} aria-hidden="true" />
-                    </span>
-                  </div>
-                </button>
+                    </SurfaceCard>
+                  </button>
+                </div>
               );
             })}
           </div>
@@ -248,48 +278,20 @@ export function AcademyPath() {
   );
 }
 
-function PathMetric({
-  value,
-  label,
-  icon,
-  color,
-}: {
-  value: string;
-  label: string;
-  icon: React.ReactNode;
-  color?: string;
-}) {
+function Summary({ label, value }: { label: string; value: string }) {
   return (
-    <div className={`${color || 'bg-white'} border-4 border-brutal-black shadow-neo-sm p-4 hover:-translate-y-1 hover:shadow-neo transition-all`}>
-      <div className="flex items-center gap-3 mb-3">
-        <div className="flex items-center justify-center w-12 h-12 bg-white border-4 border-brutal-black shadow-neo-sm shrink-0">
-          {icon}
-        </div>
-        <div className="text-[10px] font-black uppercase tracking-widest text-brutal-black bg-white px-2 py-1 border-2 border-brutal-black shadow-neo-sm line-clamp-1 break-all">{label}</div>
-      </div>
-      <div className="font-display text-3xl font-black text-brutal-black mt-2" style={{ textShadow: '2px 2px 0 #fff' }}>{value}</div>
+    <div className="rounded-[22px] border border-border-main bg-main-bg p-4">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-text-muted">{label}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-tight text-text-main">{value}</p>
     </div>
   );
 }
 
-function CourseMetric({
-  value,
-  label,
-  icon,
-}: {
-  value: string;
-  label: string;
-  icon: React.ReactNode;
-}) {
+function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white border-4 border-brutal-black p-3 shadow-neo-sm flex flex-col items-start gap-2 h-full">
-      <div className="flex items-center gap-2 w-full border-b-2 border-brutal-black pb-2">
-        <div className="bg-brutal-yellow border-2 border-brutal-black p-0.5 shadow-neo-sm shrink-0">
-          {icon}
-        </div>
-        <div className="text-[10px] font-black uppercase tracking-widest text-brutal-black truncate">{label}</div>
-      </div>
-      <div className="font-display text-2xl font-black text-brutal-black leading-none uppercase tracking-tighter mt-1">{value}</div>
+    <div className="rounded-[20px] border border-border-main bg-main-bg p-4">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-text-muted">{label}</p>
+      <p className="mt-2 text-lg font-semibold tracking-tight text-text-main">{value}</p>
     </div>
   );
 }

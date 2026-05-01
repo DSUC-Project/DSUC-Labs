@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Open+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap"
     rel="stylesheet">
   <script>
     tailwind.config = {
@@ -18,51 +18,44 @@
       theme: {
         extend: {
           colors: {
-            background: '#020408', // Deep Navy Black
-            surface: '#050A14',    // Slightly lighter dark
-            cyber: {
-              blue: '#2979FF',     // Electric Blue
-              yellow: '#FFD600',   // Cyber Yellow
-              dark: '#0A1220'
-            },
+            'main-bg': 'var(--bg-main)',
+            surface: 'var(--bg-surface)',
+            'surface-elevated': 'var(--bg-surface-elevated)',
+            'text-main': 'var(--text-main)',
+            'text-muted': 'var(--text-muted)',
+            'border-main': 'var(--border-main)',
+            primary: 'var(--color-primary)',
+            accent: 'var(--color-accent)',
+            success: 'var(--color-success)',
+            error: 'var(--color-error)',
             brutal: {
-              bg: '#FAFAF9',
-              black: '#111827',
-              yellow: '#FDE047',
-              blue: '#38BDF8',
-              pink: '#F472B6',
-              green: '#4ADE80',
-              red: '#F87171'
+              bg: 'var(--brutal-bg)',
+              black: 'var(--brutal-black)',
+              yellow: 'var(--brutal-yellow)',
+              blue: 'var(--brutal-blue)',
+              pink: 'var(--brutal-pink)',
+              green: 'var(--brutal-green)',
+              red: 'var(--brutal-red)'
             }
           },
           fontFamily: {
-            sans: ['Open Sans', 'sans-serif'],
-            display: ['Chakra Petch', 'sans-serif'],
-            mono: ['Fira Code', 'monospace'],
-          },
-          backgroundImage: {
-            'grid-pattern': "linear-gradient(to right, #2979FF10 1px, transparent 1px), linear-gradient(to bottom, #2979FF10 1px, transparent 1px)",
+            sans: ['Manrope', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif'],
+            heading: ['Space Grotesk', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
           },
           boxShadow: {
-            'neo': '4px 4px 0px 0px #111827',
-            'neo-sm': '2px 2px 0px 0px #111827',
-            'neo-lg': '8px 8px 0px 0px #111827',
-            'neo-xl': '12px 12px 0px 0px #111827',
-            'neo-none': '0px 0px 0px 0px #111827',
-            'brutal': '4px 4px 0px 0px #111827',
-            'brutal-sm': '2px 2px 0px 0px #111827',
-            'brutal-hover': '6px 6px 0px 0px #111827',
-            'brutal-active': '1px 1px 0px 0px #111827',
+            'neo': 'var(--shadow-card)',
+            'neo-sm': 'var(--shadow-card-sm)',
+            'neo-lg': 'var(--shadow-card-lg)',
+            'neo-xl': 'var(--shadow-card-xl)',
+            'brutal': 'var(--shadow-card)',
+            'brutal-sm': 'var(--shadow-card-sm)',
+            'brutal-hover': 'var(--shadow-card-lg)',
+            'brutal-active': 'var(--shadow-press)',
           },
           animation: {
-            'scan': 'scan 4s linear infinite',
             'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-          },
-          keyframes: {
-            scan: {
-              '0%': { backgroundPosition: '0% 0%' },
-              '100%': { backgroundPosition: '0% 100%' },
-            },
           },
         },
       },
@@ -70,8 +63,8 @@
   </script>
   <style>
     body {
-      background-color: var(--brutal-bg, #fafaf9);
-      color: var(--brutal-black, #111827);
+      background-color: var(--bg-main, #f6f1e7);
+      color: var(--text-main, #142033);
       overflow-x: hidden;
     }
 
@@ -81,44 +74,16 @@
     }
 
     ::-webkit-scrollbar-track {
-      background: var(--brutal-bg, #fafaf9);
+      background: var(--bg-main, #f6f1e7);
     }
 
     ::-webkit-scrollbar-thumb {
-      background: #111827;
+      background: var(--border-main, #8f9cb2);
       border-radius: 0px;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-      background: #38BDF8;
-    }
-
-    .glass-panel {
-      background: rgba(5, 10, 20, 0.7);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(41, 121, 255, 0.3);
-      box-shadow: 0 0 15px rgba(41, 121, 255, 0.1);
-    }
-
-    .cyber-card {
-      background: linear-gradient(180deg, rgba(41, 121, 255, 0.1) 0%, rgba(2, 4, 8, 0) 100%);
-      border: 1px solid rgba(41, 121, 255, 0.3);
-    }
-
-    .cyber-clip-top {
-      clip-path: polygon(20px 0, 100% 0, 100% 100%, 0 100%, 0 20px);
-    }
-
-    .cyber-clip-bottom {
-      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%);
-    }
-
-    .cyber-button {
-      clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
-    }
-
-    .nav-shape {
-      clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%);
+      background: var(--color-primary, #2f66f6);
     }
   </style>
 </head>

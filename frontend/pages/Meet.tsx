@@ -18,7 +18,7 @@ export function Meet() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const screenRef = useRef<HTMLVideoElement>(null);
 
-  const { currentUser } = useStore();
+  const { currentUser, addToast } = useStore();
   const navigate = useNavigate();
 
   const handleJoin = async (e?: React.FormEvent) => {
@@ -174,7 +174,14 @@ export function Meet() {
             </form>
           </div>
           <div className="pt-8 border-t border-slate-100 text-sm text-slate-500 font-medium tracking-wide">
-            <a href="#" className="font-bold text-sky-600 hover:text-sky-700 transition-colors">Tìm hiểu thêm</a> về bảo mật của DSUC Meet.
+            <button
+              type="button"
+              onClick={() => addToast('DSUC Meet is still in maintenance mode. Security details will ship with the public release.', 'info')}
+              className="font-bold text-sky-600 hover:text-sky-700 transition-colors"
+            >
+              Tìm hiểu thêm
+            </button>{' '}
+            về bảo mật của DSUC Meet.
           </div>
         </div>
 

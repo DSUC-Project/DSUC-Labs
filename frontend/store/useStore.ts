@@ -28,6 +28,12 @@ declare global {
   }
 }
 
+export interface ToastMessage {
+  id: string;
+  message: string;
+  type: "success" | "error" | "info";
+}
+
 interface AppState {
   isWalletConnected: boolean;
   walletAddress: string | null;
@@ -35,6 +41,10 @@ interface AppState {
   currentUser: Member | null; // The logged-in user's profile
   authMethod: AuthMethod | null; // 'wallet' or 'google'
   authToken: string | null; // JWT token for Google auth
+
+  toasts: ToastMessage[];
+  addToast: (message: string, type?: "success" | "error" | "info") => void;
+  removeToast: (id: string) => void;
 
   // Backend Status
   backendStatus: 'connecting' | 'online' | 'offline';
@@ -149,6 +159,18 @@ export const useStore = create<AppState>((set, get) => ({
   authMethod: null,
   authToken: null,
   backendStatus: 'connecting',
+
+  toasts: [],
+  addToast: (message, type = "info") => {
+    const id = Math.random().toString(36).slice(2);
+    set((state) => ({ toasts: [...state.toasts, { id, message, type }] }));
+    window.setTimeout(() => {
+      get().removeToast(id);
+    }, 5000);
+  },
+  removeToast: (id) => {
+    set((state) => ({ toasts: state.toasts.filter((toast) => toast.id !== id) }));
+  },
 
   members: readCache<Member[]>("members", PUBLIC_CACHE_TTL_MS) || [],
   events: readCache<Event[]>("events", PUBLIC_CACHE_TTL_MS) || EVENTS,
@@ -416,8 +438,10 @@ export const useStore = create<AppState>((set, get) => ({
         }
       } else {
         console.warn("Wallet provider not found");
-        alert(
+        get().addToast(
           `${provider} is not installed or not available. Please install the ${provider} extension.`
+          ,
+          "error"
         );
         return;
       }
@@ -466,8 +490,10 @@ export const useStore = create<AppState>((set, get) => ({
             return;
           } else {
             // Backend responded OK but no member found
-            alert(
+            get().addToast(
               "❌ NOT A CLUB MEMBER\n\nYour wallet is not registered in the system.\nPlease register to use the website!"
+              ,
+              "error"
             );
             set({
               isWalletConnected: false,
@@ -480,8 +506,10 @@ export const useStore = create<AppState>((set, get) => ({
         } else {
           // Backend error - member not found
           console.warn("Backend auth failed - member not found");
-          alert(
+          get().addToast(
             "❌ NOT A CLUB MEMBER\n\nYour wallet is not registered in the system.\nPlease register to use the website!"
+            ,
+            "error"
           );
           set({
             isWalletConnected: false,
@@ -494,8 +522,10 @@ export const useStore = create<AppState>((set, get) => ({
       } catch (e) {
         console.warn("Backend auth failed", e);
         // Network error - show generic message
-        alert(
+        get().addToast(
           "❌ AUTHENTICATION FAILED\n\nCannot connect to server. Please try again later."
+          ,
+          "error"
         );
         set({
           isWalletConnected: false,
@@ -586,14 +616,19 @@ export const useStore = create<AppState>((set, get) => ({
 
         return true;
       } else {
-        alert(
+        get().addToast(
           `❌ LOGIN FAILED\n\n${result.message || "Email is not registered in the system."}`
+          ,
+          "error"
         );
         return false;
       }
     } catch (error) {
       console.error("[loginWithGoogle] Error:", error);
-      alert("❌ AUTHENTICATION FAILED\n\nCannot connect to server. Please try again later.");
+      get().addToast(
+        "❌ AUTHENTICATION FAILED\n\nCannot connect to server. Please try again later.",
+        "error"
+      );
       return false;
     }
   },
@@ -603,7 +638,10 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       const state = get();
       if (!state.walletAddress || !state.currentUser) {
-        alert("Please login with wallet first before linking Google account.");
+        get().addToast(
+          "Please login with wallet first before linking Google account.",
+          "info"
+        );
         return false;
       }
 
@@ -640,15 +678,24 @@ export const useStore = create<AppState>((set, get) => ({
             members,
           };
         });
-        alert("✅ Account linked successfully!\n\nYou can now login with either Google or Wallet.");
+        get().addToast(
+          "✅ Account linked successfully!\n\nYou can now login with either Google or Wallet.",
+          "success"
+        );
         return true;
       } else {
-        alert(`❌ Account linking failed\n\n${result.message || "An error occurred."}`);
+        get().addToast(
+          `❌ Account linking failed\n\n${result.message || "An error occurred."}`,
+          "error"
+        );
         return false;
       }
     } catch (error) {
       console.error("[linkGoogleAccount] Error:", error);
-      alert("❌ ACCOUNT LINKING FAILED\n\nCannot connect to server. Please try again later.");
+      get().addToast(
+        "❌ ACCOUNT LINKING FAILED\n\nCannot connect to server. Please try again later.",
+        "error"
+      );
       return false;
     }
   },
@@ -725,12 +772,12 @@ export const useStore = create<AppState>((set, get) => ({
 
     if (!state.currentUser) {
       console.error("[addEvent] User not authenticated");
-      alert("Please sign in first!");
+      get().addToast("Please sign in first!", "error");
       return;
     }
 
     if (!canManageClubData(state)) {
-      alert("Community accounts cannot create club events.");
+      get().addToast("Community accounts cannot create club events.", "error");
       return;
     }
 
@@ -780,12 +827,12 @@ export const useStore = create<AppState>((set, get) => ({
 
     if (!state.currentUser) {
       console.error("[addBounty] User not authenticated");
-      alert("Please sign in first!");
+      get().addToast("Please sign in first!", "error");
       return;
     }
 
     if (!canManageClubData(state)) {
-      alert("Community accounts cannot create bounties.");
+      get().addToast("Community accounts cannot create bounties.", "error");
       return;
     }
 
@@ -833,12 +880,12 @@ export const useStore = create<AppState>((set, get) => ({
 
     if (!state.currentUser) {
       console.error("[addRepo] User not authenticated");
-      alert("Please sign in first!");
+      get().addToast("Please sign in first!", "error");
       return;
     }
 
     if (!canManageClubData(state)) {
-      alert("Community accounts cannot create repositories.");
+      get().addToast("Community accounts cannot create repositories.", "error");
       return;
     }
 
@@ -885,12 +932,12 @@ export const useStore = create<AppState>((set, get) => ({
 
     if (!state.currentUser) {
       console.error("[addResource] User not authenticated");
-      alert("Please sign in first!");
+      get().addToast("Please sign in first!", "error");
       return;
     }
 
     if (!canManageClubData(state)) {
-      alert("Community accounts cannot create resources.");
+      get().addToast("Community accounts cannot create resources.", "error");
       return;
     }
 
@@ -936,12 +983,12 @@ export const useStore = create<AppState>((set, get) => ({
 
     if (!state.currentUser) {
       console.error("[addProject] User not authenticated");
-      alert("Please sign in first!");
+      get().addToast("Please sign in first!", "error");
       return;
     }
 
     if (!canManageClubData(state)) {
-      alert("Community accounts cannot create projects.");
+      get().addToast("Community accounts cannot create projects.", "error");
       return;
     }
 
@@ -1213,11 +1260,11 @@ export const useStore = create<AppState>((set, get) => ({
       } else {
         const error = await res.json();
         console.error("[updateCurrentUser] Failed:", error);
-        alert("Failed to update profile");
+        get().addToast("Failed to update profile", "error");
       }
     } catch (err) {
       console.error("[updateCurrentUser] Error:", err);
-      alert("Failed to update profile");
+      get().addToast("Failed to update profile", "error");
     }
   },
 }));

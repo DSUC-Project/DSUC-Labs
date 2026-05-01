@@ -1,113 +1,168 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Github, Twitter, Send, Users } from 'lucide-react';
-import { useStore } from '../store/useStore'; // Use store for Members
-import { Member } from '../types';
+import {
+  Facebook,
+  Github,
+  Send,
+  ShieldCheck,
+  Sparkles,
+  Twitter,
+} from 'lucide-react';
+
+import {
+  EmptyState,
+  PageHeader,
+  SectionHeader,
+  StatusBadge,
+  SurfaceCard,
+} from '@/components/ui/Primitives';
+import { useStore } from '@/store/useStore';
+import type { Member } from '@/types';
+
+function getMemberType(member: Member) {
+  return member.memberType || member.member_type || 'community';
+}
 
 export function Members() {
-  const { members } = useStore(); // Get members from store
-  const officialMembers = members.filter(
-    (member) => member.memberType !== 'community'
-  );
-  const communityMembers = members.filter(
-    (member) => member.memberType === 'community'
-  );
+  const { members } = useStore();
+  const officialMembers = members.filter((member) => getMemberType(member) !== 'community');
+  const communityMembers = members.filter((member) => getMemberType(member) === 'community');
 
   return (
-    <div className="space-y-12 pb-20 pt-10 px-4 sm:px-6 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b-4 border-brutal-black pb-6">
-        <div>
-          <h2 className="text-4xl sm:text-5xl font-display font-black mb-4 text-brutal-black uppercase tracking-tighter decoration-brutal-yellow decoration-4 underline underline-offset-4">THÀNH VIÊN</h2>
-          <p className="text-brutal-black font-bold border-l-4 border-brutal-pink pl-4">Những cá nhân xuất sắc đang đóng góp vào mạng lưới DSUC.</p>
-        </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-brutal-blue border-4 border-brutal-black text-brutal-black font-black text-xs uppercase tracking-widest shadow-neo-sm">
-          <Users size={20} />
-          {members.length} người dùng
-        </div>
-      </div>
+    <div className="mx-auto flex max-w-7xl flex-col gap-10">
+      <PageHeader
+        eyebrow="Members"
+        title="The people behind DSUC Labs."
+        subtitle="Profiles are split between official operators and the wider builder community, with quick access to skills, social presence, and profile routes."
+        actions={
+          <>
+            <StatusBadge tone="info">{members.length} total</StatusBadge>
+            <StatusBadge>{officialMembers.length} official</StatusBadge>
+            <StatusBadge tone="warning">{communityMembers.length} community</StatusBadge>
+          </>
+        }
+      />
 
-      <section className="space-y-8">
-        <div className="flex items-center justify-between border-4 border-brutal-black bg-brutal-yellow p-4 shadow-neo">
-          <h3 className="text-2xl font-display font-black text-brutal-black uppercase">
-            Thành viên chính thức
-          </h3>
-          <span className="px-3 py-1 bg-white border-4 border-brutal-black text-brutal-black text-xs font-black uppercase tracking-widest shadow-neo-sm">
-            {officialMembers.length} thành viên
-          </span>
-        </div>
-        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-          {officialMembers.map((member) => (
-            <MemberCard key={member.id} member={member} type="official" />
-          ))}
-        </div>
+      <section className="space-y-5">
+        <SectionHeader
+          eyebrow="Official Lane"
+          title="Official Members"
+          subtitle="Club operators, leads, and active internal contributors."
+        />
+        {officialMembers.length > 0 ? (
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {officialMembers.map((member) => (
+              <MemberCard key={member.id} member={member} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="No official members loaded"
+            message="The member directory is empty right now. Once the store finishes loading, official profiles will appear here."
+          />
+        )}
       </section>
 
-      <section className="space-y-8">
-        <div className="flex items-center justify-between border-4 border-brutal-black bg-brutal-pink p-4 shadow-neo">
-          <h3 className="text-2xl font-display font-black text-brutal-black uppercase">
-            Cộng đồng
-          </h3>
-          <span className="px-3 py-1 bg-white border-4 border-brutal-black text-brutal-black text-xs font-black uppercase tracking-widest shadow-neo-sm">
-            {communityMembers.length} học viên
-          </span>
-        </div>
-        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-          {communityMembers.map((member) => (
-            <MemberCard key={member.id} member={member} type="community" />
-          ))}
-          {communityMembers.length === 0 && (
-            <div className="col-span-full py-12 text-center text-sm font-black uppercase tracking-widest text-brutal-black bg-white border-4 border-brutal-black shadow-neo">
-              Chưa có thành viên cộng đồng nào
-            </div>
-          )}
-        </div>
+      <section className="space-y-5">
+        <SectionHeader
+          eyebrow="Community Lane"
+          title="Community Members"
+          subtitle="Learners, contributors, and external builders connected to the club."
+        />
+        {communityMembers.length > 0 ? (
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {communityMembers.map((member) => (
+              <MemberCard key={member.id} member={member} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="No community profiles yet"
+            message="Community member cards will appear here when the store includes external learners and contributors."
+          />
+        )}
       </section>
     </div>
   );
 }
 
-function MemberCard({ member, type }: { member: Member; type: 'official' | 'community'; key?: React.Key }) {
-  return (
-    <Link to={`/member/${member.id}`} className="block h-full">
-      <motion.div
-        whileHover={{ y: -3, x: -3 }}
-        className="relative group cursor-pointer h-full brutal-card"
-      >
-        <div className="flex h-full flex-col items-center bg-white p-4 text-center">
-           <div className={`relative mb-4 h-20 w-20 shrink-0 border-4 border-brutal-black shadow-neo-sm transition-transform duration-300 group-hover:scale-105 ${type === 'official' ? 'bg-brutal-yellow' : 'bg-brutal-blue'}`}>
-            <img src={member.avatar || 'https://via.placeholder.com/150'} alt={member.name} className="h-full w-full object-cover" />
-          </div>
+function MemberCard({ member }: { member: Member }) {
+  const memberType = getMemberType(member);
+  const isOfficial = memberType !== 'community';
+  const avatarSrc = member.avatar || `https://i.pravatar.cc/160?u=${member.id}`;
+  const socials = [
+    { href: member.socials?.github, icon: Github, label: 'GitHub' },
+    { href: member.socials?.twitter, icon: Twitter, label: 'Twitter' },
+    { href: member.socials?.telegram, icon: Send, label: 'Telegram' },
+    { href: member.socials?.facebook, icon: Facebook, label: 'Facebook' },
+  ].filter((item) => !!item.href);
 
-          <div className="mb-4 min-h-[96px] w-full">
-            <h3 className="mb-2 line-clamp-2 min-h-[56px] text-lg font-display font-black uppercase leading-tight tracking-tight text-brutal-black">
+  return (
+    <SurfaceCard interactive className="flex h-full flex-col p-6">
+      <div className="flex items-start gap-4">
+        <div className="h-20 w-20 overflow-hidden rounded-[24px] border border-border-main bg-warning-soft">
+          <img src={avatarSrc} alt={member.name} className="h-full w-full object-cover" />
+        </div>
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <StatusBadge tone={isOfficial ? 'info' : 'warning'}>
+              {isOfficial ? 'Official' : 'Community'}
+            </StatusBadge>
+            <StatusBadge>{member.role || (isOfficial ? 'Member' : 'Builder')}</StatusBadge>
+          </div>
+          <div>
+            <h3 className="truncate font-heading text-2xl font-semibold tracking-tight text-text-main">
               {member.name}
             </h3>
-            <p className={`inline-block border-2 border-brutal-black px-3 py-1 text-[10px] font-black uppercase tracking-widest shadow-neo-sm ${type === 'official' ? 'bg-brutal-yellow' : 'bg-brutal-blue text-white'}`}>
-              {type === 'community' ? 'Cộng đồng' : member.role || 'Thành viên'}
+            <p className="text-sm text-text-muted">
+              {isOfficial ? 'Internal operating member' : 'External community participant'}
             </p>
           </div>
+        </div>
+      </div>
 
-          <div className="mb-4 flex min-h-[64px] w-full flex-wrap justify-center gap-2">
-            {member.skills.slice(0, 2).map(skill => (
-              <span key={skill} className="border-2 border-brutal-black bg-white px-2 py-1 text-[10px] font-black uppercase tracking-wider text-brutal-black shadow-neo-sm transition-colors group-hover:bg-brutal-pink">
+      <div className="mt-5 rounded-[24px] border border-border-main bg-main-bg p-4">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-text-muted">Skills</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {member.skills.length > 0 ? (
+            member.skills.slice(0, 5).map((skill) => (
+              <span
+                key={skill}
+                className="rounded-full border border-border-main bg-surface px-3 py-1 text-xs text-text-main"
+              >
                 {skill}
               </span>
-            ))}
-            {member.skills.length === 0 && (
-              <span className="border-2 border-brutal-black bg-gray-100 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-gray-500 shadow-neo-sm">
-                Chưa thêm kỹ năng
-              </span>
-            )}
-          </div>
-
-          <div className="mt-auto flex w-full justify-center gap-4 border-t-4 border-brutal-black pt-3">
-            {member.socials.github && <Github size={18} className="text-brutal-black transition-transform hover:-translate-y-1" />}
-            {member.socials.twitter && <Twitter size={18} className="text-brutal-black transition-transform hover:-translate-y-1" />}
-            {member.socials.telegram && <Send size={18} className="text-brutal-black transition-transform hover:-translate-y-1" />}
-          </div>
+            ))
+          ) : (
+            <span className="text-sm text-text-muted">No skills added yet.</span>
+          )}
         </div>
-      </motion.div>
-    </Link>
+      </div>
+
+      <div className="mt-5 flex items-center justify-between gap-4 border-t border-border-main pt-5">
+        <div className="flex items-center gap-2">
+          {socials.length > 0 ? (
+            socials.map((social) => (
+              <a
+                key={social.label}
+                href={social.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="icon-button"
+                aria-label={social.label}
+              >
+                <social.icon className="h-4 w-4" aria-hidden="true" />
+              </a>
+            ))
+          ) : (
+            <span className="text-xs uppercase tracking-[0.18em] text-text-muted">No socials</span>
+          )}
+        </div>
+        <Link to={`/member/${member.id}`} className="action-button action-button-secondary">
+          {isOfficial ? <ShieldCheck className="h-4 w-4" aria-hidden="true" /> : <Sparkles className="h-4 w-4" aria-hidden="true" />}
+          View Profile
+        </Link>
+      </div>
+    </SurfaceCard>
   );
 }

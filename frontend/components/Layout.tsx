@@ -1,20 +1,85 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { twMerge } from 'tailwind-merge';
-import { Home, Users, Calendar, Calculator, Briefcase, Folder, Menu, X, Terminal, User, Rocket, HelpCircle, GraduationCap, Trophy, Video, Moon, Sun } from 'lucide-react';
-import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  Briefcase,
+  Calendar,
+  ChevronDown,
+  Folder,
+  GraduationCap,
+  Home,
+  Menu,
+  Moon,
+  Settings2,
+  Sun,
+  Terminal,
+  Trophy,
+  User,
+  Users,
+  Video,
+  Wallet,
+  X,
+} from 'lucide-react';
+import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
-import { useStore } from '../store/useStore';
-import { AuthIntent, GoogleUserInfo } from '../types';
-import { LoginNotification } from './LoginNotification';
+
+import { AppBackground } from '@/components/layout/AppBackground';
+import { ActionButton, StatusBadge } from '@/components/ui/Primitives';
+import { cn } from '@/lib/utils';
+import { useStore } from '@/store/useStore';
+import type { AuthIntent, GoogleUserInfo, Member } from '@/types';
+
 import { ContactModal } from './ContactModal';
+import { LoginNotification } from './LoginNotification';
 
-// Context for contact modal
-const ContactModalContext = createContext<{ openContactModal: () => void }>({ openContactModal: () => { } });
+type AppTheme = 'light' | 'dark';
+type PreviewRole = 'guest' | 'community' | 'official' | 'core' | 'admin' | null;
+
+type UiPermissionState = {
+  previewRole: PreviewRole;
+  previewLabel: string | null;
+  previewOnly: boolean;
+  canAccessFinance: boolean;
+  canAccessAdmin: boolean;
+  canAccessAcademyAdmin: boolean;
+  canManageProjects: boolean;
+  canManageEvents: boolean;
+  canManageWork: boolean;
+  canManageResources: boolean;
+};
+
+type ContactModalActions = {
+  openContactModal: () => void;
+};
+
+type ShellActions = ContactModalActions & {
+  openAuthModal: (mode?: AuthIntent) => void;
+};
+
+const ContactModalContext = createContext<ContactModalActions>({
+  openContactModal: () => {},
+});
+const ShellActionsContext = createContext<ShellActions>({
+  openContactModal: () => {},
+  openAuthModal: () => {},
+});
+const UiPreviewContext = createContext<UiPermissionState>({
+  previewRole: null,
+  previewLabel: null,
+  previewOnly: false,
+  canAccessFinance: false,
+  canAccessAdmin: false,
+  canAccessAcademyAdmin: false,
+  canManageProjects: false,
+  canManageEvents: false,
+  canManageWork: false,
+  canManageResources: false,
+});
+
 export const useContactModal = () => useContext(ContactModalContext);
+export const useShellActions = () => useContext(ShellActionsContext);
+export const useUiPreview = () => useContext(UiPreviewContext);
 
-// Interface for decoded Google JWT
 interface GoogleJWTPayload {
   sub: string;
   email: string;
@@ -23,42 +88,175 @@ interface GoogleJWTPayload {
   email_verified: boolean;
 }
 
-type AppTheme = 'light' | 'dark';
-
 function readStoredTheme(): AppTheme {
   if (typeof window === 'undefined') {
     return 'light';
   }
-
   return window.localStorage.getItem('dsuc-theme') === 'dark' ? 'dark' : 'light';
 }
 
+function readPreviewRole(): PreviewRole {
+  if (!import.meta.env.DEV || typeof window === 'undefined') {
+    return null;
+  }
+
+  const value = window.localStorage.getItem('dsuc-dev-role-preview');
+  if (
+    value === 'guest' ||
+    value === 'community' ||
+    value === 'official' ||
+    value === 'core' ||
+    value === 'admin'
+  ) {
+    return value;
+  }
+  return null;
+}
+
+function resolveUiPermissions(currentUser: Member | null, previewRole: PreviewRole): UiPermissionState {
+  const baseIsOfficialMember = currentUser?.memberType === 'member';
+  const baseIsAdmin =
+    baseIsOfficialMember &&
+    ['President', 'Vice-President'].includes(currentUser?.role || '');
+
+  if (!previewRole) {
+    return {
+      previewRole: null,
+      previewLabel: null,
+      previewOnly: false,
+      canAccessFinance: baseIsOfficialMember,
+      canAccessAdmin: baseIsAdmin,
+      canAccessAcademyAdmin: baseIsAdmin,
+      canManageProjects: baseIsOfficialMember,
+      canManageEvents: baseIsOfficialMember,
+      canManageWork: baseIsOfficialMember,
+      canManageResources: baseIsOfficialMember,
+    };
+  }
+
+  if (previewRole === 'guest') {
+    return {
+      previewRole,
+      previewLabel: 'Guest',
+      previewOnly: !!currentUser,
+      canAccessFinance: false,
+      canAccessAdmin: false,
+      canAccessAcademyAdmin: false,
+      canManageProjects: false,
+      canManageEvents: false,
+      canManageWork: false,
+      canManageResources: false,
+    };
+  }
+
+  if (previewRole === 'community') {
+    return {
+      previewRole,
+      previewLabel: 'Community Member',
+      previewOnly: true,
+      canAccessFinance: false,
+      canAccessAdmin: false,
+      canAccessAcademyAdmin: false,
+      canManageProjects: false,
+      canManageEvents: false,
+      canManageWork: false,
+      canManageResources: false,
+    };
+  }
+
+  if (previewRole === 'official') {
+    return {
+      previewRole,
+      previewLabel: 'Official Member',
+      previewOnly: true,
+      canAccessFinance: true,
+      canAccessAdmin: false,
+      canAccessAcademyAdmin: false,
+      canManageProjects: true,
+      canManageEvents: true,
+      canManageWork: true,
+      canManageResources: true,
+    };
+  }
+
+  if (previewRole === 'core') {
+    return {
+      previewRole,
+      previewLabel: 'Core Member',
+      previewOnly: true,
+      canAccessFinance: true,
+      canAccessAdmin: false,
+      canAccessAcademyAdmin: false,
+      canManageProjects: true,
+      canManageEvents: true,
+      canManageWork: true,
+      canManageResources: true,
+    };
+  }
+
+  return {
+    previewRole,
+    previewLabel: 'President/Admin',
+    previewOnly: true,
+    canAccessFinance: true,
+    canAccessAdmin: true,
+    canAccessAcademyAdmin: true,
+    canManageProjects: true,
+    canManageEvents: true,
+    canManageWork: true,
+    canManageResources: true,
+  };
+}
+
+function backgroundIntensity(pathname: string): 'low' | 'medium' | 'high' {
+  if (pathname === '/home' || pathname === '/academy' || pathname === '/projects') {
+    return 'high';
+  }
+  if (pathname.startsWith('/academy/unit') || pathname.startsWith('/finance') || pathname.startsWith('/admin')) {
+    return 'low';
+  }
+  return 'medium';
+}
+
 export function Layout({ children }: { children?: React.ReactNode }) {
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const {
+    currentUser,
+    authMethod,
+    loginWithGoogle,
+    addToast,
+    removeToast,
+    toasts,
+  } = useStore();
+
   const [authMode, setAuthMode] = useState<AuthIntent>('login');
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [showLoginNotification, setShowLoginNotification] = useState(false);
   const [lastLoginInfo, setLastLoginInfo] = useState<{ name?: string; method?: 'wallet' | 'google' }>({});
   const [theme, setTheme] = useState<AppTheme>(() => readStoredTheme());
-  const { currentUser, authMethod } = useStore();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [previewRole, setPreviewRole] = useState<PreviewRole>(() => readPreviewRole());
+
   const previousUserIdRef = React.useRef<string | null>(currentUser?.id || null);
-  const isAuthenticated = !!currentUser;
   const requiresProfileCompletion =
     !!currentUser && currentUser.profile_completed === false;
 
-  // Show notification when user logs in
+  const uiPreview = useMemo(
+    () => resolveUiPermissions(currentUser, previewRole),
+    [currentUser, previewRole]
+  );
+
   useEffect(() => {
     if (currentUser?.id && previousUserIdRef.current !== currentUser.id) {
       setLastLoginInfo({
-        name: currentUser?.name || currentUser?.email || 'User',
-        method: (authMethod as 'wallet' | 'google') || 'google'
+        name: currentUser.name || currentUser.email || 'User',
+        method: (authMethod as 'wallet' | 'google') || 'google',
       });
       setShowLoginNotification(true);
     }
     previousUserIdRef.current = currentUser?.id || null;
-  }, [currentUser?.id, currentUser?.name, currentUser?.email, authMethod]);
+  }, [authMethod, currentUser?.email, currentUser?.id, currentUser?.name]);
 
   useEffect(() => {
     if (requiresProfileCompletion && location.pathname !== '/profile') {
@@ -73,516 +271,491 @@ export function Layout({ children }: { children?: React.ReactNode }) {
 
     window.localStorage.setItem('dsuc-theme', theme);
     document.documentElement.dataset.theme = theme;
+    document.documentElement.classList.toggle('dark', theme === 'dark');
     document.documentElement.classList.toggle('theme-dark', theme === 'dark');
     document.documentElement.classList.toggle('theme-light', theme !== 'dark');
     document.body.classList.toggle('theme-dark', theme === 'dark');
     document.body.classList.toggle('theme-light', theme !== 'dark');
   }, [theme]);
 
-  const openAuthModal = (mode: AuthIntent) => {
+  useEffect(() => {
+    if (!import.meta.env.DEV || typeof window === 'undefined') {
+      return;
+    }
+
+    if (previewRole) {
+      window.localStorage.setItem('dsuc-dev-role-preview', previewRole);
+      return;
+    }
+
+    window.localStorage.removeItem('dsuc-dev-role-preview');
+  }, [previewRole]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const previousAlert = window.alert;
+    window.alert = (message?: unknown) => {
+      const content = typeof message === 'string' ? message : 'Action completed.';
+      useStore.getState().addToast(content, content.includes('❌') ? 'error' : 'info');
+    };
+
+    return () => {
+      window.alert = previousAlert;
+    };
+  }, []);
+
+  const openAuthModal = (mode: AuthIntent = 'login') => {
     setAuthMode(mode);
-    setIsWalletModalOpen(true);
+    setIsAuthModalOpen(true);
   };
 
   return (
-    <ContactModalContext.Provider value={{ openContactModal: () => setIsContactModalOpen(true) }}>
-      <div className={`min-h-screen bg-brutal-bg text-brutal-black font-sans selection:bg-brutal-pink selection:text-white ${theme === 'dark' ? 'theme-dark' : 'theme-light'}`}>
-        <Background />
-        <Navbar onAuthClick={openAuthModal} theme={theme} onToggleTheme={() => setTheme((value) => (value === 'dark' ? 'light' : 'dark'))} />
-        <main className="pt-32 pb-20 px-4 md:px-8 max-w-7xl mx-auto relative z-10">
-          {children}
-        </main>
-        <WalletModal
-          isOpen={isWalletModalOpen}
-          mode={authMode}
-          onModeChange={setAuthMode}
-          onClose={() => setIsWalletModalOpen(false)}
-        />
-        <ContactModal isOpen={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} />
-        <LoginNotification
-          isVisible={showLoginNotification}
-          userName={lastLoginInfo.name}
-          authMethod={lastLoginInfo.method}
-          onDismiss={() => setShowLoginNotification(false)}
-        />
-      </div>
-    </ContactModalContext.Provider>
+    <UiPreviewContext.Provider value={uiPreview}>
+      <ShellActionsContext.Provider
+        value={{
+          openContactModal: () => setIsContactModalOpen(true),
+          openAuthModal,
+        }}
+      >
+        <ContactModalContext.Provider
+          value={{
+            openContactModal: () => setIsContactModalOpen(true),
+          }}
+        >
+          <div className="relative min-h-screen bg-main-bg font-sans text-text-main selection:bg-primary selection:text-main-bg">
+            <AppBackground intensity={backgroundIntensity(location.pathname)} />
+            <SiteHeader
+              onAuthClick={openAuthModal}
+              onToggleTheme={() => setTheme((value) => (value === 'dark' ? 'light' : 'dark'))}
+              theme={theme}
+              uiPreview={uiPreview}
+            />
+            <main className="relative z-10 min-h-[calc(100vh-5rem)] px-4 pb-20 pt-24 md:px-6 lg:px-8">
+              {children}
+            </main>
+            <footer className="relative z-10 border-t border-border-main bg-surface/70 px-4 py-6 text-center text-xs uppercase tracking-[0.22em] text-text-muted backdrop-blur md:px-6">
+              DSUC Labs • Builder Operating System
+            </footer>
+            <AuthModal
+              isOpen={isAuthModalOpen}
+              mode={authMode}
+              onClose={() => setIsAuthModalOpen(false)}
+              onModeChange={setAuthMode}
+              onSubmit={loginWithGoogle}
+              onError={(message) => addToast(message, 'error')}
+            />
+            <ContactModal
+              isOpen={isContactModalOpen}
+              onClose={() => setIsContactModalOpen(false)}
+            />
+            <GlobalToasts toasts={toasts} onDismiss={removeToast} />
+            <LoginNotification
+              isVisible={showLoginNotification}
+              userName={lastLoginInfo.name}
+              authMethod={lastLoginInfo.method}
+              onDismiss={() => setShowLoginNotification(false)}
+            />
+            {import.meta.env.DEV ? (
+              <DevRolePreview
+                previewRole={previewRole}
+                previewLabel={uiPreview.previewLabel}
+                onSelectRole={setPreviewRole}
+              />
+            ) : null}
+          </div>
+        </ContactModalContext.Provider>
+      </ShellActionsContext.Provider>
+    </UiPreviewContext.Provider>
   );
 }
 
-function Background() {
-  return (
-    <div className="dsuc-dot-grid fixed inset-0 z-0 overflow-hidden pointer-events-none opacity-80"></div>
-  );
-}
-
-type NavItem = {
-  name: string;
-  path: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  locked?: boolean;
-};
-
-function Navbar({
+function SiteHeader({
   onAuthClick,
   onToggleTheme,
   theme,
+  uiPreview,
 }: {
-  onAuthClick: (mode: AuthIntent) => void;
+  onAuthClick: (mode?: AuthIntent) => void;
   onToggleTheme: () => void;
   theme: AppTheme;
+  uiPreview: UiPermissionState;
 }) {
-  const { currentUser } = useStore();
   const location = useLocation();
   const navigate = useNavigate();
+  const currentUser = useStore((state) => state.currentUser);
+  const logout = useStore((state) => state.logout);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const isAuthenticated = !!currentUser;
-  const isOfficialMember = currentUser?.memberType === 'member';
-  const isAdmin =
-    isOfficialMember &&
-    ['President', 'Vice-President'].includes(
-      currentUser?.role || ''
-    );
+  const [opsOpen, setOpsOpen] = useState(false);
 
-  const standardLinks: NavItem[] = [
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  const primaryLinks = [
     { name: 'Home', path: '/home', icon: Home },
     { name: 'Members', path: '/members', icon: Users },
     { name: 'Events', path: '/events', icon: Calendar },
     { name: 'Academy', path: '/academy', icon: GraduationCap },
     { name: 'Resources', path: '/resources', icon: Folder },
-    { name: 'Projects', path: '/projects', icon: Rocket },
+    { name: 'Projects', path: '/projects', icon: Folder },
   ];
 
-  const workspaceLinks: NavItem[] = [
-    { name: 'Leaderboard', path: '/leaderboard', icon: Trophy },
-    { name: 'Meet', path: '/meet', icon: Video },
-    { name: 'Work', path: '/work', icon: Briefcase },
-    { name: 'Finance', path: '/finance', icon: Calculator, locked: !isOfficialMember },
-    ...(isAdmin ? [
-      { name: 'Admin', path: '/admin', icon: HelpCircle },
-      { name: 'Academy Admin', path: '/academy-admin', icon: GraduationCap },
-    ] : []),
+  const operationsLinks = [
+    { name: 'Leaderboard', path: '/leaderboard', icon: Trophy, locked: false },
+    { name: 'Meet', path: '/meet', icon: Video, locked: false },
+    { name: 'Work', path: '/work', icon: Briefcase, locked: false },
+    { name: 'Finance', path: '/finance', icon: Wallet, locked: !uiPreview.canAccessFinance },
+    { name: 'Admin', path: '/admin', icon: Settings2, locked: !uiPreview.canAccessAdmin },
+    {
+      name: 'Academy Admin',
+      path: '/academy-admin',
+      icon: GraduationCap,
+      locked: !uiPreview.canAccessAcademyAdmin,
+    },
   ];
-
-  const allLinks = [...standardLinks, ...workspaceLinks];
-  const [workspaceOpen, setWorkspaceOpen] = useState(false);
 
   return (
-    <>
-      <div className="fixed top-0 left-0 right-0 z-[100] flex justify-center px-4 pt-3 pointer-events-none">
-        <nav className="relative w-full max-w-7xl bg-white border-4 border-brutal-black shadow-neo-lg px-4 md:px-6 py-2 md:py-3 transition-all duration-300 pointer-events-auto">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2.5 text-brutal-black shrink-0">
-              <div className="relative">
-                <img
-                  src="/logo.png"
-                  alt="DSUC Logo"
-                  className="w-8 h-8 md:w-10 md:h-10 object-contain transition-transform hover:rotate-6 hover:scale-110 duration-300"
-                />
-              </div>
-              <span className="hidden sm:inline text-lg md:text-xl font-display font-black tracking-tighter uppercase">
-                DSUC LAB
-              </span>
-            </div>
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-border-main bg-surface/90 backdrop-blur">
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
+        <button
+          type="button"
+          onClick={() => navigate('/home')}
+          className="flex items-center gap-3 text-left"
+        >
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border-main bg-primary text-main-bg shadow-soft-sm">
+            <img src="/logo.png" alt="DSUC Labs" className="h-8 w-8 object-contain" />
+          </div>
+          <div className="hidden min-w-0 sm:block">
+            <p className="font-heading text-lg font-semibold uppercase tracking-tight text-text-main">
+              DSUC Labs
+            </p>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-text-muted">
+              Learn • Build • Ship
+            </p>
+          </div>
+        </button>
 
-            <div className="hidden lg:flex items-center gap-1 flex-1 justify-center max-w-3xl relative">
-              {standardLinks.map((link) => (
-                <NavLink
-                  key={link.path}
-                  to={link.path}
-                  className={({ isActive }) =>
-                    twMerge(
-                      "relative px-3 py-2 text-xs font-display font-bold uppercase tracking-wider transition-all duration-300 group rounded-none border-2 border-transparent",
-                      isActive ? "bg-brutal-yellow border-brutal-black shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]" : "text-gray-600 hover:text-brutal-black hover:bg-gray-100"
-                    )
-                  }
-                >
-                  {({ isActive }) => (
-                    <span className="relative z-10 flex items-center gap-2">
-                      <link.icon size={14} className={isActive ? "text-brutal-black" : "text-gray-500 group-hover:text-brutal-black"} />
-                      {link.name}
-                    </span>
-                  )}
-                </NavLink>
-              ))}
+        <nav className="hidden items-center gap-1 lg:flex">
+          {primaryLinks.map((link) => (
+            <NavLink
+              key={link.path}
+              to={link.path}
+              className={({ isActive }) =>
+                cn(
+                  'nav-link',
+                  isActive && 'nav-link-active'
+                )
+              }
+            >
+              <link.icon className="h-4 w-4" aria-hidden="true" />
+              {link.name}
+            </NavLink>
+          ))}
 
-              <div
-                className="relative group"
-                onMouseEnter={() => setWorkspaceOpen(true)}
-                onMouseLeave={() => setWorkspaceOpen(false)}
-              >
-                <div
-                  className={twMerge(
-                    "relative px-3 py-2 text-xs font-display font-bold uppercase tracking-wider transition-all duration-300 group rounded-none cursor-pointer border-2 border-transparent",
-                    workspaceLinks.some((link) => location.pathname.startsWith(link.path))
-                      ? "bg-brutal-blue text-white border-brutal-black shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]"
-                      : "text-gray-600 hover:text-brutal-black hover:bg-gray-100"
-                  )}
-                >
-                  <span className="relative z-10 flex items-center gap-2">
-                    <Terminal
-                      size={14}
-                      className={
-                        workspaceLinks.some((link) => location.pathname.startsWith(link.path))
-                          ? "text-white"
-                          : "text-gray-500 group-hover:text-brutal-black"
-                      }
-                    />
-                    Operations
-                  </span>
-                </div>
-
-                <AnimatePresence>
-                  {workspaceOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute top-full left-0 mt-2 w-52 bg-white brutal-card p-2 flex flex-col gap-1 z-50 overflow-hidden"
-                    >
-                      <button
-                        type="button"
-                        onClick={onToggleTheme}
-                        className="mb-1 flex items-center gap-2 border-2 border-brutal-black bg-white px-3 py-2 text-xs font-display font-bold uppercase tracking-wider text-brutal-black transition-all hover:bg-brutal-yellow"
-                      >
-                        {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
-                        {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-                      </button>
-                      {workspaceLinks.map((link) => (
-                        link.locked ? (
-                          <div
-                            key={link.path}
-                            className="flex items-center gap-2 px-3 py-2 text-xs font-display font-bold uppercase tracking-wider text-gray-400 cursor-not-allowed relative"
-                            title="Member account required"
-                          >
-                            <link.icon size={14} className="opacity-60" />
-                            {link.name} (Locked)
-                          </div>
-                        ) : (
-                          <NavLink
-                            key={link.path}
-                            to={link.path}
-                            className={({ isActive }) =>
-                              twMerge(
-                                "flex items-center gap-2 px-3 py-2 text-xs font-display font-bold uppercase tracking-wider transition-all duration-300 hover:bg-gray-100 group border-2 border-transparent",
-                                isActive ? "bg-brutal-yellow border-brutal-black shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]" : "text-gray-600 hover:text-brutal-black"
-                              )
-                            }
-                          >
-                            {({ isActive }) => (
-                              <>
-                                <link.icon size={14} className={isActive ? "text-brutal-black" : "text-gray-500 group-hover:text-brutal-black"} />
-                                {link.name}
-                              </>
-                            )}
-                          </NavLink>
-                        )
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 shrink-0">
-              <button
-                onClick={() => setMobileMenuOpen(true)}
-                className="lg:hidden text-brutal-black hover:bg-brutal-yellow border-2 border-transparent hover:border-brutal-black hover:shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all p-2"
-                aria-label="Open menu"
-              >
-                <Menu size={24} />
-              </button>
-
-              {isAuthenticated && currentUser ? (
-                <button
-                  onClick={() => navigate('/profile')}
-                  className="flex items-center gap-2.5 border-4 border-brutal-black bg-white pl-2 pr-4 py-2 shadow-brutal-sm transition-all duration-100 group hover:-translate-y-0.5 hover:bg-brutal-yellow hover:shadow-brutal-hover active:translate-y-0.5"
-                >
-                  <div className="w-8 h-8 border-2 border-brutal-black overflow-hidden bg-gray-100">
-                    <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" />
-                  </div>
-                  <span className="text-xs font-bold font-mono text-brutal-black uppercase tracking-wider hidden md:inline">
-                    {currentUser.name?.split(' ')[0] || 'User'}
-                  </span>
-                </button>
-              ) : (
-                <div className="hidden lg:flex items-center gap-3">
-                  <button
-                    onClick={() => onAuthClick('login')}
-                    className="px-5 py-2.5 text-sm font-black font-display uppercase tracking-widest transition-all duration-200 border-4 border-brutal-black bg-brutal-pink text-brutal-black hover:bg-white shadow-neo hover:-translate-y-1 hover:shadow-neo-lg active:translate-y-0 active:shadow-neo whitespace-nowrap"
-                  >
-                    Login
-                  </button>
-                  <button
-                    onClick={() => onAuthClick('signup')}
-                    className="px-5 py-2.5 text-sm font-black font-display uppercase tracking-widest transition-all duration-200 border-4 border-brutal-black bg-brutal-yellow text-brutal-black hover:bg-white shadow-neo hover:-translate-y-1 hover:shadow-neo-lg active:translate-y-0 active:shadow-neo whitespace-nowrap"
-                  >
-                    Register
-                  </button>
-                </div>
+          <div
+            className="relative"
+            onMouseEnter={() => setOpsOpen(true)}
+            onMouseLeave={() => setOpsOpen(false)}
+          >
+            <button
+              type="button"
+              className={cn(
+                'nav-link',
+                location.pathname.match(/\/(leaderboard|meet|work|finance|admin|academy-admin)/) &&
+                  'nav-link-active'
               )}
-            </div>
+            >
+              <Terminal className="h-4 w-4" aria-hidden="true" />
+              Operations
+              <ChevronDown className="h-4 w-4" aria-hidden="true" />
+            </button>
+
+            <AnimatePresence>
+              {opsOpen ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  transition={{ duration: 0.15, ease: 'easeOut' }}
+                  className="absolute right-0 top-full mt-3 w-56 overflow-hidden rounded-3xl border border-border-main bg-surface-elevated p-2 shadow-soft-xl"
+                >
+                  {operationsLinks.map((link) =>
+                    link.locked ? (
+                      <div key={link.path} className="nav-link-disabled">
+                        <div className="flex items-center gap-3">
+                          <link.icon className="h-4 w-4" aria-hidden="true" />
+                          <span>{link.name}</span>
+                        </div>
+                        <span className="text-[10px] uppercase tracking-[0.22em] text-text-muted">
+                          Locked
+                        </span>
+                      </div>
+                    ) : (
+                      <NavLink
+                        key={link.path}
+                        to={link.path}
+                        className={({ isActive }) =>
+                          cn('nav-link nav-link-ops', isActive && 'nav-link-active')
+                        }
+                      >
+                        <link.icon className="h-4 w-4" aria-hidden="true" />
+                        {link.name}
+                      </NavLink>
+                    )
+                  )}
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
           </div>
         </nav>
+
+        <div className="hidden items-center gap-3 lg:flex">
+          {uiPreview.previewLabel ? (
+            <StatusBadge tone="warning">{uiPreview.previewLabel}</StatusBadge>
+          ) : null}
+          <button
+            type="button"
+            onClick={onToggleTheme}
+            className="icon-button"
+            aria-label="Toggle theme"
+          >
+            {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+          </button>
+          {currentUser ? (
+            <button
+              type="button"
+              onClick={() => navigate('/profile')}
+              className="profile-chip"
+            >
+              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-border-main bg-primary/10">
+                {currentUser.avatar ? (
+                  <img
+                    src={currentUser.avatar}
+                    alt={currentUser.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <User className="h-4 w-4" aria-hidden="true" />
+                )}
+              </div>
+              <div className="min-w-0 text-left">
+                <p className="truncate text-sm font-semibold text-text-main">
+                  {currentUser.name || 'User'}
+                </p>
+                <p className="truncate text-[11px] uppercase tracking-[0.2em] text-text-muted">
+                  {currentUser.role || 'Member'}
+                </p>
+              </div>
+            </button>
+          ) : (
+            <>
+              <ActionButton variant="secondary" onClick={() => onAuthClick('login')}>
+                Login
+              </ActionButton>
+              <ActionButton onClick={() => onAuthClick('signup')}>Register</ActionButton>
+            </>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className="icon-button lg:hidden"
+          onClick={() => setMobileMenuOpen((value) => !value)}
+          aria-label="Open navigation"
+        >
+          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
       </div>
 
-      {/* Mobile Menu Overlay - Improved */}
       <AnimatePresence>
-        {mobileMenuOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setMobileMenuOpen(false)}
-              className="fixed inset-0 z-[150] bg-black/60 backdrop-blur-sm lg:hidden"
-            />
-
-            {/* Menu Panel */}
-            <motion.div
-              initial={{ opacity: 0, x: '100%' }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: '100%' }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed right-0 top-0 bottom-0 z-[200] w-[85vw] max-w-sm bg-white border-l-4 border-brutal-black lg:hidden flex flex-col shadow-[-8px_0_0_0_rgba(17,24,39,1)]"
-            >
-              {/* Header */}
-              <div className="flex justify-between items-center p-6 border-b-4 border-brutal-black bg-brutal-yellow">
-                <span className="font-display font-black text-brutal-black text-xl flex items-center gap-3 uppercase tracking-tighter">
-                  <img src="/logo.png" alt="Logo" className="w-8 h-8" />
-                  DSUC LAB
-                </span>
-                <button
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="text-brutal-black hover:bg-white border-2 border-transparent hover:border-brutal-black p-2 transition-all shadow-[2px_2px_0px_0px_transparent] hover:shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]"
-                  aria-label="Close menu"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              {/* Navigation Links */}
-              <div className="flex flex-col gap-2 p-6 flex-1 overflow-y-auto">
-                {allLinks.map((link) => (
-                  link.locked ? (
-                    <div
-                      key={link.path}
-                      className="text-lg font-display font-bold uppercase flex items-center gap-4 p-4 opacity-40 cursor-not-allowed border-4 border-gray-200 bg-gray-100 text-gray-500"
-                    >
-                      <link.icon size={22} className="text-gray-400" />
-                      <span className="flex-1">{link.name}</span>
-                      <span className="text-[10px] text-gray-400 uppercase tracking-wider">Locked</span>
-                    </div>
-                  ) : (
-                    <NavLink
-                      key={link.path}
-                      to={link.path}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={({ isActive }) =>
-                        twMerge(
-                          "text-lg font-display font-bold uppercase flex items-center gap-4 p-4 transition-all duration-100 border-4",
-                          isActive
-                            ? "text-brutal-black bg-brutal-pink border-brutal-black shadow-brutal translate-x-1"
-                            : "text-gray-700 hover:text-brutal-black hover:bg-brutal-yellow border-transparent hover:border-brutal-black hover:shadow-brutal hover:-translate-y-1"
-                        )
-                      }
-                    >
-                      {({ isActive }) => (
-                        <>
-                          <link.icon size={22} className={isActive ? "text-brutal-black" : "text-gray-500"} />
-                          <span className="flex-1">{link.name}</span>
-                        </>
-                      )}
-                    </NavLink>
-                  )
-                ))}
-
-                {isAuthenticated && currentUser && (
+        {mobileMenuOpen ? (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            className="border-t border-border-main bg-surface-elevated lg:hidden"
+          >
+            <div className="space-y-5 px-4 py-5">
+              <div className="grid gap-2">
+                {primaryLinks.map((link) => (
                   <NavLink
-                    to="/profile"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={({ isActive }) =>
-                      twMerge(
-                        "text-lg font-display font-bold uppercase flex items-center gap-4 p-4 transition-all duration-100 border-4",
-                        isActive
-                          ? "text-brutal-black bg-brutal-pink border-brutal-black shadow-brutal translate-x-1"
-                          : "text-gray-700 hover:text-brutal-black hover:bg-brutal-yellow border-transparent hover:border-brutal-black hover:shadow-brutal hover:-translate-y-1"
-                      )
-                    }
+                    key={link.path}
+                    to={link.path}
+                    className={({ isActive }) => cn('mobile-nav-link', isActive && 'mobile-nav-link-active')}
                   >
-                    {({ isActive }) => (
-                      <>
-                        <User size={22} className={isActive ? "text-brutal-black" : "text-gray-500"} />
-                        <span className="flex-1">MY PROFILE</span>
-                      </>
-                    )}
+                    <link.icon className="h-4 w-4" aria-hidden="true" />
+                    {link.name}
                   </NavLink>
-                )}
+                ))}
+              </div>
 
-                <div className="mt-4 border-t-4 border-brutal-black pt-4">
-                  <div className="mb-2 text-[11px] font-black uppercase tracking-widest text-gray-500">
-                    Operations
-                  </div>
-                  <button
-                    type="button"
-                    onClick={onToggleTheme}
-                    className="flex min-h-12 w-full items-center gap-4 border-4 border-brutal-black bg-white p-4 text-left text-lg font-display font-bold uppercase transition-all hover:-translate-y-1 hover:bg-brutal-yellow hover:shadow-brutal"
-                  >
-                    {theme === 'dark' ? <Sun size={22} className="text-brutal-black" /> : <Moon size={22} className="text-brutal-black" />}
-                    <span className="flex-1 text-brutal-black">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
-                  </button>
+              <div className="space-y-2">
+                <p className="px-1 text-[11px] uppercase tracking-[0.22em] text-text-muted">
+                  Operations
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {operationsLinks.map((link) =>
+                    link.locked ? (
+                      <div key={link.path} className="mobile-nav-link mobile-nav-link-disabled">
+                        <link.icon className="h-4 w-4" aria-hidden="true" />
+                        {link.name}
+                      </div>
+                    ) : (
+                      <NavLink
+                        key={link.path}
+                        to={link.path}
+                        className={({ isActive }) =>
+                          cn('mobile-nav-link', isActive && 'mobile-nav-link-active')
+                        }
+                      >
+                        <link.icon className="h-4 w-4" aria-hidden="true" />
+                        {link.name}
+                      </NavLink>
+                    )
+                  )}
                 </div>
               </div>
 
-              {/* Footer - Sign In Button for mobile */}
-              {!isAuthenticated && (
-                <div className="p-6 border-t-4 border-brutal-black bg-gray-50">
-                  <button
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      onAuthClick('login');
-                    }}
-                    className="w-full px-5 py-3.5 text-sm font-bold font-display uppercase tracking-widest transition-all duration-100 flex items-center justify-center gap-3 text-brutal-black bg-white border-4 border-brutal-black shadow-brutal hover:-translate-y-1 hover:shadow-brutal-hover active:translate-y-1 active:shadow-brutal-active"
-                  >
-                    <span>Log In</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      onAuthClick('signup');
-                    }}
-                    className="w-full mt-4 px-5 py-3.5 text-sm font-bold font-display uppercase tracking-widest transition-all duration-100 flex items-center justify-center gap-3 text-brutal-black bg-brutal-yellow border-4 border-brutal-black shadow-brutal hover:-translate-y-1 hover:shadow-brutal-hover active:translate-y-1 active:shadow-brutal-active"
-                  >
-                    <span>Register</span>
-                  </button>
-                  <p className="text-[11px] text-gray-500 font-mono text-center mt-4 leading-relaxed">
-                    Use your Google email to join or access DSUC.<br />
-                    <span className="text-brutal-red font-bold">New accounts must complete profile setup on first entry</span>
-                  </p>
+              <div className="flex items-center gap-3 border-t border-border-main pt-4">
+                <button type="button" onClick={onToggleTheme} className="icon-button">
+                  {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                </button>
+                {uiPreview.previewLabel ? <StatusBadge tone="warning">{uiPreview.previewLabel}</StatusBadge> : null}
+                <div className="ml-auto flex items-center gap-2">
+                  {currentUser ? (
+                    <>
+                      <ActionButton variant="secondary" onClick={() => navigate('/profile')}>
+                        Profile
+                      </ActionButton>
+                      <ActionButton variant="ghost" onClick={logout}>
+                        Logout
+                      </ActionButton>
+                    </>
+                  ) : (
+                    <>
+                      <ActionButton variant="secondary" onClick={() => onAuthClick('login')}>
+                        Login
+                      </ActionButton>
+                      <ActionButton onClick={() => onAuthClick('signup')}>Register</ActionButton>
+                    </>
+                  )}
                 </div>
-              )}
-            </motion.div>
-          </>
-        )}
+              </div>
+            </div>
+          </motion.div>
+        ) : null}
       </AnimatePresence>
-    </>
+    </header>
   );
 }
 
-function WalletModal({
+function AuthModal({
   isOpen,
   mode,
   onModeChange,
   onClose,
+  onSubmit,
+  onError,
 }: {
-  isOpen: boolean,
-  mode: AuthIntent,
-  onModeChange: (mode: AuthIntent) => void,
-  onClose: () => void,
+  isOpen: boolean;
+  mode: AuthIntent;
+  onModeChange: (mode: AuthIntent) => void;
+  onClose: () => void;
+  onSubmit: (googleUserInfo: GoogleUserInfo, intent?: AuthIntent) => Promise<boolean>;
+  onError: (message: string) => void;
 }) {
-  const { loginWithGoogle } = useStore();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
     if (!credentialResponse.credential) {
-      console.error('No credential received from Google');
       return;
     }
 
     setIsLoading(true);
     try {
-      // Decode the JWT to get user info
       const decoded = jwtDecode<GoogleJWTPayload>(credentialResponse.credential);
-      console.log('[GoogleLogin] Decoded token:', decoded);
-
       const googleUserInfo: GoogleUserInfo = {
         email: decoded.email,
         google_id: decoded.sub,
         name: decoded.name,
         avatar: decoded.picture,
       };
-
-      const success = await loginWithGoogle(googleUserInfo, mode);
+      const success = await onSubmit(googleUserInfo, mode);
       if (success) {
         onClose();
       }
     } catch (error) {
       console.error('[GoogleLogin] Error:', error);
-      alert('Google login failed. Please try again.');
+      onError('Google login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGoogleError = () => {
-    console.error('[GoogleLogin] Google login failed');
-    alert('Google login failed. Please try again.');
-  };
-
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="relative bg-white border-4 border-brutal-black p-8 w-full max-w-sm shadow-[8px_8px_0px_0px_rgba(17,24,39,1)]"
+        initial={{ opacity: 0, scale: 0.95, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.18, ease: 'easeOut' }}
+        className="relative w-full max-w-md overflow-hidden rounded-[32px] border border-border-main bg-surface-elevated p-8 shadow-soft-xl"
       >
-        <button onClick={onClose} className="absolute top-4 right-4 text-black border-2 border-transparent hover:border-black hover:bg-gray-100 p-1">
-          <X size={20} />
+        <button type="button" onClick={onClose} className="icon-button absolute right-5 top-5">
+          <X className="h-4 w-4" />
         </button>
-        <div className="mb-6 text-center">
-          <div className="bg-brutal-blue w-16 h-16 mx-auto mb-4 border-4 border-brutal-black flex items-center justify-center shadow-brutal">
-            <Terminal size={32} className="text-white" />
-          </div>
-          <h3 className="text-2xl font-display font-black text-brutal-black uppercase tracking-tighter">
-            {mode === 'signup' ? 'Register Account' : 'Log In To DSUC'}
-          </h3>
-          <p className="mt-2 text-sm text-gray-600 font-sans border-t-2 border-dashed border-gray-300 pt-2">
-            {mode === 'signup'
-              ? 'Create your account with Google first. You will complete your profile before using the app.'
-              : 'Log in with the Google email already attached to your DSUC account.'}
-          </p>
-        </div>
 
-        <div className="space-y-4">
-          <div className="flex bg-gray-100 border-4 border-brutal-black p-1 gap-1">
+        <div className="space-y-5">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-border-main bg-primary text-main-bg shadow-soft-sm">
+            <Terminal className="h-6 w-6" aria-hidden="true" />
+          </div>
+          <div>
+            <p className="section-eyebrow">{mode === 'signup' ? 'Create Account' : 'Access DSUC'}</p>
+            <h2 className="mt-2 font-heading text-3xl font-semibold uppercase tracking-tight text-text-main">
+              {mode === 'signup' ? 'Join The Builder Network' : 'Sign In To Continue'}
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-text-muted">
+              {mode === 'signup'
+                ? 'Create your DSUC account with Google, then complete your profile on first access.'
+                : 'Use the Google email already attached to your DSUC account.'}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 rounded-2xl border border-border-main bg-main-bg p-1">
             <button
+              type="button"
               onClick={() => onModeChange('signup')}
-              className={`flex-1 py-3 text-sm font-bold font-display uppercase tracking-widest border-2 transition-all ${
-                mode === 'signup'
-                  ? 'border-brutal-black bg-brutal-yellow text-black shadow-brutal-sm'
-                  : 'border-transparent text-gray-500 hover:text-black hover:bg-gray-200'
-              }`}
+              className={cn('auth-mode-button', mode === 'signup' && 'auth-mode-button-active')}
             >
               Register
             </button>
             <button
+              type="button"
               onClick={() => onModeChange('login')}
-              className={`flex-1 py-3 text-sm font-bold font-display uppercase tracking-widest border-2 transition-all ${
-                mode === 'login'
-                  ? 'border-brutal-black bg-brutal-blue text-white shadow-brutal-sm'
-                  : 'border-transparent text-gray-500 hover:text-black hover:bg-gray-200'
-              }`}
+              className={cn('auth-mode-button', mode === 'login' && 'auth-mode-button-active')}
             >
-              Log In
+              Login
             </button>
           </div>
-          {/* Google Login Button */}
-          <div className="flex justify-center border-4 border-brutal-black p-2 bg-gray-50 shadow-brutal">
+
+          <div className="rounded-2xl border border-border-main bg-main-bg p-4">
             {isLoading ? (
-              <div className="w-full p-4 flex items-center justify-center bg-gray-200 font-mono font-bold">
-                <span className="text-brutal-black animate-pulse">PROCESSING...</span>
+              <div className="flex h-12 items-center justify-center text-sm font-semibold uppercase tracking-[0.2em] text-text-muted">
+                Processing…
               </div>
             ) : (
-              <div className="w-full flex flex-col items-center">
+              <div className="flex justify-center">
                 <GoogleLogin
                   onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleError}
+                  onError={() => onError('Google login failed. Please try again.')}
                   useOneTap={false}
                   theme="outline"
                   size="large"
@@ -594,15 +767,113 @@ function WalletModal({
             )}
           </div>
 
-          <div className="bg-gray-50 border-4 border-brutal-black p-4 shadow-brutal-sm">
-            <p className="text-xs text-brutal-black font-mono text-center leading-relaxed">
-              {mode === 'signup'
-                ? '> REGISTRATION CREATES A DSUC COMMUNITY ACCOUNT INITIAL MEMBER PERMISSIONS ARE GRANTED BY ADMIN.'
-                : '> IF THIS EMAIL HAS NO DSUC ACCOUNT YET, SWITCH TO REGISTER FIRST.'}
-            </p>
-          </div>
+          <p className="rounded-2xl border border-border-main bg-surface px-4 py-3 text-xs uppercase tracking-[0.18em] text-text-muted">
+            {mode === 'signup'
+              ? 'New accounts start as community members until permissions are granted by the club.'
+              : 'If this email is not registered yet, switch to Register first.'}
+          </p>
         </div>
       </motion.div>
+    </div>
+  );
+}
+
+function GlobalToasts({
+  toasts,
+  onDismiss,
+}: {
+  toasts: Array<{ id: string; message: string; type: 'success' | 'error' | 'info' }>;
+  onDismiss: (id: string) => void;
+}) {
+  return (
+    <div className="pointer-events-none fixed bottom-4 right-4 z-[10000] flex max-w-sm flex-col gap-3">
+      <AnimatePresence>
+        {toasts.map((toast) => (
+          <motion.div
+            key={toast.id}
+            initial={{ opacity: 0, y: 12, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.96 }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+            className={cn(
+              'pointer-events-auto toast-card',
+              toast.type === 'error' && 'toast-error',
+              toast.type === 'success' && 'toast-success',
+              toast.type === 'info' && 'toast-info'
+            )}
+          >
+            <p className="flex-1 whitespace-pre-wrap text-sm leading-6">{toast.message}</p>
+            <button type="button" onClick={() => onDismiss(toast.id)} className="icon-button toast-close">
+              <X className="h-4 w-4" />
+            </button>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function DevRolePreview({
+  previewRole,
+  previewLabel,
+  onSelectRole,
+}: {
+  previewRole: PreviewRole;
+  previewLabel: string | null;
+  onSelectRole: (value: PreviewRole) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const options: Array<{ label: string; value: PreviewRole }> = [
+    { label: 'Guest', value: 'guest' },
+    { label: 'Community Member', value: 'community' },
+    { label: 'Official Member', value: 'official' },
+    { label: 'Core Member', value: 'core' },
+    { label: 'President/Admin', value: 'admin' },
+  ];
+
+  return (
+    <div className="fixed bottom-4 left-4 z-[10000]">
+      {open ? (
+        <div className="w-72 rounded-[28px] border border-border-main bg-surface-elevated p-4 shadow-soft-xl">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <p className="section-eyebrow">Dev Role Preview</p>
+              <p className="mt-1 text-sm text-text-muted">
+                {previewLabel ? `Previewing ${previewLabel}` : 'Using real auth state'}
+              </p>
+            </div>
+            <button type="button" onClick={() => setOpen(false)} className="icon-button">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => onSelectRole(null)}
+              className={cn('dev-role-button', previewRole === null && 'dev-role-button-active')}
+            >
+              Real Auth State
+            </button>
+            {options.map((option) => (
+              <button
+                type="button"
+                key={option.label}
+                onClick={() => onSelectRole(option.value)}
+                className={cn(
+                  'dev-role-button',
+                  previewRole === option.value && 'dev-role-button-active'
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <button type="button" onClick={() => setOpen(true)} className="dev-role-chip">
+          Dev Role Preview
+        </button>
+      )}
     </div>
   );
 }

@@ -1,183 +1,231 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Layers, Terminal, Plus, X, Rocket, ArrowRight } from 'lucide-react';
-import { useStore } from '../store/useStore';
-import { Project } from '../types';
 import { Link } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowUpRight, Code2, Github, Plus, RadioTower, Users, X } from 'lucide-react';
+
+import { useUiPreview } from '@/components/Layout';
+import { ActionButton, PageHeader, StatusBadge, SurfaceCard } from '@/components/ui/Primitives';
+import { useStore } from '@/store/useStore';
+import type { Project } from '@/types';
 
 export function Projects() {
-  const { projects, addProject, currentUser } = useStore();
+  const { projects, addProject, currentUser, addToast } = useStore();
+  const uiPreview = useUiPreview();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const canManage = currentUser?.memberType === 'member';
+  const canManage = uiPreview.canManageProjects;
 
   const handleAddClick = () => {
-    if (!currentUser) {
-      alert('Vui lòng đăng nhập trước!');
+    if (!canManage) {
+      addToast('Project publishing is locked for this role preview.', 'info');
       return;
     }
-    if (!canManage) {
-      alert('Tài khoản cộng đồng không thể tạo dự án.');
-      return;
+    if (!currentUser && uiPreview.previewOnly) {
+      addToast('Preview unlocked. Real authentication is still required to submit.', 'info');
     }
     setIsAddModalOpen(true);
   };
 
   return (
-    <div className="space-y-12 pt-10 pb-20 px-4 sm:px-6 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b-4 border-brutal-black pb-6 gap-6">
-        <div>
-          <h2 className="text-4xl sm:text-5xl font-display font-black mb-2 text-brutal-black tracking-tight uppercase">DỰ ÁN KHỞI NGHIỆP</h2>
-          <p className="text-brutal-black font-bold text-sm border-l-4 border-brutal-blue pl-4">Các sản phẩm đã triển khai và dự án đang được phát triển.</p>
-        </div>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full md:w-auto">
-           <div className="font-black text-xs text-brutal-black border-4 border-brutal-black px-4 py-2 bg-brutal-yellow flex items-center gap-2 shadow-neo-sm uppercase tracking-wider">
-              <Rocket size={16} />
-              {projects.length} DỰ ÁN
-           </div>
-           <button 
-             onClick={handleAddClick}
-             disabled={!canManage}
-             className={`font-black text-sm px-6 py-3 border-4 flex items-center justify-center gap-2 transition-all w-full sm:w-auto shadow-neo-sm uppercase tracking-wider ${
-               canManage
-                 ? 'bg-brutal-pink text-brutal-black border-brutal-black hover:bg-brutal-yellow hover:-translate-y-1' 
-                 : 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300'
-             }`}
-           >
-             <Plus size={16} /> THÊM DỰ ÁN
-             {!canManage && <span className="text-[10px] uppercase font-bold tracking-widest ml-1">(Chỉ Member)</span>}
-           </button>
-        </div>
-      </div>
+    <div className="mx-auto flex max-w-7xl flex-col gap-8">
+      <PageHeader
+        eyebrow="Projects"
+        title="Product work, not placeholder cards."
+        subtitle="Project cards stay operational: category, status, team, links, and a clear route into the product detail page."
+        actions={
+          <>
+            <StatusBadge tone="info">{projects.length} listed</StatusBadge>
+            <ActionButton variant={canManage ? 'primary' : 'ghost'} onClick={handleAddClick}>
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Add Project
+            </ActionButton>
+          </>
+        }
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {projects.map((project, index) => (
-          <Link to={`/project/${project.id}`} key={project.id} className="block h-full">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white p-8 border-4 border-brutal-black brutal-card hover:-translate-y-1 hover:-translate-x-1 hover:shadow-neo-lg transition-all duration-300 h-full flex flex-col cursor-pointer overflow-hidden relative"
-            >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-brutal-blue opacity-10 group-hover:opacity-30 transition-opacity duration-500 -z-0" />
-              
-              <div className="relative z-10 flex justify-between items-start mb-6">
-                <div className={`w-14 h-14 border-4 border-brutal-black flex items-center justify-center shadow-neo-sm group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300 ${index % 2 === 0 ? 'bg-brutal-blue text-white' : 'bg-brutal-pink text-brutal-black'}`}>
-                   {index % 2 === 0 ? <Layers size={28} /> : <Terminal size={28} />}
-                </div>
-                <div className="p-2 opacity-0 group-hover:opacity-100 transition-opacity bg-brutal-yellow border-2 border-brutal-black shadow-neo-sm text-brutal-black">
-                  <ArrowRight size={20} />
-                </div>
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        {projects.map((project) => (
+          <SurfaceCard key={project.id} interactive className="flex h-full flex-col p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-2">
+                <StatusBadge>{project.category}</StatusBadge>
+                <StatusBadge tone="warning">{project.status || 'Published'}</StatusBadge>
               </div>
-
-              <div className="mb-6 relative z-10 flex-1">
-                <span className="text-[10px] font-bold uppercase tracking-widest px-3 py-1 bg-brutal-green text-brutal-black border-2 border-brutal-black inline-block mb-4 shadow-neo-sm">
-                  {project.category}
-                </span>
-                <h3 className="text-2xl font-display font-black text-brutal-black mb-3 tracking-tight line-clamp-1 uppercase">
-                  {project.name}
-                </h3>
-                <p className="text-brutal-black font-bold text-sm leading-relaxed line-clamp-3">
-                  {project.description}
-                </p>
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border-main bg-primary/10 text-primary">
+                <Code2 className="h-5 w-5" aria-hidden="true" />
               </div>
+            </div>
 
-              <div className="mt-auto pt-6 border-t-4 border-brutal-black relative z-10">
-                <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest block mb-3">Thành viên phát triển</span>
-                <div className="flex flex-wrap gap-2">
-                  {project.builders.map(builder => (
-                    <span key={builder} className="text-[11px] font-bold text-brutal-black bg-white px-3 py-1.5 border-2 border-brutal-black shadow-neo-sm uppercase">
+            <h3 className="mt-5 font-heading text-2xl font-semibold tracking-tight text-text-main">
+              {project.name}
+            </h3>
+            <p className="mt-3 flex-1 text-sm leading-7 text-text-muted">{project.description}</p>
+
+            <div className="mt-5 space-y-3">
+              <div className="rounded-[20px] border border-border-main bg-main-bg p-4">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-text-muted">Builder team</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {project.builders.map((builder) => (
+                    <span
+                      key={builder}
+                      className="rounded-full border border-border-main px-3 py-1 text-xs text-text-main"
+                    >
                       {builder}
                     </span>
                   ))}
                 </div>
               </div>
-            </motion.div>
-          </Link>
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-border-main pt-5">
+              <Link to={`/project/${project.id}`}>
+                <ActionButton variant="secondary">
+                  View
+                  <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                </ActionButton>
+              </Link>
+              {project.repoLink ? (
+                <a href={project.repoLink} target="_blank" rel="noopener noreferrer">
+                  <ActionButton variant="ghost">
+                    <Github className="h-4 w-4" aria-hidden="true" />
+                    GitHub
+                  </ActionButton>
+                </a>
+              ) : null}
+              {project.link ? (
+                <a href={project.link} target="_blank" rel="noopener noreferrer">
+                  <ActionButton variant="ghost">
+                    <RadioTower className="h-4 w-4" aria-hidden="true" />
+                    Live
+                  </ActionButton>
+                </a>
+              ) : null}
+            </div>
+          </SurfaceCard>
         ))}
       </div>
-      
-      {/* Add Project Modal */}
-      <AddProjectModal isOpen={isAddModalOpen && canManage} onClose={() => setIsAddModalOpen(false)} onAdd={addProject} />
+
+      <AddProjectModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAdd={addProject}
+      />
     </div>
   );
 }
 
-function AddProjectModal({ isOpen, onClose, onAdd }: { isOpen: boolean, onClose: () => void, onAdd: (p: Project) => void }) {
-  if (!isOpen) return null;
+function AddProjectModal({
+  isOpen,
+  onClose,
+  onAdd,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onAdd: (project: Project) => void;
+}) {
+  if (!isOpen) {
+    return null;
+  }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const form = e.target as HTMLFormElement;
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const form = event.target as HTMLFormElement;
     const formData = new FormData(form);
 
     onAdd({
       id: Math.random().toString(),
-      name: formData.get('name') as string,
-      description: formData.get('description') as string,
-      category: formData.get('category') as string,
-      builders: (formData.get('builders') as string).split(',').map(s => s.trim()),
-      link: formData.get('link') as string,
-      repoLink: formData.get('repoLink') as string
+      name: String(formData.get('name') || ''),
+      description: String(formData.get('description') || ''),
+      category: String(formData.get('category') || ''),
+      builders: String(formData.get('builders') || '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean),
+      link: String(formData.get('link') || ''),
+      repoLink: String(formData.get('repoLink') || ''),
     });
     onClose();
   };
 
   return ReactDOM.createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-      <motion.div 
-        initial={{ scale: 0.95, opacity: 0, y: 20 }} 
-        animate={{ scale: 1, opacity: 1, y: 0 }} 
-        className="bg-white border-4 border-brutal-black p-8 w-full max-w-lg relative z-10 my-8 max-h-[90vh] overflow-y-auto shadow-neo-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button onClick={onClose} className="absolute top-6 right-6 text-brutal-black hover:text-brutal-black bg-white hover:bg-brutal-yellow p-2 border-2 border-transparent hover:border-brutal-black transition-colors z-10">
-          <X size={20} />
-        </button>
-        
-        <div className="mb-8 pr-10">
-          <h3 className="text-2xl font-display font-black text-brutal-black uppercase">Thêm Dự Án Mới</h3>
-          <p className="text-brutal-black text-sm font-bold mt-2 border-l-4 border-brutal-pink pl-4">Đăng tải sản phẩm lên danh mục của câu lạc bộ.</p>
-        </div>
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" onClick={onClose}>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        />
+        <motion.div
+          initial={{ opacity: 0, y: 14, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 14, scale: 0.96 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+          className="relative z-10 w-full max-w-2xl rounded-[32px] border border-border-main bg-surface-elevated p-7 shadow-soft-xl"
+          onClick={(innerEvent) => innerEvent.stopPropagation()}
+        >
+          <button type="button" onClick={onClose} className="icon-button absolute right-5 top-5">
+            <X className="h-4 w-4" />
+          </button>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-black text-brutal-black uppercase tracking-widest pl-1">Tên dự án</label>
-            <input name="name" placeholder="Ví dụ: DSUC Academy" required className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black outline-none font-bold text-sm transition-all focus:bg-brutal-yellow/20" />
-          </div>
-          
-          <div className="space-y-1.5">
-            <label className="text-xs font-black text-brutal-black uppercase tracking-widest pl-1">Mô tả ngắn</label>
-            <textarea name="description" placeholder="Nền tảng học hỏi và phát triển..." rows={3} required className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black outline-none font-bold text-sm transition-all focus:bg-brutal-yellow/20 resize-none" />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-black text-brutal-black uppercase tracking-widest pl-1">Danh mục</label>
-            <input name="category" placeholder="Ví dụ: EdTech, Defi, Web3..." required className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black outline-none font-bold text-sm transition-all focus:bg-brutal-yellow/20" />
+          <div className="space-y-2">
+            <p className="section-eyebrow">Project Intake</p>
+            <h2 className="font-heading text-3xl font-semibold tracking-tight text-text-main">
+              Publish a project card
+            </h2>
+            <p className="text-sm leading-6 text-text-muted">
+              This form stays connected to the existing project creation logic. Preview mode only unlocks the UI.
+            </p>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-black text-brutal-black uppercase tracking-widest pl-1">Đội ngũ (Cách nhau bằng dấu phẩy)</label>
-            <input name="builders" placeholder="Zah, Cuong, Hieu..." required className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black outline-none font-bold text-sm transition-all focus:bg-brutal-yellow/20" />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-brutal-black uppercase tracking-widest pl-1">Link Website</label>
-              <input name="link" placeholder="https://" required className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-blue outline-none font-bold text-sm transition-all focus:bg-brutal-yellow/20" />
+          <form onSubmit={handleSubmit} className="mt-6 grid gap-4">
+            <Field label="Project name">
+              <input name="name" required className="input-shell" placeholder="DSUC Builder Dashboard" />
+            </Field>
+            <Field label="Description">
+              <textarea
+                name="description"
+                rows={4}
+                required
+                className="input-shell min-h-[120px] resize-none"
+                placeholder="What this project does and why it matters."
+              />
+            </Field>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Category">
+                <input name="category" required className="input-shell" placeholder="Education, Tooling, Infra..." />
+              </Field>
+              <Field label="Builder team">
+                <input name="builders" required className="input-shell" placeholder="Comma-separated names" />
+              </Field>
             </div>
-            
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-brutal-black uppercase tracking-widest pl-1">Link GitHub Repo</label>
-              <input name="repoLink" placeholder="https://github.com/..." className="w-full bg-white border-4 border-brutal-black px-4 py-3 text-brutal-black outline-none font-bold text-sm transition-all focus:bg-brutal-yellow/20" />
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Live URL">
+                <input name="link" type="url" required className="input-shell" placeholder="https://..." />
+              </Field>
+              <Field label="GitHub URL">
+                <input name="repoLink" type="url" className="input-shell" placeholder="https://github.com/..." />
+              </Field>
             </div>
-          </div>
-
-          <button type="submit" className="w-full border-4 border-brutal-black bg-brutal-blue text-white font-black py-4 hover:bg-brutal-pink hover:text-brutal-black transition-all shadow-neo uppercase tracking-wider text-sm mt-4 hover:-translate-y-1">Tạo Dự Án</button>
-        </form>
-      </motion.div>
-    </div>,
+            <div className="mt-2 flex justify-end gap-3">
+              <ActionButton type="button" variant="ghost" onClick={onClose}>
+                Cancel
+              </ActionButton>
+              <ActionButton type="submit">Create Project</ActionButton>
+            </div>
+          </form>
+        </motion.div>
+      </div>
+    </AnimatePresence>,
     document.body
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="grid gap-2">
+      <span className="text-[11px] uppercase tracking-[0.18em] text-text-muted">{label}</span>
+      {children}
+    </label>
   );
 }

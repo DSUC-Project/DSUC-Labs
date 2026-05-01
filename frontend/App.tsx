@@ -1,9 +1,9 @@
 
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, Navigate, useParams } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { Layout } from './components/Layout';
+import { Layout, useUiPreview } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { Members } from './pages/Members';
 import { MemberDetail } from './pages/MemberDetail';
@@ -31,22 +31,17 @@ const GOOGLE_CLIENT_ID = (import.meta as any).env.VITE_GOOGLE_CLIENT_ID || '';
 
 function AnimatedRoutes() {
   const location = useLocation();
+  const shouldReduceMotion = useReducedMotion();
 
-  const { currentUser } = useStore();
-  const isOfficialMember = currentUser?.memberType === 'member';
-  const isAdmin =
-    isOfficialMember &&
-    ['President', 'Vice-President'].includes(
-      currentUser?.role || ''
-    );
+  const uiPreview = useUiPreview();
   return (
     <AnimatePresence mode="wait">
       <motion.div
         key={location.pathname}
-        initial={{ opacity: 0, y: 10, filter: 'blur(10px)' }}
-        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-        exit={{ opacity: 0, y: -10, filter: 'blur(10px)' }}
-        transition={{ duration: 0.3 }}
+        initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: -6 }}
+        transition={{ duration: shouldReduceMotion ? 0 : 0.18, ease: 'easeOut' }}
       >
         <Routes location={location}>
           <Route path="/" element={<Navigate to="/home" replace />} />
@@ -57,13 +52,13 @@ function AnimatedRoutes() {
           <Route path="/projects" element={<Projects />} />
           <Route path="/project/:id" element={<ProjectDetail />} />
           <Route path="/events" element={<Events />} />
-          <Route path="/finance" element={isOfficialMember ? <Finance /> : <Navigate to="/home" replace />} />
+          <Route path="/finance" element={uiPreview.canAccessFinance ? <Finance /> : <Navigate to="/home" replace />} />
           <Route path="/work" element={<Work />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/meet" element={<Meet />} />
           <Route path="/resources" element={<Resources />} />
-          <Route path="/admin" element={isAdmin ? <Admin /> : <Navigate to="/home" replace />} />
-          <Route path="/academy-admin" element={isAdmin ? <AcademyAdmin /> : <Navigate to="/home" replace />} />
+          <Route path="/admin" element={uiPreview.canAccessAdmin ? <Admin /> : <Navigate to="/home" replace />} />
+          <Route path="/academy-admin" element={uiPreview.canAccessAcademyAdmin ? <AcademyAdmin /> : <Navigate to="/home" replace />} />
           <Route path="/academy" element={<AcademyHome />} />
           <Route path="/academy/path/:pathId" element={<AcademyPath />} />
           <Route path="/academy/course/:courseId" element={<AcademyCourse />} />
