@@ -1,4 +1,4 @@
-# Brand — DSUC Lab
+# Brand — DSUC Labs
 
 _Status: deferred_
 
@@ -12,4 +12,4 @@ or say: "pick brand colors"
 
 When `brand-design` runs, it will detect this deferred state, skip the "confirm overwrite" step, and proceed directly to the full brand setup. The resulting palette will be applied to `app/globals.css` and this file will be replaced with the real brand documentation.
 
-_Deferred at: 2026-04-29T00:00:00+07:00_
+_Deferred at: 2026-05-01T00:00:00+07:00_
