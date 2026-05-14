@@ -238,7 +238,13 @@ export const useStore = create<AppState>((set, get) => ({
         if (result && result.success && result.data) {
           const members = result.data.map(normalizeMember);
           console.log("[fetchMembers] Setting members:", members.length);
-          set({ members });
+          set((state) => ({
+            members,
+            currentUser: state.currentUser
+              ? members.find((member) => member.id === state.currentUser?.id) ||
+                state.currentUser
+              : state.currentUser,
+          }));
           writeCache("members", members);
         }
       } else {
@@ -251,7 +257,16 @@ export const useStore = create<AppState>((set, get) => ({
     } catch (e) {
       console.error("Failed to fetch members from backend", e);
       // Fallback to mock data if backend fails
-      set({ members: MEMBERS.map(normalizeMember) });
+      set((state) => {
+        const members = MEMBERS.map(normalizeMember);
+        return {
+          members,
+          currentUser: state.currentUser
+            ? members.find((member) => member.id === state.currentUser?.id) ||
+              state.currentUser
+            : state.currentUser,
+        };
+      });
     }
   },
 

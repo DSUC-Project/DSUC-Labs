@@ -98,6 +98,7 @@ export async function getAcademyStatsByUserIds(userIds: string[]) {
       console.warn("[academyStats] academy_activity unavailable:", activityError.message);
     }
 
+    const progressByUser = new Map<string, any[]>();
     for (const row of progressRows || []) {
       const stats = statsByUser.get(row.user_id);
       if (!stats) continue;
@@ -105,6 +106,10 @@ export async function getAcademyStatsByUserIds(userIds: string[]) {
       stats.academy_xp += Number(row.xp_awarded || 0);
       if (row.lesson_completed) stats.completed_lessons += 1;
       if (row.quiz_passed) stats.quiz_passed += 1;
+
+      const rows = progressByUser.get(row.user_id) || [];
+      rows.push(row);
+      progressByUser.set(row.user_id, rows);
 
       const updatedAt = row.updated_at || row.created_at;
       if (updatedAt && (!stats.last_activity || updatedAt > stats.last_activity)) {
@@ -124,10 +129,13 @@ export async function getAcademyStatsByUserIds(userIds: string[]) {
       }
     }
 
-    for (const [userId, rows] of activityByUser.entries()) {
+    for (const userId of uniqueIds) {
       const stats = statsByUser.get(userId);
       if (stats) {
-        stats.streak = calculateLearningStreak(rows);
+        stats.streak = calculateLearningStreak([
+          ...(activityByUser.get(userId) || []),
+          ...(progressByUser.get(userId) || []),
+        ]);
       }
     }
   } catch (error: any) {

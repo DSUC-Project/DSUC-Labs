@@ -10,6 +10,7 @@ import {
   type ProgressState,
 } from "./progress";
 import { academyV2ProgressTrack } from "./v2Progress";
+import { useStore } from "@/store/useStore";
 
 function rowsToProgressState(rows: any[]): ProgressState {
   const completedLessons: Record<string, boolean> = {};
@@ -88,6 +89,8 @@ export function useAcademyProgressState(params: {
   walletAddress: string | null;
 }) {
   const { identity, currentUserId, authToken, walletAddress } = params;
+  const fetchMembers = useStore((store) => store.fetchMembers);
+  const checkSession = useStore((store) => store.checkSession);
   const isSignedInIdentity = Boolean(identity.userId || currentUserId);
   const [state, setState] = useState<ProgressState>(() =>
     loadProgress(identity),
@@ -111,6 +114,12 @@ export function useAcademyProgressState(params: {
     () => buildAuthHeaders(effectiveAuthToken, walletAddress, true),
     [effectiveAuthToken, walletAddress],
   );
+  const refreshLearnerState = useCallback(() => {
+    void fetchMembers();
+    if (effectiveAuthToken) {
+      void checkSession();
+    }
+  }, [checkSession, effectiveAuthToken, fetchMembers]);
 
   const syncMissingRows = useCallback(
     async (baseline: ProgressState, merged: ProgressState) => {
@@ -265,7 +274,7 @@ export function useAcademyProgressState(params: {
       setState(next);
       saveProgress(identity, next);
 
-      if (!currentUserId) {
+      if (!hasRemoteAuth) {
         return true;
       }
 
@@ -281,15 +290,27 @@ export function useAcademyProgressState(params: {
             quiz_passed: options?.quizPassed === true,
             checklist: [true, true, options?.quizPassed === true],
             xp_awarded: Math.max(0, Number(options?.xpAwarded ?? 0)),
+            record_review: true,
           }),
         });
+
+        if (response.ok) {
+          refreshLearnerState();
+        }
 
         return response.ok;
       } catch {
         return false;
       }
     },
-    [apiBase, currentUserId, identity, jsonHeaders, state],
+    [
+      apiBase,
+      hasRemoteAuth,
+      identity,
+      jsonHeaders,
+      refreshLearnerState,
+      state,
+    ],
   );
 
   return {
