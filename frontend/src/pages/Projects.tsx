@@ -1,19 +1,22 @@
 import toast from "react-hot-toast";
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   SectionHeader,
-  SoftBrutalCard,
   ActionButton,
-  StatusBadge,
 } from "@/components/ui/Primitives";
 import { useStore } from "@/store/useStore";
 import { Project } from "@/types";
-import { motion } from "motion/react";
-import { Plus, X } from "lucide-react";
+import {
+  FolderKanban,
+  Github,
+  Plus,
+  Search,
+  Users,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { ModalShell } from "@/components/ui/ModalShell";
-import { Card, ActionCard } from "@/components/ui/Cards";
-import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/Cards";
+import { ShowcaseCard } from "@/components/ui/ShowcaseCard";
 
 function AddProjectModal({
   isOpen,
@@ -157,9 +160,46 @@ function AddProjectModal({
 }
 
 export function Projects() {
-  const { projects, addProject, currentUser } = useStore();
+  const { projects, fetchProjects, addProject, currentUser } = useStore();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
   const canManage = currentUser?.memberType === "member";
+
+  useEffect(() => {
+    fetchProjects().catch(() => {});
+  }, [fetchProjects]);
+
+  const categories = [
+    "All",
+    ...Array.from(
+      new Set(
+        projects
+          .map((project) => project.category?.trim())
+          .filter((category): category is string => Boolean(category)),
+      ),
+    ),
+  ];
+
+  const filteredProjects = projects.filter((project) => {
+    const query = searchQuery.trim().toLowerCase();
+    const techStack =
+      project.tech_stack && project.tech_stack.length > 0
+        ? project.tech_stack
+        : project.techStack || [];
+    const builderNames = project.builders.join(", ");
+    const matchesSearch =
+      !query ||
+      project.name.toLowerCase().includes(query) ||
+      project.description.toLowerCase().includes(query) ||
+      project.category.toLowerCase().includes(query) ||
+      builderNames.toLowerCase().includes(query) ||
+      techStack.some((item) => item.toLowerCase().includes(query));
+    const matchesCategory =
+      activeCategory === "All" || project.category === activeCategory;
+
+    return matchesSearch && matchesCategory;
+  });
 
   const handleAddClick = () => {
     if (!currentUser) {
@@ -174,19 +214,19 @@ export function Projects() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 md:py-16">
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
+    <div className="container mx-auto space-y-12 px-4 py-8 md:py-16">
+      <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
         <SectionHeader
           title="Project Showcase"
           subtitle="Products shipped by DSUC builders."
-          className="mb-4 md:mb-0"
+          className="mb-0 border-none pb-0"
         />
 
-        <div className="w-full md:w-auto">
+        <div className="mt-4 flex w-full gap-4 md:mt-0 md:w-auto">
           {canManage ? (
             <ActionButton
               variant="primary"
-              className="w-full md:w-auto min-w-[150px]"
+              className="w-full md:w-auto"
               onClick={handleAddClick}
             >
               <span className="flex justify-center items-center gap-2">
@@ -194,83 +234,87 @@ export function Projects() {
               </span>
             </ActionButton>
           ) : (
-            <div className="px-4 py-2 bg-main-bg border border-border-main text-xs font-mono text-text-muted text-center">
+            <div className="border border-border-main bg-main-bg px-4 py-2 text-center font-mono text-xs text-text-muted">
               Restricted to Members
             </div>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projects.map((proj) => (
-          <Link
-            to={`/project/${proj.id}`}
-            key={proj.id}
-            className="block h-full cursor-pointer focus:outline-none"
-          >
-            <SoftBrutalCard intent="primary" interactive className="h-full p-6 flex flex-col">
-              <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                <span className="text-primary font-mono text-lg">↗</span>
-              </div>
+      <div className="mb-8 flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
+        <div className="flex flex-wrap gap-2">
+          {categories.map((category) => (
+            <button
+              key={category}
+              type="button"
+              onClick={() => setActiveCategory(category)}
+              className={`border border-border-main px-4 py-2 font-mono text-xs uppercase tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                activeCategory === category
+                  ? "bg-primary font-bold text-main-bg"
+                  : "bg-surface text-text-muted shadow-sm hover:bg-main-bg hover:text-text-main"
+              }`}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
 
-              <div className="flex flex-col flex-1 w-full">
-                <div className="flex items-start justify-between mb-2 gap-4">
-                  <h3 className="font-heading font-bold text-xl uppercase tracking-tight truncate pr-6 group-hover:text-primary transition-colors">
-                    {proj.name}
-                  </h3>
-                </div>
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 text-[10px] font-mono uppercase font-bold tracking-widest">
-                    {proj.category}
-                  </span>
-                  <span
-                    className={cn(
-                      "text-[10px] font-mono uppercase font-bold",
-                      proj.status === "Published"
-                        ? "text-emerald-500"
-                        : "text-primary",
-                    )}
-                  >
-                    {proj.status || "LIVE"}
-                  </span>
-                </div>
+        <div className="relative w-full shrink-0 md:w-64">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+          <input
+            type="text"
+            placeholder="Search projects..."
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            className="w-full border border-border-main bg-surface p-3 pl-10 font-mono text-xs shadow-sm transition-colors focus:border-primary focus:outline-none"
+          />
+        </div>
+      </div>
 
-                <p className="text-sm text-text-muted mb-6 flex-1 line-clamp-3 leading-relaxed">
-                  {proj.description}
-                </p>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+        {filteredProjects.map((proj) => {
+          const techStack =
+            proj.tech_stack && proj.tech_stack.length > 0
+              ? proj.tech_stack
+              : proj.techStack || [];
+          const builders = proj.builders.filter(Boolean);
 
-                {proj.tech_stack && proj.tech_stack.length > 0 && (
-                  <div className="mb-4 flex flex-wrap gap-1.5">
-                    {proj.tech_stack.slice(0, 4).map((t) => (
-                      <span
-                        key={t}
-                        className="px-2 py-1 bg-main-bg text-[9px] font-mono whitespace-nowrap text-text-muted"
-                      >
-                        {t}
-                      </span>
-                    ))}
-                    {proj.tech_stack.length > 4 && (
-                      <span className="px-2 py-1 bg-main-bg text-text-muted text-[9px] font-mono">
-                        +{proj.tech_stack.length - 4}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                <div className="pt-4 mt-auto  w-full flex items-end justify-between">
-                  <div className="flex flex-col w-full">
-                    <span className="text-[9px] font-mono uppercase text-text-muted mb-1 font-bold">
-                      Builders
+          return (
+            <Link
+              to={`/project/${proj.id}`}
+              key={proj.id}
+              className="group block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-main-bg"
+            >
+              <ShowcaseCard
+                icon={<FolderKanban className="h-5 w-5" aria-hidden="true" />}
+                title={proj.name}
+                category={proj.category}
+                accentLabel={proj.status || "Live"}
+                description={proj.description}
+                tags={techStack}
+                footerLabel="Builders"
+                footerValue={builders.join(", ") || "DSUC Builders"}
+                footerAside={
+                  <>
+                    <Users className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span className="font-mono text-[9px] font-bold uppercase tracking-widest">
+                      {builders.length}
                     </span>
-                    <span className="text-xs font-bold truncate text-text-main group-hover:text-primary transition-colors">
-                      {proj.builders.join(", ")}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </SoftBrutalCard>
-          </Link>
-        ))}
+                    {proj.repoLink ? (
+                      <Github className="h-3.5 w-3.5" aria-hidden="true" />
+                    ) : null}
+                  </>
+                }
+              />
+            </Link>
+          );
+        })}
+
+        {filteredProjects.length === 0 && (
+          <Card className="col-span-full p-12 text-center font-mono text-xs font-bold uppercase tracking-widest text-text-muted shadow-sm">
+            No projects found.
+          </Card>
+        )}
       </div>
 
       <AddProjectModal

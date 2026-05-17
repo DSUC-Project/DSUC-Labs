@@ -28,7 +28,9 @@ import { useStore } from "../store/useStore";
 import { BANKS } from "../data/mockData";
 import { SkillInput } from "../components/SkillInput";
 import { GoogleUserInfo } from "../types";
-import { SoftBrutalCard } from "@/components/ui/Primitives";
+import {
+  SoftBrutalCard,
+} from "@/components/ui/Primitives";
 
 interface GoogleJWTPayload {
   sub: string;
@@ -37,6 +39,7 @@ interface GoogleJWTPayload {
   picture: string;
   email_verified: boolean;
 }
+
 
 export function MyProfile() {
   const {
@@ -277,75 +280,76 @@ export function MyProfile() {
   if (!currentUser) return null;
 
   return (
-    <div className="min-h-screen pt-10 pb-32 max-w-6xl mx-auto px-4 sm:px-6 overflow-x-hidden bg-main-bg">
+    <div className="container mx-auto px-4 py-8 md:py-16 space-y-8">
       {isOnboarding && (
-        <div className="mb-8 bg-surface  p-6 rounded-lg shadow-sm">
+        <SoftBrutalCard intent="primary" className="p-6">
           <div className="text-xs font-bold uppercase tracking-widest text-primary mb-2">
             First Time Setup
           </div>
-          <p className="text-text-muted font-medium text-sm">
+          <p className="text-text-muted font-medium text-sm font-mono">
             Please complete your profile. Add your name and at least one skill
             or contact information, then click Save Changes.
           </p>
-        </div>
+        </SoftBrutalCard>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end  pb-6 mb-8 mt-4 gap-6">
-        <div>
-          <h2 className="text-4xl sm:text-5xl font-display font-bold tracking-tight uppercase text-text-main">
-            MY PROFILE
-          </h2>
-          <p className="text-text-muted font-bold text-sm mt-4 border-l-2 border-primary pl-4">
-            Manage your identity and personal information.
-          </p>
-        </div>
-        <div className="flex items-center gap-4 w-full md:w-auto">
+      <div className="flex w-full flex-col gap-3 md:flex-row md:justify-end">
+          <button
+            onClick={handleSaveAll}
+            className="inline-flex min-h-[46px] items-center justify-center gap-2 border-2 border-text-main bg-primary px-6 py-3 font-bold text-xs uppercase tracking-wider text-main-bg md:w-auto"
+          >
+            <Save size={16} /> Save Changes
+          </button>
           <button
             onClick={handleLogout}
-            className="flex-1 md:flex-none border border-border-main hover:bg-main-bg text-red-500 font-bold text-xs uppercase tracking-wider px-6 py-4 flex items-center justify-center gap-2 transition-colors shadow-sm bg-surface"
+            className="inline-flex min-h-[46px] items-center justify-center gap-2 border-2 border-text-main bg-surface px-6 py-3 font-bold text-xs uppercase tracking-wider text-red-500"
           >
-            <LogOut size={20} /> Log Out
+            <LogOut size={18} /> Log Out
           </button>
-        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Identity & Socials */}
-        <div className="lg:col-span-4 flex flex-col gap-6">
-          {/* Identity Card */}
+      <div className="grid grid-cols-1 xl:grid-cols-[320px_minmax(0,1fr)] gap-6">
+        {/* Left Column: Utility & Links */}
+        <div className="flex flex-col gap-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <SoftBrutalCard className="p-8 relative group overflow-hidden">
-              <div className="flex justify-end mb-4 relative z-10">
+            <SoftBrutalCard intent="primary" className="p-6 relative overflow-hidden">
+              <div className="flex justify-between items-start gap-4 mb-6">
+                <div>
+                  <h3 className="text-xl font-display font-bold text-text-main uppercase">
+                    Identity
+                  </h3>
+                  <p className="mt-2 text-sm text-text-muted font-bold">
+                    Public name, avatar, and member tier.
+                  </p>
+                </div>
                 {!isEditingIdentity ? (
                   <button
                     onClick={() => setIsEditingIdentity(true)}
-                    className="p-2 border border-border-main bg-surface text-text-main hover:bg-main-bg transition-colors shadow-sm"
+                    className="p-2 border border-border-main bg-surface text-text-main transition-colors shadow-sm"
                   >
                     <Edit2 size={18} />
                   </button>
                 ) : (
                   <button
                     onClick={handleSaveIdentity}
-                    className="bg-primary border border-border-main text-main-bg font-bold text-xs uppercase tracking-wider px-4 py-2 shadow-sm hover:opacity-90 transition-colors"
+                    className="bg-primary border border-border-main text-main-bg font-bold text-xs uppercase tracking-wider px-4 py-2 shadow-sm"
                   >
                     Save
                   </button>
                 )}
               </div>
-              <div className="flex flex-col items-center relative z-10">
-                <div className="w-32 h-32 p-1 border border-border-main mb-6 relative group/avatar bg-main-bg shadow-sm transition-transform duration-500 hover:scale-105">
+
+              <div className="flex flex-col items-center gap-6">
+                <div className="relative group/avatar w-36 h-36 p-1 border-2 border-text-main bg-main-bg shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_rgba(0,0,0,0.45)]">
                   <img
-                    src={
-                      avatar || `https://i.pravatar.cc/150?u=${currentUser.id}`
-                    }
+                    src={avatar || `https://i.pravatar.cc/150?u=${currentUser.id}`}
                     alt="Avatar"
-                    className="w-full h-full object-cover transition-all duration-300"
+                    className="w-full h-full object-cover"
                   />
-                  {isEditingIdentity && (
+                  {isEditingIdentity ? (
                     <label className="absolute inset-0 bg-text-main/80 flex flex-col items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer">
                       <Upload className="text-white mb-1" size={24} />
                       <span className="text-[10px] font-bold text-white uppercase tracking-widest mt-1">
@@ -358,18 +362,10 @@ export function MyProfile() {
                         onChange={handleImageUpload}
                       />
                     </label>
-                  )}
+                  ) : null}
                 </div>
 
-                <div className="mb-6 flex w-fit items-center gap-2 border border-border-main bg-primary px-4 py-2 font-bold uppercase tracking-widest text-main-bg shadow-sm">
-                  <Flame className="text-main-bg" size={18} />
-                  <span className="font-display text-2xl leading-none">
-                    {currentUser.streak || 0}
-                  </span>
-                  <span className="text-[10px]">days</span>
-                </div>
-
-                <div className="w-full space-y-6">
+                <div className="w-full space-y-5">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-text-main uppercase tracking-widest pl-1">
                       Display Name
@@ -378,7 +374,7 @@ export function MyProfile() {
                       <input
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full bg-main-bg border border-border-main px-4 py-3 text-text-main outline-none font-display font-bold text-lg transition-colors shadow-sm focus:border-cyan-400"
+                        className="w-full bg-surface border border-border-main px-4 py-3 text-text-main outline-none font-display font-bold text-lg transition-colors shadow-sm focus:border-primary"
                       />
                     ) : (
                       <div className="w-full bg-main-bg border border-border-main px-4 py-3 text-text-main font-display font-bold text-lg shadow-sm truncate">
@@ -386,17 +382,18 @@ export function MyProfile() {
                       </div>
                     )}
                   </div>
+
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-text-main uppercase tracking-widest pl-1">
                       Member Tier
                     </label>
-                    <div className="w-full bg-primary border border-border-main px-4 py-3 text-main-bg font-bold text-sm uppercase tracking-wider flex items-center justify-between shadow-sm">
+                    <div className="w-full bg-main-bg border border-border-main px-4 py-3 text-text-main font-bold text-sm uppercase tracking-wider flex items-center justify-between shadow-sm">
                       <span>
                         {currentUser.memberType === "community"
                           ? "Community"
                           : currentUser.role}
                       </span>
-                      <Hexagon size={20} className="text-main-bg" />
+                      <Hexagon size={20} className="text-primary" />
                     </div>
                   </div>
                 </div>
@@ -409,21 +406,22 @@ export function MyProfile() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.08 }}
-              className="bg-surface border border-border-main p-8 rounded-lg shadow-sm"
             >
-              <h3 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-4 flex items-center gap-2">
-                <Hexagon size={16} className="text-primary" /> Wallet Connection
-              </h3>
-              <div className="text-xs font-mono text-text-muted break-all mb-6 bg-surface p-4 rounded-lg border border-border-main">
-                {currentUser.wallet_address}
-              </div>
-              <button
-                onClick={handleReconnectWallet}
-                disabled={isReconnectingWallet}
-                className="w-full bg-surface hover:bg-main-bg border border-border-main text-text-main font-bold text-xs uppercase tracking-wider py-3 rounded-lg transition-colors shadow-sm disabled:opacity-60"
-              >
-                {isReconnectingWallet ? "Reconnecting..." : "Reconnect Wallet"}
-              </button>
+              <SoftBrutalCard intent="default" className="p-6">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-4 flex items-center gap-2">
+                  <Hexagon size={16} className="text-primary" /> Wallet Connection
+                </h3>
+                <div className="text-xs font-mono text-text-muted break-all mb-6 bg-main-bg p-4 border border-border-main">
+                  {currentUser.wallet_address}
+                </div>
+                <button
+                  onClick={handleReconnectWallet}
+                  disabled={isReconnectingWallet}
+                  className="w-full bg-surface hover:bg-main-bg border border-border-main text-text-main font-bold text-xs uppercase tracking-wider py-3 transition-colors shadow-sm disabled:opacity-60"
+                >
+                  {isReconnectingWallet ? "Reconnecting..." : "Reconnect Wallet"}
+                </button>
+              </SoftBrutalCard>
             </motion.div>
           )}
 
@@ -433,24 +431,24 @@ export function MyProfile() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <SoftBrutalCard intent="accent" className="p-8">
+            <SoftBrutalCard intent="default" className="p-6">
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h3 className="text-xl font-display font-bold text-text-main flex items-center gap-2">
-                    <Link2 size={24} className="text-accent" /> Social Links
-                  </h3>
-                </div>
+                    <h3 className="text-xl font-display font-bold text-text-main flex items-center gap-2">
+                      <Link2 size={24} className="text-primary" /> Social Links
+                    </h3>
+                  </div>
                 {!isEditingSocials ? (
                   <button
                     onClick={() => setIsEditingSocials(true)}
-                    className="p-2 border border-border-main bg-accent text-main-bg hover:opacity-90 transition-colors shadow-sm "
+                    className="p-2 border border-border-main bg-surface text-text-main hover:bg-main-bg transition-colors shadow-sm "
                   >
                     <Edit2 size={18} />
                   </button>
                 ) : (
                   <button
                     onClick={handleSaveSocials}
-                    className="bg-accent border border-border-main text-main-bg font-bold text-xs uppercase tracking-wider px-4 py-2 shadow-sm hover:opacity-90 transition-colors "
+                    className="bg-primary border border-border-main text-main-bg font-bold text-xs uppercase tracking-wider px-4 py-2 shadow-sm hover:opacity-90 transition-colors "
                   >
                     Save
                   </button>
@@ -497,7 +495,7 @@ export function MyProfile() {
                 ].map((social, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center gap-3 py-3 focus-within:text-accent transition-colors"
+                    className="flex items-center gap-3 py-3"
                   >
                     <social.icon
                       className="text-text-main flex-shrink-0"
@@ -509,16 +507,16 @@ export function MyProfile() {
                         value={social.value}
                         onChange={(e) => social.setter(e.target.value)}
                         placeholder={social.placeholder}
-                        className="flex-1 bg-surface border border-border-main px-4 py-2 outline-none font-bold text-sm placeholder:text-text-muted focus:border-cyan-400"
+                        className="flex-1 min-h-[42px] bg-surface border border-border-main px-4 py-2 outline-none font-bold text-sm placeholder:text-text-muted focus:border-primary"
                       />
                     ) : (
-                      <div className="flex-1 font-bold text-sm truncate">
+                      <div className="flex-1 min-h-[42px] border border-border-main bg-surface px-4 py-2 flex items-center font-bold text-sm truncate">
                         {social.value ? (
                           <a
                             href={`https://${social.value.replace(/https?:\/\//, "")}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-text-main hover:text-accent transition-colors"
+                            className="text-text-main truncate"
                           >
                             {social.value}
                           </a>
@@ -535,7 +533,7 @@ export function MyProfile() {
         </div>
 
         {/* Right Column: Content */}
-        <div className="lg:col-span-8 flex flex-col gap-6">
+        <div className="flex flex-col gap-6">
           {/* Academy Progress Redesign */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -543,7 +541,7 @@ export function MyProfile() {
             transition={{ delay: 0.2 }}
             className="w-full"
           >
-            <SoftBrutalCard intent="default" className="overflow-hidden p-0 w-full bg-surface text-text-main border-2 border-text-main relative z-10">
+            <SoftBrutalCard intent="primary" withPattern className="overflow-hidden p-0 w-full bg-surface text-text-main border-2 border-text-main relative z-10">
               <div className="p-8 flex flex-col md:flex-row justify-between items-start md:items-center border-b border-border-main relative z-10 gap-6">
                 <div>
                   <h3 className="text-2xl font-display font-bold flex items-center gap-3">
@@ -556,19 +554,19 @@ export function MyProfile() {
                 </div>
                 <button
                   onClick={() => navigate("/academy")}
-                  className="group flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-main-bg border border-border-main shadow-[4px_4px_0_0_#000] px-6 py-4 font-bold text-xs uppercase tracking-wider transition-all hover:shadow-[6px_6px_0_0_#000] hover:-translate-y-1 hover:-translate-x-1"
+                  className="group flex items-center justify-center gap-2 bg-primary text-main-bg border border-border-main shadow-[4px_4px_0_0_#000] px-6 py-4 font-bold text-xs uppercase tracking-wider transition-colors hover:bg-primary/90"
                 >
                   Go to Academy{" "}
                   <ArrowRight
                     size={16}
-                    className="group-hover:translate-x-1 transition-transform border-l border-current pl-1"
+                    className="border-l border-current pl-1"
                   />
                 </button>
               </div>
 
               <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border-main relative z-10 w-full">
-                <div className="p-8 flex flex-col items-center justify-center text-center hover:bg-black/10 transition-colors">
-                  <Flame className="mb-3" size={32} />
+                <div className="p-8 flex flex-col items-center justify-center text-center bg-main-bg/20 transition-colors">
+                  <Flame className="mb-3 text-[#f0a128]" size={32} />
                   <div className="text-4xl font-display font-bold">
                     {currentUser.streak || 0}
                   </div>
@@ -576,7 +574,7 @@ export function MyProfile() {
                     Learning Streak
                   </div>
                 </div>
-                <div className="p-8 flex flex-col items-center justify-center text-center hover:bg-black/10 transition-colors">
+                <div className="p-8 flex flex-col items-center justify-center text-center bg-main-bg/20 transition-colors">
                   <Code className="mb-3" size={32} />
                   <div className="text-4xl font-display font-bold">
                     1
@@ -585,7 +583,7 @@ export function MyProfile() {
                     Projects Completed
                   </div>
                 </div>
-                <div className="p-8 flex flex-col items-center justify-center text-center hover:bg-black/10 transition-colors">
+                <div className="p-8 flex flex-col items-center justify-center text-center bg-main-bg/20 transition-colors">
                   <div className="font-display font-bold text-3xl mb-3">
                     {"< />"}
                   </div>
@@ -596,7 +594,7 @@ export function MyProfile() {
                     Lessons
                   </div>
                 </div>
-                <div className="p-8 flex flex-col items-center justify-center text-center hover:bg-black/10 transition-colors group">
+                <div className="p-8 flex flex-col items-center justify-center text-center bg-main-bg/20 transition-colors group">
                   <Hexagon
                     className="mb-3"
                     size={32}
@@ -619,11 +617,11 @@ export function MyProfile() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <SoftBrutalCard intent="accent" className="p-8">
+              <SoftBrutalCard intent="default" className="p-6">
                 <div className="flex justify-between items-start mb-8">
                   <div>
                     <h3 className="text-xl font-display font-bold text-text-main flex items-center gap-3">
-                      <CreditCard className="text-accent" size={24} /> BANK
+                      <CreditCard className="text-primary" size={24} /> BANK
                       DETAILS
                     </h3>
                     <p className="text-sm text-text-muted font-bold mt-2">
@@ -633,14 +631,14 @@ export function MyProfile() {
                   {!isEditingBank ? (
                     <button
                       onClick={() => setIsEditingBank(true)}
-                      className="p-3 border border-border-main bg-accent text-main-bg hover:opacity-90 transition-colors shadow-sm "
+                      className="p-3 border border-border-main bg-surface text-text-main hover:bg-main-bg transition-colors shadow-sm "
                     >
                       <Edit2 size={24} />
                     </button>
                   ) : (
                     <button
                       onClick={handleSaveBank}
-                      className="bg-accent border border-border-main text-main-bg font-bold text-xs uppercase tracking-wider px-6 py-4 shadow-sm hover:opacity-90 transition-colors "
+                      className="bg-primary border border-border-main text-main-bg font-bold text-xs uppercase tracking-wider px-6 py-4 shadow-sm hover:opacity-90 transition-colors "
                     >
                       Save Bank
                     </button>
@@ -656,7 +654,7 @@ export function MyProfile() {
                     <select
                       value={selectedBank?.id || bankId}
                       onChange={(e) => setBankId(e.target.value)}
-                      className="w-full bg-surface border border-border-main px-4 py-3 text-text-main focus:border-cyan-400 outline-none font-bold text-sm transition-colors shadow-sm appearance-none"
+                      className="w-full bg-surface border border-border-main px-4 py-3 text-text-main focus:border-primary outline-none font-bold text-sm transition-colors shadow-sm appearance-none"
                     >
                       <option value="">-- SELECT BANK --</option>
                       {BANKS.map((b) => (
@@ -674,7 +672,7 @@ export function MyProfile() {
                       value={accountNo}
                       onChange={(e) => setAccountNo(e.target.value)}
                       placeholder="Enter account number"
-                      className="w-full bg-surface border border-border-main px-4 py-3 text-text-main focus:border-cyan-400 outline-none font-bold text-sm transition-colors shadow-sm"
+                      className="w-full bg-surface border border-border-main px-4 py-3 text-text-main focus:border-primary outline-none font-bold text-sm transition-colors shadow-sm"
                     />
                   </div>
                   <div className="space-y-2">
@@ -685,7 +683,7 @@ export function MyProfile() {
                       value={bankId}
                       onChange={(e) => setBankId(e.target.value)}
                       placeholder="e.g., 970422"
-                      className="w-full bg-surface border border-border-main px-4 py-3 text-text-main focus:border-cyan-400 outline-none font-bold text-sm transition-colors shadow-sm"
+                      className="w-full bg-surface border border-border-main px-4 py-3 text-text-main focus:border-primary outline-none font-bold text-sm transition-colors shadow-sm"
                     />
                   </div>
                   <div className="space-y-2">
@@ -696,7 +694,7 @@ export function MyProfile() {
                       value={accountName}
                       onChange={(e) => setAccountName(e.target.value)}
                       placeholder="NGUYEN VAN A"
-                      className="w-full bg-surface border border-border-main px-4 py-3 text-text-main focus:border-cyan-400 outline-none font-bold uppercase text-sm transition-colors shadow-sm"
+                      className="w-full bg-surface border border-border-main px-4 py-3 text-text-main focus:border-primary outline-none font-bold uppercase text-sm transition-colors shadow-sm"
                     />
                   </div>
                 </div>
@@ -749,54 +747,55 @@ export function MyProfile() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="bg-surface border border-border-main p-8 shadow-sm"
           >
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h3 className="text-xl font-display font-bold text-text-main flex items-center gap-3 uppercase">
-                  <Hexagon className="text-primary" size={24} /> Skills & Expertise
-                </h3>
-                <p className="text-sm text-text-muted font-bold mt-2">
-                  Add multiple skills to showcase your expertise (e.g., TypeScript, React, System Design, UX/UI).
-                </p>
-              </div>
-              {!isEditingSkills ? (
-                <button
-                  onClick={() => setIsEditingSkills(true)}
-                  className="p-2 border border-border-main bg-surface text-text-main hover:bg-main-bg transition-colors shadow-sm ml-4 shrink-0"
-                >
-                  <Edit2 size={18} />
-                </button>
-              ) : (
-                <button
-                  onClick={handleSaveSkills}
-                  className="bg-primary border border-border-main text-main-bg font-bold text-xs uppercase tracking-wider px-4 py-2 shadow-sm hover:opacity-90 transition-colors ml-4 shrink-0"
-                >
-                  Save
-                </button>
-              )}
-            </div>
-            
-            {isEditingSkills ? (
-              <SkillInput skills={skills} onChange={setSkills} maxSkills={5} />
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {skills.length > 0 ? (
-                  skills.map((skill) => (
-                    <div
-                      key={skill}
-                      className="flex items-center gap-2 bg-main-bg border border-border-main px-3 py-1.5 shadow-sm"
-                    >
-                      <span className="font-mono text-xs font-bold uppercase text-text-main">
-                        {skill}
-                      </span>
-                    </div>
-                  ))
+            <SoftBrutalCard intent="default" className="p-6">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h3 className="text-xl font-display font-bold text-text-main flex items-center gap-3 uppercase">
+                    <Hexagon className="text-primary" size={24} /> Skills & Expertise
+                  </h3>
+                  <p className="text-sm text-text-muted font-bold mt-2">
+                    Add multiple skills to showcase your expertise (e.g., TypeScript, React, System Design, UX/UI).
+                  </p>
+                </div>
+                {!isEditingSkills ? (
+                  <button
+                    onClick={() => setIsEditingSkills(true)}
+                    className="p-2 border border-border-main bg-surface text-text-main hover:bg-main-bg transition-colors shadow-sm ml-4 shrink-0"
+                  >
+                    <Edit2 size={18} />
+                  </button>
                 ) : (
-                  <span className="text-text-muted font-mono text-xs">No skills added yet.</span>
+                  <button
+                    onClick={handleSaveSkills}
+                    className="bg-primary border border-border-main text-main-bg font-bold text-xs uppercase tracking-wider px-4 py-2 shadow-sm hover:opacity-90 transition-colors ml-4 shrink-0"
+                  >
+                    Save
+                  </button>
                 )}
               </div>
-            )}
+              
+              {isEditingSkills ? (
+                <SkillInput skills={skills} onChange={setSkills} maxSkills={5} />
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {skills.length > 0 ? (
+                    skills.map((skill) => (
+                      <div
+                        key={skill}
+                        className="flex items-center gap-2 bg-main-bg border border-border-main px-3 py-1.5 shadow-sm"
+                      >
+                        <span className="font-mono text-xs font-bold uppercase text-text-main">
+                          {skill}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <span className="text-text-muted font-mono text-xs">No skills added yet.</span>
+                  )}
+                </div>
+              )}
+            </SoftBrutalCard>
           </motion.div>
 
           {/* Google Auth - Only show if not fully integrated native */}
@@ -805,55 +804,56 @@ export function MyProfile() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="bg-surface border border-border-main p-8 shadow-sm mt-6"
             >
-              <h3 className="text-xl font-display font-bold text-text-main mb-6 flex items-center gap-3">
-                <Mail className="text-primary" size={24} /> FALLBACK LOGIN
-                METHOD
-              </h3>
+              <SoftBrutalCard intent="default" className="p-6">
+                <h3 className="text-xl font-display font-bold text-text-main mb-6 flex items-center gap-3">
+                  <Mail className="text-primary" size={24} /> FALLBACK LOGIN
+                  METHOD
+                </h3>
 
-              {currentUser?.email ? (
-                <div className="flex items-center gap-4 bg-emerald-400/10 border border-border-main p-5 shadow-sm">
-                  <CheckCircle className="text-emerald-500" size={32} />
-                  <div>
-                    <div className="text-xs font-bold text-text-main uppercase tracking-widest">
-                      Linked
-                    </div>
-                    <div className="text-text-main font-bold mt-1 text-lg">
-                      {currentUser.email}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-surface p-6 border border-border-main shadow-sm gap-4 relative overflow-hidden">
-                  <div className="relative z-10">
-                    <div className="font-bold text-text-main text-xl tracking-tight uppercase">
-                      Account not linked
-                    </div>
-                    <div className="text-sm font-bold text-text-muted mt-1">
-                      Recommended for account recovery to avoid lost access.
-                    </div>
-                  </div>
-                  <div className="relative z-10 shrink-0">
-                    {isLinkingGoogle ? (
-                      <span className="text-text-main font-bold text-xs uppercase tracking-widest px-4 py-2 bg-primary/10 border border-border-main shadow-sm">
-                        Processing...
-                      </span>
-                    ) : (
-                      <div className="bg-surface p-1 shadow-sm border border-border-main inline-block">
-                        <GoogleLogin
-                          onSuccess={handleGoogleLinkSuccess}
-                          onError={() => toast.error("Failed")}
-                          useOneTap={false}
-                          theme="outline"
-                          size="medium"
-                          shape="rectangular"
-                        />
+                {currentUser?.email ? (
+                  <div className="flex items-center gap-4 bg-emerald-400/10 border border-border-main p-5 shadow-sm">
+                    <CheckCircle className="text-emerald-500" size={32} />
+                    <div>
+                      <div className="text-xs font-bold text-text-main uppercase tracking-widest">
+                        Linked
                       </div>
-                    )}
+                      <div className="text-text-main font-bold mt-1 text-lg">
+                        {currentUser.email}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-surface p-6 border border-border-main shadow-sm gap-4 relative overflow-hidden">
+                    <div className="relative z-10">
+                      <div className="font-bold text-text-main text-xl tracking-tight uppercase">
+                        Account not linked
+                      </div>
+                      <div className="text-sm font-bold text-text-muted mt-1">
+                        Recommended for account recovery to avoid lost access.
+                      </div>
+                    </div>
+                    <div className="relative z-10 shrink-0">
+                      {isLinkingGoogle ? (
+                        <span className="text-text-main font-bold text-xs uppercase tracking-widest px-4 py-2 bg-primary/10 border border-border-main shadow-sm">
+                          Processing...
+                        </span>
+                      ) : (
+                        <div className="bg-surface p-1 shadow-sm border border-border-main inline-block">
+                          <GoogleLogin
+                            onSuccess={handleGoogleLinkSuccess}
+                            onError={() => toast.error("Failed")}
+                            useOneTap={false}
+                            theme="outline"
+                            size="medium"
+                            shape="rectangular"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </SoftBrutalCard>
             </motion.div>
           )}
         </div>

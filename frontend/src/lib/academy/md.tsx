@@ -42,6 +42,44 @@ function rawTextFromChildren(children: React.ReactNode): string {
     .join("");
 }
 
+function normalizeFenceLanguage(input?: string) {
+  if (!input) return "text";
+  if (input === "ts" || input === "tsx" || input === "javascript") {
+    return "typescript";
+  }
+  if (input === "rs") {
+    return "rust";
+  }
+  return input;
+}
+
+function getCodeBlockProps(children: React.ReactNode) {
+  const items = React.Children.toArray(children);
+  const first = items[0];
+
+  if (React.isValidElement(first)) {
+    const props = first.props as {
+      className?: string;
+      children?: React.ReactNode;
+    };
+    const className = props.className || "";
+    const match = /language-([a-z0-9]+)/i.exec(className);
+    const language = normalizeFenceLanguage(match?.[1]);
+
+    return {
+      language,
+      label: language === "text" ? "code" : language,
+      code: rawTextFromChildren(props.children),
+    };
+  }
+
+  return {
+    language: "text",
+    label: "code",
+    code: rawTextFromChildren(children),
+  };
+}
+
 export function slugifyMarkdownHeading(value: string) {
   return String(value || "")
     .trim()
@@ -64,36 +102,36 @@ function heading<Tag extends "h1" | "h2" | "h3" | "h4">(
 const markdownComponents: Components = {
   h1: heading(
     "h1",
-    "mt-8 mb-4  pb-2 text-3xl font-heading font-bold uppercase tracking-tight text-text-main first:mt-0 sm:text-4xl",
+    "mt-10 mb-4 font-display text-4xl font-black uppercase tracking-tighter text-text-main first:mt-0 sm:text-5xl",
   ),
   h2: heading(
     "h2",
-    "mt-8 mb-4 border-b border-border-main pb-2 text-2xl font-heading font-bold text-text-main first:mt-0 sm:text-3xl",
+    "mt-10 mb-4 font-display text-3xl font-black uppercase tracking-tight text-text-main first:mt-0 sm:text-4xl",
   ),
   h3: heading(
     "h3",
-    "mt-6 mb-3 text-xl font-heading font-bold text-text-main sm:text-2xl",
+    "mt-8 mb-3 font-display text-2xl font-black uppercase tracking-tight text-text-main sm:text-3xl",
   ),
   h4: heading(
     "h4",
-    "mt-5 mb-2 text-lg font-heading font-bold text-text-main sm:text-xl",
+    "mt-6 mb-2 font-heading text-lg font-bold uppercase tracking-tight text-text-main sm:text-xl",
   ),
   p: ({ children }) => (
-    <p className="mt-4 mb-4 text-base leading-relaxed text-text-muted first:mt-0 sm:text-lg">
+    <p className="mt-4 mb-4 max-w-[74ch] font-sans text-[15px] leading-7 text-text-main/85 first:mt-0 sm:text-base sm:leading-8">
       {children}
     </p>
   ),
   strong: ({ children }) => (
-    <strong className="font-bold text-text-main">{children}</strong>
+    <strong className="font-semibold text-text-main">{children}</strong>
   ),
-  em: ({ children }) => <em className="italic text-text-muted">{children}</em>,
+  em: ({ children }) => <em className="italic text-text-main/80">{children}</em>,
   ul: ({ children }) => (
-    <ul className="mt-4 mb-4 list-disc space-y-2 pl-6 text-base text-text-muted sm:text-lg">
+    <ul className="mt-4 mb-5 max-w-[74ch] list-disc space-y-2 pl-6 font-sans text-[15px] leading-7 text-text-main/85 sm:text-base sm:leading-8">
       {children}
     </ul>
   ),
   ol: ({ children }) => (
-    <ol className="mt-4 mb-4 list-decimal space-y-2 pl-6 text-base text-text-muted marker:font-bold marker:text-text-muted sm:text-lg">
+    <ol className="mt-4 mb-5 max-w-[74ch] list-decimal space-y-2 pl-6 font-sans text-[15px] leading-7 text-text-main/85 marker:font-mono marker:text-text-muted sm:text-base sm:leading-8">
       {children}
     </ol>
   ),
@@ -101,7 +139,7 @@ const markdownComponents: Components = {
     <li className={`pl-2 ${className || ""}`}>{children}</li>
   ),
   blockquote: ({ children }) => (
-    <blockquote className="mt-5 mb-5 border-l-4 border-primary bg-surface p-5 text-lg italic text-text-muted">
+    <blockquote className="mt-6 mb-6 max-w-[74ch] border-l-4 border-primary bg-main-bg/70 px-5 py-4 font-sans text-[15px] leading-7 text-text-main shadow-sm sm:text-base sm:leading-8">
       {children}
     </blockquote>
   ),
@@ -115,9 +153,9 @@ const markdownComponents: Components = {
       {children}
     </a>
   ),
-  hr: () => <hr className="my-8 " />,
+  hr: () => <hr className="my-10 border-t border-border-main" />,
   table: ({ children }) => (
-    <div className="my-6 overflow-x-auto rounded-lg  bg-surface shadow-sm">
+    <div className="my-6 overflow-x-auto border border-border-main bg-surface shadow-sm">
       <table className="min-w-full border-collapse text-left text-sm text-text-main">
         {children}
       </table>
@@ -139,17 +177,28 @@ const markdownComponents: Components = {
       {children}
     </th>
   ),
-  td: ({ children }) => <td className="px-4 py-3 text-base">{children}</td>,
-  pre: ({ children }) => (
-    <div className="my-6">
-      <CodeSurface code={rawTextFromChildren(children)} label="lesson code" />
-    </div>
+  td: ({ children }) => (
+    <td className="px-4 py-3 font-sans text-sm leading-6 text-text-main/85">
+      {children}
+    </td>
   ),
+  pre: ({ children }) => {
+    const block = getCodeBlockProps(children);
+    return (
+      <div className="my-6">
+        <CodeSurface
+          code={block.code}
+          language={block.language}
+          label={block.label}
+        />
+      </div>
+    );
+  },
   code: ({ className, children, ...props }: any) => {
     const content = String(children).replace(/\n$/, "");
     if (props.inline) {
       return (
-        <code className="rounded border border-border-main bg-surface px-1.5 py-0.5 font-mono text-sm text-text-main">
+        <code className="bg-main-bg px-1.5 py-0.5 font-mono text-[13px] text-primary">
           {content}
         </code>
       );

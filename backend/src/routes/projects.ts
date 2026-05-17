@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { db } from '../index';
+import { db } from '../db';
 import { authenticateUser, requireOfficialMember } from '../middleware/auth';
 import { uploadBase64ToSupabase } from '../middleware/upload';
 

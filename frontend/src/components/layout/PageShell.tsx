@@ -11,8 +11,21 @@ import { AuthIntent, GoogleUserInfo } from "@/types";
 import { LoginNotification } from "../LoginNotification";
 import { ContactModal } from "../ContactModal";
 import { ModalShell } from "@/components/ui/ModalShell";
-import { Terminal, X } from "lucide-react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  CheckCircle2,
+  FlaskConical,
+  Mail,
+  ShieldCheck,
+  Sparkles,
+  Terminal,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  consumePendingAuthAnnouncement,
+  registerLoginModalListener,
+} from "@/lib/authUi";
 
 // Context for contact modal
 export const ContactModalContext = createContext<{
@@ -56,6 +69,30 @@ function readStoredTheme(): AppTheme {
     : "light";
 }
 
+function isLocalHostname(hostname: string) {
+  return ["localhost", "127.0.0.1", "::1"].includes(hostname);
+}
+
+function isLocalDevAuthEnabled() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const env = (import.meta as any).env;
+  const uiHost = window.location.hostname;
+  const apiBase = env.VITE_API_BASE_URL || window.location.origin;
+
+  try {
+    const apiHost = new URL(apiBase, window.location.origin).hostname;
+    return (
+      env.VITE_ENABLE_LOCAL_AUTH === "true" ||
+      (isLocalHostname(uiHost) && isLocalHostname(apiHost))
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function PageShell() {
   const location = useLocation();
   const intensity = getIntensityForPath(location.pathname);
@@ -66,28 +103,36 @@ export function PageShell() {
   const [showLoginNotification, setShowLoginNotification] = useState(false);
   const [lastLoginInfo, setLastLoginInfo] = useState<{
     name?: string;
-    method?: "wallet" | "google";
+    method?: "wallet" | "google" | "local";
   }>({});
   const [theme, setTheme] = useState<AppTheme>(() => readStoredTheme());
 
-  const { currentUser, authMethod } = useStore();
+  const { currentUser } = useStore();
   const navigate = useNavigate();
-  const previousUserIdRef = React.useRef<string | null>(
-    currentUser?.id || null,
-  );
   const requiresProfileCompletion =
     !!currentUser && currentUser.profile_completed === false;
 
+  const openAuthModal = React.useCallback((mode: AuthIntent) => {
+    setAuthMode(mode);
+    setIsAuthModalOpen(true);
+  }, []);
+
   useEffect(() => {
-    if (currentUser?.id && previousUserIdRef.current !== currentUser.id) {
+    if (!currentUser?.id) {
+      return;
+    }
+
+    const pendingMethod = consumePendingAuthAnnouncement();
+    if (pendingMethod) {
       setLastLoginInfo({
         name: currentUser?.name || currentUser?.email || "User",
-        method: (authMethod as "wallet" | "google") || "google",
+        method: pendingMethod,
       });
       setShowLoginNotification(true);
     }
-    previousUserIdRef.current = currentUser?.id || null;
-  }, [currentUser?.id, currentUser?.name, currentUser?.email, authMethod]);
+  }, [currentUser?.email, currentUser?.id, currentUser?.name]);
+
+  useEffect(() => registerLoginModalListener(openAuthModal), [openAuthModal]);
 
   useEffect(() => {
     if (requiresProfileCompletion && location.pathname !== "/profile") {
@@ -102,11 +147,6 @@ export function PageShell() {
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.classList.toggle("light", theme !== "dark");
   }, [theme]);
-
-  const openAuthModal = (mode: AuthIntent) => {
-    setAuthMode(mode);
-    setIsAuthModalOpen(true);
-  };
 
   return (
     <ContactModalContext.Provider
@@ -137,7 +177,7 @@ export function PageShell() {
           </motion.main>
         </AnimatePresence>
 
-        <footer className="mt-auto py-8 bg-surface/50 backdrop-blur text-center text-xs font-mono uppercase tracking-widest text-text-muted relative z-10 border-t  border-border-main">
+        <footer className="mt-auto py-8 bg-surface/50 backdrop-blur text-center text-xs font-mono uppercase tracking-widest text-text-muted relative z-10">
           <p>DSUC Labs OS v2.0 &copy; {new Date().getFullYear()}</p>
         </footer>
 
@@ -155,6 +195,7 @@ export function PageShell() {
           mode={authMode}
           onModeChange={setAuthMode}
           onClose={() => setIsAuthModalOpen(false)}
+          theme={theme}
         />
         <ContactModal
           isOpen={isContactModalOpen}
@@ -176,14 +217,17 @@ function RealAuthModal({
   mode,
   onModeChange,
   onClose,
+  theme,
 }: {
   isOpen: boolean;
   mode: AuthIntent;
   onModeChange: (mode: AuthIntent) => void;
   onClose: () => void;
+  theme: AppTheme;
 }) {
-  const { loginWithGoogle } = useStore();
+  const { loginWithGoogle, loginWithLocalAdmin } = useStore();
   const [isLoading, setIsLoading] = useState(false);
+  const localDevAuthEnabled = React.useMemo(() => isLocalDevAuthEnabled(), []);
 
   const handleGoogleSuccess = async (
     credentialResponse: CredentialResponse,
@@ -210,35 +254,114 @@ function RealAuthModal({
     }
   };
 
+  const handleLocalAdminLogin = async () => {
+    setIsLoading(true);
+    try {
+      const success = await loginWithLocalAdmin();
+      if (success) {
+        onClose();
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <ModalShell
       isOpen={isOpen}
       onClose={onClose}
-      title={mode === "signup" ? "Register Account" : "Log In To DSUC"}
-      label="AUTHENTICATION"
+      title={
+        mode === "signup"
+          ? "Create Your DSUC Access"
+          : "Access Your DSUC Workspace"
+      }
+      label="ACCOUNT ACCESS"
+      panelClassName="max-w-4xl border border-border-main"
+      bodyClassName="p-0"
     >
-      <div className="space-y-6">
-        <div className="mb-6 text-center">
-          <div className="bg-primary w-16 h-16 mx-auto mb-4  flex items-center justify-center">
-            <Terminal size={32} className="text-main-bg" />
+      <div className="grid lg:grid-cols-[1.1fr_0.9fr]">
+        <section className="border-b border-border-main bg-main-bg px-5 py-6 sm:px-7 sm:py-8 lg:border-r lg:border-b-0">
+          <div className="inline-flex min-h-10 items-center gap-2 border border-border-main bg-surface px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-widest text-text-main">
+            <Terminal className="h-4 w-4 text-primary" />
+            {mode === "signup" ? "New Account Flow" : "Returning Member Flow"}
           </div>
-          <p className="mt-2 text-sm text-text-muted border-t border-dashed border-border-main pt-2">
-            {mode === "signup"
-              ? "Create your account with Google first. You will complete your profile before using the app."
-              : "Log in with the Google email already attached to your DSUC account."}
-          </p>
-        </div>
 
-        <div className="space-y-4">
-          <div className="flex bg-main-bg border border-border-main p-1 gap-1">
+          <div className="mt-6 flex flex-col gap-5">
+            <div className="space-y-3">
+              <h3 className="max-w-[14ch] font-heading text-3xl font-bold leading-none text-text-main sm:text-4xl">
+                {mode === "signup"
+                  ? "Create your DSUC identity."
+                  : "Get back into your workspace."}
+              </h3>
+              <p className="max-w-xl text-sm leading-relaxed text-text-muted sm:text-base">
+                {mode === "signup"
+                  ? "Start with Google, then finish your profile to join the community and unlock the rest of the product cleanly."
+                  : "Use the Google email already attached to your DSUC account. The modal stays compact on mobile and keeps the action in one place."}
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="border border-border-main bg-surface p-4">
+                <BadgeCheck className="h-5 w-5 text-primary" />
+                <p className="mt-4 font-mono text-[10px] font-bold uppercase tracking-widest text-text-muted">
+                  Step 1
+                </p>
+                <p className="mt-2 text-sm font-semibold text-text-main">
+                  Authenticate with Google.
+                </p>
+              </div>
+
+              <div className="border border-border-main bg-surface p-4">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+                <p className="mt-4 font-mono text-[10px] font-bold uppercase tracking-widest text-text-muted">
+                  Step 2
+                </p>
+                <p className="mt-2 text-sm font-semibold text-text-main">
+                  DSUC matches the right account and permissions.
+                </p>
+              </div>
+
+              <div className="border border-border-main bg-surface p-4">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <p className="mt-4 font-mono text-[10px] font-bold uppercase tracking-widest text-text-muted">
+                  Step 3
+                </p>
+                <p className="mt-2 text-sm font-semibold text-text-main">
+                  Continue into profile, academy, and club tools.
+                </p>
+              </div>
+            </div>
+
+            <div className="border border-border-main bg-surface p-4 sm:p-5">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-border-main bg-primary/10 text-primary">
+                  <CheckCircle2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-text-muted">
+                    Account Rule
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-text-main">
+                    {mode === "signup"
+                      ? "Register creates a community account first. Official member privileges are still granted by DSUC admins after review."
+                      : "If the email is not already registered, switch to Register first instead of retrying Login."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="px-5 py-6 sm:px-7 sm:py-8">
+          <div className="flex gap-1 border border-border-main bg-main-bg p-1">
             <button
               type="button"
               onClick={() => onModeChange("signup")}
               className={cn(
-                "flex-1 py-3 text-sm font-bold font-heading uppercase tracking-widest border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                "flex min-h-11 flex-1 items-center justify-center px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                 mode === "signup"
-                  ? "border-primary bg-primary text-main-bg shadow-[2px_2px_0_0_#1a1b26]"
-                  : "border-transparent text-text-muted hover:text-text-main hover:bg-surface",
+                  ? "bg-primary text-main-bg"
+                  : "bg-transparent text-text-muted hover:bg-surface hover:text-text-main",
               )}
             >
               Register
@@ -247,47 +370,87 @@ function RealAuthModal({
               type="button"
               onClick={() => onModeChange("login")}
               className={cn(
-                "flex-1 py-3 text-sm font-bold font-heading uppercase tracking-widest border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                "flex min-h-11 flex-1 items-center justify-center px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                 mode === "login"
-                  ? "border-primary bg-primary text-main-bg shadow-[2px_2px_0_0_#1a1b26]"
-                  : "border-transparent text-text-muted hover:text-text-main hover:bg-surface",
+                  ? "bg-primary text-main-bg"
+                  : "bg-transparent text-text-muted hover:bg-surface hover:text-text-main",
               )}
             >
               Log In
             </button>
           </div>
 
-          <div className="flex justify-center border border-border-main p-2 bg-main-bg">
-            {isLoading ? (
-              <div className="w-full p-4 flex items-center justify-center bg-surface font-mono font-bold">
-                <span className="text-text-main animate-pulse">
-                  PROCESSING...
-                </span>
+          <div className="mt-5 border border-border-main bg-surface p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-border-main bg-main-bg text-primary">
+                <Mail className="h-5 w-5" />
               </div>
-            ) : (
-              <div className="w-full flex flex-col items-center">
+              <div className="min-w-0">
+                <p className="font-heading text-xl font-bold text-text-main">
+                  {mode === "signup"
+                    ? "Continue with Google"
+                    : "Sign in with Google"}
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-text-muted">
+                  {mode === "signup"
+                    ? "Use the email you want attached to your DSUC profile. You will land in onboarding if your profile is still incomplete."
+                    : "Use the same email already linked to your DSUC account so the backend can restore the correct member record."}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5">
+              {isLoading ? (
+                <div className="flex min-h-12 w-full items-center justify-center border border-border-main bg-main-bg px-4 py-3 font-mono text-xs font-bold uppercase tracking-widest text-text-muted">
+                  Processing...
+                </div>
+              ) : (
                 <GoogleLogin
                   onSuccess={handleGoogleSuccess}
                   onError={() => toast.error("Google login failed")}
                   useOneTap={false}
-                  theme="outline"
+                  theme={theme === "dark" ? "filled_black" : "outline"}
                   size="large"
                   width="100%"
                   text={mode === "signup" ? "signup_with" : "signin_with"}
                   shape="rectangular"
+                  logo_alignment="left"
+                  containerProps={{
+                    className:
+                      "w-full flex justify-center [&>div]:!w-full [&>div]:!max-w-none [&>div]:min-h-12",
+                  }}
                 />
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
-          <div className="bg-main-bg border border-border-main border-dashed p-4">
-            <p className="text-[10px] text-text-main font-mono text-center leading-relaxed font-bold opacity-80">
+            <p className="mt-4 flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-text-muted">
+              <ArrowRight className="h-3.5 w-3.5 text-primary" />
               {mode === "signup"
-                ? "> REGISTRATION CREATES A DSUC COMMUNITY ACCOUNT. INITIAL MEMBER PERMISSIONS GRANTED BY ADMIN."
-                : "> IF THIS EMAIL HAS NO DSUC ACCOUNT YET, SWITCH TO REGISTER FIRST."}
+                ? "Profile setup appears right after your first successful registration."
+                : "If this email has no DSUC account yet, switch to Register above."}
             </p>
           </div>
-        </div>
+
+          {localDevAuthEnabled && (
+            <div className="mt-4 border border-dashed border-border-main bg-main-bg p-4">
+              <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-text-muted">
+                Local Testing Only
+              </p>
+              <button
+                type="button"
+                onClick={handleLocalAdminLogin}
+                disabled={isLoading}
+                className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 border border-border-main bg-surface px-4 py-3 font-mono text-xs font-bold uppercase tracking-widest text-text-main transition-colors hover:bg-primary hover:text-main-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <FlaskConical className="h-4 w-4" />
+                Use Local Admin
+              </button>
+              <p className="mt-3 text-sm leading-relaxed text-text-muted">
+                Starts a mock admin session against the localhost backend without touching production auth.
+              </p>
+            </div>
+          )}
+        </section>
       </div>
     </ModalShell>
   );

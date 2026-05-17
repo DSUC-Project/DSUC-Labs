@@ -2,9 +2,10 @@ import { Router, Request, Response } from "express";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { v4 as uuidv4 } from "uuid";
-import { db } from "../index";
+import { db } from "../db";
 import { generateToken, verifyToken, AuthRequest, authenticateWallet } from "../middleware/auth";
 import { attachAcademyStatsToMember } from "../utils/academyStats";
+import { IS_PRODUCTION, USE_MOCK_DB } from "../config/runtime";
 
 const router = Router();
 
@@ -13,6 +14,35 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
 const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL || "http://localhost:3001/api/auth/google/callback";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+const DEV_AUTH_DEFAULT_ADMIN_ID = "101240059";
+
+function isLocalHostname(hostname: string | undefined) {
+  return ["localhost", "127.0.0.1", "::1"].includes(String(hostname || ""));
+}
+
+function isLocalOrigin(originHeader: string | string[] | undefined) {
+  const originValue = Array.isArray(originHeader)
+    ? originHeader[0]
+    : originHeader;
+
+  if (!originValue) {
+    return false;
+  }
+
+  try {
+    return isLocalHostname(new URL(originValue).hostname);
+  } catch {
+    return false;
+  }
+}
+
+function canUseDevAuth(req: Request) {
+  return (
+    USE_MOCK_DB &&
+    !IS_PRODUCTION &&
+    (isLocalHostname(req.hostname) || isLocalOrigin(req.headers.origin))
+  );
+}
 
 function buildCommunityMemberId() {
   return `community-${uuidv4().slice(0, 8)}`;
@@ -229,6 +259,7 @@ router.get(
         userId: user.id,
         email: user.email,
         wallet_address: user.wallet_address || undefined,
+        auth_method: "google",
       });
 
       // Set token as HTTP-only cookie
@@ -404,6 +435,7 @@ router.post("/google/login", async (req: Request, res: Response) => {
       userId: member.id,
       email: member.email,
       wallet_address: member.wallet_address || undefined,
+      auth_method: "google",
     });
 
     const memberWithStats = await attachAcademyStatsToMember(member);
@@ -417,6 +449,69 @@ router.post("/google/login", async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error("Error with Google login:", error);
     res.status(500).json({
+      error: "Internal Server Error",
+      message: error.message,
+    });
+  }
+});
+
+// POST /api/auth/dev-login - Local-only mock admin login for dev
+router.post("/dev-login", async (req: Request, res: Response) => {
+  try {
+    if (!canUseDevAuth(req)) {
+      return res.status(403).json({
+        success: false,
+        error: "Forbidden",
+        message: "Local dev auth is only available on localhost with mock data.",
+      });
+    }
+
+    const requestedUserId =
+      typeof req.body?.userId === "string" && req.body.userId.trim()
+        ? req.body.userId.trim()
+        : DEV_AUTH_DEFAULT_ADMIN_ID;
+
+    const { data: member, error } = await db
+      .from("members")
+      .select("*")
+      .eq("id", requestedUserId)
+      .single();
+
+    if (error || !member) {
+      return res.status(404).json({
+        success: false,
+        error: "Not Found",
+        message: "Requested local dev account was not found.",
+      });
+    }
+
+    const token = generateToken({
+      userId: member.id,
+      email: member.email,
+      wallet_address: member.wallet_address || undefined,
+      auth_method: "local",
+    });
+
+    const memberWithStats = await attachAcademyStatsToMember(member);
+
+    res.cookie("auth_token", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.json({
+      success: true,
+      data: memberWithStats,
+      token,
+      authMethod: "local",
+      message: "Local admin session created.",
+    });
+  } catch (error: any) {
+    console.error("Error with local dev login:", error);
+    res.status(500).json({
+      success: false,
       error: "Internal Server Error",
       message: error.message,
     });
@@ -462,11 +557,15 @@ router.get("/session", async (req: Request, res: Response) => {
     }
 
     const memberWithStats = await attachAcademyStatsToMember(member);
+    const sessionAuthMethod =
+      payload.auth_method ||
+      (member.wallet_address ? "wallet" : "google");
 
     res.json({
       success: true,
       authenticated: true,
       data: memberWithStats,
+      authMethod: sessionAuthMethod,
     });
   } catch (error: any) {
     console.error("Session check error:", error);

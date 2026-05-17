@@ -1,9 +1,8 @@
 import type multer from "multer";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
-import { supabase } from "../index";
-
-const USE_MOCK_DB = process.env.USE_MOCK_DB === 'true';
+import { supabase } from "../db";
+import { USE_MOCK_DB } from "../config/runtime";
 
 function getMulter(): typeof import("multer") {
   const multerModule = require("multer") as typeof import("multer");

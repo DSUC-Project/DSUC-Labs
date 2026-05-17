@@ -53,7 +53,7 @@ export function Navbar({
 
   return (
     <>
-      <header className="sticky top-0 z-[80] w-full bg-surface/90 backdrop-blur transition-colors border-b  border-border-main">
+      <header className="sticky top-0 z-[80] w-full bg-surface/90 backdrop-blur transition-colors">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link

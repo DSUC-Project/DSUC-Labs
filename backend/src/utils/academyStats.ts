@@ -1,4 +1,4 @@
-import { db } from "../index";
+import { db } from "../db";
 
 export interface AcademyStats {
   streak: number;
@@ -23,6 +23,26 @@ const ACADEMY_DATE_FORMATTER = new Intl.DateTimeFormat('en-CA', {
   month: '2-digit',
   day: '2-digit',
 });
+const QUALIFIED_STREAK_ACTIONS = new Set([
+  'lesson_completed',
+  'lesson_reviewed',
+]);
+
+export function isQualifiedStreakActivity(row: any) {
+  const action = String(row?.action || '');
+
+  if (QUALIFIED_STREAK_ACTIONS.has(action)) {
+    return true;
+  }
+
+  // Preserve legacy community streak rows that were historically written as
+  // quiz_passed while also marking the lesson as completed.
+  return action === 'quiz_passed' && row?.lesson_completed === true;
+}
+
+export function extractQualifiedStreakRows(rows: any[]) {
+  return (rows || []).filter((row) => isQualifiedStreakActivity(row));
+}
 
 export function academyDateKey(value: Date) {
   const parts = ACADEMY_DATE_FORMATTER.formatToParts(value);
@@ -40,7 +60,7 @@ function shiftDays(value: Date, days: number) {
 
 export function calculateLearningStreak(rows: any[], now = new Date()) {
   const activeDays = new Set(
-    rows
+    (rows || [])
       .map((row) => row?.recorded_at || row?.updated_at || row?.created_at)
       .filter(Boolean)
       .map((value) => academyDateKey(new Date(value)))
@@ -132,10 +152,9 @@ export async function getAcademyStatsByUserIds(userIds: string[]) {
     for (const userId of uniqueIds) {
       const stats = statsByUser.get(userId);
       if (stats) {
-        stats.streak = calculateLearningStreak([
-          ...(activityByUser.get(userId) || []),
-          ...(progressByUser.get(userId) || []),
-        ]);
+        stats.streak = calculateLearningStreak(
+          extractQualifiedStreakRows(activityByUser.get(userId) || []),
+        );
       }
     }
   } catch (error: any) {

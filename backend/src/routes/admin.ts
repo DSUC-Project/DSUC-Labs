@@ -1,5 +1,5 @@
 import { Router, Response } from "express";
-import { db } from "../index";
+import { db } from "../db";
 import crypto from "crypto";
 import {
   authenticateUser,

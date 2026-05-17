@@ -67,6 +67,7 @@ function buildAuthHeaders(
 type SaveOptions = {
   quizPassed?: boolean;
   xpAwarded?: number;
+  studySeconds?: number;
 };
 
 function parseProgressKey(key: string) {
@@ -186,6 +187,53 @@ export function useAcademyProgressState(params: {
     [apiBase, jsonHeaders],
   );
 
+  const postProgressRow = useCallback(
+    async (payload: {
+      track: string;
+      lessonId: string;
+      lessonCompleted: boolean;
+      quizPassed: boolean;
+      checklist: boolean[];
+      xpAwarded: number;
+      recordReview?: boolean;
+      studySeconds?: number;
+    }) => {
+      if (!hasRemoteAuth) {
+        return false;
+      }
+
+      try {
+        const response = await fetch(`${apiBase}/api/academy/progress`, {
+          method: "POST",
+          headers: jsonHeaders,
+          credentials: "include",
+          body: JSON.stringify({
+            track: payload.track,
+            lesson_id: payload.lessonId,
+            lesson_completed: payload.lessonCompleted,
+            quiz_passed: payload.quizPassed,
+            checklist: payload.checklist,
+            xp_awarded: Math.max(0, Number(payload.xpAwarded || 0)),
+            record_review: payload.recordReview === true,
+            study_seconds: Math.max(
+              0,
+              Math.floor(Number(payload.studySeconds || 0)),
+            ),
+          }),
+        });
+
+        if (response.ok) {
+          refreshLearnerState();
+        }
+
+        return response.ok;
+      } catch {
+        return false;
+      }
+    },
+    [apiBase, hasRemoteAuth, jsonHeaders, refreshLearnerState],
+  );
+
   useEffect(() => {
     setState(loadProgress(identity));
   }, [identity]);
@@ -278,44 +326,66 @@ export function useAcademyProgressState(params: {
         return true;
       }
 
-      try {
-        const response = await fetch(`${apiBase}/api/academy/progress`, {
-          method: "POST",
-          headers: jsonHeaders,
-          credentials: "include",
-          body: JSON.stringify({
-            track: progressTrack,
-            lesson_id: lessonId,
-            lesson_completed: true,
-            quiz_passed: options?.quizPassed === true,
-            checklist: [true, true, options?.quizPassed === true],
-            xp_awarded: Math.max(0, Number(options?.xpAwarded ?? 0)),
-            record_review: true,
-          }),
-        });
-
-        if (response.ok) {
-          refreshLearnerState();
-        }
-
-        return response.ok;
-      } catch {
-        return false;
-      }
+      return postProgressRow({
+        track: progressTrack,
+        lessonId,
+        lessonCompleted: true,
+        quizPassed: options?.quizPassed === true,
+        checklist: [true, true, options?.quizPassed === true],
+        xpAwarded: Math.max(0, Number(options?.xpAwarded ?? 0)),
+        recordReview: true,
+        studySeconds: options?.studySeconds ?? 0,
+      });
     },
     [
-      apiBase,
       hasRemoteAuth,
       identity,
-      jsonHeaders,
-      refreshLearnerState,
+      postProgressRow,
       state,
     ],
+  );
+
+  const recordUnitReview = useCallback(
+    async (
+      track: string,
+      lessonId: string,
+      options: {
+        quizPassed?: boolean;
+        xpAwarded?: number;
+        studySeconds?: number;
+      },
+    ) => {
+      const progressTrack = academyV2ProgressTrack(track);
+      const progressKey = `${progressTrack}:${lessonId}`;
+      const alreadyCompleted = !!state.completedLessons[progressKey];
+
+      if (!alreadyCompleted) {
+        return false;
+      }
+
+      return postProgressRow({
+        track: progressTrack,
+        lessonId,
+        lessonCompleted: true,
+        quizPassed: !!state.quizPassed[progressKey] || options.quizPassed === true,
+        checklist:
+          state.checklist?.[progressKey] || [
+            true,
+            true,
+            options.quizPassed === true,
+          ],
+        xpAwarded: Math.max(0, Number(options?.xpAwarded ?? 0)),
+        recordReview: true,
+        studySeconds: options?.studySeconds ?? 0,
+      });
+    },
+    [postProgressRow, state.checklist, state.completedLessons, state.quizPassed],
   );
 
   return {
     state,
     loading,
     persistUnitCompletion,
+    recordUnitReview,
   };
 }

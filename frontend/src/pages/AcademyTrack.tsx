@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
-  ArrowLeft,
+  ArrowRight,
   CheckCircle2,
   Clock,
   Lock,
@@ -13,6 +13,16 @@ import type { AcademyTrackCatalog } from "@/types";
 import { useStore } from "@/store/useStore";
 import { loadProgress, isLessonCompleted } from "@/lib/academy/progress";
 import { normalizeAcademyCatalogTrack } from "@/lib/academy/catalog";
+import {
+  AcademyBackLink,
+  AcademyBadge,
+  AcademyEmptyState,
+  AcademyPage,
+  AcademyPanel,
+  AcademyCompactStat,
+  AcademyProgressBar,
+  AcademySectionTitle,
+} from "@/components/academy/AcademyPrimitives";
 
 function buildAuthHeaders(token: string | null, walletAddress: string | null) {
   const headers: Record<string, string> = {};
@@ -107,20 +117,20 @@ export function AcademyTrack() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-32 space-y-4">
-        <div className="w-12 h-12 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin"></div>
-        <div className="text-sky-600 font-bold uppercase tracking-widest text-sm">
-          Đang tải cấu trúc lộ trình...
-        </div>
-      </div>
+      <AcademyPage>
+        <AcademyPanel className="h-72 animate-pulse" padding="p-0" />
+      </AcademyPage>
     );
   }
 
   if (!trackInfo) {
     return (
-      <div className="text-center py-20 text-slate-500 font-bold uppercase tracking-widest bg-white -200 rounded-3xl m-8">
-        {error || "Không tìm thấy lộ trình cộng đồng"}
-      </div>
+      <AcademyPage>
+        <AcademyEmptyState
+          title="Không tìm thấy lộ trình"
+          description={error || "Track cộng đồng này hiện không khả dụng."}
+        />
+      </AcademyPage>
     );
   }
 
@@ -129,64 +139,75 @@ export function AcademyTrack() {
     isLessonCompleted(state, trackInfo.id, lesson.id),
   ).length;
   const progressPercent =
-    lessons.length > 0 ? (completedCount / lessons.length) * 100 : 0;
+    lessons.length > 0 ? Math.round((completedCount / lessons.length) * 100) : 0;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-12 pb-20 pt-10 px-4 sm:px-6">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 shadow-sm">
-        <Link
-          to="/academy"
-          className="inline-flex items-center gap-2 border-2 border-text-main bg-surface px-4 py-2 text-xs font-bold uppercase tracking-widest font-mono shadow-[2px_2px_0_0_#000] hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#000] transition-all text-text-main"
-        >
-          <ArrowLeft className="w-4 h-4" strokeWidth={2} />
-          BACK
-        </Link>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-primary text-primary-foreground border-2 border-text-main shadow-[2px_2px_0_0_#000] text-xs font-bold uppercase tracking-widest">
-            <Star size={16} strokeWidth={3} className="fill-text-main" />
-            <span className="hidden sm:inline">
-              Streak: {currentUser?.streak || 0}
-            </span>
-            <span className="sm:hidden">{currentUser?.streak || 0}</span>
+    <AcademyPage>
+      <section className="space-y-6">
+        <AcademyBackLink to="/academy" label="Back to Academy" />
+
+        <AcademyPanel tone="primary" padding="p-5 sm:p-6">
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-center gap-3">
+              <AcademyBadge tone="muted">Community Track</AcademyBadge>
+              <AcademyBadge tone="primary">Topic: {trackInfo.id}</AcademyBadge>
+            </div>
+            <div className="space-y-3">
+              <h1 className="font-display text-4xl font-black uppercase tracking-tighter text-text-main sm:text-5xl lg:text-6xl">
+                {trackInfo.title}
+              </h1>
+              <p className="max-w-3xl font-mono text-sm leading-relaxed text-text-muted">
+                Community lessons stay compact, but the progression still follows a
+                clear order so reviews, quizzes, and completion feel deliberate.
+              </p>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <AcademyCompactStat
+                label="Lessons"
+                value={lessons.length}
+                meta={`${completedCount} completed`}
+              />
+              <AcademyCompactStat
+                label="Progress"
+                value={`${progressPercent}%`}
+                meta="Track completion"
+                valueClassName="text-primary"
+              />
+              <AcademyCompactStat
+                label="Streak"
+                value={currentUser?.streak || 0}
+                meta="Current streak"
+              />
+              <AcademyCompactStat
+                label="Builds"
+                value={currentUser?.builds || 0}
+                meta="Member profile stat"
+              />
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
+                <span>Track completion</span>
+                <span>{progressPercent}%</span>
+              </div>
+              <AcademyProgressBar value={progressPercent} className="h-2.5" />
+            </div>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-primary text-primary-foreground border-2 border-text-main shadow-[2px_2px_0_0_#000] text-xs font-bold uppercase tracking-widest">
-            <Terminal size={16} strokeWidth={3} />
-            <span className="hidden sm:inline">
-              Builds: {currentUser?.builds || 0}
-            </span>
-            <span className="sm:hidden">{currentUser?.builds || 0}</span>
-          </div>
-        </div>
-      </div>
+        </AcademyPanel>
+      </section>
 
-      <header className="text-center space-y-6 pt-4 relative">
-        <div className="inline-flex px-4 py-1.5 font-bold tracking-widest uppercase mb-2 bg-surface text-text-main border-2 border-text-main shadow-[4px_4px_0_0_#000] text-sm">
-          Chuyên đề: {trackInfo.id}
-        </div>
-        <h1
-          className="text-5xl sm:text-7xl font-display font-bold tracking-tighter text-text-main py-2 uppercase"
-          style={{ textShadow: "4px 4px 0 #111827", color: "white" }}
-        >
-          {trackInfo.title}
-        </h1>
-      </header>
+      <section className="space-y-6">
+        <AcademySectionTitle
+          eyebrow="Lesson Timeline"
+          title="Track Flow"
+          description="Each lesson unlocks the next one. Completed lessons stay replayable, while the current lesson remains obvious."
+        />
 
-      <div className="relative mt-16 px-2 sm:px-4">
-        <div className="absolute left-6 sm:left-8 top-8 bottom-8 w-2 bg-white border-2 border-text-main shadow-[2px_2px_0_0_#000]">
-          <div
-            className="w-full bg-primary text-primary-foreground border-b-2 border-text-main transition-all duration-1000"
-            style={{ height: `${progressPercent}%` }}
-          />
-        </div>
-
-        <div className="space-y-8 relative z-10">
-          {lessons.length > 0 ? (
-            lessons.map((lesson, index) => {
-              const isCompleted = isLessonCompleted(
-                state,
-                trackInfo.id,
-                lesson.id,
-              );
+        {lessons.length > 0 ? (
+          <div className="space-y-4">
+            {lessons.map((lesson, index) => {
+              const isCompleted = isLessonCompleted(state, trackInfo.id, lesson.id);
               const prevLessonId = index > 0 ? lessons[index - 1].id : null;
               const isPrevCompleted = prevLessonId
                 ? isLessonCompleted(state, trackInfo.id, prevLessonId)
@@ -198,111 +219,100 @@ export function AcademyTrack() {
                 <button
                   type="button"
                   key={lesson.id}
-                  className={`relative flex w-full text-left items-center gap-6 sm:gap-8 group focus-visible:outline-none transition-all ${isLocked ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:-translate-y-1 hover:translate-x-1"}`}
+                  disabled={isLocked}
                   onClick={() =>
                     !isLocked &&
                     navigate(`/academy/community/${trackInfo.id}/${lesson.id}`)
                   }
-                  disabled={isLocked}
+                  className="block w-full text-left disabled:cursor-not-allowed"
                 >
-                  <div
-                    className={`relative flex-shrink-0 flex items-center justify-center w-12 h-12 border-2 border-text-main transition-colors z-10 ${
-                      isLocked
-                        ? "bg-gray-200"
-                        : isCompleted
-                          ? "bg-primary text-primary-foreground shadow-[2px_2px_0_0_#000]"
-                          : "bg-primary text-primary-foreground shadow-[2px_2px_0_0_#000]"
-                    }`}
+                  <AcademyPanel
+                    interactive={!isLocked}
+                    tone={isCompleted ? "success" : isCurrent ? "primary" : "default"}
+                    className={isLocked ? "opacity-60 grayscale" : "group"}
                   >
-                    {isCompleted ? (
-                      <CheckCircle2
-                        size={24}
-                        strokeWidth={3}
-                        className="text-text-main"
-                      />
-                    ) : (
-                      <div
-                        className={`w-3 h-3 ${isLocked ? "bg-gray-400" : "bg-primary text-primary-foreground animate-ping"}`}
-                      />
-                    )}
-                  </div>
+                    <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <AcademyBadge tone={isCurrent ? "primary" : "muted"}>
+                            Lesson {index + 1}
+                          </AcademyBadge>
+                          {isCurrent ? (
+                            <AcademyBadge tone="primary">In progress</AcademyBadge>
+                          ) : null}
+                          {isCompleted ? (
+                            <AcademyBadge tone="success">Completed</AcademyBadge>
+                          ) : null}
+                          {isLocked ? <AcademyBadge tone="muted">Locked</AcademyBadge> : null}
+                        </div>
 
-                  <div
-                    className={`relative flex-grow p-6 sm:p-8 border-2 border-text-main transition-all overflow-hidden ${
-                      isCompleted
-                        ? "bg-white shadow-[4px_4px_0_0_#000]"
-                        : isLocked
-                          ? "bg-gray-100 shadow-[4px_4px_0_0_#000]"
-                          : "bg-white shadow-[4px_4px_0_0_#000] hover:shadow-[6px_6px_0_0_#000]"
-                    }`}
-                  >
-                    {isCurrent && (
-                      <div className="absolute inset-0 bg-primary text-primary-foreground opacity-10 z-0"></div>
-                    )}
-                    <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                      <div>
-                        <div className="flex items-center gap-3 mb-3">
-                          <span
-                            className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest border-2 border-text-main ${
-                              isCompleted
-                                ? "bg-surface text-text-main shadow-[2px_2px_0_0_#000]"
-                                : isCurrent
-                                  ? "bg-primary text-primary-foreground shadow-[2px_2px_0_0_#000]"
-                                  : "bg-white text-gray-500"
+                        <div>
+                          <h3
+                            className={`font-display text-3xl font-black uppercase tracking-tight ${
+                              isLocked
+                                ? "text-text-muted"
+                                : "text-text-main transition-colors group-hover:text-primary"
                             }`}
                           >
-                            Lesson {index + 1}
-                          </span>
-                          {isCurrent && (
-                            <span className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-surface text-text-main border border-border-main shadow-sm animate-pulse">
-                              In Progress
+                            {lesson.title}
+                          </h3>
+                          <div className="mt-3 flex flex-wrap items-center gap-3 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-text-muted">
+                            <span className="inline-flex items-center gap-1.5">
+                              <Clock className="h-3.5 w-3.5" />
+                              {lesson.minutes} phút
                             </span>
-                          )}
+                            <span className="inline-flex items-center gap-1.5">
+                              <Terminal className="h-3.5 w-3.5" />
+                              Community lesson
+                            </span>
+                          </div>
                         </div>
-                        <h3
-                          className={`text-2xl font-display font-bold uppercase tracking-tight ${
-                            isCompleted
-                              ? "text-text-main"
-                              : isLocked
-                                ? "text-gray-500"
-                                : "text-primary group-hover:text-primary"
-                          }`}
-                        >
-                          {lesson.title}
-                        </h3>
                       </div>
 
-                      <div className="flex items-center gap-4 text-xs uppercase font-bold tracking-widest shrink-0">
-                        <span
-                          className={`flex items-center gap-2 ${isCompleted ? "text-primary" : isLocked ? "text-gray-500" : "text-primary"}`}
+                      <div className="flex items-center justify-between gap-4 md:min-w-[190px] md:justify-end">
+                        <div
+                          className={`flex h-11 w-11 items-center justify-center border shadow-sm ${
+                            isLocked
+                              ? "border-border-main bg-main-bg text-text-muted"
+                              : isCompleted
+                                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
+                                : "border-primary/20 bg-primary/10 text-primary"
+                          }`}
                         >
-                          <Clock size={16} strokeWidth={3} /> {lesson.minutes}{" "}
-                          PHÚT
+                          {isLocked ? (
+                            <Lock className="h-4 w-4" />
+                          ) : isCompleted ? (
+                            <CheckCircle2 className="h-4 w-4" />
+                          ) : (
+                            <Star className="h-4 w-4" />
+                          )}
+                        </div>
+                        <span
+                          className={`inline-flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.24em] ${
+                            isLocked ? "text-text-muted" : "text-primary"
+                          }`}
+                        >
+                          {isLocked
+                            ? "Locked"
+                            : isCompleted
+                              ? "Review lesson"
+                              : "Start lesson"}
+                          {!isLocked ? <ArrowRight className="h-3.5 w-3.5" /> : null}
                         </span>
-                        {isLocked ? (
-                          <div className="p-2 border-2 border-gray-400 bg-gray-200 text-gray-400">
-                            <Lock size={18} strokeWidth={3} />
-                          </div>
-                        ) : (
-                          <div
-                            className={`px-5 py-2 border-2 border-text-main shadow-[4px_4px_0_0_#000] transition-transform ${isCompleted ? "bg-surface text-text-main group-hover:-translate-y-1" : "bg-primary text-primary-foreground group-hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000]"}`}
-                          >
-                            {isCompleted ? "Học lại" : "Bắt đầu"}
-                          </div>
-                        )}
                       </div>
                     </div>
-                  </div>
+                  </AcademyPanel>
                 </button>
               );
-            })
-          ) : (
-            <div className="text-text-main font-bold uppercase tracking-widest w-full text-center bg-white border-2 border-text-main shadow-[4px_4px_0_0_#000] p-12">
-              Không có bài học nào trong chuyên đề này.
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+            })}
+          </div>
+        ) : (
+          <AcademyEmptyState
+            title="Không có bài học"
+            description="Track cộng đồng này chưa có lesson nào."
+          />
+        )}
+      </section>
+    </AcademyPage>
   );
 }

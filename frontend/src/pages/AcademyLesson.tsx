@@ -12,6 +12,7 @@ import {
   ArrowRight,
   CheckCircle2,
   Code,
+  Flame,
   Home,
   Sparkles,
   Trophy,
@@ -31,8 +32,20 @@ import {
   type ProgressState,
 } from "@/lib/academy/progress";
 import { getChecklist, setChecklist } from "@/lib/academy/checklist";
+import {
+  ACADEMY_STREAK_COMPLETION_SECONDS,
+  ACADEMY_STREAK_REVIEW_SECONDS,
+  useAcademyStudyTimer,
+} from "@/lib/academy/useAcademyStudyTimer";
 import { rowsToQuizQuestions } from "@/lib/academy/questions";
 import { useStore } from "@/store/useStore";
+import {
+  AcademyBadge,
+  AcademyPage,
+  AcademyPanel,
+  AcademyProgressBar,
+} from "@/components/academy/AcademyPrimitives";
+import { streakTheme } from "@/lib/streakTheme";
 
 const CELEBRATION_AUDIO_SRC = "/theme-submit.mp3";
 
@@ -52,7 +65,7 @@ const FIREWORK_PARTICLES = [
     x: 72,
     y: 38,
     delay: 0.18,
-    color: "bg-pink-400",
+    color: "bg-primary",
     size: "h-3 w-3",
   },
   {
@@ -70,7 +83,7 @@ const FIREWORK_PARTICLES = [
     x: 36,
     y: 68,
     delay: 0.36,
-    color: "bg-sky-400",
+    color: "bg-primary",
     size: "h-2.5 w-2.5",
   },
   {
@@ -97,7 +110,7 @@ const FIREWORK_PARTICLES = [
     x: -72,
     y: 44,
     delay: 0.22,
-    color: "bg-cyan-300",
+    color: "bg-primary",
     size: "h-2.5 w-2.5",
   },
   {
@@ -115,7 +128,7 @@ const FIREWORK_PARTICLES = [
     x: -42,
     y: -70,
     delay: 0.48,
-    color: "bg-fuchsia-400",
+    color: "bg-amber-300",
     size: "h-2.5 w-2.5",
   },
   {
@@ -124,7 +137,7 @@ const FIREWORK_PARTICLES = [
     x: 56,
     y: 52,
     delay: 0.15,
-    color: "bg-sky-400",
+    color: "bg-primary",
     size: "h-2 w-2",
   },
   {
@@ -151,7 +164,7 @@ const FIREWORK_PARTICLES = [
     x: 86,
     y: -16,
     delay: 0.62,
-    color: "bg-pink-300",
+    color: "bg-primary",
     size: "h-2.5 w-2.5",
   },
   {
@@ -160,7 +173,7 @@ const FIREWORK_PARTICLES = [
     x: -82,
     y: -58,
     delay: 0.58,
-    color: "bg-cyan-300",
+    color: "bg-primary",
     size: "h-3 w-3",
   },
   {
@@ -169,7 +182,7 @@ const FIREWORK_PARTICLES = [
     x: 114,
     y: 8,
     delay: 0.7,
-    color: "bg-violet-300",
+    color: "bg-amber-300",
     size: "h-2 w-2",
   },
   {
@@ -192,9 +205,9 @@ const CONFETTI_PIECES = Array.from({ length: 36 }, (_, index) => ({
     index % 5 === 0
       ? "bg-amber-400"
       : index % 5 === 1
-        ? "bg-pink-400"
+        ? "bg-primary"
         : index % 5 === 2
-          ? "bg-sky-400"
+          ? "bg-primary"
           : index % 5 === 3
             ? "bg-emerald-300"
             : "bg-white",
@@ -354,6 +367,7 @@ export function AcademyLesson() {
   const [completionSaveStatus, setCompletionSaveStatus] = useState<
     "idle" | "saving" | "saved" | "error"
   >("idle");
+  const [reviewRecorded, setReviewRecorded] = useState(false);
 
   const celebrationAudioRef = useRef<HTMLAudioElement | null>(null);
   const completionPromiseRef = useRef<Promise<boolean> | null>(null);
@@ -382,6 +396,10 @@ export function AcademyLesson() {
     (item) => answers[item.id] === item.correctChoiceId,
   );
   const isFinalQuizStep = quiz.length > 0 && currentStep === totalSteps - 1;
+  const { studySeconds, reviewEligible } = useAcademyStudyTimer({
+    sessionKey: `${track}:${lessonId}:${currentUser?.id || walletAddress || "guest"}`,
+    enabled: !!lessonId,
+  });
 
   const syncMissingRows = useCallback(
     async (baseline: ProgressState, merged: ProgressState) => {
@@ -463,7 +481,10 @@ export function AcademyLesson() {
   );
 
   const syncCurrentLesson = useCallback(
-    async (next: ProgressState, options?: { recordReview?: boolean }) => {
+    async (
+      next: ProgressState,
+      options?: { recordReview?: boolean; studySeconds?: number },
+    ) => {
       if (!canSyncRemote) {
         return false;
       }
@@ -484,6 +505,10 @@ export function AcademyLesson() {
             checklist: checklistForLesson,
             xp_awarded: next.completedLessons[progressKey] ? 100 : 0,
             record_review: options?.recordReview === true,
+            study_seconds: Math.max(
+              0,
+              Math.floor(Number(options?.studySeconds || 0)),
+            ),
           }),
         });
 
@@ -537,6 +562,7 @@ export function AcademyLesson() {
 
         const synced = await syncCurrentLesson(completedWithChecklist, {
           recordReview: true,
+          studySeconds,
         });
 
         if (!synced) {
@@ -571,6 +597,7 @@ export function AcademyLesson() {
     identity,
     lessonId,
     state,
+    studySeconds,
     syncCurrentLesson,
     track,
   ]);
@@ -584,7 +611,52 @@ export function AcademyLesson() {
     setCompletionSaveStatus("idle");
     completionPromiseRef.current = null;
     setCurrentStep(0);
+    setReviewRecorded(false);
   }, [identity, lessonId, track]);
+
+  useEffect(() => {
+    if (
+      !canSyncRemote ||
+      !lessonDone ||
+      reviewRecorded ||
+      !reviewEligible
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function recordReview() {
+      const recorded = await syncCurrentLesson(state, {
+        recordReview: true,
+        studySeconds,
+      });
+
+      if (!cancelled && recorded) {
+        setReviewRecorded(true);
+        void fetchMembers();
+        if (effectiveAuthToken) {
+          void checkSession();
+        }
+      }
+    }
+
+    void recordReview();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    canSyncRemote,
+    checkSession,
+    effectiveAuthToken,
+    fetchMembers,
+    lessonDone,
+    reviewEligible,
+    reviewRecorded,
+    state,
+    studySeconds,
+    syncCurrentLesson,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -906,25 +978,27 @@ export function AcademyLesson() {
 
   if (loadingCatalog) {
     return (
-      <div className="flex flex-col items-center justify-center py-32 space-y-4">
-        <div className="w-12 h-12 border-4 border-text-main border-t-primary animate-spin shadow-[4px_4px_0_0_#000]"></div>
-        <div className="text-text-main font-bold uppercase tracking-widest text-sm">
-          Đang tải bài học...
-        </div>
-      </div>
+      <AcademyPage>
+        <AcademyPanel className="mx-auto h-72 max-w-5xl animate-pulse" padding="p-0" />
+      </AcademyPage>
     );
   }
 
   if (!lesson || !trackInfo) {
     return (
-      <div className="m-8 bg-surface border-2 border-text-main py-20 text-center text-sm font-bold uppercase tracking-widest text-text-muted shadow-[8px_8px_0_0_#000]">
-        {err || "Không tìm thấy bài học"}
-      </div>
+      <AcademyPage>
+        <AcademyPanel className="mx-auto max-w-4xl text-center">
+          <div className="py-10 text-sm font-bold uppercase tracking-[0.24em] text-text-muted">
+            {err || "Không tìm thấy bài học"}
+          </div>
+        </AcademyPanel>
+      </AcademyPage>
     );
   }
 
   return (
-    <div className="space-y-8 pb-20 mt-10 max-w-4xl mx-auto px-4 sm:px-6">
+    <AcademyPage>
+      <div className="mx-auto max-w-5xl space-y-6">
       <audio
         ref={celebrationAudioRef}
         src={CELEBRATION_AUDIO_SRC}
@@ -941,76 +1015,87 @@ export function AcademyLesson() {
         onExit={() => void exitToAcademy()}
       />
 
-      <div className="sticky top-24 z-50 flex flex-col gap-4 bg-surface p-4 border-2 border-text-main shadow-[4px_4px_0_0_#000]">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => navigate(`/academy/community/${track}`)}
-            className="inline-flex items-center gap-2 border-2 border-text-main bg-surface px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-widest font-mono shadow-[2px_2px_0_0_#000] hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#000] transition-all text-text-main shrink-0"
-          >
-            <ArrowLeft className="w-4 h-4" strokeWidth={2} />
-            <span className="hidden sm:inline">BACK</span>
-          </button>
+      <AcademyPanel className="sticky top-24 z-40" padding="p-4 sm:p-5">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-4">
+            <button
+              onClick={() => navigate(`/academy/community/${track}`)}
+              className="inline-flex shrink-0 items-center gap-2 border-2 border-text-main bg-surface px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-widest text-text-main shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:text-primary hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)] sm:px-4"
+            >
+              <ArrowLeft className="w-4 h-4" strokeWidth={2} />
+              <span className="hidden sm:inline">BACK</span>
+            </button>
 
-          <div className="relative mx-6 h-6 flex-1 bg-main-bg border border-text-main shadow-inner overflow-hidden">
-            <div
-              className="absolute left-0 top-0 h-full bg-primary text-primary-foreground transition-all duration-500 ease-out border-r border-text-main"
-              style={{ width: `${progressPercentage}%` }}
-            />
+            <div className="min-w-[96px] text-right">
+              <div className="inline-flex items-center gap-2 border border-border-main bg-main-bg px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-main shadow-sm">
+                <Flame className={`h-4 w-4 ${streakTheme.flame}`} />
+                <span className="hidden sm:inline">Streak</span>
+                <span className="font-display text-xl font-black leading-none">
+                  {currentUser?.streak || 0}
+                </span>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 bg-main-bg text-text-main px-4 py-2 font-mono text-sm font-bold tracking-widest shadow-[2px_2px_0_0_#000] border border-text-main">
-            <Trophy className="h-5 w-5 fill-text-main text-text-main" />
-            <span className="hidden sm:inline">Streak: </span>
-            <span className="text-xl font-heading text-text-main leading-none">
-              {currentUser?.streak || 0}
-            </span>
+          <div>
+            <div className="mb-2 flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
+              <span>Track progress</span>
+              <span>{Math.round(progressPercentage)}%</span>
+            </div>
+            <AcademyProgressBar value={progressPercentage} className="h-2.5" />
           </div>
-        </div>
 
-        <div className="flex items-center justify-between px-2 font-mono text-[10px] font-bold uppercase tracking-widest text-text-main mt-4">
-          <span className="bg-main-bg border border-text-main px-3 py-1 shadow-[2px_2px_0_0_#000]">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <AcademyBadge tone="muted">
             {trackTitle}
-          </span>
-          <span className="bg-main-bg border border-text-main px-3 py-1 shadow-[2px_2px_0_0_#000]">
+            </AcademyBadge>
+            <AcademyBadge tone="primary">
             Bước {currentStep + 1}/{totalSteps}
-          </span>
-        </div>
-      </div>
+            </AcademyBadge>
+          </div>
 
-      <div className="relative flex min-h-[60vh] flex-col bg-surface p-6 sm:p-10 border-2 border-text-main shadow-[4px_4px_0_0_#000]">
+          <div className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">
+            Session {studySeconds}s • streak counts after{" "}
+            {ACADEMY_STREAK_COMPLETION_SECONDS}s on a new lesson or{" "}
+            {ACADEMY_STREAK_REVIEW_SECONDS}s when revisiting a completed lesson
+          </div>
+        </div>
+      </AcademyPanel>
+
+      <AcademyPanel className="relative min-h-[60vh]" padding="p-5 sm:p-6 md:p-8">
         {err && (
-          <div className="mb-8 flex items-center gap-3 bg-primary text-primary-foreground px-5 py-4 font-mono text-[13px] font-bold uppercase tracking-widest shadow-[2px_2px_0_0_#000] border border-text-main">
-            <Terminal size={20} className="shrink-0 text-white" /> {err}
+          <div className="mb-6 flex items-center gap-3 border border-primary/20 bg-primary/10 px-5 py-4 font-mono text-sm text-text-main shadow-sm">
+            <Terminal size={20} className="shrink-0 text-primary" /> {err}
           </div>
         )}
 
         {currentStep === 0 && (
           <div className="animate-in slide-in-from-right-8 duration-500 fade-in flex-grow">
-            <div className="mb-8 flex flex-col gap-4 border-b-2 border-border-main pb-8">
-              <div className="mb-2 inline-block border border-text-main bg-primary px-2 py-1 text-xs font-bold uppercase tracking-widest text-main-bg shadow-[2px_2px_0_0_#000] w-fit">
-                Community Lesson
-              </div>
-              <h1 className="text-4xl font-heading font-black text-text-main sm:text-5xl uppercase tracking-tighter mt-4">
+            <div className="max-w-[78ch]">
+            <div className="mb-8 flex flex-col gap-4 border-b border-border-main pb-8">
+              <AcademyBadge tone="primary">Community Lesson</AcademyBadge>
+              <h1 className="mt-2 font-display text-5xl font-black uppercase tracking-tighter text-text-main sm:text-6xl">
                 {lesson.title}
               </h1>
             </div>
 
-            <div className="mb-8 markdown-body prose-dsuc max-w-none">
+            <div className="mb-8 markdown-body prose-dsuc">
               {renderMd(lesson.content_md)}
+            </div>
             </div>
 
             {lesson.callouts?.length ? (
-              <div className="mb-8 mt-8 grid grid-cols-1 gap-6">
+              <div className="mb-8 mt-8 grid max-w-[78ch] grid-cols-1 gap-4">
                 {lesson.callouts.map((callout, index) => (
                   <div
                     key={`${callout.title}-${index}`}
-                    className="relative overflow-hidden bg-main-bg p-6 shadow-[4px_4px_0_0_#000] border border-text-main"
+                    className="border border-border-main bg-main-bg/60 p-6 shadow-sm"
                   >
-                    <div className="mb-3 flex items-center gap-3 font-heading text-lg font-bold text-text-main bg-surface px-4 py-2 w-fit uppercase tracking-widest border border-text-main shadow-[2px_2px_0_0_#000]">
-                      <Terminal size={20} className="text-text-main" />{" "}
+                    <div className="mb-3 flex w-fit items-center gap-3 border border-border-main bg-surface px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-text-main shadow-sm">
+                      <Terminal size={18} className="text-text-main" />
                       {callout.title || "Lưu ý"}
                     </div>
-                    <div className="relative z-10 text-base font-bold leading-relaxed text-text-main bg-surface p-4 border border-text-main">
+                    <div className="relative z-10 font-sans text-[15px] leading-7 text-text-main/85">
                       {callout.body}
                     </div>
                   </div>
@@ -1029,12 +1114,19 @@ export function AcademyLesson() {
 
             return (
               <div className="animate-in slide-in-from-right-8 duration-500 fade-in flex flex-grow flex-col justify-center">
-                <h2 className="mb-8 flex items-center gap-3 border border-border-main pb-4 font-heading text-3xl font-bold text-text-main uppercase tracking-tight">
-                  <Code className="h-10 w-10 text-primary" strokeWidth={3} />{" "}
-                  CÂU HỎI [{currentStep}/{quiz.length}]
+                <div className="mb-6 flex flex-wrap items-center gap-3">
+                  <AcademyBadge tone="muted">
+                    Question {currentStep}/{quiz.length}
+                  </AcademyBadge>
+                  <AcademyBadge tone="primary">Quiz mode</AcademyBadge>
+                </div>
+
+                <h2 className="mb-6 flex items-center gap-3 font-display text-4xl font-black uppercase tracking-tighter text-text-main">
+                  <Code className="h-8 w-8 text-primary" strokeWidth={2.8} />
+                  Challenge Checkpoint
                 </h2>
 
-                <h3 className="mb-8 text-xl font-bold leading-relaxed bg-surface border-2 border-text-main p-6 shadow-[4px_4px_0_0_#000]">
+                <h3 className="mb-8 border border-border-main bg-main-bg/60 p-6 font-mono text-lg font-bold leading-relaxed text-text-main shadow-sm">
                   {currentQuizData.prompt}
                 </h3>
 
@@ -1045,21 +1137,21 @@ export function AcademyLesson() {
                       choice.id === currentQuizData.correctChoiceId;
 
                     let className =
-                      "border-2 border-text-main hover:bg-main-bg bg-surface text-text-main shadow-[4px_4px_0_0_#000] hover:shadow-[6px_6px_0_0_#000] transition-all hover:-translate-y-1 font-bold uppercase tracking-wide";
+                      "border border-border-main bg-surface text-text-main shadow-sm transition-colors hover:border-primary/30 hover:bg-main-bg font-bold";
                     if (submitted) {
                       if (isChoiceCorrect) {
                         className =
-                          "bg-surface text-text-main border-text-main font-bold shadow-[4px_4px_0_0_#000]";
+                          "border-emerald-500/20 bg-emerald-500/10 text-text-main shadow-sm font-bold";
                       } else if (selected && !isChoiceCorrect) {
                         className =
-                          "bg-primary text-primary-foreground border-text-main font-bold shadow-[2px_2px_0_0_#000] scale-[0.98]";
+                          "border-primary bg-primary text-primary-foreground shadow-sm font-bold";
                       } else {
                         className =
-                          "bg-main-bg border-text-main text-text-muted cursor-not-allowed font-medium opacity-80";
+                          "border-border-main bg-main-bg text-text-muted shadow-sm cursor-not-allowed font-medium opacity-80";
                       }
                     } else if (selected) {
                       className =
-                        "border-2 border-text-main bg-primary text-primary-foreground -translate-y-1 font-bold uppercase tracking-wide shadow-[6px_6px_0_0_#000]";
+                        "border-primary bg-primary text-primary-foreground shadow-sm font-bold";
                     }
 
                     return (
@@ -1078,15 +1170,15 @@ export function AcademyLesson() {
                             }));
                           }
                         }}
-                        className={`flex w-full cursor-pointer items-start p-5 text-left transition-all sm:items-center ${className}`}
+                        className={`flex w-full cursor-pointer items-start p-5 text-left transition-colors sm:items-center ${className}`}
                       >
                         <div
-                          className={`mr-4 mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center border-2 border-text-main transition-colors shadow-[2px_2px_0_0_#000] sm:mt-0 ${
+                          className={`mr-4 mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center border transition-colors sm:mt-0 ${
                             submitted && isChoiceCorrect
-                              ? "bg-primary text-primary-foreground border-border-main"
+                              ? "border-emerald-500/20 bg-emerald-500 text-white"
                               : selected && !submitted
-                                ? "border-text-main bg-main-bg text-primary"
-                                : "border-text-main bg-main-bg"
+                                ? "border-primary bg-main-bg text-primary"
+                                : "border-border-main bg-main-bg"
                           }`}
                         >
                           {(submitted && isChoiceCorrect) ||
@@ -1104,14 +1196,14 @@ export function AcademyLesson() {
 
                 {submitted && (
                   <div
-                    className={`animate-in zoom-in-95 border-2 border-text-main p-6 duration-300 shadow-[4px_4px_0_0_#000] ${
+                    className={`animate-in zoom-in-95 border p-6 duration-300 shadow-sm ${
                       correct
-                        ? "bg-surface text-text-main"
-                        : "bg-primary text-primary-foreground"
+                        ? "border-emerald-500/20 bg-emerald-500/10 text-text-main"
+                        : "border-primary bg-primary text-primary-foreground"
                     }`}
                   >
                     <p
-                      className={`mb-3 flex w-fit items-center gap-2 text-sm font-bold uppercase tracking-widest border-2 border-text-main px-4 py-2 ${correct ? "bg-main-bg text-primary" : "bg-main-bg text-primary"}`}
+                      className={`mb-3 flex w-fit items-center gap-2 border px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.24em] shadow-sm ${correct ? "border-emerald-500/20 bg-surface text-emerald-600 dark:text-emerald-300" : "border-primary/20 bg-main-bg text-primary"}`}
                     >
                       <Terminal size={20} strokeWidth={3} />
                       {correct ? "CHÍNH XÁC" : "CHƯA ĐÚNG"}
@@ -1125,7 +1217,7 @@ export function AcademyLesson() {
             );
           })()}
 
-        <div className="mt-auto flex justify-end border-t border-border-main pt-8 gap-4 flex-col sm:flex-row">
+        <div className="mt-auto flex flex-col gap-4 border-t border-border-main pt-8 sm:flex-row sm:justify-end">
           {currentStep === 0 ? (
             <button
               onClick={() => {
@@ -1136,7 +1228,7 @@ export function AcademyLesson() {
                   void finishLesson();
                 }
               }}
-              className="flex w-full items-center justify-center gap-3 bg-primary text-primary-foreground border-2 border-text-main px-8 py-4 text-sm font-bold uppercase tracking-widest shadow-[4px_4px_0_0_#000] transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] sm:w-auto"
+              className="flex w-full items-center justify-center gap-3 border-2 border-text-main bg-primary px-8 py-4 font-mono text-[11px] font-bold uppercase tracking-widest text-primary-foreground shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)] sm:w-auto"
             >
               {quiz.length > 0
                 ? "LÀM BÀI KIỂM TRA"
@@ -1157,7 +1249,7 @@ export function AcademyLesson() {
                   <button
                     onClick={() => submitQuestion(currentQuizData.id)}
                     disabled={!hasSelected}
-                    className="flex w-full items-center justify-center gap-3 bg-primary text-primary-foreground border-2 border-text-main px-8 py-4 text-sm font-bold uppercase tracking-widest shadow-[4px_4px_0_0_#000] transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-gray-200 disabled:text-gray-500 disabled:shadow-none sm:w-auto"
+                    className="flex w-full items-center justify-center gap-3 border-2 border-text-main bg-primary px-8 py-4 font-mono text-[11px] font-bold uppercase tracking-widest text-primary-foreground shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-gray-300 disabled:text-gray-600 dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)] sm:w-auto"
                   >
                     XÁC NHẬN CHỌN
                   </button>
@@ -1171,7 +1263,7 @@ export function AcademyLesson() {
                       setCurrentStep((prev) => prev + 1);
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
-                    className="flex w-full items-center justify-center gap-3 bg-surface text-text-main border-2 border-text-main px-8 py-4 text-sm font-bold uppercase tracking-widest shadow-[4px_4px_0_0_#000] transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] sm:w-auto"
+                    className="flex w-full items-center justify-center gap-3 border-2 border-text-main bg-surface px-8 py-4 font-mono text-[11px] font-bold uppercase tracking-widest text-text-main shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:text-primary hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)] sm:w-auto"
                   >
                     CÂU TIẾP THEO{" "}
                     <ArrowRight className="h-6 w-6" strokeWidth={3} />
@@ -1183,7 +1275,7 @@ export function AcademyLesson() {
                 <button
                   onClick={() => void finishLesson()}
                   disabled={busyFinish}
-                  className="flex w-full items-center justify-center gap-3 bg-surface text-text-main border-2 border-text-main px-8 py-4 text-sm font-bold uppercase tracking-widest shadow-[4px_4px_0_0_#000] transition-all hover:bg-primary hover:text-primary-foreground hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] disabled:opacity-50 sm:w-auto"
+                  className="flex w-full items-center justify-center gap-3 border-2 border-text-main bg-surface px-8 py-4 font-mono text-[11px] font-bold uppercase tracking-widest text-text-main shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:border-primary hover:bg-primary hover:text-primary-foreground disabled:opacity-50 dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)] sm:w-auto"
                 >
                   {busyFinish
                     ? "ĐANG LƯU..."
@@ -1196,8 +1288,9 @@ export function AcademyLesson() {
             })()
           ) : null}
         </div>
+      </AcademyPanel>
       </div>
-    </div>
+    </AcademyPage>
   );
 }
 
@@ -1305,7 +1398,7 @@ function CompletionCelebration({
               reduceMotion ? { opacity: 0 } : { y: 12, opacity: 0, scale: 0.98 }
             }
             transition={{ duration: reduceMotion ? 0 : 0.34, ease: "easeOut" }}
-            className="relative z-10 w-full max-w-2xl bg-surface p-8 sm:p-12 text-center border-2 border-text-main shadow-[8px_8px_0_0_#000]"
+            className="relative z-10 w-full max-w-2xl border-[3px] border-text-main bg-surface p-8 text-center shadow-[12px_12px_0_0_#000] sm:p-12 dark:shadow-[12px_12px_0_0_rgba(0,0,0,0.58)]"
           >
             <motion.div
               animate={
@@ -1318,33 +1411,33 @@ function CompletionCelebration({
                 repeat: Infinity,
                 ease: "easeInOut",
               }}
-              className="mx-auto mb-8 flex h-24 w-24 items-center justify-center bg-surface text-text-main border-2 border-text-main shadow-[4px_4px_0_0_#000]"
+              className="mx-auto mb-8 flex h-24 w-24 items-center justify-center border border-primary/20 bg-primary/10 text-primary shadow-sm"
             >
               <Sparkles size={48} aria-hidden="true" strokeWidth={3} />
             </motion.div>
 
-            <div className="relative mx-auto mb-6 flex w-fit items-center gap-2 bg-main-bg px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-text-main border-2 border-text-main shadow-[2px_2px_0_0_#000]">
-              <span className="h-3 w-3 bg-primary text-primary-foreground animate-pulse border border-border-main" />
+            <div className="relative mx-auto mb-6 flex w-fit items-center gap-2 border border-border-main bg-main-bg px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-text-main shadow-sm">
+              <span className="h-3 w-3 animate-pulse rounded-full bg-primary" />
               GRADUATION UNLOCKED
             </div>
 
-            <div className="mb-4 inline-block px-3 py-1 text-sm font-bold uppercase tracking-wider text-text-main bg-main-bg border-2 border-text-main shadow-[2px_2px_0_0_#000]">
+            <div className="mb-4 inline-block border border-border-main bg-main-bg px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-text-main shadow-sm">
               Completed {trackTitle}
             </div>
             <h2
               id="academy-completion-title"
-              className="relative font-heading text-4xl font-bold text-text-main sm:text-5xl uppercase tracking-tighter decoration-primary/30 decoration-4 underline underline-offset-8 mt-4"
+              className="mt-4 font-display text-5xl font-black uppercase tracking-tighter text-text-main sm:text-6xl"
             >
               Congratulations on graduating!
             </h2>
-            <p className="mx-auto mt-6 max-w-xl text-lg font-bold leading-relaxed text-text-main bg-main-bg p-4 border border-text-main">
+            <p className="mx-auto mt-6 max-w-xl border border-border-main bg-main-bg/70 p-5 font-mono text-base font-bold leading-relaxed text-text-main shadow-sm sm:text-lg">
               You have officially completed the{" "}
               <span className="font-bold text-primary">{graduationLabel}</span>{" "}
               track by finishing the final lesson{" "}
               <span className="font-bold text-primary">{lessonTitle}</span>. Keep up your learning streak!
             </p>
 
-            <div className="mx-auto mt-8 w-fit bg-surface text-text-main border-2 border-text-main px-6 py-3 text-xs font-bold uppercase tracking-widest shadow-[4px_4px_0_0_#000]">
+            <div className="mx-auto mt-8 w-fit border border-border-main bg-surface px-6 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-text-main shadow-sm">
               {saveStatus === "saving" && "Đang lưu tiến trình..."}
               {saveStatus === "saved" && "Đã lưu lại thành tích."}
               {saveStatus === "error" && "Không lưu được. Hãy thử lại."}
@@ -1356,7 +1449,7 @@ function CompletionCelebration({
                 type="button"
                 onClick={onFinalize}
                 disabled={busy}
-                className="flex items-center justify-center gap-2 min-h-14 bg-primary text-primary-foreground px-6 py-4 text-sm font-bold uppercase tracking-wider shadow-[4px_4px_0_0_#000] transition-all hover:-translate-y-1 hover:shadow-[8px_8px_0_0_#000] disabled:opacity-50 border-2 border-text-main"
+                className="flex min-h-14 items-center justify-center gap-2 border-2 border-text-main bg-primary px-6 py-4 font-mono text-[11px] font-bold uppercase tracking-widest text-primary-foreground shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] disabled:opacity-50 dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
               >
                 {busy || saveStatus === "saving" ? "ĐANG LƯU..." : "NHẬN CÚP"}
                 <CheckCircle2 size={24} strokeWidth={3} />
@@ -1365,7 +1458,7 @@ function CompletionCelebration({
                 type="button"
                 onClick={onExit}
                 disabled={busy}
-                className="flex items-center justify-center min-h-14 bg-surface border-2 border-text-main px-6 py-4 text-sm font-bold uppercase tracking-wider text-text-main shadow-[4px_4px_0_0_#000] transition-all hover:-translate-y-1 hover:shadow-[8px_8px_0_0_#000] disabled:opacity-50"
+                className="flex min-h-14 items-center justify-center border-2 border-text-main bg-surface px-6 py-4 font-mono text-[11px] font-bold uppercase tracking-widest text-text-main shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:text-primary hover:shadow-[4px_4px_0_0_#000] disabled:opacity-50 dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
               >
                 <span className="inline-flex items-center justify-center gap-3">
                   <Home size={24} strokeWidth={3} aria-hidden="true" />

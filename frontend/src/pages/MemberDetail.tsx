@@ -1,21 +1,143 @@
-import React, { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "motion/react";
+import React, { useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { motion } from "motion/react";
 import {
   ArrowLeft,
-  Github,
-  Twitter,
-  Send,
-  Shield,
-  Globe,
   Facebook,
-  X,
-  Mail,
+  Flame,
+  Github,
+  Globe,
+  Link2,
+  Send,
+  Twitter,
 } from "lucide-react";
+
 import { useStore } from "../store/useStore";
 import { Member } from "../types";
-import { ActionButton, SoftBrutalCard } from "@/components/ui/Primitives";
+import { SoftBrutalCard, StatusBadge } from "@/components/ui/Primitives";
 import { ModalShell } from "@/components/ui/ModalShell";
+import { streakTheme } from "@/lib/streakTheme";
+
+type PublicLink = {
+  key: string;
+  label: string;
+  value: string;
+  href: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+};
+
+function normalizeUrl(
+  value: string,
+  kind: "github" | "twitter" | "telegram" | "facebook" | "portfolio",
+) {
+  if (!value) {
+    return "";
+  }
+
+  if (/^https?:\/\//i.test(value)) {
+    return value;
+  }
+
+  const trimmed = value.replace(/^@/, "");
+
+  switch (kind) {
+    case "github":
+      return `https://github.com/${trimmed}`;
+    case "twitter":
+      return `https://x.com/${trimmed}`;
+    case "telegram":
+      return `https://t.me/${trimmed}`;
+    case "facebook":
+      return `https://facebook.com/${trimmed}`;
+    case "portfolio":
+    default:
+      return `https://${trimmed}`;
+  }
+}
+
+function SharedMemberCover() {
+  return (
+    <div className="relative h-40 overflow-hidden border-b-2 border-text-main bg-main-bg sm:h-44">
+      <div className="absolute inset-x-0 top-0 h-12 border-b border-border-main bg-surface/90" />
+      <div className="absolute inset-x-0 bottom-0 h-10 border-t border-border-main bg-surface/80" />
+
+      <div className="absolute inset-0 px-4 py-4 sm:px-6">
+        <div className="grid h-full grid-cols-10 gap-2">
+          <div className="col-span-2 border border-border-main bg-surface" />
+          <div className="col-span-1 border border-border-main bg-main-bg/60" />
+          <div className="col-span-2 border border-border-main bg-primary/20" />
+          <div className="col-span-2 border border-border-main bg-surface" />
+          <div className="col-span-3 border border-border-main bg-main-bg/55" />
+
+          <div className="col-span-1 border border-border-main bg-main-bg/60" />
+          <div className="col-span-3 border border-border-main bg-surface" />
+          <div className="col-span-2 border border-border-main bg-main-bg/55" />
+          <div className="col-span-1 border border-border-main bg-primary/18" />
+          <div className="col-span-3 border border-border-main bg-surface" />
+
+          <div className="col-span-4 border border-border-main bg-main-bg/55" />
+          <div className="col-span-2 border border-border-main bg-surface" />
+          <div className="col-span-1 border border-border-main bg-main-bg/60" />
+          <div className="col-span-3 border border-border-main bg-primary/15" />
+        </div>
+      </div>
+
+      <div className="absolute left-4 top-4 sm:left-6">
+        <div className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
+          DSUC LABS
+        </div>
+        <div className="mt-1 font-display text-[42px] font-black uppercase leading-none tracking-[-0.08em] text-text-main sm:text-[56px]">
+          DSUC
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LinkRow({
+  icon: Icon,
+  label,
+  href,
+  value,
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  href: string;
+  value: string;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="flex items-center gap-3 border border-border-main bg-main-bg px-4 py-3 text-text-main"
+    >
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-surface text-text-main">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="min-w-0">
+        <div className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+          {label}
+        </div>
+        <div className="truncate text-sm font-semibold text-text-main">{value}</div>
+      </div>
+    </a>
+  );
+}
+
+function StreakCell({ active }: { active: boolean }) {
+  return (
+    <motion.div
+      className={
+        active
+          ? `h-10 border ${streakTheme.dayBorder} ${streakTheme.daySolid}`
+          : "h-10 border border-border-main bg-main-bg/65"
+      }
+      animate={active ? { opacity: [1, 0.88, 1] } : { opacity: [0.56, 0.72, 0.56] }}
+      transition={{ duration: active ? 2.2 : 3.4, repeat: Infinity, ease: "easeInOut" }}
+    />
+  );
+}
 
 export function MemberDetail() {
   const { id } = useParams();
@@ -23,339 +145,326 @@ export function MemberDetail() {
   const { members } = useStore();
   const [showContactPopup, setShowContactPopup] = useState(false);
 
-  const displayMembers = members;
+  const matchedMember = members.find((entry) => entry.id === id);
 
-  const member = displayMembers.find((m) => m.id === id) || {
+  const member: Member = matchedMember || {
     id: id || "mock-id",
-    name: "User " + (id?.substring(0, 4) || "X"),
-    avatar: `https://i.pravatar.cc/150?u=${id}`,
+    name: `User ${id?.slice(0, 4) || "X"}`,
+    avatar: `https://i.pravatar.cc/320?u=${id}`,
     role: "Member",
-    memberType: "community",
     skills: [],
     socials: {},
-    streak: 0,
+    memberType: "community",
   };
 
-  const isCommunity = member?.memberType === "community";
+  const publicLinks = useMemo(
+    () =>
+      [
+        member.socials?.github
+          ? {
+              key: "github",
+              label: "GitHub",
+              value: member.socials.github,
+              href: normalizeUrl(member.socials.github, "github"),
+              icon: Github,
+            }
+          : null,
+        member.socials?.twitter
+          ? {
+              key: "twitter",
+              label: "X",
+              value: member.socials.twitter,
+              href: normalizeUrl(member.socials.twitter, "twitter"),
+              icon: Twitter,
+            }
+          : null,
+        member.socials?.telegram
+          ? {
+              key: "telegram",
+              label: "Telegram",
+              value: member.socials.telegram,
+              href: normalizeUrl(member.socials.telegram, "telegram"),
+              icon: Send,
+            }
+          : null,
+        member.socials?.facebook
+          ? {
+              key: "facebook",
+              label: "Facebook",
+              value: member.socials.facebook,
+              href: normalizeUrl(member.socials.facebook, "facebook"),
+              icon: Facebook,
+            }
+          : null,
+        member.socials?.portfolio
+          ? {
+              key: "portfolio",
+              label: "Portfolio",
+              value: member.socials.portfolio,
+              href: normalizeUrl(member.socials.portfolio, "portfolio"),
+              icon: Globe,
+            }
+          : null,
+      ].filter(Boolean) as PublicLink[],
+    [member.socials],
+  );
 
-  if (!member && displayMembers.length > 0) {
+  const featuredSkills = member.skills.slice(0, 5);
+  const summary = featuredSkills.length
+    ? `Focused on ${featuredSkills.slice(0, 3).join(", ")}.`
+    : "This member has not published focus areas yet.";
+  const streakLength = Math.max(0, member.streak || 0);
+  const streakPreview = Array.from({ length: 7 }, (_, index) =>
+    index >= 7 - Math.min(streakLength, 7),
+  );
+
+  if (!matchedMember && members.length > 0) {
     return (
-      <div className="text-text-muted text-center pt-20 font-mono text-sm uppercase">
+      <div className="pt-20 text-center font-mono text-sm uppercase tracking-widest text-text-muted">
         Member not found
       </div>
     );
   }
 
-  const handleContactSelect = (platform: string, url: string) => {
-    window.open(url, "_blank");
-    setShowContactPopup(false);
-  };
-
   return (
-    <div className="container mx-auto pt-10 px-4 sm:px-6 pb-20 space-y-12">
-      <button
-        onClick={() => navigate("/members")}
-        className="inline-flex items-center gap-2 border-2 border-text-main bg-surface px-4 py-2 text-xs font-bold uppercase tracking-widest font-mono shadow-[2px_2px_0_0_#000] hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#000] transition-all text-text-main"
-      >
-        <ArrowLeft className="w-4 h-4" strokeWidth={2} />
-        BACK TO MEMBERS
-      </button>
+    <div className="container mx-auto space-y-8 px-4 py-8 md:py-16">
+      <div className="flex items-center justify-between gap-4">
+        <button
+          type="button"
+          onClick={() => navigate("/members")}
+          aria-label="Back to members"
+          className="inline-flex h-10 w-10 items-center justify-center border-2 border-text-main bg-surface text-text-main focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        >
+          <ArrowLeft className="h-4 w-4" strokeWidth={2.2} />
+        </button>
+      </div>
 
-      {/* Contact Popup */}
       <ModalShell
         isOpen={showContactPopup}
         onClose={() => setShowContactPopup(false)}
-        title="Connect"
-        label="CONTACT INFO"
+        title="Contact"
+        label="PUBLIC LINKS"
       >
-        <div className="space-y-4">
-          {member.email && (
-            <button
-              onClick={() =>
-                handleContactSelect("email", `mailto:${member.email}`)
-              }
-              className="w-full flex items-center gap-4 bg-surface hover:bg-main-bg  p-4 transition-all group"
-            >
-              <Mail
-                className="text-text-muted group-hover:text-primary transition-colors"
-                size={20}
+        <div className="space-y-3">
+          {publicLinks.length > 0 ? (
+            publicLinks.map((link) => (
+              <LinkRow
+                key={link.key}
+                icon={link.icon}
+                label={link.label}
+                href={link.href}
+                value={link.value}
               />
-              <span className="font-mono text-xs text-text-main uppercase tracking-wider">
-                Email
-              </span>
-            </button>
+            ))
+          ) : (
+            <div className="border border-dashed border-border-main bg-main-bg/60 px-4 py-4 text-sm leading-6 text-text-muted">
+              No public links shared yet.
+            </div>
           )}
-          {member.socials?.telegram && (
-            <button
-              onClick={() =>
-                handleContactSelect(
-                  "telegram",
-                  member.socials.telegram!.startsWith("http")
-                    ? member.socials.telegram!
-                    : `https://t.me/${member.socials.telegram}`,
-                )
-              }
-              className="w-full flex items-center gap-4 bg-surface hover:bg-main-bg border border-border-main p-4 transition-all group"
-            >
-              <Send
-                className="text-text-muted group-hover:text-primary transition-colors"
-                size={20}
-              />
-              <span className="font-mono text-xs text-text-main uppercase tracking-wider">
-                Telegram
-              </span>
-            </button>
-          )}
-          {member.socials?.twitter && (
-            <button
-              onClick={() =>
-                handleContactSelect(
-                  "twitter",
-                  member.socials.twitter!.startsWith("http")
-                    ? member.socials.twitter!
-                    : `https://x.com/${member.socials.twitter}`,
-                )
-              }
-              className="w-full flex items-center gap-4 bg-surface hover:bg-main-bg border border-border-main p-4 transition-all group"
-            >
-              <Twitter
-                className="text-text-muted group-hover:text-primary transition-colors"
-                size={20}
-              />
-              <span className="font-mono text-xs text-text-main uppercase tracking-wider">
-                Twitter / X
-              </span>
-            </button>
-          )}
-          {member.socials?.facebook && (
-            <button
-              onClick={() =>
-                handleContactSelect(
-                  "facebook",
-                  member.socials.facebook!.startsWith("http")
-                    ? member.socials.facebook!
-                    : `https://facebook.com/${member.socials.facebook}`,
-                )
-              }
-              className="w-full flex items-center gap-4 bg-surface hover:bg-main-bg border border-border-main p-4 transition-all group"
-            >
-              <Facebook
-                className="text-text-muted group-hover:text-primary transition-colors"
-                size={20}
-              />
-              <span className="font-mono text-xs text-text-main uppercase tracking-wider">
-                Facebook
-              </span>
-            </button>
-          )}
-
-          {!member.email &&
-            !member.socials?.telegram &&
-            !member.socials?.twitter &&
-            !member.socials?.facebook && (
-              <div className="text-center text-text-muted font-mono text-xs p-6 border border-border-main bg-main-bg uppercase">
-                No contact info provided.
-              </div>
-            )}
         </div>
       </ModalShell>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12">
-        {/* Left Column: Avatar & Basic Stats */}
-        <div className="md:col-span-4 lg:col-span-4 flex flex-col items-center group relative z-10 w-full">
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="relative w-64 h-64 mb-10 mx-auto"
-          >
-            <div className="absolute inset-0 bg-surface shadow-[4px_4px_0_0_#1a1b26] z-10 transition-transform duration-500 p-2 border border-border-main">
+      <SoftBrutalCard intent="primary" withPattern className="overflow-hidden p-0">
+        <SharedMemberCover />
+
+        <div className="relative px-4 pb-5 pt-20 sm:px-6 md:pb-6 md:pt-24">
+          <div className="absolute left-4 top-0 h-32 w-32 -translate-y-1/2 border-[3px] border-text-main bg-surface p-1.5 shadow-[6px_6px_0_0_#000] dark:shadow-[6px_6px_0_0_rgba(0,0,0,0.55)] sm:left-6 sm:h-40 sm:w-40">
+            <div className="h-full w-full overflow-hidden border border-border-main bg-main-bg">
               <img
-                src={
-                  member.avatar || `https://i.pravatar.cc/150?u=${member.id}`
-                }
+                src={member.avatar || `https://i.pravatar.cc/320?u=${member.id}`}
                 alt={member.name}
-                className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300 border border-border-main"
+                className="h-full w-full object-cover"
               />
             </div>
-
-            {(member as any).streak > 0 && (
-              <div className="absolute top-4 -left-4 flex items-center gap-1 bg-surface text-text-main border-2 px-3 py-1 font-mono text-xs font-bold uppercase z-20 border-text-main shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
-                {(member as any).streak} days <span className="ml-1">🔥</span>
-              </div>
-            )}
-          </motion.div>
-
-          <div className="w-full space-y-4 max-w-sm mx-auto">
-            <SoftBrutalCard className="p-4 flex justify-between items-center relative overflow-hidden group/item">
-              <div className="flex flex-col">
-                <span className="text-[10px] text-text-muted uppercase font-mono tracking-widest mb-1">
-                  Role
-                </span>
-                <span className="text-text-main text-lg font-heading font-black uppercase tracking-tight">
-                  {member.role || "Member"}
-                </span>
-              </div>
-              <Shield className="text-text-muted w-6 h-6 group-hover/item:text-primary transition-colors" />
-            </SoftBrutalCard>
-
-            <SoftBrutalCard className="p-4 flex justify-between items-center relative overflow-hidden group/item">
-              <div className="flex flex-col">
-                <span className="text-[10px] text-text-muted uppercase font-mono tracking-widest mb-1">
-                  Status
-                </span>
-                <span className="text-emerald-500 text-lg font-heading font-black tracking-tight uppercase">
-                  ONLINE
-                </span>
-              </div>
-              <Globe className="text-emerald-500 w-6 h-6 animate-pulse" />
-            </SoftBrutalCard>
-          </div>
-        </div>
-
-        {/* Right Column: Detailed Dossier */}
-        <div className="md:col-span-8 lg:col-span-8 space-y-10 relative z-10">
-          <div className=" pb-8 relative">
-            <motion.h1
-              initial={{ x: 20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              className="text-4xl md:text-5xl lg:text-6xl font-heading font-black text-text-main mb-6 uppercase tracking-tighter"
-            >
-              {member.name}
-            </motion.h1>
-            <motion.div
-              initial={{ x: 20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              className="flex items-center gap-3 flex-wrap"
-            >
-              <div className="bg-primary text-main-bg px-3 py-1 font-mono tracking-widest uppercase text-[10px] border border-border-main">
-                {member.role || "Member"}
-              </div>
-              <div className="px-3 py-1 bg-surface border border-border-main font-mono text-text-muted uppercase text-[10px]">
-                ID: {member.id || "CLASSIFIED"}
-              </div>
-            </motion.div>
           </div>
 
-          <div className="space-y-8">
-            <SoftBrutalCard className="p-8">
-              <h3 className="text-xs font-mono font-bold text-text-muted uppercase tracking-widest mb-6 flex items-center gap-3">
-                <span className="w-2 h-2 bg-primary" /> Skills & Expertise
-              </h3>
-              <div className="flex flex-wrap gap-3">
-                {member.skills?.length > 0 ? (
-                  member.skills.map((skill, i) => (
-                    <motion.span
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-4 lg:max-w-3xl">
+              <div className="flex gap-5 pl-[144px] sm:pl-[176px]">
+                <div className="min-w-0 space-y-3">
+                  <motion.h1
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="break-words font-display text-[clamp(2.35rem,5vw,4.9rem)] font-black uppercase leading-[0.9] tracking-tight text-text-main"
+                  >
+                    {member.name}
+                  </motion.h1>
+                  <div className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-text-muted">
+                    {member.role || "Member"}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <StatusBadge
+                      status={member.memberType === "community" ? "Community" : "Official"}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <p className="max-w-3xl pl-[144px] font-mono text-sm leading-relaxed text-text-muted sm:pl-[176px]">
+                {summary}
+              </p>
+
+              {featuredSkills.length > 0 ? (
+                <div className="flex flex-wrap gap-x-4 gap-y-2 pl-[144px] sm:pl-[176px]">
+                  {featuredSkills.map((skill) => (
+                    <span
                       key={skill}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.2 + i * 0.05 }}
-                      className="px-3 py-1 border border-border-main bg-main-bg text-text-main font-mono text-[10px] uppercase cursor-default"
+                      className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted"
                     >
                       {skill}
-                    </motion.span>
-                  ))
-                ) : (
-                  <span className="text-text-muted font-mono text-[10px] uppercase border border-border-main bg-main-bg px-3 py-1">
-                    No skills added.
-                  </span>
-                )}
-              </div>
-            </SoftBrutalCard>
+                    </span>
+                  ))}
+                </div>
+              ) : null}
 
-            <SoftBrutalCard className="p-8">
-              <h3 className="text-xs font-mono font-bold text-text-muted uppercase tracking-widest mb-6 flex items-center gap-3">
-                <span className="w-2 h-2 bg-highlight" /> Social Links
-              </h3>
-              <div className="flex flex-wrap gap-4">
-                {member.socials?.github ? (
-                  <a
-                    href={
-                      member.socials.github.startsWith("http")
-                        ? member.socials.github
-                        : `https://github.com/${member.socials.github}`
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-12 h-12 flex items-center justify-center border border-border-main hover:bg-main-bg text-text-main transition-colors bg-surface"
+              <div className="flex flex-wrap items-center gap-2 pl-[144px] sm:pl-[176px]">
+                {publicLinks.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowContactPopup(true)}
+                    className="inline-flex h-11 items-center justify-center gap-2 border border-text-main bg-surface px-4 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-main"
                   >
-                    <Github size={20} />
-                  </a>
-                ) : (
-                  <div className="w-12 h-12 flex items-center justify-center border border-border-main  bg-main-bg text-text-muted opacity-50">
-                    <Github size={20} />
-                  </div>
-                )}
-                {member.socials?.twitter ? (
-                  <a
-                    href={
-                      member.socials.twitter.startsWith("http")
-                        ? member.socials.twitter
-                        : `https://twitter.com/${member.socials.twitter}`
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-12 h-12 flex items-center justify-center border border-border-main hover:bg-main-bg text-text-main transition-colors bg-surface"
-                  >
-                    <Twitter size={20} />
-                  </a>
-                ) : (
-                  <div className="w-12 h-12 flex items-center justify-center border border-border-main border-dashed bg-main-bg text-text-muted opacity-50">
-                    <Twitter size={20} />
-                  </div>
-                )}
-                {member.socials?.telegram ? (
-                  <a
-                    href={
-                      member.socials.telegram.startsWith("http")
-                        ? member.socials.telegram
-                        : `https://t.me/${member.socials.telegram}`
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-12 h-12 flex items-center justify-center border border-border-main hover:bg-main-bg text-text-main transition-colors bg-surface"
-                  >
-                    <Send size={20} />
-                  </a>
-                ) : (
-                  <div className="w-12 h-12 flex items-center justify-center border border-border-main border-dashed bg-main-bg text-text-muted opacity-50">
-                    <Send size={20} />
-                  </div>
-                )}
-                {member.socials?.facebook ? (
-                  <a
-                    href={
-                      member.socials.facebook.startsWith("http")
-                        ? member.socials.facebook
-                        : `https://facebook.com/${member.socials.facebook}`
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-12 h-12 flex items-center justify-center border border-border-main hover:bg-main-bg text-text-main transition-colors bg-surface"
-                  >
-                    <Facebook size={20} />
-                  </a>
-                ) : (
-                  <div className="w-12 h-12 flex items-center justify-center border border-border-main border-dashed bg-main-bg text-text-muted opacity-50">
-                    <Facebook size={20} />
-                  </div>
-                )}
-              </div>
-            </SoftBrutalCard>
-          </div>
+                    <Link2 className="h-4 w-4" />
+                    Contact
+                  </button>
+                ) : null}
 
-          <div className="pt-8 flex justify-end">
-            <ActionButton
-              variant="primary"
-              onClick={() => setShowContactPopup(true)}
-              className="w-full sm:w-auto min-w-[200px]"
-            >
-              <span className="flex items-center justify-center gap-2">
-                <Mail size={16} /> Connect
-              </span>
-            </ActionButton>
+                {publicLinks.slice(0, 4).map((link) => {
+                  const Icon = link.icon;
+
+                  return (
+                    <a
+                      key={link.key}
+                      href={link.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={link.label}
+                      title={link.label}
+                      className="inline-flex h-11 w-11 items-center justify-center border border-border-main bg-surface text-text-main"
+                    >
+                      <Icon className="h-4 w-4" />
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="w-full max-w-[320px] shrink-0">
+              <div className="space-y-3 border border-border-main bg-main-bg/65 p-4">
+                <div className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
+                  Member ID
+                </div>
+                <div className="font-display text-3xl font-black uppercase tracking-tight text-text-main">
+                  #{member.id.substring(0, 4)}
+                </div>
+                <div className="font-mono text-[10px] leading-5 text-text-muted">
+                  {publicLinks.length} public links shared
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+      </SoftBrutalCard>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
+        <SoftBrutalCard intent="default" className="p-6">
+          <div className="mb-5">
+            <div className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
+              Connect
+            </div>
+            <h2 className="mt-1 font-display text-2xl font-black uppercase tracking-tight text-text-main">
+              Public Links
+            </h2>
+          </div>
+
+          <div className="space-y-3">
+            {publicLinks.length > 0 ? (
+              publicLinks.map((link) => (
+                <LinkRow
+                  key={link.key}
+                  icon={link.icon}
+                  label={link.label}
+                  href={link.href}
+                  value={link.value}
+                />
+              ))
+            ) : (
+              <div className="border border-dashed border-border-main bg-main-bg/60 px-4 py-4 text-sm leading-6 text-text-muted">
+                No public links shared yet.
+              </div>
+            )}
+          </div>
+        </SoftBrutalCard>
+
+        <SoftBrutalCard intent="default" className="p-6">
+          <div className="mb-5">
+            <div className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
+              Learning
+            </div>
+            <h2 className="mt-1 font-display text-2xl font-black uppercase tracking-tight text-text-main">
+              Streak
+            </h2>
+          </div>
+
+          <div className="border border-border-main bg-main-bg/70 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                  Academy streak
+                </div>
+                <div className="mt-3 flex items-end gap-3">
+                  <div className={`flex h-12 w-12 items-center justify-center border ${streakTheme.flameBorder} ${streakTheme.flameSoft}`}>
+                    <Flame className={`h-6 w-6 ${streakTheme.flame}`} />
+                  </div>
+                  <div>
+                    <div className="font-display text-5xl font-black leading-none tracking-tight text-text-main">
+                      {streakLength}
+                    </div>
+                    <div className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                      day run
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                {streakLength > 0 ? "Active" : "Ready"}
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-7 gap-1.5">
+              {streakPreview.map((active, index) => (
+                <StreakCell key={`streak-preview-${index}`} active={active} />
+              ))}
+            </div>
+
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              <div className="bg-surface px-3 py-3">
+                <div className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                  Skills
+                </div>
+                <div className="mt-1 font-display text-2xl font-black text-text-main">
+                  {member.skills.length}
+                </div>
+              </div>
+              <div className="bg-surface px-3 py-3">
+                <div className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                  Links
+                </div>
+                <div className="mt-1 font-display text-2xl font-black text-text-main">
+                  {publicLinks.length}
+                </div>
+              </div>
+              <div className="bg-surface px-3 py-3">
+                <div className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                  Focus
+                </div>
+                <div className="mt-1 text-sm font-bold uppercase tracking-wide text-text-main">
+                  {featuredSkills[0] || "Open"}
+                </div>
+              </div>
+            </div>
+          </div>
+        </SoftBrutalCard>
       </div>
     </div>
   );

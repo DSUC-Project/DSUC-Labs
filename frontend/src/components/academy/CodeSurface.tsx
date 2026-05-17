@@ -152,7 +152,7 @@ function tokenizeLine(line: string, language: CodeLanguage) {
     const index = match.index ?? 0;
 
     if (commentStart >= 0 && index >= commentStart) {
-      pieces.push({ text, className: "text-[#6A9955]" });
+      pieces.push({ text, className: "syntax-token-comment" });
       continue;
     }
 
@@ -162,27 +162,27 @@ function tokenizeLine(line: string, language: CodeLanguage) {
     }
 
     if (/^"(?:\\.|[^"])*"$|^'(?:\\.|[^'])*'$|^`(?:\\.|[^`])*`$/.test(text)) {
-      pieces.push({ text, className: "text-[#CE9178]" });
+      pieces.push({ text, className: "syntax-token-string" });
       continue;
     }
 
     if (/^\d/.test(text)) {
-      pieces.push({ text, className: "text-[#B5CEA8]" });
+      pieces.push({ text, className: "syntax-token-number" });
       continue;
     }
 
     if (keywordSet.has(text)) {
-      pieces.push({ text, className: "text-[#C586C0]" });
+      pieces.push({ text, className: "syntax-token-keyword" });
       continue;
     }
 
     if (/^[A-Z][A-Za-z0-9_]*$/.test(text)) {
-      pieces.push({ text, className: "text-[#4EC9B0]" });
+      pieces.push({ text, className: "syntax-token-type" });
       continue;
     }
 
     if (VS_METHOD_NAMES.has(text)) {
-      pieces.push({ text, className: "text-[#DCDCAA]" });
+      pieces.push({ text, className: "syntax-token-method" });
       continue;
     }
 
@@ -191,7 +191,7 @@ function tokenizeLine(line: string, language: CodeLanguage) {
         text,
       )
     ) {
-      pieces.push({ text, className: "text-[#4FC1FF]" });
+      pieces.push({ text, className: "syntax-token-builtin" });
       continue;
     }
 
@@ -200,16 +200,16 @@ function tokenizeLine(line: string, language: CodeLanguage) {
         text,
       )
     ) {
-      pieces.push({ text, className: "text-[#4EC9B0]" });
+      pieces.push({ text, className: "syntax-token-type" });
       continue;
     }
 
     if (/^[{}()[\].,;:+\-*/%=&|!<>?#]+$/.test(text)) {
-      pieces.push({ text, className: "text-[#D4D4D4]" });
+      pieces.push({ text, className: "syntax-token-punctuation" });
       continue;
     }
 
-    pieces.push({ text, className: "text-[#D4D4D4]" });
+    pieces.push({ text, className: "syntax-token-plain" });
   }
 
   return pieces;
@@ -237,9 +237,9 @@ function CodeLines({
 
         return (
           <div key={`line-${lineIndex}`} className="min-h-[24px]">
-            <span className="whitespace-pre-wrap break-words">
+            <span className="whitespace-pre">
               {tokens.length === 0 ? (
-                <span className="text-[#D4D4D4]">&nbsp;</span>
+                <span className="syntax-token-plain">&nbsp;</span>
               ) : (
                 tokens.map((token, tokenIndex) => (
                   <span
@@ -282,25 +282,25 @@ export function CodeSurface({
 
   return (
     <div
-      className={`overflow-hidden rounded-xl border border-[#333] bg-[#1e1e1e] shadow-sm flex flex-col ${className}`}
+      className={`overflow-hidden border-[3px] border-text-main bg-[#fffdf8] shadow-[6px_6px_0_0_rgba(63,44,14,0.14)] dark:bg-[#0B0F17] dark:shadow-[6px_6px_0_0_rgba(0,0,0,0.48)] flex flex-col ${className}`}
     >
-      <div className="flex items-center gap-2 border-b border-[#333] bg-[#252526] px-4 py-2 shrink-0">
+      <div className="flex items-center gap-2 border-b-[3px] border-text-main bg-[#efe5d6] px-4 py-3 shrink-0 dark:bg-[#151B26]">
         <div className="h-3 w-3 rounded-full bg-[#F14C4C]" />
         <div className="h-3 w-3 rounded-full bg-[#CCA700]" />
         <div className="h-3 w-3 rounded-full bg-[#3BA55D]" />
-        <div className="ml-auto text-[10px] font-bold uppercase tracking-widest text-[#9DA5B4]">
+        <div className="ml-auto font-mono text-[10px] font-black uppercase tracking-widest text-text-main dark:text-[#E8E4DC]">
           {label || normalizedLanguage}
         </div>
       </div>
       <div
-        className={`relative flex-1 bg-[#1e1e1e] overflow-auto  ${maxHeightClass}`}
+        className={`relative flex-1 overflow-auto bg-[#fffdf8] dark:bg-[#0B0F17] ${maxHeightClass}`}
       >
-        <div className="absolute left-0 top-0 bottom-0 w-[48px] py-4 pr-4 text-right text-xs text-[#6E7681] select-none font-mono leading-[24px]">
+        <div className="absolute bottom-0 left-0 top-0 w-[48px] border-r border-[#d7cab6] bg-[#f6efe3] py-4 pr-4 text-right font-mono text-xs leading-[24px] text-[#81725f] select-none dark:border-slate-800 dark:bg-[#0B0F17] dark:text-[#6E7681]">
           {Array.from({ length: linesCount }).map((_, i) => (
             <div key={i}>{i + 1}</div>
           ))}
         </div>
-        <pre className="min-w-full m-0 p-0 pl-[48px] pr-4 py-4 font-mono text-[13px] leading-[24px] bg-transparent">
+        <pre className="min-w-full m-0 bg-transparent p-0 py-4 pl-[48px] pr-4 font-mono text-[13px] leading-[24px]">
           <CodeLines code={code} language={normalizedLanguage} />
         </pre>
       </div>
@@ -323,6 +323,7 @@ export function CodeEditorPane({
 }) {
   const normalizedLanguage = normalizeLanguage(language);
   const gutterRef = useRef<HTMLDivElement | null>(null);
+  const highlightRef = useRef<HTMLDivElement | null>(null);
   const linesCount = useMemo(
     () =>
       String(value || placeholder || "")
@@ -333,40 +334,83 @@ export function CodeEditorPane({
 
   return (
     <div
-      className={`overflow-hidden rounded-xl border border-[#333] bg-[#1e1e1e] shadow-sm flex-1 flex flex-col ${className}`}
+      className={`overflow-hidden border-[3px] border-text-main bg-[#fffdf8] shadow-[6px_6px_0_0_rgba(63,44,14,0.14)] dark:bg-[#0B0F17] dark:shadow-[6px_6px_0_0_rgba(0,0,0,0.48)] flex min-h-[340px] flex-1 flex-col sm:min-h-[460px] ${className}`}
     >
-      <div className="flex items-center gap-2 border-b border-[#333] bg-[#252526] px-4 py-2 shrink-0">
+      <div className="flex items-center gap-2 border-b-[3px] border-text-main bg-[#efe5d6] px-4 py-3 shrink-0 dark:bg-[#151B26]">
         <div className="h-3 w-3 rounded-full bg-[#F14C4C]" />
         <div className="h-3 w-3 rounded-full bg-[#CCA700]" />
         <div className="h-3 w-3 rounded-full bg-[#3BA55D]" />
-        <div className="ml-auto text-[10px] font-bold uppercase tracking-widest text-[#9DA5B4]">
+        <div className="ml-auto font-mono text-[10px] font-black uppercase tracking-widest text-text-main dark:text-[#E8E4DC]">
           {normalizedLanguage}
         </div>
       </div>
-      <div className="relative flex-1 bg-[#1e1e1e] overflow-hidden">
-        <div className="absolute inset-0 flex">
-          {/* Gutter */}
+      <div className="grid min-h-0 flex-1 grid-cols-[56px_minmax(0,1fr)] bg-[#fffdf8] dark:bg-[#0B0F17]">
+        <div
+          ref={gutterRef}
+          className="overflow-hidden border-r border-[#d7cab6] bg-[#f6efe3] py-4 pr-3 text-right font-mono text-xs leading-[24px] text-[#81725f] select-none dark:border-slate-800 dark:bg-[#0B0F17] dark:text-[#6E7681]"
+        >
+          {Array.from({ length: Math.max(1, linesCount) }).map((_, i) => (
+            <div key={i}>{i + 1}</div>
+          ))}
+        </div>
+
+        <div className="relative min-h-[300px] sm:min-h-[420px]">
           <div
-            ref={gutterRef}
-            className="w-[48px] py-4 pr-3 text-right text-xs text-[#6E7681] select-none font-mono leading-[24px] pointer-events-none overflow-hidden shrink-0 bg-transparent"
+            ref={highlightRef}
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 overflow-hidden"
           >
-            {Array.from({ length: Math.max(1, linesCount) }).map((_, i) => (
-              <div key={i}>{i + 1}</div>
-            ))}
+            <pre className="min-h-full min-w-full bg-transparent px-4 py-4 font-mono text-[13px] leading-[24px] whitespace-pre">
+              <CodeLines
+                code={value || placeholder || ""}
+                language={normalizedLanguage}
+              />
+            </pre>
           </div>
 
           <textarea
             value={value}
             spellCheck={false}
+            autoCapitalize="off"
+            autoCorrect="off"
+            autoComplete="off"
             onChange={(event) => onChange(event.target.value)}
-            onScroll={(event) => {
-              if (gutterRef.current)
-                gutterRef.current.scrollTop = event.currentTarget.scrollTop;
+            onKeyDown={(event) => {
+              if (event.key !== "Tab") {
+                return;
+              }
+
+              event.preventDefault();
+              const textarea = event.currentTarget;
+              const selectionStart = textarea.selectionStart;
+              const selectionEnd = textarea.selectionEnd;
+              const indent = "  ";
+              const nextValue =
+                value.slice(0, selectionStart) +
+                indent +
+                value.slice(selectionEnd);
+
+              onChange(nextValue);
+
+              requestAnimationFrame(() => {
+                textarea.selectionStart = selectionStart + indent.length;
+                textarea.selectionEnd = selectionStart + indent.length;
+              });
             }}
-            className="flex-1 m-0 p-0 pr-4 py-4 font-mono text-[13px] leading-[24px] resize-none bg-transparent outline-none whitespace-pre break-normal overflow-auto "
+            onScroll={(event) => {
+              if (gutterRef.current) {
+                gutterRef.current.scrollTop = event.currentTarget.scrollTop;
+              }
+              if (highlightRef.current) {
+                highlightRef.current.scrollTop = event.currentTarget.scrollTop;
+                highlightRef.current.scrollLeft = event.currentTarget.scrollLeft;
+              }
+            }}
+            className="relative min-h-[300px] w-full resize-none overflow-auto bg-transparent px-4 py-4 font-mono text-[13px] leading-[24px] whitespace-pre outline-none selection:bg-primary/20 sm:min-h-[420px]"
             style={{
-              color: "#d4d4d4",
-              caretColor: "#d4d4d4",
+              color: "transparent",
+              WebkitTextFillColor: "transparent",
+              caretColor: "var(--text-main)",
               tabSize: 4,
             }}
             placeholder={placeholder}

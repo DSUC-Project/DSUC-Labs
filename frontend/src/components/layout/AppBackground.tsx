@@ -116,11 +116,10 @@ export function AppBackground({
           elementOpacity,
         )}
       >
-        {/* Subtle geometric circles/lines */}
-        <div className="absolute w-[600px] h-[600px] /35 dark:border-border-main/15 rounded-full" />
-        <div className="absolute w-[400px] h-[400px] border border-border-main/45 dark:border-border-main/25 rounded-full" />
+        <div className="absolute h-[520px] w-[520px] rounded-full bg-primary/[0.035] blur-3xl dark:bg-primary/[0.04]" />
+        <div className="absolute h-[300px] w-[300px] rounded-full bg-accent/[0.03] blur-3xl dark:bg-accent/[0.035]" />
         {intensity === "high" && (
-          <div className="absolute top-1/4 left-1/4 w-32 h-32/40 dark:-main/20" />
+          <div className="absolute right-[14%] top-[18%] h-32 w-32 rounded-full bg-primary/[0.06] blur-2xl dark:bg-primary/[0.08]" />
         )}
       </div>
     </div>

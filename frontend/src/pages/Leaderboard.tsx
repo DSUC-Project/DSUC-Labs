@@ -4,6 +4,7 @@ import { useStore } from "../store/useStore";
 import { Member } from "../types";
 import { motion } from "motion/react";
 import { SectionHeader, SoftBrutalCard } from "@/components/ui/Primitives";
+import { streakTheme } from "@/lib/streakTheme";
 
 export function Leaderboard() {
   const { members, currentUser } = useStore();
@@ -18,7 +19,7 @@ export function Leaderboard() {
       ? [currentUser, ...members]
       : members;
 
-  const leaderboardData = leaderboardSource
+  const rankedLeaderboard = leaderboardSource
     .map((member) => {
       return {
         ...member,
@@ -26,7 +27,17 @@ export function Leaderboard() {
       };
     })
     .sort((a, b) => (b.streak || 0) - (a.streak || 0))
-    .slice(0, 10); // TOP 10!
+    .map((member, index) => ({
+      ...member,
+      rank: index + 1,
+    }));
+
+  const leaderboardData = rankedLeaderboard.slice(0, 10);
+  const currentUserRank =
+    currentUser
+      ? rankedLeaderboard.find((member) => member.id === currentUser.id) || null
+      : null;
+  const showYourRank = Boolean(currentUserRank && currentUserRank.rank > 10);
 
   const top3 = leaderboardData.slice(0, 3);
   const others = leaderboardData.slice(3, 10);
@@ -125,9 +136,7 @@ export function Leaderboard() {
           <div
             className={`flex items-center justify-center gap-2 px-4 py-2 border-2 text-xs font-mono font-black tracking-widest bg-black/10 w-full max-w-[140px] ${iconColor} ${rank === 1 ? "border-black/50" : "border-white/50"}`}
           >
-            <FlameIcon
-              color={iconColor}
-            />
+            <FlameIcon color={streakTheme.flame} />
             {streak} days
           </div>
         </div>
@@ -199,8 +208,8 @@ export function Leaderboard() {
           </div>
 
           <div className="flex flex-col gap-2">
-            {others.map((member, idx) => {
-              const rank = idx + 4;
+            {others.map((member) => {
+              const rank = member.rank;
               const isCurrentUser = currentUser?.id === member.id;
 
               return (
@@ -208,7 +217,7 @@ export function Leaderboard() {
                   initial={{ x: -20, opacity: 0 }}
                   whileInView={{ x: 0, opacity: 1 }}
                   viewport={{ once: true }}
-                  transition={{ delay: idx * 0.05 }}
+                  transition={{ delay: (rank - 4) * 0.05 }}
                   key={member.id}
                 >
                   <div
@@ -250,7 +259,7 @@ export function Leaderboard() {
                     <div
                       className={`flex items-center justify-center gap-1.5 px-3 py-1.5 bg-black/10 border-2 ${isCurrentUser ? "border-primary-foreground text-primary-foreground" : "border-text-main text-text-main"} text-xs font-mono font-black tracking-widest shrink-0`}
                     >
-                      <FlameIcon color={isCurrentUser ? "text-primary-foreground" : "text-error"} />
+                      <FlameIcon color={streakTheme.flame} />
                       {member.streak}
                     </div>
                   </div>
@@ -260,6 +269,52 @@ export function Leaderboard() {
           </div>
         </div>
       )}
+
+      {showYourRank && currentUserRank ? (
+        <div className="mx-auto mt-12 max-w-3xl">
+          <div className="mb-3 flex items-center gap-3 px-2">
+            <div className="h-2 w-2 bg-primary" />
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-text-muted">
+              Your Rank
+            </span>
+          </div>
+
+          <SoftBrutalCard className="p-4 sm:p-5">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center bg-main-bg font-mono text-sm font-black uppercase tracking-widest text-text-main">
+                {currentUserRank.rank < 10
+                  ? `0${currentUserRank.rank}`
+                  : currentUserRank.rank}
+              </div>
+
+              <div className="h-12 w-12 shrink-0 overflow-hidden bg-main-bg">
+                <img
+                  src={
+                    currentUserRank.avatar ||
+                    "https://via.placeholder.com/50"
+                  }
+                  alt={currentUserRank.name}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="font-heading text-base font-black tracking-tight text-text-main">
+                  {currentUserRank.name}
+                </div>
+                <div className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
+                  {rankedLeaderboard.length} members ranked
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 bg-main-bg px-3 py-2 font-mono text-xs font-black tracking-widest text-text-main">
+                <FlameIcon color={streakTheme.flame} />
+                {currentUserRank.streak}
+              </div>
+            </div>
+          </SoftBrutalCard>
+        </div>
+      ) : null}
     </div>
   );
 }

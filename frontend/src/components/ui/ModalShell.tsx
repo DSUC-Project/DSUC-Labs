@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,10 @@ interface ModalProps {
   label?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  panelClassName?: string;
+  bodyClassName?: string;
+  viewportClassName?: string;
+  overlayClassName?: string;
 }
 
 export function ModalShell({
@@ -20,11 +25,17 @@ export function ModalShell({
   label,
   children,
   footer,
+  panelClassName,
+  bodyClassName,
+  viewportClassName,
+  overlayClassName,
 }: ModalProps) {
   useEffect(() => {
     if (!isOpen) {
       return undefined;
     }
+
+    const previousBodyOverflow = document.body.style.overflow;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -32,11 +43,19 @@ export function ModalShell({
       }
     };
 
+    document.body.style.overflow = "hidden";
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, [isOpen, onClose]);
 
-  return (
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
@@ -44,10 +63,18 @@ export function ModalShell({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-main-bg/90 backdrop-blur-sm"
+            className={cn(
+              "fixed inset-0 z-[100] bg-main-bg/90 backdrop-blur-sm",
+              overlayClassName,
+            )}
             onClick={onClose}
           />
-          <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 py-12 pointer-events-none">
+          <div
+            className={cn(
+              "fixed inset-0 z-[101] flex items-center justify-center overflow-y-auto overscroll-contain p-3 sm:p-4 sm:py-12 pointer-events-none",
+              viewportClassName,
+            )}
+          >
             <motion.div
               initial={{ opacity: 0, scale: 0.98, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -55,7 +82,10 @@ export function ModalShell({
               transition={{ duration: 0.15, ease: "easeOut" }}
               role="dialog"
               aria-modal="true"
-              className="w-full max-w-lg bg-surface shadow-2xl pointer-events-auto flex flex-col max-h-full"
+              className={cn(
+                "w-full max-w-lg bg-surface shadow-2xl pointer-events-auto flex max-h-[calc(100vh-1.5rem)] flex-col",
+                panelClassName,
+              )}
             >
               {/* Modal Header */}
               <div className="flex items-center justify-between p-5  bg-main-bg/50 shrink-0">
@@ -79,7 +109,12 @@ export function ModalShell({
               </div>
 
               {/* Modal Body */}
-              <div className="p-6 overflow-y-auto font-sans flex-1">
+              <div
+                className={cn(
+                  "flex-1 overflow-y-auto p-6 font-sans",
+                  bodyClassName,
+                )}
+              >
                 {children}
               </div>
 
@@ -93,7 +128,8 @@ export function ModalShell({
           </div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 

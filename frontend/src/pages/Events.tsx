@@ -167,13 +167,39 @@ export function Events() {
 
   const now = new Date();
 
-  const sortedEvents = [...events].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
+  const getEventTimestamp = (event: AppEvent) => {
+    const safeDate = event.date || new Date().toISOString().slice(0, 10);
+    const safeTime = event.time?.trim() ? event.time.trim() : "23:59";
+    const timestamp = new Date(`${safeDate}T${safeTime}`);
+    return Number.isNaN(timestamp.getTime())
+      ? new Date(safeDate).getTime()
+      : timestamp.getTime();
+  };
+
+  const sortedEvents = [...events].sort((a, b) => {
+    const aTime = getEventTimestamp(a);
+    const bTime = getEventTimestamp(b);
+    const aUpcoming = aTime >= now.getTime();
+    const bUpcoming = bTime >= now.getTime();
+
+    if (filter === "past") {
+      return bTime - aTime;
+    }
+
+    if (filter === "upcoming") {
+      return aTime - bTime;
+    }
+
+    if (aUpcoming !== bUpcoming) {
+      return aUpcoming ? -1 : 1;
+    }
+
+    return aUpcoming ? aTime - bTime : bTime - aTime;
+  });
   const filteredEvents = sortedEvents.filter((evt) => {
-    const evtDate = new Date(evt.date);
-    if (filter === "upcoming") return evtDate >= now;
-    if (filter === "past") return evtDate < now;
+    const evtTime = getEventTimestamp(evt);
+    if (filter === "upcoming") return evtTime >= now.getTime();
+    if (filter === "past") return evtTime < now.getTime();
     return true;
   });
 

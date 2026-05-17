@@ -1,14 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  ArrowRight,
-  Github,
-  Search,
-  Send,
-  Sparkles,
-  Twitter,
-  Users,
-} from "lucide-react";
+import { ArrowRight, Github, Search, Send, Twitter } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { Member } from "@/types";
 
@@ -42,7 +34,9 @@ export function Members() {
   const officialMembers = filteredMembers.filter(
     (member) => !isCommunityMember(member),
   );
-  const communityMembers = filteredMembers.filter((member) => isCommunityMember(member));
+  const communityMembers = filteredMembers.filter((member) =>
+    isCommunityMember(member),
+  );
 
   const MemberCard = ({
     member,
@@ -58,195 +52,139 @@ export function Members() {
       | "info"
       | "locked"
       | "accent";
-  }) => (
-    <article className="group relative flex h-full flex-col overflow-hidden border border-border-main bg-surface transition-all duration-300 hover:-translate-y-1.5 hover:-translate-x-1.5 hover:shadow-[8px_8px_0_0_rgba(0,0,0,1)] dark:hover:shadow-[8px_8px_0_0_rgba(255,255,255,1)]">
-      <button
-        type="button"
-        aria-label={`View ${member.name}`}
-        onClick={() => navigate(`/members/${member.id}`)}
-        className="flex flex-1 flex-col text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-      >
-        <div
-          className={`relative z-0 h-16 w-full ${
-            intent === "primary" ? "bg-primary" : "bg-highlight"
-          } bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMCwwLDAsMC4xNSkiLz48L3N2Zz4=')]`}
+  }) => {
+    const socialLinks = [
+      member.socials?.github
+        ? { href: member.socials.github, label: "GitHub", icon: Github }
+        : null,
+      member.socials?.twitter
+        ? { href: member.socials.twitter, label: "Twitter", icon: Twitter }
+        : null,
+      member.socials?.telegram
+        ? { href: member.socials.telegram, label: "Telegram", icon: Send }
+        : null,
+    ].filter(Boolean) as Array<{
+      href: string;
+      label: string;
+      icon: typeof Github;
+    }>;
+
+    return (
+      <article className="card-shell group relative flex h-full flex-col overflow-hidden border border-border-main bg-surface">
+        <button
+          type="button"
+          aria-label={`View ${member.name}`}
+          onClick={() => navigate(`/members/${member.id}`)}
+          className="flex flex-1 flex-col text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
-          <div className="absolute inset-0 bg-gradient-to-t from-main-bg/20 to-transparent"></div>
-        </div>
-
-        <div className="absolute left-5 top-8 z-10">
-          <div className="h-16 w-16 bg-surface p-1 shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:-rotate-2 group-hover:scale-105 dark:shadow-[4px_4px_0_0_rgba(255,255,255,1)]">
-            <img
-              src={member.avatar || `https://i.pravatar.cc/150?u=${member.id}`}
-              className="h-full w-full object-cover"
-              alt={member.name}
-            />
-          </div>
-        </div>
-
-        <div className="absolute right-4 top-4 z-10 flex items-center gap-1.5 border border-border-main bg-surface px-2 py-1 font-mono text-[9px] font-black uppercase text-text-main">
-          <span
-            className={`h-2 w-2 rounded-full ${member.is_active ? "bg-primary animate-pulse" : "bg-gray-400"}`}
-          ></span>
-          {isCommunityMember(member) ? "COMMUNITY" : "CORE"}
-        </div>
-
-        <div className="relative z-0 flex flex-1 flex-col gap-5 bg-surface px-5 pb-5 pt-12">
-          <div className="space-y-1">
-            <div className="flex items-start justify-between gap-3">
-              <h3 className="line-clamp-1 font-heading text-xl font-black tracking-tight text-text-main transition-colors group-hover:text-primary md:text-2xl">
-                {member.name}
-              </h3>
-            </div>
-            <p className="mt-1 font-mono text-[10px] font-bold uppercase tracking-widest text-text-muted">
-              ID: {member.id.substring(0, 8)}
-            </p>
+          <div
+            className={`relative z-0 h-14 w-full ${
+              intent === "primary" ? "bg-primary" : "bg-highlight"
+            } bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMCwwLDAsMC4xNSkiLz48L3N2Zz4=')]`}
+          >
+            <div className="absolute inset-0 bg-main-bg/10"></div>
           </div>
 
-          <div className="inline-flex self-start border border-border-main bg-main-bg px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-primary transition-colors">
-            {member.role || "Member"}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="border border-border-main bg-main-bg px-3 py-2">
-              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                Skills
-              </p>
-              <p className="mt-1 font-heading text-lg font-black text-text-main">
-                {member.skills.length}
-              </p>
-            </div>
-            <div className="border border-border-main bg-main-bg px-3 py-2">
-              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                Status
-              </p>
-              <p className="mt-1 font-heading text-lg font-black text-text-main">
-                {member.is_active ? "Live" : "Idle"}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {member.skills.slice(0, 3).map((s) => (
-              <span
-                key={s}
-                className="border border-border-main bg-main-bg px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-text-muted transition-colors group-hover:text-text-main"
-              >
-                {s}
-              </span>
-            ))}
-            {member.skills.length > 3 && (
-              <span className="border border-border-main bg-main-bg px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                +{member.skills.length - 3}
-              </span>
-            )}
-          </div>
-
-          <div className="mt-auto flex items-center justify-between gap-4 border-t border-border-main pt-4">
-            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
-              {isCommunityMember(member) ? "Community Profile" : "Official Profile"}
-            </span>
-            <div className="flex items-center gap-2 font-mono text-[10px] font-black uppercase tracking-widest text-text-muted transition-colors group-hover:text-primary">
-              <span>View</span>
-              <ArrowRight
-                size={14}
-                className="transition-transform group-hover:translate-x-1"
+          <div className="absolute left-3.5 top-3 z-10">
+            <div className="h-14 w-14 bg-surface p-1 shadow-[2px_2px_0_0_rgba(0,0,0,1)] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)]">
+              <img
+                src={member.avatar || `https://i.pravatar.cc/150?u=${member.id}`}
+                className="h-full w-full object-cover"
+                alt={member.name}
               />
             </div>
           </div>
-        </div>
-      </button>
 
-      <div className="flex items-center justify-between gap-4 border-t border-border-main bg-main-bg/60 px-5 py-3">
-        <div className="flex gap-2">
-          {member.socials?.github && (
-            <a
-              href={member.socials.github}
-              target="_blank"
-              rel="noreferrer"
-              className="min-h-10 min-w-10 bg-main-bg p-2 text-text-muted transition-colors hover:text-text-main hover:shadow-[2px_2px_0_0_rgba(0,0,0,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:hover:shadow-[2px_2px_0_0_rgba(255,255,255,1)]"
-              aria-label={`${member.name} GitHub`}
-            >
-              <Github className="w-4 h-4" />
-            </a>
-          )}
-          {member.socials?.twitter && (
-            <a
-              href={member.socials.twitter}
-              target="_blank"
-              rel="noreferrer"
-              className="min-h-10 min-w-10 bg-main-bg p-2 text-text-muted transition-colors hover:text-text-main hover:shadow-[2px_2px_0_0_rgba(0,0,0,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:hover:shadow-[2px_2px_0_0_rgba(255,255,255,1)]"
-              aria-label={`${member.name} Twitter`}
-            >
-              <Twitter className="w-4 h-4" />
-            </a>
-          )}
-          {member.socials?.telegram && (
-            <a
-              href={member.socials.telegram}
-              target="_blank"
-              rel="noreferrer"
-              className="min-h-10 min-w-10 bg-main-bg p-2 text-text-muted transition-colors hover:text-text-main hover:shadow-[2px_2px_0_0_rgba(0,0,0,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:hover:shadow-[2px_2px_0_0_rgba(255,255,255,1)]"
-              aria-label={`${member.name} Telegram`}
-            >
-              <Send className="w-4 h-4" />
-            </a>
-          )}
-        </div>
+          <div className="absolute right-3 top-2.5 z-10 flex items-center gap-1.5 bg-surface/90 px-2 py-1 font-mono text-[8px] font-black uppercase text-text-main">
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${member.is_active ? "bg-primary animate-pulse" : "bg-gray-400"}`}
+            ></span>
+            {isCommunityMember(member) ? "COMMUNITY" : "CORE"}
+          </div>
 
-        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
-          {[
-            member.socials?.github,
-            member.socials?.twitter,
-            member.socials?.telegram,
-          ].filter(Boolean).length || "No"} links
-        </span>
-      </div>
-    </article>
-  );
+          <div className="relative z-0 flex flex-1 flex-col gap-2.5 bg-surface px-3.5 pb-3.5 pt-6">
+            <div className="space-y-0.5">
+              <h3 className="break-words font-heading text-[15px] font-black leading-tight tracking-tight text-text-main">
+                {member.name}
+              </h3>
+              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                {member.role || "Member"}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5">
+              <span className="bg-main-bg px-1.5 py-1 font-mono text-[8px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                {member.is_active ? "Live" : "Idle"}
+              </span>
+              <span className="bg-main-bg px-1.5 py-1 font-mono text-[8px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                {member.skills.length} skills
+              </span>
+              {member.skills.slice(0, 1).map((skill) => (
+                <span
+                  key={skill}
+                  className="bg-main-bg px-1.5 py-1 font-mono text-[8px] font-bold uppercase tracking-[0.16em] text-text-muted"
+                >
+                  {skill}
+                </span>
+              ))}
+              {member.skills.length > 1 && (
+                <span className="bg-main-bg px-1.5 py-1 font-mono text-[8px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                  +{member.skills.length - 1}
+                </span>
+              )}
+            </div>
+
+            <div className="mt-auto flex items-center justify-between gap-3 pt-3">
+              <div className="flex items-center gap-1.5 font-mono text-[9px] font-black uppercase tracking-[0.16em] text-text-muted">
+                <span>View</span>
+                <ArrowRight size={12} />
+              </div>
+              <span className="font-mono text-[8px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                #{member.id.substring(0, 4)}
+              </span>
+            </div>
+          </div>
+        </button>
+
+        {socialLinks.length > 0 && (
+          <div className="flex items-center justify-between gap-2 bg-main-bg/60 px-3.5 py-2">
+            <div className="flex gap-1.5">
+              {socialLinks.map((social) => {
+                const Icon = social.icon;
+                return (
+                  <a
+                    key={`${member.id}-${social.label}`}
+                    href={social.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="min-h-8 min-w-8 bg-main-bg p-1.5 text-text-muted transition-colors hover:text-text-main focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                    aria-label={`${member.name} ${social.label}`}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                  </a>
+                );
+              })}
+            </div>
+
+            <span className="font-mono text-[8px] font-bold uppercase tracking-[0.16em] text-text-muted">
+              {socialLinks.length} links
+            </span>
+          </div>
+        )}
+      </article>
+    );
+  };
 
   return (
-    <div className="container mx-auto max-w-7xl px-4 py-8 md:py-14 space-y-12">
-      <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-end">
-        <div className="space-y-5">
-          <div className="flex flex-col">
+    <div className="container mx-auto max-w-7xl px-4 py-8 md:py-12 space-y-10">
+      <section className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col">
             <h1 className="text-4xl md:text-5xl font-heading font-black uppercase tracking-tight text-text-main">
               Members
             </h1>
             <p className="mt-3 max-w-2xl text-xs font-mono uppercase tracking-widest text-gray-500">
               Browse the builders and learners in our community.
             </p>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="border border-border-main bg-surface px-4 py-4">
-              <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                <Users className="h-4 w-4 text-primary" />
-                Total
-              </div>
-              <p className="mt-3 font-heading text-3xl font-black text-text-main">
-                {filteredMembers.length}
-              </p>
-            </div>
-            <div className="border border-border-main bg-surface px-4 py-4">
-              <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                <Sparkles className="h-4 w-4 text-primary" />
-                Official
-              </div>
-              <p className="mt-3 font-heading text-3xl font-black text-text-main">
-                {officialMembers.length}
-              </p>
-            </div>
-            <div className="border border-border-main bg-surface px-4 py-4">
-              <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                <Users className="h-4 w-4 text-primary" />
-                Community
-              </div>
-              <p className="mt-3 font-heading text-3xl font-black text-text-main">
-                {communityMembers.length}
-              </p>
-            </div>
-          </div>
         </div>
 
         <div className="relative w-full shrink-0 lg:w-80">
@@ -262,7 +200,7 @@ export function Members() {
       </section>
 
       <section>
-        <div className="mb-6 flex items-center justify-between gap-4 border-b border-border-main pb-4">
+        <div className="mb-5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-2 h-2 bg-primary"></div>
             <h2 className="font-heading font-bold text-2xl uppercase tracking-tight text-text-main">
@@ -274,7 +212,7 @@ export function Members() {
           </span>
         </div>
         {officialMembers.length > 0 ? (
-          <div className="grid auto-rows-fr grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <div className="grid auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
             {officialMembers.map((member) => (
               <MemberCard key={member.id} member={member} intent="primary" />
             ))}
@@ -287,7 +225,7 @@ export function Members() {
       </section>
 
       <section>
-        <div className="mb-6 flex items-center justify-between gap-4 border-b border-border-main pb-4">
+        <div className="mb-5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-2 h-2 bg-primary"></div>
             <h2 className="font-heading font-bold text-2xl uppercase tracking-tight text-text-main">
@@ -299,7 +237,7 @@ export function Members() {
           </span>
         </div>
         {communityMembers.length > 0 ? (
-          <div className="grid auto-rows-fr grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <div className="grid auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
             {communityMembers.map((member) => (
               <MemberCard key={member.id} member={member} intent="primary" />
             ))}

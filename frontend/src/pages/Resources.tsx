@@ -1,26 +1,23 @@
 import toast from "react-hot-toast";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   FileText,
   Folder,
   Link as LinkIcon,
   Video,
-  ExternalLink,
   Search,
   Plus,
-  X,
+  Globe,
 } from "lucide-react";
 import {
   SectionHeader,
-  SoftBrutalCard,
-  StatusBadge,
   ActionButton,
 } from "@/components/ui/Primitives";
 import { useStore } from "@/store/useStore";
 import { Resource, ResourceCategory } from "@/types";
-import { motion } from "motion/react";
 import { ModalShell } from "@/components/ui/ModalShell";
-import { Card, ActionCard } from "@/components/ui/Cards";
+import { Card } from "@/components/ui/Cards";
+import { ShowcaseCard } from "@/components/ui/ShowcaseCard";
 
 const CATEGORIES: ResourceCategory[] = [
   "Learning",
@@ -194,13 +191,21 @@ export function Resources() {
     switch (type) {
       case "Doc":
       case "Document":
-        return <FileText className="w-5 h-5 text-primary" />;
+        return <FileText className="h-5 w-5" aria-hidden="true" />;
       case "Drive":
-        return <Folder className="w-5 h-5 text-emerald-500" />;
+        return <Folder className="h-5 w-5" aria-hidden="true" />;
       case "Video":
-        return <Video className="w-5 h-5 text-highlight" />;
+        return <Video className="h-5 w-5" aria-hidden="true" />;
       default:
-        return <LinkIcon className="w-5 h-5 text-text-main" />;
+        return <LinkIcon className="h-5 w-5" aria-hidden="true" />;
+    }
+  };
+
+  const getResourceSource = (url: string, fallbackType: string) => {
+    try {
+      return new URL(url).hostname.replace(/^www\./, "");
+    } catch {
+      return fallbackType || "External link";
     }
   };
 
@@ -273,50 +278,26 @@ export function Resources() {
             target="_blank"
             rel="noopener noreferrer"
             key={resource.id}
-            className="block group focus:outline-none h-full"
+            className="group block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-main-bg"
           >
-            <SoftBrutalCard intent="info" interactive className="flex flex-col h-full p-6">
-              <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                <ExternalLink className="w-4 h-4 text-cyan-400" />
-              </div>
-              <div className="flex items-start gap-4 mb-4">
-                <div className="p-3 bg-main-bg border border-border-main group-hover:bg-cyan-400 group-hover:text-surface transition-colors shadow-sm">
-                  {getIcon(resource.type || "Link")}
-                </div>
-                <div className="pt-1">
-                  <h3 className="font-heading font-bold text-lg leading-tight group-hover:text-cyan-400 transition-colors pr-6">
-                    {resource.title || resource.name}
-                  </h3>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="font-mono text-[9px] uppercase px-1.5 py-0.5 bg-main-bg border border-border-main text-text-muted font-bold">
-                      {resource.category || "GENERAL"}
-                    </span>
-                    <span className="font-mono text-[9px] uppercase text-cyan-400 font-bold tracking-widest">
-                      {resource.type || "Link"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <p className="text-sm text-text-muted flex-grow line-clamp-3 leading-relaxed mb-6 font-mono">
-                {resource.description || "No description provided."}
-              </p>
-
-              {resource.tags && resource.tags.length > 0 && (
-                <div className="pt-4  mt-auto">
-                  <div className="flex flex-wrap gap-1.5">
-                    {resource.tags.slice(0, 4).map((tag: string) => (
-                      <span
-                        key={tag}
-                        className="text-[9px] font-mono uppercase bg-main-bg px-2 py-1 border-b  text-text-muted font-bold tracking-wider"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </SoftBrutalCard>
+            <ShowcaseCard
+              icon={getIcon(resource.type || "Link")}
+              title={resource.title || resource.name}
+              category={resource.category}
+              accentLabel={resource.type || "Link"}
+              description={resource.description}
+              tags={resource.tags || []}
+              footerLabel="Source"
+              footerValue={getResourceSource(resource.url, resource.type || "Link")}
+              footerAside={
+                <>
+                  <Globe className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span className="font-mono text-[9px] font-bold uppercase tracking-widest">
+                    Open
+                  </span>
+                </>
+              }
+            />
           </a>
         ))}
         {filteredResources.length === 0 && (

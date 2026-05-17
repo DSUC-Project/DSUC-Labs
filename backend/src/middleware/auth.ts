@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { db } from '../index';
+import { db } from '../db';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import { USE_MOCK_DB } from '../config/runtime';
 
-const USE_MOCK_DB = process.env.USE_MOCK_DB === 'true';
 const JWT_SECRET = process.env.JWT_SECRET || 'dsuc-lab-jwt-secret-change-in-production';
 const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
@@ -52,6 +52,7 @@ export interface JWTPayload {
   userId: string;
   email?: string;
   wallet_address?: string;
+  auth_method?: 'wallet' | 'google' | 'local';
   iat?: number;
   exp?: number;
 }
@@ -302,7 +303,12 @@ export async function verifyWalletSignature(
 }
 
 // Generate JWT token for authenticated users
-export function generateToken(payload: { userId: string; email?: string; wallet_address?: string }): string {
+export function generateToken(payload: {
+  userId: string;
+  email?: string;
+  wallet_address?: string;
+  auth_method?: 'wallet' | 'google' | 'local';
+}): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 }
 

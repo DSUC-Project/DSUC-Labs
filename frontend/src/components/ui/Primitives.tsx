@@ -12,7 +12,7 @@ export const PaperPanel = React.forwardRef<
   return (
     <div
       ref={ref}
-      className={cn("bg-surface border border-border-main p-8 shadow-sm", className)}
+      className={cn("card-shell bg-surface border border-border-main p-8 shadow-sm", className)}
       {...props}
     />
   );
@@ -34,7 +34,7 @@ export const SoftBrutalCard = React.forwardRef<HTMLDivElement, SoftBrutalCardPro
       accent: "border-accent/30 hover:border-accent",
       success: "border-emerald-500/30 hover:border-emerald-500",
       danger: "border-red-500/30 hover:border-red-500",
-      info: "border-cyan-500/30 hover:border-cyan-500",
+      info: "border-primary/30 hover:border-primary",
       warning: "border-orange-500/30 hover:border-orange-500",
       locked: " border-border-main opacity-75 backdrop-grayscale",
     };
@@ -45,7 +45,7 @@ export const SoftBrutalCard = React.forwardRef<HTMLDivElement, SoftBrutalCardPro
       accent: "bg-accent",
       success: "bg-emerald-500",
       danger: "bg-red-500",
-      info: "bg-cyan-500",
+      info: "bg-primary",
       warning: "bg-orange-500",
       locked: "bg-gray-400",
     };
@@ -54,7 +54,7 @@ export const SoftBrutalCard = React.forwardRef<HTMLDivElement, SoftBrutalCardPro
       <motion.div
         ref={ref}
         className={cn(
-          "bg-surface border border-border-main p-6 overflow-hidden relative group transition-all duration-300 hover:-translate-y-2 hover:-translate-x-2 hover:shadow-[8px_8px_0_0_rgba(0,0,0,1)] dark:hover:shadow-[8px_8px_0_0_rgba(255,255,255,1)]",
+          "card-shell bg-surface border border-border-main p-6 overflow-hidden relative group transition-all duration-300 hover:-translate-y-2 hover:-translate-x-2 hover:shadow-[8px_8px_0_0_rgba(0,0,0,1)] dark:hover:shadow-[8px_8px_0_0_rgba(0,0,0,0.55)]",
           interactive ? "cursor-pointer focus:outline-none" : "shadow-sm",
           baseColors[intent],
           className
@@ -92,9 +92,9 @@ export const ActionButton = React.forwardRef<
     "px-6 py-2.5 font-bold uppercase tracking-widest text-xs transition-all  active:translate-y-[2px]";
   let variants = {
     primary:
-      "bg-primary text-primary-foreground shadow-[4px_4px_0_0_rgba(0,0,0,1)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,1)] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[8px_8px_0_0_rgba(0,0,0,1)] dark:hover:shadow-[8px_8px_0_0_rgba(255,255,255,1)] border-2 border-text-main",
+      "bg-primary text-primary-foreground shadow-[4px_4px_0_0_rgba(0,0,0,1)] dark:shadow-[4px_4px_0_0_rgba(0,0,0,0.45)] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[8px_8px_0_0_rgba(0,0,0,1)] dark:hover:shadow-[8px_8px_0_0_rgba(0,0,0,0.65)] border-2 border-text-main",
     secondary:
-      "bg-surface text-text-main shadow-[4px_4px_0_0_rgba(0,0,0,1)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,1)] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[8px_8px_0_0_rgba(0,0,0,1)] dark:hover:shadow-[8px_8px_0_0_rgba(255,255,255,1)] border-2 border-text-main",
+      "bg-surface text-text-main shadow-[4px_4px_0_0_rgba(0,0,0,1)] dark:shadow-[4px_4px_0_0_rgba(0,0,0,0.45)] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[8px_8px_0_0_rgba(0,0,0,1)] dark:hover:shadow-[8px_8px_0_0_rgba(0,0,0,0.65)] border-2 border-text-main",
     danger: "bg-red-500 text-white shadow-sm hover:shadow-md hover:bg-red-600 border-2 border-text-main",
     success:
       "bg-emerald-500 text-white shadow-sm hover:shadow-md hover:bg-emerald-600 border-2 border-text-main",

@@ -40,7 +40,7 @@ export interface Member {
 }
 
 // Auth method type
-export type AuthMethod = "wallet" | "google";
+export type AuthMethod = "wallet" | "google" | "local";
 export type AuthIntent = "login" | "signup";
 
 // Google user info from OAuth

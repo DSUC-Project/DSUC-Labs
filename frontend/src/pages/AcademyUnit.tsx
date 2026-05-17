@@ -1,20 +1,18 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  AlertTriangle,
-  ArrowLeft,
   BookOpen,
   CheckCircle2,
   ChevronRight,
   ClipboardCopy,
   Code2,
-  Flame,
   Lightbulb,
   LoaderCircle,
   Lock,
+  Play,
+  RotateCcw,
   Sparkles,
   TerminalSquare,
-  Play,
 } from "lucide-react";
 
 import type {
@@ -27,15 +25,34 @@ import {
   runAcademyChallenge,
   type ChallengeRunReport,
 } from "@/lib/academy/challengeRunner";
-import { CodeEditorPane, CodeSurface } from "@/components/academy/CodeSurface";
+import {
+  CodeEditorPane,
+  CodeSurface,
+} from "@/components/academy/CodeSurface";
 import { renderMd, slugifyMarkdownHeading } from "@/lib/academy/md";
 import { fetchAcademyV2Unit } from "@/lib/academy/v2Api";
 import { useAcademyProgressState } from "@/lib/academy/useAcademyProgress";
+import {
+  ACADEMY_STREAK_COMPLETION_SECONDS,
+  ACADEMY_STREAK_REVIEW_SECONDS,
+  useAcademyStudyTimer,
+} from "@/lib/academy/useAcademyStudyTimer";
 import {
   countCompletedAcademyV2CourseUnits,
   isAcademyV2UnitCompleted,
 } from "@/lib/academy/v2Progress";
 import { useStore } from "@/store/useStore";
+import {
+  AcademyBackLink,
+  AcademyBadge,
+  AcademyEmptyState,
+  AcademyPage,
+  AcademyPanel,
+  AcademyCompactStat,
+  AcademyProgressBar,
+  AcademySectionTitle,
+  AcademyStat,
+} from "@/components/academy/AcademyPrimitives";
 
 type OutlineItem = {
   id: string;
@@ -48,7 +65,7 @@ type FlatUnit = AcademyV2UnitSummary & {
   moduleTitle: string;
 };
 
-type WorkspaceTab = "editor" | "results" | "hints" | "solution";
+type WorkspaceTab = "editor" | "results";
 
 function getEmbedUrl(url: string): string | null {
   try {
@@ -136,10 +153,41 @@ function practiceModeText(unit: AcademyV2UnitDetail) {
   }
 
   if (unit.language === "typescript") {
-    return "Thử thách TypeScript";
+    return "TypeScript Challenge";
   }
 
-  return "Thử thách thực hành";
+  return "Practice Challenge";
+}
+
+function outlineIndent(level: number) {
+  if (level <= 1) return "pl-3";
+  if (level === 2) return "pl-5";
+  return "pl-8";
+}
+
+function buildOutlineNumbers(outline: OutlineItem[]) {
+  if (outline.length === 0) {
+    return [];
+  }
+
+  const minLevel = outline.reduce(
+    (lowest, item) => Math.min(lowest, item.level),
+    outline[0]?.level ?? 1,
+  );
+  const counters = [1, 0];
+
+  return outline.map((item) => {
+    const depth = Math.max(1, item.level - minLevel + 1);
+
+    while (counters.length <= depth) {
+      counters.push(0);
+    }
+
+    counters.length = depth + 1;
+    counters[depth] = (counters[depth] || 0) + 1;
+
+    return [1, ...counters.slice(1, depth + 1)].join(".");
+  });
 }
 
 export function AcademyUnit() {
@@ -170,8 +218,10 @@ export function AcademyUnit() {
   const [activeWorkspaceTab, setActiveWorkspaceTab] =
     useState<WorkspaceTab>("editor");
   const [solutionUnlocked, setSolutionUnlocked] = useState(false);
-  const [showHintsPanel, setShowHintsPanel] = useState(false);
-  const [showSolutionPanel, setShowSolutionPanel] = useState(false);
+  const [pendingEditorReveal, setPendingEditorReveal] = useState(false);
+  const [guidanceOpen, setGuidanceOpen] = useState(false);
+  const [reviewRecorded, setReviewRecorded] = useState(false);
+  const workspacePanelRef = useRef<HTMLDivElement | null>(null);
 
   const identity = useMemo(
     () => ({
@@ -181,7 +231,11 @@ export function AcademyUnit() {
     [currentUser?.id, walletAddress],
   );
 
-  const progress = useAcademyProgressState({
+  const {
+    state: academyProgressState,
+    persistUnitCompletion,
+    recordUnitReview,
+  } = useAcademyProgressState({
     identity,
     currentUserId: currentUser?.id ?? null,
     authToken,
@@ -220,6 +274,8 @@ export function AcademyUnit() {
           setLastRunSource("");
           setActiveWorkspaceTab("editor");
           setSolutionUnlocked(false);
+          setGuidanceOpen(false);
+          setReviewRecorded(false);
         }
       } catch (err: any) {
         if (!cancelled) {
@@ -246,11 +302,51 @@ export function AcademyUnit() {
     window.localStorage.setItem(draftKey(courseId, unitId), draftCode);
   }, [courseId, draftCode, unitData, unitId]);
 
+  useEffect(() => {
+    if (!pendingEditorReveal || activeWorkspaceTab !== "editor") {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      workspacePanelRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+
+      const textarea = workspacePanelRef.current?.querySelector("textarea");
+      if (textarea instanceof HTMLTextAreaElement) {
+        textarea.focus();
+      }
+
+      setPendingEditorReveal(false);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeWorkspaceTab, pendingEditorReveal]);
+
   const previewUnit = unitData?.unit ?? null;
+  const previewCourse = unitData?.course ?? null;
   const previewPracticeRunnable =
     !!previewUnit &&
     previewUnit.section === "practice" &&
     canRunAcademyChallenge(previewUnit);
+  const previewUnitDone =
+    !!previewCourse &&
+    !!previewUnit &&
+    isAcademyV2UnitCompleted(
+      academyProgressState.completedLessons,
+      previewCourse.id,
+      previewUnit.id,
+    );
+  const previewIsPractice = previewUnit?.section === "practice";
+  const {
+    studySeconds,
+    completionEligible,
+    reviewEligible,
+  } = useAcademyStudyTimer({
+    sessionKey: `${courseId}:${unitId}:${currentUser?.id || walletAddress || "guest"}`,
+    enabled: Boolean(courseId && unitId),
+  });
 
   useEffect(() => {
     if (
@@ -273,53 +369,81 @@ export function AcademyUnit() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [draftCode, previewPracticeRunnable, previewUnit?.id]);
 
+  useEffect(() => {
+    if (
+      !currentUser ||
+      !previewCourse ||
+      !previewUnit ||
+      !previewUnitDone ||
+      reviewRecorded ||
+      !reviewEligible
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function recordReview() {
+      const recorded = await recordUnitReview(previewCourse.id, previewUnit.id, {
+        quizPassed: previewIsPractice,
+        xpAwarded: previewUnit.xp_reward,
+        studySeconds,
+      });
+
+      if (!cancelled && recorded) {
+        setReviewRecorded(true);
+      }
+    }
+
+    void recordReview();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    currentUser,
+    previewCourse,
+    previewIsPractice,
+    previewUnit,
+    previewUnitDone,
+    recordUnitReview,
+    reviewEligible,
+    reviewRecorded,
+    studySeconds,
+  ]);
+
   if (loading) {
     return (
-      <div className="mx-auto w-full max-w-[1400px] px-4 pb-20 pt-8 sm:px-6 lg:px-8">
-        <div className="mb-8 flex flex-col gap-4">
-          <div className="h-8 w-32 animate-pulse bg-surface" />
-          <div className="h-16 w-3/4 animate-pulse bg-surface mt-2" />
-          <div className="h-6 w-1/2 animate-pulse bg-surface mt-2" />
-        </div>
-        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="space-y-6">
-            <div className="h-96 w-full animate-pulse bg-surface" />
-            <div className="h-64 w-full animate-pulse bg-surface" />
-          </div>
-          <div className="h-96 w-full animate-pulse bg-surface" />
-        </div>
-      </div>
+      <AcademyPage>
+        <AcademyPanel className="h-72 animate-pulse" padding="p-0" />
+      </AcademyPage>
     );
   }
 
   if (!unitData) {
     return (
-      <div className="mx-auto mt-12 max-w-2xl bg-white p-12 text-center border-2 border-text-main shadow-[8px_8px_0_0_#000]">
-        <div className="mb-6 mx-auto flex h-16 w-16 items-center justify-center bg-destructive/10 text-destructive border-2 border-destructive">
-          <AlertTriangle className="h-8 w-8" />
-        </div>
-        <h1 className="font-heading text-3xl font-bold uppercase tracking-tight text-text-main mb-4">
-          Failed to load unit
-        </h1>
-        <p className="mb-8 text-sm font-medium text-text-muted bg-surface p-4 border-2 border-border-main font-mono">
-          {error || "The unit could not be loaded. Please try again later."}
-        </p>
-        <div className="flex flex-wrap justify-center gap-4">
-          <button
-            type="button"
-            onClick={() => setReloadNonce((value) => value + 1)}
-            className="inline-flex items-center gap-2 border-2 border-text-main bg-primary px-6 py-3 text-xs font-bold uppercase tracking-widest text-main-bg shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[8px_8px_0_0_#000] transition-all"
-          >
-            Retry
-          </button>
-          <Link
-            to="/academy"
-            className="inline-flex items-center gap-2 border-2 border-text-main bg-white px-6 py-3 text-xs font-bold uppercase tracking-widest text-text-main shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[8px_8px_0_0_#000] hover:bg-surface transition-all"
-          >
-            Back to Academy
-          </Link>
-        </div>
-      </div>
+      <AcademyPage>
+        <AcademyEmptyState
+          title="Failed to load unit"
+          description={error || "The unit could not be loaded. Please try again later."}
+          action={
+            <div className="flex flex-wrap justify-center gap-4">
+              <button
+                type="button"
+                onClick={() => setReloadNonce((value) => value + 1)}
+                className="inline-flex items-center justify-center gap-2 border-2 border-text-main bg-primary px-5 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-primary-foreground shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
+              >
+                Retry
+              </button>
+              <Link
+                to="/academy"
+                className="inline-flex items-center justify-center border-2 border-text-main bg-surface px-5 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-text-main shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:text-primary hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
+              >
+                Back to Academy
+              </Link>
+            </div>
+          }
+        />
+      </AcademyPage>
     );
   }
 
@@ -335,8 +459,9 @@ export function AcademyUnit() {
       )
     : [];
   const outline = extractMarkdownOutline(unit.content_md);
+  const outlineNumbers = buildOutlineNumbers(outline);
   const unitDone = isAcademyV2UnitCompleted(
-    progress.state.completedLessons,
+    academyProgressState.completedLessons,
     course.id,
     unit.id,
   );
@@ -354,13 +479,13 @@ export function AcademyUnit() {
     runReport?.runtimeLabel ||
     (unit.language === "rust"
       ? unit.build_type === "buildable"
-        ? "Máy ảo biên dịch Rust"
-        : "Trình xác thực mã Rust định hướng"
+        ? "Rust compiler sandbox"
+        : "Guided Rust validator"
       : runnerSupported
-        ? "Trình chạy thử thách trên trình duyệt"
-        : "Không gian thực hành");
+        ? "Browser challenge runner"
+        : "Practice workspace");
   const completedCount = countCompletedAcademyV2CourseUnits(
-    progress.state.completedLessons,
+    academyProgressState.completedLessons,
     course.id,
   );
   const courseProgressPercent =
@@ -370,7 +495,7 @@ export function AcademyUnit() {
   const currentModuleCompleted = currentModule
     ? currentModuleUnits.filter((item) =>
         isAcademyV2UnitCompleted(
-          progress.state.completedLessons,
+          academyProgressState.completedLessons,
           course.id,
           item.id,
         ),
@@ -380,6 +505,16 @@ export function AcademyUnit() {
     currentModuleUnits.length > 0
       ? Math.round((currentModuleCompleted / currentModuleUnits.length) * 100)
       : 0;
+  const publicTests = unit.tests.filter((item) => item.hidden !== true);
+  const hiddenTests = unit.tests.filter((item) => item.hidden === true);
+  const visibleHints = unit.hints.slice(0, revealedHints);
+  const canRevealMoreHints = revealedHints < unit.hints.length;
+  const canUnlockSolution =
+    !!unit.solution &&
+    !solutionUnlocked &&
+    (unit.hints.length === 0 ||
+      revealedHints >= unit.hints.length ||
+      (!!runReport && !runReport.allPassed));
 
   async function handleComplete() {
     setNotice("");
@@ -387,20 +522,23 @@ export function AcademyUnit() {
     if (completionBlocked) {
       setNotice(
         runLoading
-          ? "Hệ thống đang chạy bài kiểm tra. Vui lòng đợi kết quả trước khi hoàn thành."
-          : "Hãy vượt qua tất cả các bài kiểm tra kể cả ẩn trước khi hoàn thành chặng này.",
+          ? "The runner is still executing. Wait for the result before completing this unit."
+          : "Pass all public and hidden checks before marking this challenge complete.",
       );
       return;
     }
 
-    const saved = await progress.persistUnitCompletion(course.id, unit.id, {
+    const saved = await persistUnitCompletion(course.id, unit.id, {
       quizPassed: isPractice,
       xpAwarded: unit.xp_reward,
+      studySeconds,
     });
 
     setNotice(
       saved
-        ? "Progress synchronized. Practice session saved."
+        ? completionEligible
+          ? "Progress synchronized. This study session counted toward your streak."
+          : `Progress synchronized. Stay at least ${ACADEMY_STREAK_COMPLETION_SECONDS} seconds in a new unit if you want it to count toward your streak.`
         : "Progress saved locally. The system will attempt to sync next time this lab is loaded.",
     );
   }
@@ -419,6 +557,18 @@ export function AcademyUnit() {
     setNotice("Successfully restored the original code of this lab.");
   }
 
+  function applySolutionToEditor() {
+    if (!unit.solution) {
+      return;
+    }
+
+    setDraftCode(unit.solution);
+    setActiveWorkspaceTab("editor");
+    setGuidanceOpen(false);
+    setPendingEditorReveal(true);
+    setNotice("Reference solution loaded into the editor.");
+  }
+
   async function handleRunChallenge() {
     if (!isPractice || !runnerSupported) {
       return;
@@ -431,7 +581,7 @@ export function AcademyUnit() {
       setRunReport(report);
       setLastRunSource(draftCode);
       setActiveWorkspaceTab("results");
-    } catch (error: any) {
+    } catch (runnerError: any) {
       setRunReport({
         supported: true,
         allPassed: false,
@@ -445,7 +595,7 @@ export function AcademyUnit() {
           .length,
         primaryFunction: null,
         runtimeLabel: "Browser Challenge",
-        message: error?.message || "An error occurred during execution.",
+        message: runnerError?.message || "An error occurred during execution.",
         cases: [],
       });
       setLastRunSource(draftCode);
@@ -456,741 +606,871 @@ export function AcademyUnit() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] px-4 pb-20 pt-8 sm:px-6 lg:px-8">
-      {/* Top Bar / Hero */}
-      <div className="mb-8 flex flex-col gap-4">
-        <Link
-          to={`/academy/course/${course.id}`}
-          className="self-start inline-flex items-center gap-2 border-2 border-text-main bg-surface px-4 py-2 text-xs font-bold uppercase tracking-widest font-mono shadow-[2px_2px_0_0_#000] hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#000] transition-all text-text-main"
-        >
-          <ArrowLeft className="w-4 h-4" strokeWidth={2} />
-          BACK TO COURSE
-        </Link>
+    <AcademyPage>
+      <section className="space-y-6">
+        <AcademyBackLink to={`/academy/course/${course.id}`} label="Back to Course" />
 
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-block border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-primary">
-              {course.title}
-            </span>
-            <span className="text-border-main text-xs font-bold">/</span>
-            <span className="inline-block border border-border-main bg-surface px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-text-muted shadow-[2px_2px_0_0_#000]">
-              {unit.module_title}
-            </span>
-            <span className="text-border-main text-xs font-bold">/</span>
-            <span className="inline-block border border-border-main bg-surface px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-text-muted shadow-[2px_2px_0_0_#000]">
-              {isPractice ? practiceModeText(unit) : "Lesson"}
-            </span>
-            {unitDone && (
-              <span className="ml-auto inline-flex items-center gap-1 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-600 shadow-[2px_2px_0_0_#000] border border-emerald-500/20">
-                <CheckCircle2 className="h-3 w-3" />
-                Completed
-              </span>
-            )}
-          </div>
-
-          <h1 className="mt-2 font-heading text-3xl font-bold tracking-tight text-text-main sm:text-4xl lg:text-5xl uppercase">
-            {unit.title}
-          </h1>
-          <p className="mt-2 text-sm font-medium leading-relaxed text-text-muted sm:text-base max-w-3xl">
-            {isPractice
-              ? "Read the instructions carefully, write your solution in the editor, and pass all the hidden tests to complete this practical lab."
-              : "Study the concepts and techniques in this unit. Take your time to understand the materials before moving on."}
-          </p>
-        </div>
-      </div>
-
-      {notice && (
-        <div className="mb-6 flex items-center gap-3 border-2 border-primary bg-primary/5 px-4 py-3 text-sm font-mono font-medium text-primary shadow-[4px_4px_0_0_#000]">
-          <TerminalSquare className="h-5 w-5 shrink-0" />
-          {notice}
-        </div>
-      )}
-
-      {isPractice && (
-        <div className="flex w-full flex-col gap-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <SidebarPanel
-              title="Lab Configuration"
-              accent="bg-surface"
-              headerText="text-text-main"
-              footer={practiceModeText(unit)}
-            >
-              <div className="space-y-0">
-                <ProfileRow
-                  label="Test Cases"
-                  value={String(unit.tests.length)}
-                />
-                <ProfileRow label="Hints" value={String(unit.hints.length)} />
-                <ProfileRow label="Language" value={unit.language || "None"} />
-                <ProfileRow
-                  label="Build Type"
-                  value={unit.build_type || "Standard"}
-                />
-              </div>
-            </SidebarPanel>
-
-            <SidebarPanel
-              title={currentModule?.title || "Module"}
-              accent="bg-surface"
-              headerText="text-text-main"
-              footer={
-                currentModule
-                  ? `${currentModuleCompleted}/${currentModuleUnits.length} lessons completed`
-                  : "No module info"
-              }
-            >
-              <div className="mt-4 flex flex-col gap-2 max-h-[160px] overflow-y-auto pr-2">
-                {currentModuleUnits.map((routeUnit) => {
-                  const done = isAcademyV2UnitCompleted(
-                    progress.state.completedLessons,
-                    course.id,
-                    routeUnit.id,
-                  );
-                  const locked = isUnitLocked(
-                    progress.state.completedLessons,
-                    course.id,
-                    flatCourseUnits,
-                    routeUnit.id,
-                  );
-                  const current = routeUnit.id === unit.id;
-
-                  return (
-                    <button
-                      key={routeUnit.id}
-                      type="button"
-                      disabled={locked}
-                      onClick={() =>
-                        !locked &&
-                        navigate(`/academy/unit/${course.id}/${routeUnit.id}`)
-                      }
-                      className={`flex w-full items-center gap-3 border-2 p-2 text-left transition-all ${
-                        current
-                          ? "border-primary bg-primary/5 shadow-[2px_2px_0_0_#000]"
-                          : locked
-                            ? "cursor-not-allowed border-text-main bg-main-bg opacity-60"
-                            : done
-                              ? "border-text-main bg-surface hover:bg-main-bg hover:shadow-[2px_2px_0_0_#000]"
-                              : "border-text-main bg-surface hover:-translate-y-0.5 hover:border-primary/50 hover:bg-main-bg hover:shadow-[2px_2px_0_0_#000]"
-                      }`}
-                    >
-                      <div
-                        className={`flex h-6 w-6 shrink-0 items-center justify-center border-2 ${
-                          current
-                            ? "border-primary bg-primary text-main-bg shadow-[2px_2px_0_0_#000]"
-                            : done
-                              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600"
-                              : locked
-                                ? "border-text-main bg-surface text-text-muted"
-                                : routeUnit.section === "practice"
-                                  ? "border-text-main bg-surface text-text-main shadow-[2px_2px_0_0_#000]"
-                                  : "border-text-main bg-surface text-text-main shadow-[2px_2px_0_0_#000]"
-                        }`}
-                      >
-                        {locked ? (
-                          <Lock className="h-3 w-3" strokeWidth={2} />
-                        ) : done ? (
-                          <CheckCircle2 className="h-3 w-3" strokeWidth={2} />
-                        ) : routeUnit.section === "practice" ? (
-                          <Code2 className="h-3 w-3" strokeWidth={2} />
-                        ) : (
-                          <BookOpen className="h-3 w-3" strokeWidth={2} />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div
-                          className={`truncate text-[10px] font-bold uppercase tracking-wider ${current ? "text-primary" : "text-text-main"}`}
-                        >
-                          {routeUnit.title}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </SidebarPanel>
-          </div>
-
-          <section className="flex flex-col border-2 border-text-main bg-surface shadow-[8px_8px_0_0_#000]">
-            <div className="mb-4 flex items-center gap-2 border-b-2 border-text-main bg-main-bg pb-3 p-5">
-              <div className="border-2 border-text-main bg-primary text-main-bg px-2 py-1 text-[10px] font-bold uppercase tracking-widest shadow-[2px_2px_0_0_#000]">
-                Lab Instructions
-              </div>
+        <AcademyPanel tone="primary" padding="p-5 sm:p-6">
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-center gap-3">
+              <AcademyBadge tone="primary">{course.title}</AcademyBadge>
+              <AcademyBadge tone="muted">{unit.module_title}</AcademyBadge>
+              <AcademyBadge tone="muted">
+                {isPractice ? practiceModeText(unit) : "Theory Lesson"}
+              </AcademyBadge>
+              {unitDone ? (
+                <AcademyBadge tone="success">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Completed
+                </AcademyBadge>
+              ) : null}
             </div>
-            <div className="p-5 pt-0">
-              <div className="markdown-body prose-dsuc max-w-none">
-                {renderMd(unit.content_md)}
-              </div>
+
+            <div className="space-y-3">
+              <h1 className="font-display text-4xl font-black uppercase tracking-tighter text-text-main sm:text-5xl lg:text-6xl">
+                {unit.title}
+              </h1>
+              <p className="max-w-3xl font-mono text-sm leading-relaxed text-text-muted">
+                {isPractice
+                  ? "Read the brief, work inside the editor, run checks when you need signal, then submit only after the hidden checks pass."
+                  : "Study the material, follow the structure on the page, and mark the unit complete once the concepts are clear."}
+              </p>
             </div>
-          </section>
-        </div>
-      )}
 
-      <div
-        className={`flex flex-col gap-8 ${isPractice ? "xl:grid xl:grid-cols-[minmax(0,1fr)_400px]" : "xl:grid xl:grid-cols-[minmax(0,1fr)_320px]"}`}
-      >
-        <div
-          className={`flex min-w-0 flex-col gap-8 ${isPractice ? "flex-1 xl:order-1" : ""}`}
-        >
-          {!isPractice ? (
-            <>
-              {embedUrl && (
-                <section className="overflow-hidden border-2 border-text-main bg-surface shadow-[4px_4px_0_0_#000]">
-                  <div className="border-b-2 border-text-main bg-main-bg px-6 py-4">
-                    <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-text-muted">
-                      Video Lesson
-                    </div>
-                    <h2 className="font-heading text-xl font-black uppercase tracking-tight text-text-main">
-                      Watch Tutorial
-                    </h2>
-                  </div>
-                  <div className="relative w-full bg-main-bg pb-[56.25%] text-text-main">
-                    <iframe
-                      src={embedUrl}
-                      title={unit.title}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="absolute inset-0 h-full w-full"
-                    />
-                  </div>
-                </section>
-              )}
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <AcademyCompactStat
+                label="Course"
+                value={`${courseProgressPercent}%`}
+                meta={`${completedCount}/${course.total_unit_count} units`}
+              />
+              <AcademyCompactStat
+                label="Module"
+                value={`${currentModulePercent}%`}
+                meta={`${currentModuleCompleted}/${currentModuleUnits.length} units`}
+              />
+              <AcademyCompactStat
+                label="Sequence"
+                value={`${unit_index + 1}/${total_units}`}
+                meta="Current step"
+              />
+              <AcademyCompactStat
+                label="Reward"
+                value={unit.xp_reward ? `${unit.xp_reward} XP` : "Guided"}
+                meta={isPractice ? "Interactive lab" : "Theory lesson"}
+                valueClassName="text-primary"
+              />
+            </div>
 
-              <section className="bg-surface border-2 border-text-main p-6 sm:p-10 shadow-[4px_4px_0_0_#000]">
-                <div className="mb-8 flex flex-col gap-4 border-b-2 border-border-main pb-8 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <div className="mb-2 inline-block border-2 border-text-main bg-primary px-2 py-1 text-xs font-bold uppercase tracking-widest text-main-bg shadow-[2px_2px_0_0_#000]">
-                      Theory Lesson
-                    </div>
-                    <h2 className="font-heading text-3xl font-black uppercase tracking-tighter text-text-main sm:text-4xl mt-4">
-                      Course Content
-                    </h2>
-                  </div>
-                  {outline.length > 0 && (
-                    <div className="shrink-0 border-2 border-text-main bg-main-bg px-4 py-2 text-xs font-bold uppercase tracking-widest text-text-main shadow-[2px_2px_0_0_#000]">
-                      {outline.length} sections
-                    </div>
-                  )}
+            <div className="grid gap-3 lg:grid-cols-2">
+              <div>
+                <div className="mb-2 flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
+                  <span>Course progress</span>
+                  <span>{courseProgressPercent}%</span>
                 </div>
-                <div className="markdown-body prose-dsuc max-w-[800px]">
+                <AcademyProgressBar value={courseProgressPercent} />
+              </div>
+              <div>
+                <div className="mb-2 flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
+                  <span>Module progress</span>
+                  <span>{currentModulePercent}%</span>
+                </div>
+                <AcademyProgressBar
+                  value={currentModulePercent}
+                  fillClassName="bg-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">
+              Session {studySeconds}s • streak counts after{" "}
+              {ACADEMY_STREAK_COMPLETION_SECONDS}s on a new unit or{" "}
+              {ACADEMY_STREAK_REVIEW_SECONDS}s when reopening a completed one
+            </div>
+          </div>
+        </AcademyPanel>
+      </section>
+
+      {notice ? (
+        <AcademyPanel tone="primary">
+          <div className="flex items-start gap-3">
+            <TerminalSquare className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <p className="text-sm leading-relaxed text-text-main">{notice}</p>
+          </div>
+        </AcademyPanel>
+      ) : null}
+
+      {isPractice ? (
+        <div className="grid gap-6 xl:items-start xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="min-w-0 space-y-6 xl:order-1">
+            <AcademyPanel>
+              <div className="space-y-5">
+                <AcademySectionTitle
+                  eyebrow="Challenge Brief"
+                  title="Instructions"
+                  description="Visible checks, core requirements, and the exact brief for the current lab."
+                  className="mb-0"
+                />
+                <div className="grid gap-3 md:grid-cols-2">
+                  <AcademyStat
+                    label="Public requirements"
+                    value={publicTests.length}
+                    meta="Explicit checks you can reason about"
+                    className="px-4 py-3"
+                    valueClassName="text-2xl"
+                  />
+                  <AcademyStat
+                    label="Hidden requirements"
+                    value={hiddenTests.length}
+                    meta="Validated by the runner"
+                    className="px-4 py-3"
+                    valueClassName="text-2xl"
+                  />
+                </div>
+
+                {publicTests.length > 0 ? (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {publicTests.map((testCase, index) => (
+                      <div
+                        key={testCase.id}
+                        className="border border-border-main bg-main-bg px-4 py-4 shadow-sm"
+                      >
+                        <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-text-muted">
+                          Public check {index + 1}
+                        </div>
+                        <p className="mt-2 font-mono text-sm leading-relaxed text-text-main">
+                          {testCase.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
+                <div className="markdown-body prose-dsuc max-w-none">
                   {renderMd(unit.content_md)}
                 </div>
-              </section>
-            </>
-          ) : (
-            <>
-              <section
-                className={`relative flex flex-col border-2 border-text-main bg-main-bg shadow-[8px_8px_0_0_#000] xl:sticky xl:top-24 xl:self-start ${
-                  activeWorkspaceTab === "editor" ||
-                  activeWorkspaceTab === "results"
-                    ? "xl:max-h-[calc(100vh-120px)] overflow-hidden"
-                    : ""
-                }`}
-              >
-                <div className="flex flex-col justify-between gap-4 border-b-2 border-text-main bg-surface px-4 py-3 sm:flex-row sm:items-center">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <LabTabButton
-                      label="Editor"
-                      active={activeWorkspaceTab === "editor"}
-                      onClick={() => setActiveWorkspaceTab("editor")}
-                    />
-                    {runnerSupported && (
-                      <LabTabButton
-                        label="Results"
-                        active={activeWorkspaceTab === "results"}
-                        onClick={() => setActiveWorkspaceTab("results")}
-                      />
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-2 mt-2 sm:mt-0">
-                    {unit.hints && unit.hints.length > 0 && (
-                      <button
-                        onClick={() => setShowHintsPanel(!showHintsPanel)}
-                        className={`border-2 border-text-main px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-all ${
-                          showHintsPanel
-                            ? "bg-amber-400 text-amber-900 shadow-[2px_2px_0_0_#f59e0b] -translate-y-0.5"
-                            : "bg-surface text-text-main hover:bg-main-bg hover:-translate-y-0.5 shadow-none hover:shadow-[2px_2px_0_0_#000]"
-                        }`}
-                      >
-                        {showHintsPanel ? "Hide Hints" : "Show Hints"}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setShowSolutionPanel(!showSolutionPanel)}
-                      className={`border-2 border-text-main px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-all ${
-                        showSolutionPanel
-                          ? "bg-primary text-primary-foreground shadow-[2px_2px_0_0_#000] -translate-y-0.5"
-                          : "bg-surface text-text-main hover:bg-main-bg hover:-translate-y-0.5 shadow-none hover:shadow-[2px_2px_0_0_#000]"
-                      }`}
-                    >
-                      {showSolutionPanel ? "Hide Solution" : "Solution"}
-                    </button>
-                  </div>
+              </div>
+            </AcademyPanel>
 
-                  <div className="flex items-center gap-3">
-                    {runnerSupported && (
+            <div ref={workspacePanelRef}>
+              <AcademyPanel padding="p-0" className="overflow-hidden">
+                <div className="border-b border-border-main px-5 py-4 sm:px-6">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <WorkspaceSwitch
+                        label="Editor"
+                        active={activeWorkspaceTab === "editor"}
+                        onClick={() => setActiveWorkspaceTab("editor")}
+                      />
+                      {runnerSupported ? (
+                        <WorkspaceSwitch
+                          label="Results"
+                          active={activeWorkspaceTab === "results"}
+                          onClick={() => setActiveWorkspaceTab("results")}
+                        />
+                      ) : null}
+                      {(unit.hints.length > 0 || unit.solution) && (
+                        <WorkspaceSwitch
+                          label={
+                            guidanceOpen
+                              ? "Hide guidance"
+                              : unit.hints.length > 0
+                                ? `Hints ${visibleHints.length}/${unit.hints.length}`
+                                : "Guidance"
+                          }
+                          active={guidanceOpen}
+                          onClick={() => setGuidanceOpen((current) => !current)}
+                        />
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      {runnerSupported ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleRunChallenge()}
+                          disabled={runLoading}
+                          className="inline-flex items-center justify-center gap-2 border-2 border-text-main bg-primary px-4 py-2.5 font-mono text-[10px] font-bold uppercase tracking-widest text-primary-foreground shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] disabled:pointer-events-none disabled:opacity-50 dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
+                        >
+                          {runLoading ? (
+                            <LoaderCircle className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Play className="h-3.5 w-3.5 fill-current" />
+                          )}
+                          {runLoading ? "Running..." : "Run checks"}
+                        </button>
+                      ) : null}
+
                       <button
                         type="button"
-                        onClick={() => void handleRunChallenge()}
-                        disabled={runLoading}
-                        className="inline-flex items-center gap-2 border-2 border-text-main bg-primary px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-main-bg shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] disabled:pointer-events-none disabled:opacity-50"
+                        onClick={copyDraft}
+                        className="inline-flex items-center justify-center gap-2 border-2 border-text-main bg-surface px-4 py-2.5 font-mono text-[10px] font-bold uppercase tracking-widest text-text-main shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:text-primary hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
                       >
-                        {runLoading ? (
-                          <LoaderCircle className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Play className="h-3 w-3 fill-current" />
-                        )}
-                        {runLoading ? "Running..." : "Run Checks"}
+                        <ClipboardCopy className="h-3.5 w-3.5" />
+                        Copy
                       </button>
-                    )}
 
-                    {activeWorkspaceTab === "editor" && (
-                      <div className="flex items-center border-2 border-text-main bg-main-bg shadow-[2px_2px_0_0_#000]">
-                        <button
-                          type="button"
-                          onClick={copyDraft}
-                          className="p-1.5 text-text-muted transition-colors hover:bg-surface hover:text-text-main"
-                          title="Copy Code"
-                        >
-                          <ClipboardCopy className="h-4 w-4" />
-                        </button>
-                        <div className="w-0.5 h-6 bg-text-main"></div>
-                        <button
-                          type="button"
-                          onClick={resetDraft}
-                          className="p-1.5 text-text-muted transition-colors hover:bg-surface hover:text-destructive"
-                          title="Reset Code"
-                        >
-                          <AlertTriangle className="h-4 w-4" />
-                        </button>
-                      </div>
-                    )}
+                      <button
+                        type="button"
+                        onClick={resetDraft}
+                        className="inline-flex items-center justify-center gap-2 border-2 border-text-main bg-surface px-4 py-2.5 font-mono text-[10px] font-bold uppercase tracking-widest text-text-main shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:text-primary hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        Reset
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <AcademyBadge tone="muted">{runtimeLabel}</AcademyBadge>
+                    {draftDirty ? <AcademyBadge tone="warning">Modified</AcademyBadge> : null}
+                    {runReport && !runReportIsFresh ? (
+                      <AcademyBadge tone="warning">Needs rerun</AcademyBadge>
+                    ) : null}
+                    {activeRunReport?.allPassed ? (
+                      <AcademyBadge tone="success">All checks passed</AcademyBadge>
+                    ) : null}
+                    {runnerSupported ? (
+                      <AcademyBadge tone="muted">Shortcut: Ctrl/Cmd + Enter</AcademyBadge>
+                    ) : null}
+                    {unit.hints.length > 0 ? (
+                      <AcademyBadge tone="warning">
+                        {visibleHints.length}/{unit.hints.length} hints visible
+                      </AcademyBadge>
+                    ) : null}
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 overflow-x-auto bg-surface px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted border-b-2 border-text-main">
-                  {runnerSupported ? (
-                    <span className="flex items-center gap-1 border border-text-main bg-main-bg px-2 py-0.5 text-text-main shadow-[1px_1px_0_0_#000]">
-                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                      {runtimeLabel} Ready
-                    </span>
-                  ) : (
-                    <span className="border border-text-main bg-main-bg px-2 py-0.5 text-text-main shadow-[1px_1px_0_0_#000]">
-                      Interactive Workspace
-                    </span>
-                  )}
-
-                  {draftDirty && (
-                    <span className="border border-text-main bg-main-bg px-2 py-0.5 text-text-main shadow-[1px_1px_0_0_#000]">
-                      Modified
-                    </span>
-                  )}
-                  {runReport && !runReportIsFresh && (
-                    <span className="border border-text-main bg-amber-500/10 text-amber-700 px-2 py-0.5 shadow-[1px_1px_0_0_#000]">
-                      Needs Rerun
-                    </span>
-                  )}
-                  {activeRunReport?.allPassed && (
-                    <span className="border border-text-main bg-primary px-2 py-0.5 text-main-bg shadow-[1px_1px_0_0_#000]">
-                      All Passed
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex-1 flex flex-col min-h-[600px] overflow-auto">
-                  {activeWorkspaceTab === "editor" && (
-                    <div className="flex-1 flex flex-col h-full min-h-[700px]">
-                      <CodeEditorPane
-                        value={draftCode}
-                        onChange={setDraftCode}
-                        language={unit.language || "text"}
-                        placeholder="Start typing your solution here..."
-                      />
-                    </div>
-                  )}
-
-                  {activeWorkspaceTab === "results" && runnerSupported && (
-                    <div className="flex-1 flex flex-col min-h-[700px]">
-                      {!runReport ? (
-                        <div className="flex flex-col flex-1 items-center justify-center p-12 text-center bg-surface">
-                          <div className="mb-4 flex h-16 w-16 items-center justify-center border-2 border-text-main bg-white shadow-[4px_4px_0_0_#000]">
-                            <TerminalSquare
-                              className="h-8 w-8 text-text-muted"
-                              strokeWidth={2}
+                {activeWorkspaceTab === "editor" ? (
+                  <div className="bg-main-bg px-4 py-4">
+                    {guidanceOpen ? (
+                      <div className="mb-4 space-y-4 border border-border-main bg-surface px-4 py-4 shadow-sm">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <div className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
+                              Guidance
+                            </div>
+                            <p className="mt-2 max-w-2xl font-mono text-sm leading-relaxed text-text-muted">
+                              Reveal hints progressively. Reference solution stays behind a separate unlock and can be sent back into the editor when needed.
+                            </p>
+                          </div>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <AcademyCompactStat
+                              label="Hints"
+                              value={`${visibleHints.length}/${unit.hints.length}`}
+                              meta="Revealed so far"
+                              className="min-w-[140px]"
+                            />
+                            <AcademyCompactStat
+                              label="Solution"
+                              value={solutionUnlocked ? "Open" : "Locked"}
+                              meta="Reference state"
+                              className="min-w-[140px]"
                             />
                           </div>
-                          <h3 className="mb-2 font-heading text-xl font-bold uppercase text-text-main">
-                            No Test Results Yet
-                          </h3>
-                          <p className="max-w-sm text-sm font-medium text-text-muted">
-                            Run your code to see the test results for public and
-                            hidden test cases.
-                          </p>
                         </div>
-                      ) : (
-                        <div className="flex-1 p-6 bg-main-bg">
-                          <div className="mb-6 flex items-center justify-between gap-4 border-b border-border-main pb-4">
-                            <div className="text-sm font-bold uppercase tracking-widest text-text-main">
-                              Execution Results
-                            </div>
-                            <span
-                              className={`border px-2 py-1 text-[10px] font-bold uppercase tracking-widest shadow-[2px_2px_0_0_#000] ${
-                                runReportIsFresh
-                                  ? runReport.allPassed
-                                    ? "border-emerald-500 bg-emerald-500/10 text-emerald-600"
-                                    : "border-destructive bg-destructive/10 text-destructive"
-                                  : "border-amber-500 bg-amber-500/10 text-amber-700"
-                              }`}
-                            >
-                              {runReportIsFresh
-                                ? runReport.allPassed
-                                  ? "All Passed"
-                                  : "Failed"
-                                : "Needs Rerun"}
-                            </span>
-                          </div>
 
-                          <p className="mb-6 text-sm font-mono leading-relaxed text-text-muted bg-main-bg p-4 border-2 border-text-main shadow-[2px_2px_0_0_#000]">
-                            {runReportIsFresh
-                              ? runReport.message
-                              : "You have modified the code since the last run. Please run the checks again to see updated results."}
-                          </p>
-
-                          <div className="mb-6 grid grid-cols-2 gap-4">
-                            <div className="border-2 border-text-main bg-main-bg p-4 shadow-[2px_2px_0_0_#000]">
-                              <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-text-muted border-b border-text-main pb-2">
-                                Passed Tests
-                              </div>
+                        {visibleHints.length > 0 ? (
+                          <div className="grid gap-3">
+                            {visibleHints.map((hint, index) => (
                               <div
-                                className={`font-heading text-3xl font-black mt-2 ${runReport.allPassed ? "text-emerald-500" : "text-text-main"}`}
+                                key={`${index}-${hint.slice(0, 12)}`}
+                                className="border border-amber-500/20 bg-amber-500/8 px-4 py-4 shadow-sm"
                               >
-                                {runReport.passedCount}{" "}
-                                <span className="text-xl text-text-muted font-bold">
-                                  / {runReport.totalCount}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="border-2 border-text-main bg-main-bg p-4 shadow-[2px_2px_0_0_#000]">
-                              <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-text-muted border-b border-text-main pb-2">
-                                Primary Function
-                              </div>
-                              <div className="mt-3 truncate font-mono text-sm font-bold text-primary">
-                                {runReport.primaryFunction || "Unknown"}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="space-y-4">
-                            <div className="text-xs font-bold uppercase tracking-widest text-text-main">
-                              Test Case Details
-                            </div>
-                            {(runReport.cases || []).length > 0 ? (
-                              runReport.cases.map((caseItem, index) => (
-                                <div
-                                  key={caseItem.id}
-                                  className={`border-2 p-4 shadow-[4px_4px_0_0_#000] transition-all ${
-                                    caseItem.passed
-                                      ? "border-emerald-500 bg-emerald-500/5 text-emerald-600"
-                                      : "border-destructive bg-destructive/5 text-destructive"
-                                  }`}
-                                >
-                                  <div className="mb-3 flex items-center justify-between gap-4 border-b border-inherit/30 pb-2">
-                                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest flex-1">
-                                      {caseItem.passed ? (
-                                        <div className="bg-emerald-500/20 p-1 text-emerald-600 border-2 border-emerald-500">
-                                          <CheckCircle2
-                                            className="h-3 w-3"
-                                            strokeWidth={3}
-                                          />
-                                        </div>
-                                      ) : (
-                                        <div className="bg-destructive/20 p-1 text-destructive border-2 border-destructive">
-                                          <AlertTriangle
-                                            className="h-3 w-3"
-                                            strokeWidth={3}
-                                          />
-                                        </div>
-                                      )}
-                                      {caseItem.hidden
-                                        ? `Hidden Test ${index + 1}`
-                                        : `Public Test ${index + 1}`}
-                                    </div>
-                                  </div>
-                                  <div className="text-sm font-medium leading-relaxed font-mono">
-                                    {caseItem.description}
-                                  </div>
-                                  {caseItem.error && (
-                                    <div className="mt-4">
-                                      <CodeSurface
-                                        code={caseItem.error}
-                                        language="text"
-                                        label="error"
-                                        maxHeightClass="max-h-[180px]"
-                                      />
-                                    </div>
-                                  )}
+                                <div className="mb-2 font-mono text-[10px] font-bold uppercase tracking-widest text-amber-700 dark:text-amber-300">
+                                  Hint {index + 1}
                                 </div>
-                              ))
-                            ) : (
-                              <div className="border-2 border-dashed border-text-main bg-surface p-4 text-center font-mono text-sm text-text-muted">
-                                The runner did not return structured results for
-                                this lab.
+                                <div className="markdown-body prose-dsuc">
+                                  {renderMd(hint)}
+                                </div>
                               </div>
-                            )}
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="border border-border-main bg-main-bg/60 px-4 py-4 font-mono text-sm text-text-muted shadow-sm">
+                            No hints have been revealed yet.
+                          </div>
+                        )}
+
+                        <div className="flex flex-col gap-3 sm:flex-row">
+                          {canRevealMoreHints ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setRevealedHints((currentValue) =>
+                                  Math.min(unit.hints.length, currentValue + 1),
+                                )
+                              }
+                              className="inline-flex w-full items-center justify-center gap-2 border-2 border-text-main bg-amber-400/30 px-5 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-amber-900 shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:text-amber-200 dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
+                            >
+                              <Lightbulb className="h-4 w-4" />
+                              Reveal next hint
+                            </button>
+                          ) : null}
+
+                          {canUnlockSolution ? (
+                            <button
+                              type="button"
+                              onClick={() => setSolutionUnlocked(true)}
+                              className="inline-flex w-full items-center justify-center gap-2 border-2 border-text-main bg-surface px-5 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-text-main shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:text-primary hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
+                            >
+                              <Sparkles className="h-4 w-4" />
+                              Unlock reference solution
+                            </button>
+                          ) : null}
+                        </div>
+
+                        {solutionUnlocked && unit.solution ? (
+                          <div className="space-y-4 border border-primary/20 bg-primary/8 px-4 py-4 shadow-sm">
+                            <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-primary">
+                              Reference solution
+                            </div>
+                            <div className="markdown-body prose-dsuc">
+                              {renderMd(unit.solution)}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={applySolutionToEditor}
+                              className="inline-flex w-full items-center justify-center gap-2 border-2 border-text-main bg-primary px-5 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-primary-foreground shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
+                            >
+                              Apply solution to editor
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    <CodeEditorPane
+                      value={draftCode}
+                      onChange={setDraftCode}
+                      language={unit.language || "text"}
+                      placeholder="Start typing your solution here..."
+                    />
+                  </div>
+                ) : runnerSupported ? (
+                  <div className="space-y-5 bg-main-bg/55 p-5 sm:p-6">
+                  {!runReport ? (
+                    <div className="flex min-h-[380px] flex-col items-center justify-center text-center">
+                      <div className="flex h-16 w-16 items-center justify-center border-2 border-text-main bg-surface shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)]">
+                        <TerminalSquare className="h-7 w-7 text-text-muted" />
+                      </div>
+                      <h3 className="mt-5 font-display text-3xl font-black uppercase tracking-tight text-text-main">
+                        No test results yet
+                      </h3>
+                      <p className="mt-3 max-w-md font-mono text-sm leading-relaxed text-text-muted">
+                        Run your code to see public and hidden check results. This
+                        view is the execution summary, not a second page buried inside the lab.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid gap-3 md:grid-cols-4">
+                        <AcademyStat
+                          label="Passed"
+                          value={`${runReport.passedCount}/${runReport.totalCount}`}
+                          meta={runReportIsFresh ? "Latest run" : "Outdated after edits"}
+                          className="px-4 py-3"
+                          valueClassName={`text-2xl ${runReportIsFresh && runReport.allPassed ? "text-emerald-500" : ""}`}
+                        />
+                        <AcademyStat
+                          label="Public"
+                          value={`${runReport.visiblePassedCount}/${runReport.visibleTotalCount}`}
+                          meta="Visible checks"
+                          className="px-4 py-3"
+                          valueClassName="text-2xl"
+                        />
+                        <AcademyStat
+                          label="Hidden"
+                          value={`${runReport.hiddenPassedCount}/${runReport.hiddenTotalCount}`}
+                          meta="Private checks"
+                          className="px-4 py-3"
+                          valueClassName="text-2xl"
+                        />
+                        <AcademyStat
+                          label="Entry point"
+                          value={runReport.primaryFunction || "Unknown"}
+                          meta={runtimeLabel}
+                          className="px-4 py-3"
+                          valueClassName="text-base"
+                        />
+                      </div>
+
+                      <div
+                        className={`border px-5 py-4 shadow-sm ${
+                          runReportIsFresh
+                            ? runReport.allPassed
+                              ? "border-emerald-500/20 bg-emerald-500/10"
+                              : "border-amber-500/20 bg-amber-500/10"
+                            : "border-amber-500/20 bg-amber-500/10"
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <AcademyBadge
+                            tone={
+                              runReportIsFresh
+                                ? runReport.allPassed
+                                  ? "success"
+                                  : "warning"
+                                : "warning"
+                            }
+                          >
+                            {runReportIsFresh
+                              ? runReport.allPassed
+                                ? "Ready to submit"
+                                : "Checks failed"
+                              : "Results outdated"}
+                          </AcademyBadge>
+                        </div>
+                        <p className="mt-3 font-mono text-sm leading-relaxed text-text-main">
+                          {runReportIsFresh
+                            ? runReport.message
+                            : "You changed the draft after the last execution. Run checks again to refresh the result summary."}
+                        </p>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-text-muted">
+                          Case details
+                        </div>
+                        {(runReport.cases || []).length > 0 ? (
+                          <div className="space-y-3">
+                            {runReport.cases.map((caseItem, index) => (
+                              <div
+                                key={caseItem.id}
+                                className={`border px-5 py-4 shadow-sm ${
+                                  caseItem.passed
+                                    ? "border-emerald-500/20 bg-emerald-500/8"
+                                    : "border-amber-500/20 bg-amber-500/8"
+                                }`}
+                              >
+                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                  <div className="flex items-center gap-2">
+                                    <AcademyBadge
+                                      tone={caseItem.passed ? "success" : "warning"}
+                                    >
+                                      {caseItem.hidden
+                                        ? `Hidden ${index + 1}`
+                                        : `Public ${index + 1}`}
+                                    </AcademyBadge>
+                                  </div>
+                                  <div
+                                    className={`font-mono text-[10px] font-bold uppercase tracking-widest ${
+                                      caseItem.passed
+                                        ? "text-emerald-600 dark:text-emerald-300"
+                                        : "text-amber-700 dark:text-amber-300"
+                                    }`}
+                                  >
+                                    {caseItem.passed ? "Passed" : "Needs work"}
+                                  </div>
+                                </div>
+                                <p className="mt-3 font-mono text-sm leading-relaxed text-text-main">
+                                  {caseItem.description}
+                                </p>
+                                {caseItem.error ? (
+                                  <div className="mt-4">
+                                    <CodeSurface
+                                      code={caseItem.error}
+                                      language="text"
+                                      label="error"
+                                      maxHeightClass="max-h-[180px]"
+                                    />
+                                  </div>
+                                ) : null}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="border border-border-main bg-surface px-5 py-4 font-mono text-sm text-text-muted shadow-sm">
+                            The runner did not return structured case data for this
+                            lab.
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                  </div>
+                ) : null}
+              </AcademyPanel>
+            </div>
+
+          </div>
+
+          <aside className="space-y-6 xl:sticky xl:top-24 xl:self-start xl:order-2">
+            <AcademyPanel tone="primary">
+              <div className="space-y-5">
+                <div>
+                  <AcademyBadge tone="muted">Challenge overview</AcademyBadge>
+                  <h2 className="mt-4 font-display text-3xl font-black uppercase tracking-tighter text-text-main">
+                    {practiceModeText(unit)}
+                  </h2>
+                  <p className="mt-3 font-mono text-sm leading-relaxed text-text-muted">
+                    Visible checks first, hidden checks second, submit last.
+                  </p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                  <AcademyStat
+                    label="Public checks"
+                    value={publicTests.length}
+                    meta="Visible acceptance criteria"
+                    className="px-4 py-3"
+                    valueClassName="text-2xl"
+                  />
+                  <AcademyStat
+                    label="Hidden checks"
+                    value={hiddenTests.length}
+                    meta="Validated on submit"
+                    className="px-4 py-3"
+                    valueClassName="text-2xl"
+                  />
+                  <AcademyStat
+                    label="Hints"
+                    value={unit.hints.length}
+                    meta={`${visibleHints.length} revealed`}
+                    className="px-4 py-3"
+                    valueClassName="text-2xl"
+                  />
+                  <AcademyStat
+                    label="Runtime"
+                    value={runtimeLabel}
+                    meta={draftDirty ? "Draft changed since last run" : "Draft matches last run"}
+                    className="px-4 py-3"
+                    valueClassName="text-base"
+                  />
+                </div>
+
+                <div className="border border-border-main bg-main-bg/70 px-4 py-4 shadow-sm">
+                  <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-text-muted">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-primary" />
+                      Workflow
+                    </span>
+                  </div>
+                  <ol className="mt-3 space-y-2 font-mono text-sm leading-relaxed text-text-muted">
+                    <li>1. Read the brief and visible checks.</li>
+                    <li>2. Write or edit your solution in the workspace.</li>
+                    <li>3. Run checks with <code>Ctrl/Cmd + Enter</code>.</li>
+                    <li>4. Submit only after hidden checks pass.</li>
+                  </ol>
+                </div>
+              </div>
+            </AcademyPanel>
+
+            <AcademyPanel>
+              <div className="space-y-4">
+                <AcademyBadge tone="muted">
+                  {currentModule?.title || "Module"}
+                </AcademyBadge>
+                <div>
+                  <div className="font-display text-2xl font-black uppercase tracking-tight text-text-main">
+                    Module route
+                  </div>
+                  <p className="mt-2 font-mono text-sm leading-relaxed text-text-muted">
+                    {currentModule
+                      ? `${currentModuleCompleted}/${currentModuleUnits.length} lessons completed in this module.`
+                      : "No module information available."}
+                  </p>
+                </div>
+                <AcademyProgressBar
+                  value={currentModulePercent}
+                  fillClassName="bg-emerald-500"
+                />
+                <div className="max-h-[360px] space-y-2 overflow-auto pr-1">
+                  {currentModuleUnits.map((routeUnit) => {
+                    const done = isAcademyV2UnitCompleted(
+                      academyProgressState.completedLessons,
+                      course.id,
+                      routeUnit.id,
+                    );
+                    const locked = isUnitLocked(
+                      academyProgressState.completedLessons,
+                      course.id,
+                      flatCourseUnits,
+                      routeUnit.id,
+                    );
+                    const current = routeUnit.id === unit.id;
+
+                    return (
+                      <button
+                        key={routeUnit.id}
+                        type="button"
+                        disabled={locked}
+                        onClick={() =>
+                          !locked &&
+                          navigate(`/academy/unit/${course.id}/${routeUnit.id}`)
+                        }
+                        className={`flex w-full items-start gap-3 border px-4 py-3 text-left transition-colors shadow-sm ${
+                          current
+                            ? "border-primary/30 bg-primary/10"
+                            : locked
+                              ? "cursor-not-allowed border-border-main bg-main-bg/60 opacity-60"
+                              : "border-border-main bg-main-bg/60 hover:border-primary/30 hover:bg-main-bg"
+                        }`}
+                      >
+                        <div
+                          className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center border ${
+                            current
+                              ? "border-primary/20 bg-primary text-primary-foreground"
+                              : done
+                                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
+                                : "border-border-main bg-surface text-text-muted"
+                          }`}
+                        >
+                          {locked ? (
+                            <Lock className="h-3.5 w-3.5" />
+                          ) : done ? (
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          ) : routeUnit.section === "practice" ? (
+                            <Code2 className="h-3.5 w-3.5" />
+                          ) : (
+                            <BookOpen className="h-3.5 w-3.5" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
+                            {routeUnit.section === "practice" ? "Practice" : "Theory"}
+                          </div>
+                          <div
+                            className={`mt-1 line-clamp-2 font-display text-base font-black uppercase tracking-tight ${
+                              current ? "text-primary" : "text-text-main"
+                            }`}
+                          >
+                            {routeUnit.title}
                           </div>
                         </div>
-                      )}
-                    </div>
-                  )}
+                      </button>
+                    );
+                  })}
                 </div>
+              </div>
+            </AcademyPanel>
 
-              </section>
-
-              {/* Hints and Solution have been moved to the right column */}
-            </>
-          )}
+          </aside>
         </div>
+      ) : (
+        <div className="grid gap-6 xl:items-start xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-6">
+            {embedUrl ? (
+              <AcademyPanel padding="p-0" className="overflow-hidden">
+                <div className="border-b border-border-main px-6 py-4">
+                  <AcademyBadge tone="muted">Video lesson</AcademyBadge>
+                  <h2 className="mt-3 font-display text-3xl font-black uppercase tracking-tighter text-text-main">
+                    Watch tutorial
+                  </h2>
+                </div>
+                <div className="relative w-full bg-main-bg pb-[56.25%]">
+                  <iframe
+                    src={embedUrl}
+                    title={unit.title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="absolute inset-0 h-full w-full"
+                  />
+                </div>
+              </AcademyPanel>
+            ) : null}
 
-        <aside
-          className={`space-y-8 ${isPractice ? "flex flex-col gap-6 xl:order-2" : "xl:sticky xl:top-24 xl:self-start"}`}
-        >
-          {!isPractice && outline.length > 0 && (
-            <SidebarPanel
-              title="Table of Contents"
-              accent="bg-surface"
-              headerText="text-text-main"
-              footer={`${outline.length} sections`}
-            >
-              <div className="relative ml-2 space-y-3 py-2 pl-4">
-                <div className="absolute top-0 bottom-0 left-[3px] w-px bg-border-main" />
-                {outline.map((item) => (
-                  <a
-                    key={item.id}
-                    href={`#${item.id}`}
-                    className={`relative block py-1 text-sm font-medium text-text-muted transition-colors hover:text-primary before:absolute before:left-[-21px] before:top-[12px] before:h-2 before:w-2 before:rounded-full before:border before:border-border-main before:bg-white hover:before:border-primary ${
-                      item.level > 2 ? "pl-4" : "pl-0"
-                    }`}
-                  >
-                    {item.label}
-                  </a>
-                ))}
+            <AcademyPanel>
+              <div className="space-y-5">
+                <div className="flex flex-wrap items-center gap-3">
+                  <AcademyBadge tone="muted">Lesson Notes</AcademyBadge>
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
+                    Main reading for this unit
+                  </span>
+                </div>
+                <div className="markdown-body prose-dsuc">
+                  {renderMd(unit.content_md)}
+                </div>
               </div>
-            </SidebarPanel>
-          )}
+            </AcademyPanel>
+          </div>
 
-          {!isPractice && outline.length === 0 && (
-            <SidebarPanel
-              title="Lab Configuration"
-              accent="bg-surface"
-              headerText="text-text-main"
-              footer={practiceModeText(unit)}
-            >
-              <div className="space-y-0">
-                <ProfileRow
-                  label="Test Cases"
-                  value={String(unit.tests.length)}
-                />
-                <ProfileRow label="Hints" value={String(unit.hints.length)} />
-                <ProfileRow label="Language" value={unit.language || "None"} />
-                <ProfileRow
-                  label="Build Type"
-                  value={unit.build_type || "Standard"}
-                />
-              </div>
-            </SidebarPanel>
-          )}
-
-          {!isPractice && (
-            <SidebarPanel
-            title={currentModule?.title || "Module"}
-            accent="bg-surface"
-            headerText="text-text-main"
-            footer={
-              currentModule
-                ? `${currentModuleCompleted}/${currentModuleUnits.length} lessons completed`
-                : "No module info"
-            }
-          >
-            <div className="mt-4 space-y-3">
-              {currentModuleUnits.map((routeUnit) => {
-                const done = isAcademyV2UnitCompleted(
-                  progress.state.completedLessons,
-                  course.id,
-                  routeUnit.id,
-                );
-                const locked = isUnitLocked(
-                  progress.state.completedLessons,
-                  course.id,
-                  flatCourseUnits,
-                  routeUnit.id,
-                );
-                const current = routeUnit.id === unit.id;
-
-                return (
-                  <button
-                    key={routeUnit.id}
-                    type="button"
-                    disabled={locked}
-                    onClick={() =>
-                      !locked &&
-                      navigate(`/academy/unit/${course.id}/${routeUnit.id}`)
-                    }
-                    className={`flex w-full items-center gap-3 border-2 p-3 text-left transition-all ${
-                      current
-                        ? "border-primary bg-primary/5 shadow-[2px_2px_0_0_#000]"
-                        : locked
-                          ? "cursor-not-allowed border-text-main bg-main-bg opacity-60"
-                          : done
-                            ? "border-text-main bg-surface hover:bg-main-bg hover:shadow-[2px_2px_0_0_#000]"
-                            : "border-text-main bg-surface hover:-translate-y-0.5 hover:border-primary/50 hover:bg-main-bg hover:shadow-[2px_2px_0_0_#000]"
-                    }`}
-                  >
-                    <div
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center border-2 ${
-                        current
-                          ? "border-primary bg-primary text-main-bg shadow-[2px_2px_0_0_#000]"
-                          : done
-                            ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600"
-                            : locked
-                              ? "border-text-main bg-surface text-text-muted"
-                              : routeUnit.section === "practice"
-                                ? "border-text-main bg-surface text-text-main shadow-[2px_2px_0_0_#000]"
-                                : "border-text-main bg-surface text-text-main shadow-[2px_2px_0_0_#000]"
-                      }`}
-                    >
-                      {locked ? (
-                        <Lock className="h-4 w-4" strokeWidth={2} />
-                      ) : done ? (
-                        <CheckCircle2 className="h-4 w-4" strokeWidth={2} />
-                      ) : routeUnit.section === "practice" ? (
-                        <Code2 className="h-4 w-4" strokeWidth={2} />
-                      ) : (
-                        <BookOpen className="h-4 w-4" strokeWidth={2} />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div
-                        className={`truncate text-xs font-bold uppercase tracking-wider ${current ? "text-primary" : "text-text-main"}`}
-                      >
-                        {routeUnit.title}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </SidebarPanel>
-          )}
-
-          {isPractice && showHintsPanel && unit.hints && unit.hints.length > 0 && (
-            <SidebarPanel
-              title="Hints"
-              accent="bg-surface"
-              headerText="text-text-main"
-            >
-              <div className="space-y-4 font-mono text-sm max-h-[400px] overflow-y-auto">
-                {unit.hints.map((hint, i) => (
-                  <div key={i} className="border-l-4 border-amber-500 pl-4 py-1">
-                    <span className="font-bold uppercase text-[10px] text-amber-700 block mb-1">Hint {i + 1}</span>
-                    <div className="markdown-body bg-transparent">
-                      {renderMd(hint)}
-                    </div>
+          <aside className="space-y-6 xl:sticky xl:top-24 xl:self-start">
+            {outline.length > 0 ? (
+              <AcademyPanel>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <AcademyBadge tone="muted">Table of contents</AcademyBadge>
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
+                      Quick jumps
+                    </span>
                   </div>
-                ))}
-              </div>
-            </SidebarPanel>
-          )}
-
-          {isPractice && showSolutionPanel && unit.solution && (
-            <SidebarPanel
-              title="Solution"
-              accent="bg-surface"
-              headerText="text-text-main"
-            >
-              <div className="font-mono text-sm space-y-4">
-                <div className="markdown-body bg-transparent">
-                  {renderMd(unit.solution)}
+                  <div className="border-l-2 border-border-main">
+                    {outline.map((item, index) => (
+                      <a
+                        key={item.id}
+                        href={`#${item.id}`}
+                        className={`group block border-b border-border-main/70 py-2.5 pr-3 text-sm transition-colors last:border-b-0 hover:bg-main-bg/60 ${outlineIndent(item.level)}`}
+                      >
+                        <span className="block font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
+                          {outlineNumbers[index]}
+                        </span>
+                        <span className="mt-0.5 block font-display text-base font-black uppercase tracking-tight text-text-main transition-colors group-hover:text-primary">
+                          {item.label}
+                        </span>
+                      </a>
+                    ))}
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setDraftCode(unit.solution!)}
-                  className="mt-4 border-2 border-emerald-600 bg-emerald-500 text-white px-4 py-2 text-xs font-bold uppercase tracking-widest shadow-[2px_2px_0_0_#059669] hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#059669] transition-all w-full"
-                >
-                  Apply Solution
-                </button>
+              </AcademyPanel>
+            ) : null}
+
+            <AcademyPanel>
+              <div className="space-y-5">
+                <AcademyBadge tone="muted">
+                  {currentModule?.title || "Module"}
+                </AcademyBadge>
+                <div>
+                  <div className="font-display text-2xl font-black uppercase tracking-tight text-text-main">
+                    Module route
+                  </div>
+                  <p className="mt-2 font-mono text-sm leading-relaxed text-text-muted">
+                    {currentModule
+                      ? `${currentModuleCompleted}/${currentModuleUnits.length} lessons completed in this module.`
+                      : "No module information available."}
+                  </p>
+                </div>
+                <AcademyProgressBar
+                  value={currentModulePercent}
+                  fillClassName="bg-emerald-500"
+                />
+                <div className="space-y-2">
+                  {currentModuleUnits.map((routeUnit) => {
+                    const done = isAcademyV2UnitCompleted(
+                      academyProgressState.completedLessons,
+                      course.id,
+                      routeUnit.id,
+                    );
+                    const locked = isUnitLocked(
+                      academyProgressState.completedLessons,
+                      course.id,
+                      flatCourseUnits,
+                      routeUnit.id,
+                    );
+                    const current = routeUnit.id === unit.id;
+
+                    return (
+                      <button
+                        key={routeUnit.id}
+                        type="button"
+                        disabled={locked}
+                        onClick={() =>
+                          !locked &&
+                          navigate(`/academy/unit/${course.id}/${routeUnit.id}`)
+                        }
+                        className={`flex w-full items-start gap-3 border px-4 py-3 text-left shadow-sm transition-colors ${
+                          current
+                            ? "border-primary/30 bg-primary/10"
+                            : locked
+                              ? "cursor-not-allowed border-border-main bg-main-bg/60 opacity-60"
+                              : "border-border-main bg-main-bg/60 hover:border-primary/30 hover:bg-main-bg"
+                        }`}
+                      >
+                        <div
+                          className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center border ${
+                            current
+                              ? "border-primary/20 bg-primary text-primary-foreground"
+                              : done
+                                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
+                                : "border-border-main bg-surface text-text-muted"
+                          }`}
+                        >
+                          {locked ? (
+                            <Lock className="h-3.5 w-3.5" />
+                          ) : done ? (
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          ) : routeUnit.section === "practice" ? (
+                            <Code2 className="h-3.5 w-3.5" />
+                          ) : (
+                            <BookOpen className="h-3.5 w-3.5" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
+                            {routeUnit.section === "practice" ? "Practice" : "Theory"}
+                          </div>
+                          <div
+                            className={`mt-1 line-clamp-2 font-display text-base font-black uppercase tracking-tight ${
+                              current ? "text-primary" : "text-text-main"
+                            }`}
+                          >
+                            {routeUnit.title}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </SidebarPanel>
-          )}
-        </aside>
-      </div>
-
-      <div className="mt-8 flex flex-col md:flex-row items-center justify-between gap-6 border-2 border-text-main bg-surface p-6 shadow-[4px_4px_0_0_#000]">
-        <div className="flex-1 text-center md:text-left">
-          <h3 className="font-heading text-xl font-black uppercase tracking-tight text-text-main">
-            {unitDone ? "Unit Completed" : "Finish This Unit"}
-          </h3>
-          <p className="max-w-md text-sm font-mono text-text-muted mt-2">
-            {unitDone
-              ? "Great job! You have finished this unit."
-              : isPractice
-                ? runnerSupported
-                  ? "Pass all tests to unlock the Complete button."
-                  : "Click complete below when you are ready."
-                : "Take a moment to absorb the material before marking complete."}
-          </p>
+            </AcademyPanel>
+          </aside>
         </div>
+      )}
 
-        <div className="flex flex-col items-center md:items-end gap-3">
-          {!unitDone && completionBlocked && (
-            <div className="flex items-center gap-2 border-2 border-amber-500 bg-amber-400/20 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-amber-900 shadow-[2px_2px_0_0_#f59e0b]">
-              <AlertTriangle className="h-3 w-3" strokeWidth={3} />
-              {runLoading ? "Running tests..." : "All tests must pass"}
-            </div>
-          )}
+      <AcademyPanel tone={unitDone ? "success" : completionBlocked ? "warning" : "primary"}>
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <AcademyBadge tone={unitDone ? "success" : completionBlocked ? "warning" : "primary"}>
+              {unitDone ? "Unit completed" : "Finish this unit"}
+            </AcademyBadge>
+            <h2 className="mt-4 font-display text-3xl font-black uppercase tracking-tighter text-text-main">
+              {unitDone ? "Recorded successfully" : "Ready when the unit is truly done"}
+            </h2>
+            <p className="mt-3 max-w-2xl font-mono text-sm leading-relaxed text-text-muted">
+              {unitDone
+                ? "This unit is already marked complete. You can move on or review the material again."
+                : isPractice
+                  ? runnerSupported
+                    ? "The submit action unlocks only after the latest run passes every public and hidden check."
+                    : "Mark the unit complete when you have finished the lab."
+                  : "Take a final pass over the material, then mark the theory unit complete."}
+            </p>
+          </div>
 
-          {!unitDone ? (
-            <button
-              type="button"
-              onClick={() => void handleComplete()}
-              disabled={completionBlocked || runLoading}
-              className="flex items-center gap-2 border-2 border-text-main bg-primary px-6 py-3 text-sm font-black uppercase tracking-widest text-main-bg shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] disabled:pointer-events-none disabled:opacity-50 disabled:grayscale"
-            >
-              <CheckCircle2 className="h-4 w-4" strokeWidth={3} />
-              {isPractice ? "Submit Lab" : "Mark Complete"}
-            </button>
-          ) : (
-            <div className="flex flex-col sm:flex-row items-center gap-3">
-              <div className="flex items-center gap-2 border-2 border-text-main bg-emerald-500/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-emerald-600 shadow-[2px_2px_0_0_#000]">
-                <CheckCircle2 className="h-4 w-4" strokeWidth={3} />
-                Recorded
+          <div className="flex flex-col items-start gap-3 lg:items-end">
+            {!unitDone && completionBlocked ? (
+              <AcademyBadge tone="warning">
+                {runLoading ? "Running checks..." : "All checks must pass"}
+              </AcademyBadge>
+            ) : null}
+
+            {!unitDone ? (
+              <button
+                type="button"
+                onClick={() => void handleComplete()}
+                disabled={completionBlocked || runLoading}
+                className="inline-flex items-center justify-center gap-2 border-2 border-text-main bg-primary px-5 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-primary-foreground shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] disabled:pointer-events-none disabled:opacity-50 dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                {isPractice ? "Submit lab" : "Mark complete"}
+              </button>
+            ) : (
+              <div className="flex flex-col gap-3 sm:flex-row">
+                {next_unit ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/academy/unit/${course.id}/${next_unit.id}`)}
+                    className="inline-flex items-center justify-center gap-2 border-2 border-text-main bg-primary px-5 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-primary-foreground shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
+                  >
+                    Next unit
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/academy/course/${course.id}`)}
+                    className="inline-flex items-center justify-center gap-2 border-2 border-text-main bg-surface px-5 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-text-main shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:text-primary hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
+                  >
+                    Back to course
+                  </button>
+                )}
               </div>
-              {next_unit ? (
-                <button
-                  type="button"
-                  onClick={() =>
-                    navigate(`/academy/unit/${course.id}/${next_unit.id}`)
-                  }
-                  className="flex items-center gap-2 border-2 border-text-main bg-primary px-4 py-2 text-xs font-black uppercase tracking-widest text-main-bg shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000]"
-                >
-                  Next Unit
-                  <ChevronRight className="h-4 w-4" strokeWidth={3} />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => navigate(`/academy/course/${course.id}`)}
-                  className="flex items-center gap-2 border-2 border-text-main bg-main-bg px-4 py-2 text-xs font-black uppercase tracking-widest text-text-main shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] hover:bg-surface"
-                >
-                  Back to Course
-                </button>
-              )}
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
+      </AcademyPanel>
 
-      <div className="mt-8 mb-20 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-t-2 border-text-main pt-6">
-        <NavUnitLink
+      <div className="grid gap-4 md:grid-cols-2">
+        <UnitNavCard
           label="Previous"
           unit={previous_unit}
           href={
@@ -1199,9 +1479,8 @@ export function AcademyUnit() {
               : "#"
           }
           disabled={!previous_unit}
-          align="left"
         />
-        <NavUnitLink
+        <UnitNavCard
           label="Next"
           unit={next_unit}
           href={next_unit ? `/academy/unit/${course.id}/${next_unit.id}` : "#"}
@@ -1209,45 +1488,11 @@ export function AcademyUnit() {
           align="right"
         />
       </div>
-    </div>
+    </AcademyPage>
   );
 }
 
-function SidebarPanel({
-  title,
-  accent,
-  headerText,
-  footer,
-  children,
-}: {
-  title: string;
-  accent: string;
-  headerText: string;
-  footer?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className={`border-2 border-text-main p-6 shadow-[4px_4px_0_0_#000] ${accent}`}
-    >
-      <div
-        className={`mb-4 border-b-2 border-text-main pb-4 text-xs font-black uppercase tracking-widest ${headerText}`}
-      >
-        {title}
-      </div>
-      <div>{children}</div>
-      {footer && (
-        <div
-          className={`mt-6 border-t-2 border-text-main pt-4 text-[10px] font-black uppercase tracking-widest ${headerText}`}
-        >
-          {footer}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function LabTabButton({
+function WorkspaceSwitch({
   label,
   active,
   onClick,
@@ -1260,10 +1505,10 @@ function LabTabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`relative px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all ${
+      className={`border-2 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-widest transition-all ${
         active
-          ? "bg-surface text-text-main shadow-[2px_2px_0_0_#000] border-2 border-text-main translate-x-[-1px] translate-y-[-1px]"
-          : "bg-main-bg border-2 border-transparent text-text-muted hover:bg-surface/50 hover:text-text-main"
+          ? "border-text-main bg-primary text-primary-foreground shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)]"
+          : "border-text-main bg-main-bg text-text-muted hover:-translate-y-0.5 hover:-translate-x-0.5 hover:text-primary hover:shadow-[2px_2px_0_0_#000] dark:hover:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)]"
       }`}
     >
       {label}
@@ -1271,59 +1516,49 @@ function LabTabButton({
   );
 }
 
-function ProfileRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between border-b-2 border-text-main py-3 last:border-b-0 border-dashed">
-      <div className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
-        {label}
-      </div>
-      <div className="text-sm font-bold text-text-main">{value}</div>
-    </div>
-  );
-}
-
-function NavUnitLink({
+function UnitNavCard({
   label,
   unit,
   href,
   disabled,
-  align,
+  align = "left",
 }: {
   label: string;
   unit: AcademyV2UnitSummary | null;
   href: string;
   disabled: boolean;
-  align: "left" | "right";
+  align?: "left" | "right";
 }) {
   if (disabled) {
     return (
-      <div
-        className={`flex w-full flex-col border-2 border-border-main bg-main-bg p-4 opacity-60 shadow-[2px_2px_0_0_var(--border-main)] sm:w-[48%] ${align === "right" ? "items-start sm:items-end sm:text-right" : "items-start"}`}
-      >
-        <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-text-muted">
-          {label}
+      <AcademyPanel className="opacity-60">
+        <div className={align === "right" ? "text-left md:text-right" : "text-left"}>
+          <div className="font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-text-muted">
+            {label}
+          </div>
+          <div className="mt-2 font-display text-2xl font-black uppercase tracking-tighter text-text-muted">
+            End of route
+          </div>
         </div>
-        <div className="font-heading text-lg font-bold text-text-muted">
-          End of Route
-        </div>
-      </div>
+      </AcademyPanel>
     );
   }
 
   return (
-    <Link
-      to={href}
-      className={`group flex w-full flex-col border-2 border-text-main bg-main-bg p-4 shadow-[2px_2px_0_0_#000] transition-all hover:bg-surface hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] sm:w-[48%] ${align === "right" ? "items-start sm:items-end sm:text-right" : "items-start"}`}
-    >
-      <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-text-muted transition-colors group-hover:text-primary">
-        {label}
-      </div>
-      <div className="max-w-full truncate font-heading text-lg font-bold text-text-main transition-colors group-hover:text-primary">
-        {unit?.title}
-      </div>
-      <div className="mt-2 inline-block border-2 border-text-main bg-main-bg px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-text-main shadow-[2px_2px_0_0_#000]">
-        {unit?.section === "practice" ? "Interactive Lab" : "Theory Lesson"}
-      </div>
+    <Link to={href} className="block h-full">
+      <AcademyPanel interactive className="group h-full">
+        <div className={align === "right" ? "text-left md:text-right" : "text-left"}>
+          <div className="font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-text-muted">
+            {label}
+          </div>
+          <div className="mt-2 font-display text-2xl font-black uppercase tracking-tighter text-text-main transition-colors group-hover:text-primary">
+            {unit?.title}
+          </div>
+          <div className="mt-3 inline-flex border border-border-main bg-main-bg px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-text-muted shadow-sm">
+            {unit?.section === "practice" ? "Interactive lab" : "Theory lesson"}
+          </div>
+        </div>
+      </AcademyPanel>
     </Link>
   );
 }

@@ -1,18 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  ArrowLeft,
   ArrowRight,
   BookOpen,
-  CheckCircle2,
-  ChevronRight,
   Code2,
-  Flame,
-  Layers3,
   Lock,
-  Sparkles,
-  User,
   Trophy,
+  User,
 } from "lucide-react";
 
 import type {
@@ -27,12 +21,18 @@ import {
   isAcademyV2UnitCompleted,
 } from "@/lib/academy/v2Progress";
 import { useStore } from "@/store/useStore";
+import { ActionButton } from "@/components/ui/Primitives";
 import {
-  ActionButton,
-  SoftBrutalCard,
-  StatusBadge,
-  SectionHeader,
-} from "@/components/ui/Primitives";
+  AcademyBackLink,
+  AcademyBadge,
+  AcademyEmptyState,
+  AcademyPage,
+  AcademyPanel,
+  AcademyCompactStat,
+  AcademyProgressBar,
+  AcademySectionTitle,
+  AcademyStat,
+} from "@/components/academy/AcademyPrimitives";
 
 type FlatUnit = AcademyV2UnitSummary & {
   moduleId: string;
@@ -132,33 +132,30 @@ export function AcademyCourse() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-12 md:py-24 space-y-16">
-        <div className="h-64 animate-pulse bg-surface" />
-      </div>
+      <AcademyPage>
+        <AcademyPanel className="h-72 animate-pulse" padding="p-0" />
+      </AcademyPage>
     );
   }
 
   if (!course) {
     return (
-      <div className="container mx-auto px-4 py-24 text-center">
-        <div className="mb-4 inline-flex h-14 w-14 items-center justify-center bg-surface border border-border-main text-text-muted">
-          <Code2 className="w-6 h-6" />
-        </div>
-        <h1 className="font-heading text-2xl font-bold uppercase tracking-tight">
-          Could not load course
-        </h1>
-        <p className="mx-auto mt-4 max-w-xl p-4 text-sm text-text-muted bg-surface border border-border-main font-mono">
-          {error || "Course data is unavailable. Please try again later."}
-        </p>
-        <div className="mt-8 flex flex-wrap justify-center gap-4">
-          <ActionButton onClick={() => setReloadNonce((value) => value + 1)}>
-            Reload
-          </ActionButton>
-          <Link to="/academy">
-            <ActionButton variant="secondary">Academy Home</ActionButton>
-          </Link>
-        </div>
-      </div>
+      <AcademyPage>
+        <AcademyEmptyState
+          title="Could not load course"
+          description={error || "Course data is unavailable right now."}
+          action={
+            <div className="flex flex-wrap justify-center gap-4">
+              <ActionButton onClick={() => setReloadNonce((value) => value + 1)}>
+                Reload
+              </ActionButton>
+              <Link to="/academy">
+                <ActionButton variant="secondary">Academy Home</ActionButton>
+              </Link>
+            </div>
+          }
+        />
+      </AcademyPage>
     );
   }
 
@@ -196,151 +193,90 @@ export function AcademyCourse() {
   }).length;
 
   return (
-    <div className="container mx-auto px-4 py-12 md:py-24 space-y-24">
-      {/* Hero */}
-      <section className="relative">
-        <Link
+    <AcademyPage>
+      <section className="space-y-6">
+        <AcademyBackLink
           to={course.path_id ? `/academy/path/${course.path_id}` : "/academy"}
-          className="inline-flex items-center gap-2 mb-8 border-2 border-text-main bg-surface px-4 py-2 text-xs font-bold uppercase tracking-widest font-mono shadow-[2px_2px_0_0_#000] hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#000] transition-all text-text-main"
-        >
-          <ArrowLeft className="w-4 h-4" strokeWidth={2} />
-          BACK TO {course.path_title ? "PATH" : "ACADEMY"}
-        </Link>
+          label={`Back to ${course.path_id ? "Path" : "Academy"}`}
+        />
 
-        <div className="flex flex-col lg:flex-row gap-12 lg:items-start justify-between">
-          <div className="flex flex-col gap-6 max-w-3xl flex-1">
-            <div className="flex items-center gap-3 flex-wrap">
-              <StatusBadge
-                status={course.path_title || "Course"}
-                className="inline-flex"
-              />
-              <span className="font-mono text-[10px] uppercase text-text-muted px-2 ">
+        <AcademyPanel tone="primary" padding="p-5 sm:p-6">
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-center gap-3">
+              <AcademyBadge tone="primary">
+                {course.path_title || "Course"}
+              </AcademyBadge>
+              <AcademyBadge tone="muted">
                 {difficultyLabel(course.difficulty)}
-              </span>
-              <span className="font-mono text-[10px] uppercase text-text-muted px-2 ">
-                Stage{" "}
-                {String(Math.max(1, course.track_level || 1)).padStart(2, "0")}
-              </span>
+              </AcademyBadge>
+              <AcademyBadge tone="muted">
+                Stage {String(Math.max(1, course.track_level || 1)).padStart(2, "0")}
+              </AcademyBadge>
             </div>
 
-            <div>
-              <h1 className="font-heading font-bold text-5xl md:text-7xl uppercase tracking-tighter leading-none mb-6">
+            <div className="space-y-3">
+              <h1 className="font-display text-4xl font-black uppercase tracking-tighter text-text-main sm:text-5xl lg:text-6xl">
                 {course.title}
               </h1>
-              <p className="text-lg text-text-muted max-w-2xl leading-relaxed">
+              <p className="max-w-3xl font-mono text-sm leading-relaxed text-text-muted">
                 {course.description}
               </p>
             </div>
 
-            {course.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
+            {course.tags.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
                 {course.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="font-mono text-[10px] uppercase bg-surface border border-border-main px-2 py-1 text-text-muted"
-                  >
+                  <AcademyBadge key={tag} tone="muted">
                     {tag}
-                  </span>
+                  </AcademyBadge>
                 ))}
               </div>
-            )}
+            ) : null}
 
-            <div className="grid grid-cols-3 gap-3 w-full lg:w-auto mt-6">
-              <div className="p-4 bg-surface text-center flex flex-col items-center justify-center min-w-[100px]">
-                <p className="font-heading text-3xl font-bold">
-                  {course.duration_hours}
-                  <span className="text-sm font-sans font-normal text-text-muted">
-                    h
-                  </span>
-                </p>
-                <p className="font-mono text-[10px] uppercase text-text-muted mt-1">
-                  Duration
-                </p>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <AcademyCompactStat
+                label="Duration"
+                value={`${course.duration_hours}h`}
+                meta="Estimated duration"
+              />
+              <AcademyCompactStat
+                label="Modules"
+                value={course.module_count}
+                meta={`${completedModules} completed`}
+              />
+              <AcademyCompactStat
+                label="Exercises"
+                value={course.practice_unit_count}
+                meta="Hands-on units"
+              />
+              <AcademyCompactStat
+                label="Progress"
+                value={`${progressPercent}%`}
+                meta={`${completedCount}/${course.total_unit_count} total units`}
+                valueClassName="text-primary"
+              />
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
+                <span>Course completion</span>
+                <span>{progressPercent}%</span>
               </div>
-              <div className="p-4 bg-surface text-center flex flex-col items-center justify-center min-w-[100px]">
-                <p className="font-heading text-3xl font-bold">
-                  {course.module_count}
-                </p>
-                <p className="font-mono text-[10px] uppercase text-text-muted mt-1">
-                  Modules
-                </p>
-              </div>
-              <div className="p-4 bg-surface text-center flex flex-col items-center justify-center min-w-[100px]">
-                <p className="font-heading text-3xl font-bold text-emerald-500">
-                  {course.practice_unit_count}
-                </p>
-                <p className="font-mono text-[10px] uppercase text-text-muted mt-1">
-                  Exercises
-                </p>
-              </div>
+              <AcademyProgressBar value={progressPercent} className="h-2.5" />
             </div>
           </div>
-
-          <div className="relative w-full lg:w-[380px] shrink-0 pointer-events-auto">
-            <SoftBrutalCard className="p-8">
-              <div className="text-[10px] font-mono uppercase tracking-widest text-text-muted mb-6">
-                Your Progress
-              </div>
-              <h2 className="font-heading font-bold text-2xl uppercase tracking-tight line-clamp-2 mb-6 text-text-main group-hover:text-primary transition-colors">
-                {firstIncomplete ? firstIncomplete.title : "Course Completed!"}
-              </h2>
-
-              <div className="space-y-6">
-                {firstIncomplete ? (
-                  <p className="text-sm font-mono text-text-muted p-3 bg-main-bg border border-border-main ">
-                    {firstIncomplete.moduleTitle}
-                  </p>
-                ) : (
-                  <p className="text-sm font-mono text-emerald-500 p-3 bg-emerald-500/10 border border-emerald-500/20">
-                    Great job, you have completed all units!
-                  </p>
-                )}
-
-                <div>
-                  <div className="flex justify-between items-center text-[10px] font-mono text-text-muted uppercase mb-2">
-                    <span>Completion</span>
-                    <span className="text-primary">
-                      {Math.round(progressPercent)}%
-                    </span>
-                  </div>
-                  <div className="h-1 w-full bg-main-bg relative">
-                    <div
-                      className="absolute top-0 left-0 h-full bg-primary transition-all duration-1000 ease-out"
-                      style={{ width: `${progressPercent}%` }}
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    firstIncomplete
-                      ? navigate(
-                          `/academy/unit/${course.id}/${firstIncomplete.id}`,
-                        )
-                      : navigate(
-                          course.path_id
-                            ? `/academy/path/${course.path_id}`
-                            : "/academy",
-                        )
-                  }
-                  className="w-full flex items-center justify-center gap-2 bg-primary text-main-bg hover:bg-accent font-bold uppercase tracking-widest text-xs py-4 px-6 transition-colors"
-                >
-                  {firstIncomplete ? "Continue Learning" : "Return to Path"}
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-            </SoftBrutalCard>
-          </div>
-        </div>
+        </AcademyPanel>
       </section>
 
-      <div className="grid gap-16 lg:grid-cols-[minmax(0,1fr)_380px]">
-        {/* Modules List */}
-        <section className="space-y-16">
-          <SectionHeader title="Syllabus" subtitle="Theory and practice." />
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <section className="space-y-6">
+          <AcademySectionTitle
+            eyebrow="Course Outline"
+            title="Syllabus"
+            description="Each module keeps learn units and practice units separated, but within one progression lane."
+          />
 
-          <div className="space-y-8">
+          <div className="space-y-5">
             {course.modules.map((module, index) => {
               const moduleCompleted = countCompletedModuleUnits(
                 module,
@@ -355,61 +291,52 @@ export function AcademyCourse() {
                   : 0;
 
               return (
-                <section
-                  key={module.id}
-                  id={moduleAnchor(module.id)}
-                  className="bg-surface relative overflow-hidden"
-                >
-                  <div className="absolute top-0 left-0 w-full h-1 bg-main-bg">
-                    <div
-                      className="h-full bg-emerald-500 transition-all ease-out duration-1000"
-                      style={{ width: `${modulePercent}%` }}
+                <AcademyPanel key={module.id} id={moduleAnchor(module.id)}>
+                  <div className="space-y-5">
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <AcademyBadge tone="muted">
+                            Module {String(index + 1).padStart(2, "0")}
+                          </AcademyBadge>
+                          <AcademyBadge tone={modulePercent === 100 ? "success" : "muted"}>
+                            {moduleCompleted}/{moduleTotal} done
+                          </AcademyBadge>
+                        </div>
+                        <div>
+                          <h3 className="font-display text-3xl font-black uppercase tracking-tight text-text-main">
+                            {module.title}
+                          </h3>
+                          {module.description ? (
+                            <p className="mt-3 max-w-2xl font-mono text-sm leading-relaxed text-text-muted">
+                              {module.description}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2 lg:w-[220px]">
+                        <AcademyStat
+                          label="Theory"
+                          value={module.learn_units.length}
+                          className="px-4 py-3"
+                          valueClassName="text-2xl"
+                        />
+                        <AcademyStat
+                          label="Practice"
+                          value={module.practice_units.length}
+                          className="px-4 py-3"
+                          valueClassName="text-2xl"
+                        />
+                      </div>
+                    </div>
+
+                    <AcademyProgressBar
+                      value={modulePercent}
+                      fillClassName="bg-emerald-500"
                     />
-                  </div>
 
-                  <div className="p-6 md:p-8 flex flex-col md:flex-row md:items-start justify-between gap-6">
-                    <div className="flex-1 space-y-4">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="font-mono text-[10px] uppercase tracking-widest text-text-muted">
-                          Module {String(index + 1).padStart(2, "0")}
-                        </span>
-                        <span className="text-[10px] font-mono text-text-muted px-2 ">
-                          {moduleCompleted}/{moduleTotal} done
-                        </span>
-                      </div>
-
-                      <h3 className="font-heading font-bold text-2xl uppercase tracking-tight w-full break-words">
-                        {module.title}
-                      </h3>
-                      {module.description && (
-                        <p className="text-sm font-mono text-text-muted max-w-2xl leading-relaxed">
-                          {module.description}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex gap-4 md:flex-col md:text-right shrink-0">
-                      <div>
-                        <div className="font-heading font-bold text-xl">
-                          {module.learn_units.length}
-                        </div>
-                        <div className="font-mono text-[10px] uppercase text-text-muted">
-                          Theory
-                        </div>
-                      </div>
-                      <div>
-                        <div className="font-heading font-bold text-xl">
-                          {module.practice_units.length}
-                        </div>
-                        <div className="font-mono text-[10px] uppercase text-text-muted">
-                          Practice
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-6 bg-main-bg/50">
-                    <div className="grid gap-6 md:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-2">
                       <UnitLane
                         title="Theory"
                         units={module.learn_units}
@@ -426,85 +353,136 @@ export function AcademyCourse() {
                       />
                     </div>
                   </div>
-                </section>
+                </AcademyPanel>
               );
             })}
           </div>
         </section>
 
-        {/* Sidebar */}
-        <aside className="space-y-8 lg:sticky lg:top-24 lg:self-start">
-          {course.instructor && (
-            <SoftBrutalCard className="p-6">
-              <div className="text-[10px] font-mono uppercase tracking-widest text-text-muted mb-6 px-2 py-1 bg-main-bg inline-block">
-                Instructor
+        <aside className="space-y-6 xl:sticky xl:top-24 xl:self-start">
+          <AcademyPanel tone="primary">
+            <div className="space-y-5">
+              <div>
+                <AcademyBadge tone="muted">Your next move</AcademyBadge>
+                <h2 className="mt-4 font-display text-3xl font-black uppercase tracking-tighter text-text-main">
+                  {firstIncomplete ? firstIncomplete.title : "Course completed"}
+                </h2>
+                <p className="mt-3 font-mono text-sm leading-relaxed text-text-muted">
+                  {firstIncomplete
+                    ? `Continue in ${firstIncomplete.moduleTitle} to keep the sequence intact.`
+                    : "All units in this course are complete. You can review or head back to the path."}
+                </p>
               </div>
-              <div className="flex flex-col gap-4">
-                <div className="flex h-16 w-16 items-center justify-center bg-surface border border-border-main">
-                  <User
-                    className="h-6 w-6 text-text-muted"
-                    aria-hidden="true"
-                  />
+
+              {firstIncomplete ? (
+                <AcademyBadge tone="primary">{firstIncomplete.moduleTitle}</AcademyBadge>
+              ) : (
+                <AcademyBadge tone="success">Great job, all units finished</AcademyBadge>
+              )}
+
+              <div>
+                <div className="mb-2 flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
+                  <span>Completion</span>
+                  <span className="text-primary">{progressPercent}%</span>
                 </div>
-                <div>
-                  <div className="font-heading text-lg font-bold uppercase mb-2">
-                    {course.instructor.name}
+                <AcademyProgressBar value={progressPercent} />
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  firstIncomplete
+                    ? navigate(`/academy/unit/${course.id}/${firstIncomplete.id}`)
+                    : navigate(
+                        course.path_id ? `/academy/path/${course.path_id}` : "/academy",
+                      )
+                }
+                className="inline-flex w-full items-center justify-center gap-2 border-2 border-text-main bg-primary px-5 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-primary-foreground shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
+              >
+                {firstIncomplete ? "Continue learning" : "Return to path"}
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </AcademyPanel>
+
+          {course.instructor ? (
+            <AcademyPanel>
+              <div className="space-y-4">
+                <AcademyBadge tone="muted">Instructor</AcademyBadge>
+                <div className="flex items-start gap-4">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center border border-border-main bg-main-bg text-text-muted shadow-sm">
+                    <User className="h-5 w-5" />
                   </div>
-                  <p className="text-xs font-mono text-text-muted leading-relaxed">
-                    {course.instructor.bio}
-                  </p>
+                  <div>
+                    <div className="font-display text-2xl font-black uppercase tracking-tight text-text-main">
+                      {course.instructor.name}
+                    </div>
+                    <p className="mt-2 font-mono text-sm leading-relaxed text-text-muted">
+                      {course.instructor.bio}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </SoftBrutalCard>
-          )}
+            </AcademyPanel>
+          ) : null}
 
-          <div className="bg-surface p-6 lg:max-h-[calc(100vh-200px)] overflow-y-auto">
-            <div className="text-[10px] font-mono uppercase tracking-widest text-text-muted mb-6 pb-2">
-              Table of Contents
-            </div>
+          <AcademyPanel>
             <div className="space-y-4">
-              {course.modules.map((module, index) => {
-                const completed = countCompletedModuleUnits(
-                  module,
-                  progress.state.completedLessons,
-                  course.id,
-                );
-                const total =
-                  module.learn_units.length + module.practice_units.length;
-                const percent =
-                  total > 0 ? Math.round((completed / total) * 100) : 0;
+              <div className="flex items-center justify-between gap-3">
+                <AcademyBadge tone="muted">Table of contents</AcademyBadge>
+                <span className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
+                  Jump by module
+                </span>
+              </div>
+              <div className="border-l-2 border-border-main">
+                {course.modules.map((module, index) => {
+                  const completed = countCompletedModuleUnits(
+                    module,
+                    progress.state.completedLessons,
+                    course.id,
+                  );
+                  const total =
+                    module.learn_units.length + module.practice_units.length;
+                  const percent =
+                    total > 0 ? Math.round((completed / total) * 100) : 0;
 
-                return (
-                  <a
-                    key={module.id}
-                    href={`#${moduleAnchor(module.id)}`}
-                    className="group block transition-all"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="text-[10px] font-mono uppercase text-text-muted mb-1">
-                          Ch. {String(index + 1).padStart(2, "0")}
+                  return (
+                    <a
+                      key={module.id}
+                      href={`#${moduleAnchor(module.id)}`}
+                      className="group block border-b border-border-main/70 py-3 pl-4 pr-3 transition-colors last:border-b-0 hover:bg-main-bg/60"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
+                            Ch. {String(index + 1).padStart(2, "0")}
+                          </div>
+                          <div className="mt-1 font-display text-base font-black uppercase tracking-tight text-text-main transition-colors group-hover:text-primary">
+                            {module.title}
+                          </div>
                         </div>
-                        <div className="font-heading text-xs font-bold group-hover:text-primary transition-colors line-clamp-2 uppercase">
-                          {module.title}
+                        <div className="text-right">
+                          <div className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">
+                            {completed}/{total}
+                          </div>
+                          <div
+                            className={`mt-1 text-xs font-bold ${
+                              percent === 100 ? "text-emerald-500" : "text-text-muted"
+                            }`}
+                          >
+                            {percent}%
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <div
-                          className={`text-[10px] font-mono ${percent === 100 ? "text-emerald-500" : "text-text-muted"} mt-1`}
-                        >
-                          {completed}/{total}
-                        </div>
-                      </div>
-                    </div>
-                  </a>
-                );
-              })}
+                    </a>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          </AcademyPanel>
         </aside>
       </div>
-    </div>
+    </AcademyPage>
   );
 }
 
@@ -525,40 +503,34 @@ function UnitLane({
 
   if (units.length === 0) {
     return (
-      <div className="border border-dashed border-border-main p-6 flex flex-col items-center justify-center text-center bg-surface">
-        <div className="text-[10px] font-mono uppercase bg-main-bg text-text-muted px-2 py-1 mb-3">
-          {title}
+      <AcademyPanel padding="p-5">
+        <div className="space-y-3 text-center">
+          <AcademyBadge tone="muted">{title}</AcademyBadge>
+          <p className="text-sm text-text-muted">No units added yet.</p>
         </div>
-        <p className="text-xs text-text-muted/60 font-mono">
-          No units added yet.
-        </p>
-      </div>
+      </AcademyPanel>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-surface border border-border-main">
-      <div className="flex items-center justify-between gap-4 p-4 bg-main-bg/50">
-        <div className="text-[10px] font-mono uppercase tracking-widest text-text-muted">
-          {title}
-        </div>
-        <div className="font-mono text-[10px] text-text-muted">
-          {units.length} Unit(s)
+    <AcademyPanel padding="p-0">
+      <div className="border-b border-border-main px-5 py-4">
+        <div className="flex items-center justify-between gap-4">
+          <AcademyBadge tone="muted">{title}</AcademyBadge>
+          <div className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
+            {units.length} unit(s)
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col">
+      <div className="divide-y divide-border-main">
         {units.map((unit) => {
           const flatIndex = flatUnits.findIndex((item) => item.id === unit.id);
           const previous = flatIndex > 0 ? flatUnits[flatIndex - 1] : null;
           const locked =
             previous &&
             !isAcademyV2UnitCompleted(completedLessons, courseId, previous.id);
-          const done = isAcademyV2UnitCompleted(
-            completedLessons,
-            courseId,
-            unit.id,
-          );
+          const done = isAcademyV2UnitCompleted(completedLessons, courseId, unit.id);
 
           return (
             <button
@@ -568,59 +540,46 @@ function UnitLane({
               onClick={() =>
                 !locked && navigate(`/academy/unit/${courseId}/${unit.id}`)
               }
-              className={`group w-full p-4 text-left transition-all relative flex items-start justify-between gap-4 border-b border-border-main last:border-b-0 ${
+              className={`group flex w-full items-start justify-between gap-4 px-5 py-4 text-left transition-colors ${
                 locked
-                  ? "cursor-not-allowed opacity-40 grayscale bg-main-bg"
-                  : "hover:bg-main-bg focus-visible:outline-none focus:bg-main-bg"
+                  ? "cursor-not-allowed opacity-50"
+                  : "hover:bg-main-bg/60 focus-visible:outline-none focus-visible:bg-main-bg/60"
               }`}
             >
-              <div className="flex-1 min-w-0 pr-2">
-                <div className="flex flex-wrap items-center gap-2 mb-2 text-[10px] font-mono uppercase text-text-muted">
+              <div className="min-w-0 flex-1">
+                <div className="mb-2 flex flex-wrap items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">
                   <span>{unit.type}</span>
-
-                  {unit.xp_reward && (
-                    <span className="px-1 ">{unit.xp_reward} XP</span>
-                  )}
-
-                  {unit.language && (
-                    <span className="px-1 ">{unit.language}</span>
-                  )}
+                  {unit.xp_reward ? <span>{unit.xp_reward} XP</span> : null}
+                  {unit.language ? <span>{unit.language}</span> : null}
                 </div>
-
                 <div
-                  className={`font-heading text-sm font-bold uppercase leading-tight ${locked ? "text-text-muted" : done ? "text-primary" : "text-text-main group-hover:text-primary transition-colors"}`}
+                  className={`font-display text-base font-black uppercase tracking-tight ${
+                    locked
+                      ? "text-text-muted"
+                      : done
+                        ? "text-primary"
+                        : "text-text-main transition-colors group-hover:text-primary"
+                  }`}
                 >
                   {unit.title}
                 </div>
               </div>
 
-              <div className="shrink-0 mt-1">
+              <div className="mt-0.5 shrink-0 text-text-muted">
                 {locked ? (
-                  <Lock
-                    className="h-3 w-3 text-text-muted"
-                    aria-hidden="true"
-                  />
+                  <Lock className="h-4 w-4" />
                 ) : done ? (
-                  <Trophy
-                    className="h-4 w-4 text-emerald-500"
-                    aria-hidden="true"
-                  />
+                  <Trophy className="h-4 w-4 text-emerald-500" />
                 ) : unit.section === "practice" ? (
-                  <Code2
-                    className="h-4 w-4 text-text-muted group-hover:text-primary transition-colors"
-                    aria-hidden="true"
-                  />
+                  <Code2 className="h-4 w-4 transition-colors group-hover:text-primary" />
                 ) : (
-                  <BookOpen
-                    className="h-4 w-4 text-text-muted group-hover:text-primary transition-colors"
-                    aria-hidden="true"
-                  />
+                  <BookOpen className="h-4 w-4 transition-colors group-hover:text-primary" />
                 )}
               </div>
             </button>
           );
         })}
       </div>
-    </div>
+    </AcademyPanel>
   );
 }

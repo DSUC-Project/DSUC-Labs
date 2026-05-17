@@ -1,4 +1,4 @@
-const CACHE_PREFIX = "dsuc-cache-v1";
+const CACHE_PREFIX = "dsuc-cache-v2";
 
 interface CacheEnvelope<T> {
   updatedAt: number;
@@ -6,7 +6,19 @@ interface CacheEnvelope<T> {
 }
 
 function cacheKey(key: string) {
-  return `${CACHE_PREFIX}:${key}`;
+  if (typeof window === "undefined") {
+    return `${CACHE_PREFIX}:server:${key}`;
+  }
+
+  const env = (import.meta as any).env;
+  const rawApiBase = env?.VITE_API_BASE_URL || window.location.origin;
+
+  try {
+    const apiHost = new URL(rawApiBase, window.location.origin).host;
+    return `${CACHE_PREFIX}:${apiHost}:${key}`;
+  } catch {
+    return `${CACHE_PREFIX}:unknown:${key}`;
+  }
 }
 
 export function readCache<T>(key: string, maxAgeMs: number): T | null {

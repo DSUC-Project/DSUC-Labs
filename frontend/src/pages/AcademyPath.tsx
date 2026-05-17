@@ -1,12 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  ArrowLeft,
   ArrowRight,
-  BookOpen,
-  ChevronRight,
   Lock,
   Trophy,
+  Layers3,
 } from "lucide-react";
 
 import type { AcademyV2Path } from "@/types";
@@ -14,12 +12,18 @@ import { fetchAcademyV2Catalog } from "@/lib/academy/v2Api";
 import { useAcademyProgressState } from "@/lib/academy/useAcademyProgress";
 import { countCompletedAcademyV2CourseUnits } from "@/lib/academy/v2Progress";
 import { useStore } from "@/store/useStore";
+import { ActionButton } from "@/components/ui/Primitives";
 import {
-  ActionButton,
-  SoftBrutalCard,
-  StatusBadge,
-  SectionHeader,
-} from "@/components/ui/Primitives";
+  AcademyBackLink,
+  AcademyBadge,
+  AcademyEmptyState,
+  AcademyPage,
+  AcademyPanel,
+  AcademyCompactStat,
+  AcademyProgressBar,
+  AcademySectionTitle,
+  AcademyStat,
+} from "@/components/academy/AcademyPrimitives";
 
 function isCourseCompleted(
   pathState: ReturnType<typeof useAcademyProgressState>["state"],
@@ -98,108 +102,116 @@ export function AcademyPath() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-12 md:py-24 space-y-32">
-        <div className="h-64 animate-pulse bg-surface" />
-      </div>
+      <AcademyPage>
+        <AcademyPanel className="h-72 animate-pulse" padding="p-0" />
+      </AcademyPage>
     );
   }
 
   if (!path) {
     return (
-      <div className="container mx-auto px-4 py-24 text-center">
-        <div className="p-8 border border-border-main bg-surface text-text-muted font-mono text-sm max-w-md mx-auto">
-          {error || "Path not found."}
-        </div>
-        <div className="mt-8">
-          <Link to="/academy">
-            <ActionButton variant="primary">Return to Academy</ActionButton>
-          </Link>
-        </div>
-      </div>
+      <AcademyPage>
+        <AcademyEmptyState
+          title="Path not found"
+          description={error || "This learning path is not available right now."}
+          action={
+            <Link to="/academy">
+              <ActionButton variant="primary">Return to Academy</ActionButton>
+            </Link>
+          }
+        />
+      </AcademyPage>
     );
   }
 
   const completedCourses = path.courses.filter((course) =>
     isCourseCompleted(progress.state, course),
   ).length;
+  const completedUnits = path.courses.reduce(
+    (sum, course) =>
+      sum +
+      countCompletedAcademyV2CourseUnits(progress.state.completedLessons, course.id),
+    0,
+  );
+  const overallPercent =
+    path.total_unit_count > 0
+      ? Math.round((completedUnits / path.total_unit_count) * 100)
+      : 0;
 
   return (
-    <div className="container mx-auto px-4 py-12 md:py-24 space-y-24">
-      {/* Hero Section */}
-      <section className="relative">
-        <Link
-          to="/academy"
-          className="inline-flex items-center gap-2 mb-8 border-2 border-text-main bg-surface px-4 py-2 text-xs font-bold uppercase tracking-widest font-mono shadow-[2px_2px_0_0_#000] hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#000] transition-all text-text-main"
-        >
-          <ArrowLeft className="w-4 h-4" strokeWidth={2} />
-          BACK TO ACADEMY
-        </Link>
+    <AcademyPage>
+      <section className="space-y-6">
+        <AcademyBackLink to="/academy" label="Back to Academy" />
 
-        <div className="flex flex-col lg:flex-row gap-12 lg:items-end justify-between">
-          <div className="flex flex-col gap-6 max-w-3xl">
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <StatusBadge
-                  status={path.tag || path.difficulty}
-                  className="inline-flex border-2 border-text-main bg-blue-600 text-white"
-                />
-                {completedCourses === path.courses.length && path.courses.length > 0 && (
-                  <StatusBadge
-                    status="Path Completed"
-                    className="inline-flex border-2 border-emerald-500 text-emerald-500 bg-emerald-500/10"
-                  />
-                )}
-              </div>
-              <h1 className="font-heading font-bold text-5xl md:text-7xl uppercase tracking-tighter leading-none mb-6">
+        <AcademyPanel tone="primary" padding="p-5 sm:p-6">
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-center gap-3">
+              <AcademyBadge tone="primary">
+                {path.tag || path.difficulty}
+              </AcademyBadge>
+              {completedCourses === path.courses.length &&
+              path.courses.length > 0 ? (
+                <AcademyBadge tone="success">Path completed</AcademyBadge>
+              ) : null}
+            </div>
+            <div className="space-y-3">
+              <h1 className="font-display text-4xl font-black uppercase tracking-tighter text-text-main sm:text-5xl lg:text-6xl">
                 {path.title}
               </h1>
-              <p className="text-lg text-text-muted max-w-2xl leading-relaxed">
-                Complete this learning path progressively. Each course unlocks
-                the next stage of your journey.
+              <p className="max-w-3xl font-mono text-sm leading-relaxed text-text-muted">
+                Complete this path progressively. Each course unlocks the next
+                stage so the sequence stays legible and the challenge density grows
+                in the right order.
               </p>
             </div>
-          </div>
 
-          <div className="grid grid-cols-3 gap-3 w-full lg:w-auto shrink-0 mt-8 lg:mt-0">
-            <div className="p-4 bg-surface text-center flex flex-col items-center justify-center min-w-[100px]">
-              <p className="font-heading text-3xl font-bold">
-                {path.course_count}
-              </p>
-              <p className="font-mono text-[10px] uppercase text-text-muted mt-1">
-                Courses
-              </p>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <AcademyCompactStat
+                label="Courses"
+                value={path.course_count}
+                meta={`${completedCourses} completed`}
+              />
+              <AcademyCompactStat
+                label="Practice"
+                value={path.practice_unit_count}
+                meta="Hands-on units"
+              />
+              <AcademyCompactStat
+                label="Units"
+                value={path.total_unit_count}
+                meta={`${completedUnits} finished`}
+              />
+              <AcademyCompactStat
+                label="Progress"
+                value={`${overallPercent}%`}
+                meta="Whole path completion"
+                valueClassName="text-primary"
+              />
             </div>
-            <div className="p-4 bg-surface text-center flex flex-col items-center justify-center min-w-[100px]">
-              <p className="font-heading text-3xl font-bold">
-                {path.practice_unit_count}
-              </p>
-              <p className="font-mono text-[10px] uppercase text-text-muted mt-1">
-                Practice
-              </p>
-            </div>
-            <div className="p-4 bg-surface text-center flex flex-col items-center justify-center min-w-[100px]">
-              <p className="font-heading text-3xl font-bold text-emerald-500">
-                {completedCourses}
-              </p>
-              <p className="font-mono text-[10px] uppercase text-text-muted mt-1">
-                Done
-              </p>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
+                <span>Path completion</span>
+                <span>{overallPercent}%</span>
+              </div>
+              <AcademyProgressBar value={overallPercent} className="h-2.5" />
             </div>
           </div>
-        </div>
+        </AcademyPanel>
       </section>
 
-      {/* Courses Section */}
-      <section>
-        <SectionHeader
-          title="Curriculum"
-          subtitle="Courses included in this path."
+      <section className="space-y-6">
+        <AcademySectionTitle
+          eyebrow="Path Curriculum"
+          title="Courses"
+          description="Each course keeps theory and practice together, with unlocking based on the previous course completion."
         />
 
         {path.courses.length === 0 ? (
-          <div className="p-12 text-center bg-surface border border-border-main font-mono text-sm text-text-muted mt-8">
-            This path is currently under construction.
-          </div>
+          <AcademyEmptyState
+            title="Curriculum in progress"
+            description="This path is being assembled. Check back later for the full sequence."
+          />
         ) : (
           <div className="space-y-4">
             {path.courses.map((course, index) => {
@@ -228,88 +240,113 @@ export function AcademyPath() {
                   onClick={() =>
                     !locked && navigate(`/academy/course/${course.id}`)
                   }
-                  className={`group w-full flex flex-col md:flex-row p-6 md:p-8 text-left transition-all relative overflow-hidden bg-surface border-2 border-text-main shadow-[4px_4px_0_0_#000] mb-4 ${
-                    locked
-                      ? "cursor-not-allowed opacity-60 grayscale"
-                      : "hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[8px_8px_0_0_#000]"
-                  }`}
+                  className="block w-full text-left disabled:cursor-not-allowed"
                 >
-                  <div className="absolute top-0 left-0 w-full h-1.5 bg-main-bg border-b-2 border-text-main">
-                    <div
-                      className={`h-full transition-all duration-1000 ease-out ${isCompleted ? "bg-emerald-500" : "bg-primary"}`}
-                      style={{ width: `${completionPercent}%` }}
-                    />
-                  </div>
+                  <AcademyPanel
+                    interactive={!locked}
+                    tone={isCompleted ? "success" : locked ? "muted" : "primary"}
+                    className={locked ? "opacity-65 grayscale" : "group"}
+                  >
+                    <div className="space-y-5">
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <AcademyBadge tone={locked ? "muted" : "default"}>
+                              Stage {String(index + 1).padStart(2, "0")}
+                            </AcademyBadge>
+                            {locked ? (
+                              <AcademyBadge tone="muted">
+                                <Lock className="h-3 w-3" />
+                                Locked
+                              </AcademyBadge>
+                            ) : isCompleted ? (
+                              <AcademyBadge tone="success">
+                                <Trophy className="h-3 w-3" />
+                                Completed
+                              </AcademyBadge>
+                            ) : (
+                              <AcademyBadge tone="primary">
+                                <Layers3 className="h-3 w-3" />
+                                In progress
+                              </AcademyBadge>
+                            )}
+                          </div>
 
-                  <div className="flex-1 min-w-0 pr-8">
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="inline-block px-3 py-1 font-mono text-[10px] uppercase tracking-widest font-bold border-2 border-text-main bg-blue-600 text-white shadow-[2px_2px_0_0_#000]">
-                        Stage {String(index + 1).padStart(2, "0")}
-                      </span>
-                      {locked ? (
-                        <span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-text-muted">
-                          <Lock className="w-3 h-3" /> Locked
-                        </span>
-                      ) : isCompleted ? (
-                        <span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-emerald-500">
-                          <Trophy className="w-3 h-3" /> Completed
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <h3
-                      className={`font-heading font-bold text-2xl md:text-3xl uppercase tracking-tight mb-3 truncate w-full ${locked ? "text-text-muted" : "text-text-main group-hover:text-primary transition-colors"}`}
-                    >
-                      {course.title}
-                    </h3>
-                    <p
-                      className={`text-sm leading-relaxed max-w-3xl line-clamp-2 ${locked ? "text-text-muted/60" : "text-text-muted"}`}
-                    >
-                      {course.description}
-                    </p>
-                  </div>
-
-                  <div className="mt-8 md:mt-0 flex flex-row md:flex-col items-center md:items-end justify-between shrink-0 pl-0 md:pl-8">
-                    <div className="flex gap-4 md:flex-col md:gap-2 text-left md:text-right">
-                      <div>
-                        <div className="font-heading font-bold text-xl">
-                          {completed}
-                          <span className="text-sm font-sans font-normal text-text-muted">
-                            /{course.total_unit_count}
-                          </span>
+                          <div>
+                            <h3
+                              className={`font-display text-3xl font-black uppercase tracking-tight ${
+                                locked
+                                  ? "text-text-muted"
+                                  : "text-text-main transition-colors group-hover:text-primary"
+                              }`}
+                            >
+                              {course.title}
+                            </h3>
+                            <p
+                              className={`mt-3 max-w-3xl font-mono text-sm leading-relaxed ${
+                                locked ? "text-text-muted/70" : "text-text-muted"
+                              }`}
+                            >
+                              {course.description}
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-[10px] font-mono text-text-muted uppercase">
-                          Units
+
+                        <div className="grid min-w-[200px] gap-3 sm:grid-cols-2">
+                          <AcademyStat
+                            label="Units"
+                            value={
+                              <>
+                                {completed}
+                                <span className="ml-1 text-base text-text-muted">
+                                  / {course.total_unit_count}
+                                </span>
+                              </>
+                            }
+                            meta="Completed / total"
+                            className="px-4 py-3"
+                            valueClassName="text-2xl"
+                          />
+                          <AcademyStat
+                            label="Duration"
+                            value={`${course.duration_hours}h`}
+                            meta="Estimated"
+                            className="px-4 py-3"
+                            valueClassName="text-2xl"
+                          />
                         </div>
                       </div>
-                      <div>
-                        <div className="font-heading font-bold text-xl">
-                          {course.duration_hours}
-                          <span className="text-sm font-sans font-normal text-text-muted">
-                            h
-                          </span>
-                        </div>
-                        <div className="text-[10px] font-mono text-text-muted uppercase">
-                          Duration
-                        </div>
+
+                      <AcademyProgressBar
+                        value={completionPercent}
+                        fillClassName={isCompleted ? "bg-emerald-500" : undefined}
+                      />
+
+                      <div className="flex items-center justify-between border-t border-border-main pt-4">
+                        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-text-muted">
+                          {locked
+                            ? "Complete the previous course to unlock"
+                            : isCompleted
+                              ? "Review this course anytime"
+                              : "Continue from the next unfinished unit"}
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.24em] ${
+                            locked ? "text-text-muted" : "text-primary"
+                          }`}
+                        >
+                          {isCompleted ? "Review course" : "Open course"}
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </span>
                       </div>
                     </div>
-
-                    <div className="mt-auto hidden md:block">
-                      <span
-                        className={`inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-all ${locked ? "text-transparent" : "text-primary group-hover:gap-3"}`}
-                      >
-                        {isCompleted ? "Review" : "Open Course"}
-                        <ArrowRight className="w-3 h-3" />
-                      </span>
-                    </div>
-                  </div>
+                  </AcademyPanel>
                 </button>
               );
             })}
           </div>
         )}
       </section>
-    </div>
+    </AcademyPage>
   );
 }

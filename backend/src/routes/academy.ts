@@ -1,12 +1,16 @@
 import { Router, Response } from 'express';
-import { db } from '../index';
+import { db } from '../db';
 import {
   authenticateUser,
   AuthRequest,
   requireAcademyAccess,
   requireExecutiveAdmin,
 } from '../middleware/auth';
-import { academyDateKey, calculateLearningStreak } from '../utils/academyStats';
+import {
+  academyDateKey,
+  calculateLearningStreak,
+  extractQualifiedStreakRows,
+} from '../utils/academyStats';
 import {
   academyV2CourseIdFromProgressTrack,
   getAcademyV2Course,
@@ -19,6 +23,8 @@ const router = Router();
 
 const QUESTION_STATUSES = new Set(['Draft', 'Published', 'Archived']);
 const LESSON_STATUSES = new Set(['Draft', 'Published', 'Archived']);
+const MIN_COMPLETION_STREAK_SECONDS = 15;
+const MIN_REVIEW_STREAK_SECONDS = 30;
 
 type AcademyAction =
   | 'started'
@@ -54,6 +60,15 @@ function normalizeChecklist(value: unknown) {
   return value.map((item) => normalizeBoolean(item));
 }
 
+function normalizeStudySeconds(value: unknown) {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    return 0;
+  }
+
+  return Math.floor(seconds);
+}
+
 function isNotFoundLookupError(error: any): boolean {
   if (!error) {
     return false;
@@ -77,13 +92,18 @@ function checklistEquals(a: unknown, b: unknown) {
   );
 }
 
-function buildAcademyAction(existing: any, payload: any, recordReview = false): AcademyAction | null {
-  if (!existing) {
-    if (payload.quiz_passed) {
-      return 'quiz_passed';
-    }
+function buildAcademyAction(
+  existing: any,
+  payload: any,
+  options?: { recordReview?: boolean; studySeconds?: number },
+): AcademyAction | null {
+  const recordReview = options?.recordReview === true;
+  const studySeconds = normalizeStudySeconds(options?.studySeconds);
+  const qualifiesCompletion = studySeconds >= MIN_COMPLETION_STREAK_SECONDS;
+  const qualifiesReview = studySeconds >= MIN_REVIEW_STREAK_SECONDS;
 
-    if (payload.lesson_completed) {
+  if (!existing) {
+    if (payload.lesson_completed && qualifiesCompletion) {
       return 'lesson_completed';
     }
 
@@ -91,14 +111,18 @@ function buildAcademyAction(existing: any, payload: any, recordReview = false): 
       return 'checklist_updated';
     }
 
+    if (payload.quiz_passed && !payload.lesson_completed) {
+      return 'quiz_passed';
+    }
+
     return 'started';
   }
 
-  if (!existing.lesson_completed && payload.lesson_completed) {
+  if (!existing.lesson_completed && payload.lesson_completed && qualifiesCompletion) {
     return 'lesson_completed';
   }
 
-  if (!existing.quiz_passed && payload.quiz_passed) {
+  if (!existing.quiz_passed && payload.quiz_passed && !payload.lesson_completed) {
     return 'quiz_passed';
   }
 
@@ -110,7 +134,7 @@ function buildAcademyAction(existing: any, payload: any, recordReview = false): 
     return 'progress_updated';
   }
 
-  if (recordReview && payload.lesson_completed) {
+  if (recordReview && payload.lesson_completed && qualifiesReview) {
     return 'lesson_reviewed';
   }
 
@@ -1464,6 +1488,8 @@ router.get(
           .sort()
           .pop() || null;
 
+        const streakRows = extractQualifiedStreakRows(userActivity);
+
         return {
           user_id: member.id,
           name: member.name,
@@ -1473,7 +1499,7 @@ router.get(
           xp,
           completed_lessons: completedLessons,
           quiz_passed: quizPassed,
-          streak: calculateLearningStreak(userActivity),
+          streak: calculateLearningStreak(streakRows),
           last_activity: lastActivity,
         };
       });
@@ -1577,7 +1603,8 @@ router.get('/stats', authenticateUser as any, async (req: AuthRequest, res: Resp
     const progress = progressRows || [];
     const activity = activityRows || [];
     const timelineRows = [...activity, ...progress];
-    const activeDays = academyActiveDayKeys(timelineRows);
+    const streakRows = extractQualifiedStreakRows(activity);
+    const activeDays = academyActiveDayKeys(streakRows);
     const xp = progress.reduce(
       (sum: number, row: any) => sum + Number(row.xp_awarded || 0),
       0
@@ -1594,7 +1621,7 @@ router.get('/stats', authenticateUser as any, async (req: AuthRequest, res: Resp
       success: true,
       data: {
         user_id: userId,
-        streak: calculateLearningStreak(timelineRows),
+        streak: calculateLearningStreak(streakRows),
         academy_xp: xp,
         completed_lessons: completedLessons,
         quiz_passed: quizPassed,
@@ -1673,6 +1700,7 @@ router.post('/progress', authenticateUser as any, async (req: AuthRequest, res: 
       checklist,
       xp_awarded,
       record_review,
+      study_seconds,
     } = req.body || {};
 
     if (!track || !lesson_id) {
@@ -1732,7 +1760,10 @@ router.post('/progress', authenticateUser as any, async (req: AuthRequest, res: 
     const activityAction = buildAcademyAction(
       existing,
       payload,
-      normalizeBoolean(record_review)
+      {
+        recordReview: normalizeBoolean(record_review),
+        studySeconds: study_seconds,
+      }
     );
 
     if (existing?.id && !activityAction) {
