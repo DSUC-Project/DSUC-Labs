@@ -55,45 +55,6 @@ function normalizeUrl(
   }
 }
 
-function SharedMemberCover() {
-  return (
-    <div className="relative h-40 overflow-hidden border-b-2 border-text-main bg-main-bg sm:h-44">
-      <div className="absolute inset-x-0 top-0 h-12 border-b border-border-main bg-surface/90" />
-      <div className="absolute inset-x-0 bottom-0 h-10 border-t border-border-main bg-surface/80" />
-
-      <div className="absolute inset-0 px-4 py-4 sm:px-6">
-        <div className="grid h-full grid-cols-10 gap-2">
-          <div className="col-span-2 border border-border-main bg-surface" />
-          <div className="col-span-1 border border-border-main bg-main-bg/60" />
-          <div className="col-span-2 border border-border-main bg-primary/20" />
-          <div className="col-span-2 border border-border-main bg-surface" />
-          <div className="col-span-3 border border-border-main bg-main-bg/55" />
-
-          <div className="col-span-1 border border-border-main bg-main-bg/60" />
-          <div className="col-span-3 border border-border-main bg-surface" />
-          <div className="col-span-2 border border-border-main bg-main-bg/55" />
-          <div className="col-span-1 border border-border-main bg-primary/18" />
-          <div className="col-span-3 border border-border-main bg-surface" />
-
-          <div className="col-span-4 border border-border-main bg-main-bg/55" />
-          <div className="col-span-2 border border-border-main bg-surface" />
-          <div className="col-span-1 border border-border-main bg-main-bg/60" />
-          <div className="col-span-3 border border-border-main bg-primary/15" />
-        </div>
-      </div>
-
-      <div className="absolute left-4 top-4 sm:left-6">
-        <div className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
-          DSUC LABS
-        </div>
-        <div className="mt-1 font-display text-[42px] font-black uppercase leading-none tracking-[-0.08em] text-text-main sm:text-[56px]">
-          DSUC
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function LinkRow({
   icon: Icon,
   label,
@@ -264,104 +225,93 @@ export function MemberDetail() {
         </div>
       </ModalShell>
 
-      <SoftBrutalCard intent="primary" withPattern className="overflow-hidden p-0">
-        <SharedMemberCover />
+      <SoftBrutalCard intent="primary" className="p-4 sm:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex min-w-0 gap-4 sm:gap-5">
+            <div className="h-32 w-32 shrink-0 border-[3px] border-text-main bg-surface p-1.5 shadow-[6px_6px_0_0_#000] dark:shadow-[6px_6px_0_0_rgba(0,0,0,0.55)] sm:h-40 sm:w-40">
+              <div className="h-full w-full overflow-hidden border border-border-main bg-main-bg">
+                <img
+                  src={member.avatar || `https://i.pravatar.cc/320?u=${member.id}`}
+                  alt={member.name}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            </div>
 
-        <div className="relative px-4 pb-5 pt-20 sm:px-6 md:pb-6 md:pt-24">
-          <div className="absolute left-4 top-0 h-32 w-32 -translate-y-1/2 border-[3px] border-text-main bg-surface p-1.5 shadow-[6px_6px_0_0_#000] dark:shadow-[6px_6px_0_0_rgba(0,0,0,0.55)] sm:left-6 sm:h-40 sm:w-40">
-            <div className="h-full w-full overflow-hidden border border-border-main bg-main-bg">
-              <img
-                src={member.avatar || `https://i.pravatar.cc/320?u=${member.id}`}
-                alt={member.name}
-                className="h-full w-full object-cover"
-              />
+            <div className="flex min-w-0 flex-1 flex-col justify-between py-1 sm:min-h-[160px]">
+              <div className="space-y-2">
+                <motion.h1
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="break-words font-display text-[clamp(2rem,4.5vw,4.4rem)] font-black uppercase leading-[0.88] tracking-tight text-text-main"
+                >
+                  {member.name}
+                </motion.h1>
+                <div className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-text-muted">
+                  {member.role || "Member"}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusBadge
+                    status={
+                      member.memberType === "community" ? "Community" : "Official"
+                    }
+                  />
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
+                    {publicLinks.length} public links
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <p className="max-w-2xl font-mono text-sm leading-relaxed text-text-muted">
+                  {summary}
+                </p>
+
+                {featuredSkills.length > 0 ? (
+                  <div className="flex flex-wrap gap-x-4 gap-y-2">
+                    {featuredSkills.map((skill) => (
+                      <span
+                        key={skill}
+                        className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
 
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="space-y-4 lg:max-w-3xl">
-              <div className="flex gap-5 pl-[144px] sm:pl-[176px]">
-                <div className="min-w-0 space-y-3">
-                  <motion.h1
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="break-words font-display text-[clamp(2.35rem,5vw,4.9rem)] font-black uppercase leading-[0.9] tracking-tight text-text-main"
-                  >
-                    {member.name}
-                  </motion.h1>
-                  <div className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-text-muted">
-                    {member.role || "Member"}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <StatusBadge
-                      status={member.memberType === "community" ? "Community" : "Official"}
-                    />
-                  </div>
-                </div>
-              </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2 lg:w-auto lg:flex-nowrap lg:self-end lg:justify-end">
+            {publicLinks.map((link) => {
+              const Icon = link.icon;
 
-              <p className="max-w-3xl pl-[144px] font-mono text-sm leading-relaxed text-text-muted sm:pl-[176px]">
-                {summary}
-              </p>
+              return (
+                <a
+                  key={link.key}
+                  href={link.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={link.label}
+                  title={link.label}
+                  className="inline-flex h-11 w-11 items-center justify-center border border-border-main bg-surface text-text-main focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                >
+                  <Icon className="h-4 w-4" />
+                </a>
+              );
+            })}
 
-              {featuredSkills.length > 0 ? (
-                <div className="flex flex-wrap gap-x-4 gap-y-2 pl-[144px] sm:pl-[176px]">
-                  {featuredSkills.map((skill) => (
-                    <span
-                      key={skill}
-                      className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted"
-                    >
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-
-              <div className="flex flex-wrap items-center gap-2 pl-[144px] sm:pl-[176px]">
-                {publicLinks.length > 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowContactPopup(true)}
-                    className="inline-flex h-11 items-center justify-center gap-2 border border-text-main bg-surface px-4 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-main"
-                  >
-                    <Link2 className="h-4 w-4" />
-                    Contact
-                  </button>
-                ) : null}
-
-                {publicLinks.slice(0, 4).map((link) => {
-                  const Icon = link.icon;
-
-                  return (
-                    <a
-                      key={link.key}
-                      href={link.href}
-                      target="_blank"
-                      rel="noreferrer"
-                      aria-label={link.label}
-                      title={link.label}
-                      className="inline-flex h-11 w-11 items-center justify-center border border-border-main bg-surface text-text-main"
-                    >
-                      <Icon className="h-4 w-4" />
-                    </a>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="w-full max-w-[320px] shrink-0">
-              <div className="space-y-3 border border-border-main bg-main-bg/65 p-4">
-                <div className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                  Member ID
-                </div>
-                <div className="font-display text-3xl font-black uppercase tracking-tight text-text-main">
-                  #{member.id.substring(0, 4)}
-                </div>
-                <div className="font-mono text-[10px] leading-5 text-text-muted">
-                  {publicLinks.length} public links shared
-                </div>
-              </div>
-            </div>
+            {publicLinks.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setShowContactPopup(true)}
+                className="inline-flex h-11 items-center justify-center gap-2 border border-text-main bg-surface px-4 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-main focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              >
+                <Link2 className="h-4 w-4" />
+                Contact
+              </button>
+            ) : null}
           </div>
         </div>
       </SoftBrutalCard>
