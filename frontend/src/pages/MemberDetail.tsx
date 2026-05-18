@@ -17,6 +17,7 @@ import { Member } from "../types";
 import { SoftBrutalCard, StatusBadge } from "@/components/ui/Primitives";
 import { ModalShell } from "@/components/ui/ModalShell";
 import { streakTheme } from "@/lib/streakTheme";
+import { useLocale } from "@/lib/locale";
 
 type PublicLink = {
   key: string;
@@ -101,6 +102,7 @@ function StreakCell({ active }: { active: boolean }) {
 }
 
 export function MemberDetail() {
+  const { text } = useLocale();
   const { id } = useParams();
   const navigate = useNavigate();
   const { members } = useStore();
@@ -112,7 +114,7 @@ export function MemberDetail() {
     id: id || "mock-id",
     name: `User ${id?.slice(0, 4) || "X"}`,
     avatar: `https://i.pravatar.cc/320?u=${id}`,
-    role: "Member",
+    role: text("Member", "Thành viên"),
     skills: [],
     socials: {},
     memberType: "community",
@@ -172,8 +174,14 @@ export function MemberDetail() {
 
   const featuredSkills = member.skills.slice(0, 5);
   const summary = featuredSkills.length
-    ? `Focused on ${featuredSkills.slice(0, 3).join(", ")}.`
-    : "This member has not published focus areas yet.";
+    ? text(
+        `Focused on ${featuredSkills.slice(0, 3).join(", ")}.`,
+        `Tập trung vào ${featuredSkills.slice(0, 3).join(", ")}.`,
+      )
+    : text(
+        "This member has not published focus areas yet.",
+        "Thành viên này chưa công khai focus area nào.",
+      );
   const streakLength = Math.max(0, member.streak || 0);
   const streakPreview = Array.from({ length: 7 }, (_, index) =>
     index >= 7 - Math.min(streakLength, 7),
@@ -181,8 +189,8 @@ export function MemberDetail() {
 
   if (!matchedMember && members.length > 0) {
     return (
-      <div className="pt-20 text-center font-mono text-sm uppercase tracking-widest text-text-muted">
-        Member not found
+        <div className="pt-20 text-center font-mono text-sm uppercase tracking-widest text-text-muted">
+        {text("Member not found", "Không tìm thấy thành viên")}
       </div>
     );
   }
@@ -193,7 +201,7 @@ export function MemberDetail() {
         <button
           type="button"
           onClick={() => navigate("/members")}
-          aria-label="Back to members"
+          aria-label={text("Back to members", "Quay lại trang thành viên")}
           className="inline-flex h-10 w-10 items-center justify-center border-2 border-text-main bg-surface text-text-main focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
           <ArrowLeft className="h-4 w-4" strokeWidth={2.2} />
@@ -203,8 +211,8 @@ export function MemberDetail() {
       <ModalShell
         isOpen={showContactPopup}
         onClose={() => setShowContactPopup(false)}
-        title="Contact"
-        label="PUBLIC LINKS"
+        title={text("Contact", "Liên hệ")}
+        label={text("PUBLIC LINKS", "LIÊN KẾT CÔNG KHAI")}
       >
         <div className="space-y-3">
           {publicLinks.length > 0 ? (
@@ -219,7 +227,7 @@ export function MemberDetail() {
             ))
           ) : (
             <div className="border border-dashed border-border-main bg-main-bg/60 px-4 py-4 text-sm leading-6 text-text-muted">
-              No public links shared yet.
+              {text("No public links shared yet.", "Chưa có liên kết công khai nào.")}
             </div>
           )}
         </div>
@@ -248,16 +256,18 @@ export function MemberDetail() {
                   {member.name}
                 </motion.h1>
                 <div className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-text-muted">
-                  {member.role || "Member"}
+                  {member.role || text("Member", "Thành viên")}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge
                     status={
-                      member.memberType === "community" ? "Community" : "Official"
+                      member.memberType === "community"
+                        ? text("Community", "Cộng đồng")
+                        : text("Official", "Chính thức")
                     }
                   />
                   <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                    {publicLinks.length} public links
+                    {publicLinks.length} {text("public links", "liên kết công khai")}
                   </span>
                 </div>
               </div>
@@ -309,7 +319,7 @@ export function MemberDetail() {
                 className="inline-flex h-11 items-center justify-center gap-2 border border-text-main bg-surface px-4 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-main focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
                 <Link2 className="h-4 w-4" />
-                Contact
+                {text("Contact", "Liên hệ")}
               </button>
             ) : null}
           </div>
@@ -320,10 +330,10 @@ export function MemberDetail() {
         <SoftBrutalCard intent="default" className="p-6">
           <div className="mb-5">
             <div className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
-              Connect
+              {text("Connect", "Kết nối")}
             </div>
             <h2 className="mt-1 font-display text-2xl font-black uppercase tracking-tight text-text-main">
-              Public Links
+              {text("Public Links", "Liên kết công khai")}
             </h2>
           </div>
 
@@ -340,7 +350,7 @@ export function MemberDetail() {
               ))
             ) : (
               <div className="border border-dashed border-border-main bg-main-bg/60 px-4 py-4 text-sm leading-6 text-text-muted">
-                No public links shared yet.
+                {text("No public links shared yet.", "Chưa có liên kết công khai nào.")}
               </div>
             )}
           </div>
@@ -349,7 +359,7 @@ export function MemberDetail() {
         <SoftBrutalCard intent="default" className="p-6">
           <div className="mb-5">
             <div className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
-              Learning
+              {text("Learning", "Học tập")}
             </div>
             <h2 className="mt-1 font-display text-2xl font-black uppercase tracking-tight text-text-main">
               Streak
@@ -360,7 +370,7 @@ export function MemberDetail() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                  Academy streak
+                  {text("Academy streak", "Streak trong Academy")}
                 </div>
                 <div className="mt-3 flex items-end gap-3">
                   <div className={`flex h-12 w-12 items-center justify-center border ${streakTheme.flameBorder} ${streakTheme.flameSoft}`}>
@@ -371,13 +381,15 @@ export function MemberDetail() {
                       {streakLength}
                     </div>
                     <div className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      day run
+                      {text("day run", "ngày liên tiếp")}
                     </div>
                   </div>
                 </div>
               </div>
               <div className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                {streakLength > 0 ? "Active" : "Ready"}
+                {streakLength > 0
+                  ? text("Active", "Đang hoạt động")
+                  : text("Ready", "Sẵn sàng")}
               </div>
             </div>
 
@@ -390,7 +402,7 @@ export function MemberDetail() {
             <div className="mt-4 grid grid-cols-3 gap-2">
               <div className="bg-surface px-3 py-3">
                 <div className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                  Skills
+                  {text("Skills", "Kỹ năng")}
                 </div>
                 <div className="mt-1 font-display text-2xl font-black text-text-main">
                   {member.skills.length}
@@ -398,7 +410,7 @@ export function MemberDetail() {
               </div>
               <div className="bg-surface px-3 py-3">
                 <div className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                  Links
+                  {text("Links", "Liên kết")}
                 </div>
                 <div className="mt-1 font-display text-2xl font-black text-text-main">
                   {publicLinks.length}
@@ -406,10 +418,10 @@ export function MemberDetail() {
               </div>
               <div className="bg-surface px-3 py-3">
                 <div className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                  Focus
+                  {text("Focus", "Focus")}
                 </div>
                 <div className="mt-1 text-sm font-bold uppercase tracking-wide text-text-main">
-                  {featuredSkills[0] || "Open"}
+                  {featuredSkills[0] || text("Open", "Mở")}
                 </div>
               </div>
             </div>

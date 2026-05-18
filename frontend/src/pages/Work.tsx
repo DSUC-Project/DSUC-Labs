@@ -22,8 +22,10 @@ import {
 } from "@/components/ui/Primitives";
 import { ActionCard } from "@/components/ui/Cards";
 import { ModalShell } from "@/components/ui/ModalShell";
+import { useLocale } from "@/lib/locale";
 
 export function Work() {
+  const { text } = useLocale();
   const [activeTab, setActiveTab] = useState<"bounties" | "repos">("bounties");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { currentUser } = useStore();
@@ -31,12 +33,17 @@ export function Work() {
 
   const handleAddClick = () => {
     if (!currentUser) {
-      toast("Vui lòng đăng nhập trước!");
+      toast(text("Please sign in first.", "Vui lòng đăng nhập trước!"));
       return;
     }
 
     if (!canManage) {
-      toast("Tài khoản cộng đồng không thể tạo dự án/nhiệm vụ.");
+      toast(
+        text(
+          "Community accounts cannot create projects or tasks.",
+          "Tài khoản community không thể tạo dự án hoặc nhiệm vụ.",
+        ),
+      );
       return;
     }
     setIsModalOpen(true);
@@ -46,8 +53,11 @@ export function Work() {
     <div className="container mx-auto px-4 py-8 md:py-16 space-y-12">
       <div className="flex flex-col md:flex-row md:items-end justify-between items-start gap-4 mb-8">
         <SectionHeader
-          title="Work Board"
-          subtitle="Bounties & Open Source repositories from DSUC."
+          title={text("Work Board", "Bảng công việc")}
+          subtitle={text(
+            "Bounties & Open Source repositories from DSUC.",
+            "Bounty và các repo Open Source từ DSUC.",
+          )}
           className="mb-0 border-none pb-0"
         />
         <div className="w-full md:w-auto mt-4 md:mt-0 flex gap-4">
@@ -58,8 +68,10 @@ export function Work() {
               className="w-full md:w-auto"
             >
               <span className="flex items-center gap-2">
-                <Plus size={16} /> ADD{" "}
-                {activeTab === "bounties" ? "BOUNTY" : "REPO"}
+                <Plus size={16} />{" "}
+                {activeTab === "bounties"
+                  ? text("Add Bounty", "Thêm bounty")
+                  : text("Add Repo", "Thêm repo")}
               </span>
             </ActionButton>
           )}
@@ -71,13 +83,13 @@ export function Work() {
           active={activeTab === "bounties"}
           onClick={() => setActiveTab("bounties")}
         >
-          Bounties
+          {text("Bounties", "Bounty")}
         </TabButton>
         <TabButton
           active={activeTab === "repos"}
           onClick={() => setActiveTab("repos")}
         >
-          Open Source
+          {text("Open Source", "Open Source")}
         </TabButton>
       </div>
 
@@ -115,34 +127,40 @@ function TabButton({
 }
 
 function BountyBoard() {
+  const { text } = useLocale();
   const { bounties } = useStore();
-  const columns = ["Open", "In Progress", "Completed", "Closed"];
+  const columns = [
+    { key: "Open", label: text("Open", "Mở") },
+    { key: "In Progress", label: text("In Progress", "Đang làm") },
+    { key: "Completed", label: text("Completed", "Hoàn thành") },
+    { key: "Closed", label: text("Closed", "Đã đóng") },
+  ];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-      {columns.map((status) => (
+      {columns.map((column) => (
         <div
-          key={status}
+          key={column.key}
           className="bg-main-bg  p-4 h-full flex flex-col shadow-sm"
         >
           <div className="flex items-center gap-2 mb-4  pb-3">
             <span className="font-heading text-sm font-bold uppercase tracking-widest text-text-main shrink-0 flex-1">
-              {status}
+              {column.label}
             </span>
             <span className="bg-surface border border-border-main text-text-main text-[10px] font-mono px-2 py-0.5">
-              {bounties.filter((b) => b.status === status).length}
+              {bounties.filter((b) => b.status === column.key).length}
             </span>
           </div>
 
           <div className="space-y-4 flex-1">
             {bounties
-              .filter((b) => b.status === status)
+              .filter((b) => b.status === column.key)
               .map((bounty) => (
                 <BountyCard key={bounty.id} bounty={bounty} />
               ))}
-            {bounties.filter((b) => b.status === status).length === 0 && (
+            {bounties.filter((b) => b.status === column.key).length === 0 && (
               <div className="h-24 flex items-center justify-center text-text-muted text-[10px] font-mono uppercase tracking-widest bg-surface">
-                Empty
+                {text("Empty", "Trống")}
               </div>
             )}
           </div>
@@ -153,6 +171,7 @@ function BountyBoard() {
 }
 
 function BountyCard({ bounty }: { bounty: Bounty; key?: React.Key }) {
+  const { text } = useLocale();
   const content = (
     <ActionCard className="p-4 flex flex-col h-full bg-surface shadow-none hover:border-primary group">
       <div className="flex justify-between items-start mb-3 w-full">
@@ -178,7 +197,7 @@ function BountyCard({ bounty }: { bounty: Bounty; key?: React.Key }) {
       </div>
       {bounty.submitLink && (
         <div className="mt-2 w-full py-1.5 text-primary text-[10px] font-bold font-mono tracking-widest uppercase transition-colors flex items-center justify-center gap-1 hover:bg-primary hover:text-main-bg">
-          VIEW TASK
+          {text("View Task", "Xem nhiệm vụ")}
           <ExternalLink
             size={12}
             className="transition-transform group-hover:translate-x-1"
@@ -287,6 +306,7 @@ function AddItemModal({
   type: "bounties" | "repos";
   onClose: () => void;
 }) {
+  const { text } = useLocale();
   const { addBounty, addRepo } = useStore();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -322,8 +342,12 @@ function AddItemModal({
     <ModalShell
       isOpen={true}
       onClose={onClose}
-      title={`ADD ${type === "bounties" ? "BOUNTY" : "REPO"}`}
-      label="MANAGEMENT"
+      title={
+        type === "bounties"
+          ? text("Add Bounty", "Thêm bounty")
+          : text("Add Repo", "Thêm repo")
+      }
+      label={text("MANAGEMENT", "QUẢN LÝ")}
       footer={
         <div className="w-full flex justify-end">
           <ActionButton
@@ -336,7 +360,7 @@ function AddItemModal({
             }
             variant="primary"
           >
-            CREATE ITEM
+            {text("Create Item", "Tạo mục")}
           </ActionButton>
         </div>
       }
@@ -344,15 +368,23 @@ function AddItemModal({
       <div className="mb-6">
         <p className="text-text-muted text-sm">
           {type === "bounties"
-            ? "Post a new bountied task for members."
-            : "Share open source repository."}
+            ? text(
+                "Post a new bountied task for members.",
+                "Đăng một nhiệm vụ bounty mới cho member.",
+              )
+            : text(
+                "Share open source repository.",
+                "Chia sẻ repository Open Source.",
+              )}
         </p>
       </div>
 
       <form id="add-item-form" onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <label className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-widest">
-            {type === "bounties" ? "Bounty Title" : "Repo Name"}
+            {type === "bounties"
+              ? text("Bounty Title", "Tiêu đề bounty")
+              : text("Repo Name", "Tên repo")}
           </label>
           <input
             name={type === "bounties" ? "title" : "name"}
@@ -366,7 +398,7 @@ function AddItemModal({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-widest">
-                  Reward
+                  {text("Reward", "Thưởng")}
                 </label>
                 <input
                   name="reward"
@@ -376,21 +408,21 @@ function AddItemModal({
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-widest">
-                  Difficulty
+                  {text("Difficulty", "Độ khó")}
                 </label>
                 <select
                   name="difficulty"
                   className="w-full bg-main-bg border border-border-main px-4 py-3 text-text-main focus:border-primary outline-none font-mono text-sm transition-colors appearance-none"
                 >
-                  <option value="Easy">Easy</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Hard">Hard</option>
+                  <option value="Easy">{text("Easy", "Dễ")}</option>
+                  <option value="Medium">{text("Medium", "Trung bình")}</option>
+                  <option value="Hard">{text("Hard", "Khó")}</option>
                 </select>
               </div>
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-widest">
-                Tags (comma separated)
+                {text("Tags (comma separated)", "Tags (ngăn cách bằng dấu phẩy)")}
               </label>
               <input
                 name="tags"
@@ -400,7 +432,7 @@ function AddItemModal({
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-widest">
-                Submit Link
+                {text("Submit Link", "Link nộp bài")}
               </label>
               <input
                 name="submitLink"
@@ -413,7 +445,7 @@ function AddItemModal({
           <div className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-widest">
-                Description
+                {text("Description", "Mô tả")}
               </label>
               <textarea
                 name="description"
@@ -425,7 +457,7 @@ function AddItemModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-widest">
-                  Language
+                  {text("Language", "Ngôn ngữ")}
                 </label>
                 <input
                   name="language"
@@ -435,7 +467,7 @@ function AddItemModal({
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-widest">
-                  Repo Link
+                  {text("Repo Link", "Link repo")}
                 </label>
                 <input
                   name="repoLink"

@@ -5,8 +5,10 @@ import { Member } from "../types";
 import { motion } from "motion/react";
 import { SectionHeader, SoftBrutalCard } from "@/components/ui/Primitives";
 import { streakTheme } from "@/lib/streakTheme";
+import { useLocale } from "@/lib/locale";
 
 export function Leaderboard() {
+  const { text } = useLocale();
   const { members, currentUser } = useStore();
   const [mounted, setMounted] = useState(false);
 
@@ -137,7 +139,7 @@ export function Leaderboard() {
             className={`flex items-center justify-center gap-2 px-4 py-2 border-2 text-xs font-mono font-black tracking-widest bg-black/10 w-full max-w-[140px] ${iconColor} ${rank === 1 ? "border-black/50" : "border-white/50"}`}
           >
             <FlameIcon color={streakTheme.flame} />
-            {streak} days
+            {streak} {text("days", "ngày")}
           </div>
         </div>
       </motion.div>
@@ -152,13 +154,16 @@ export function Leaderboard() {
           animate={{ y: 0, opacity: 1 }}
           className="inline-flex items-center gap-2 px-4 py-2 border border-border-main bg-accent text-text-main text-[10px] font-mono font-bold uppercase tracking-widest mb-6"
         >
-          <Activity size={14} strokeWidth={2} className="animate-pulse" /> LIVE
-          LEADERBOARD
+          <Activity size={14} strokeWidth={2} className="animate-pulse" />{" "}
+          {text("Live Leaderboard", "Bảng xếp hạng live")}
         </motion.div>
 
         <SectionHeader
-          title="HALL OF FAME"
-          subtitle="Top 10 members evaluated by consecutive learning streaks at the Academy."
+          title={text("Hall of Fame", "Bảng vinh danh")}
+          subtitle={text(
+            "Top 10 members evaluated by consecutive learning streaks at the Academy.",
+            "Top 10 thành viên được xếp hạng theo learning streak liên tiếp trong Academy.",
+          )}
           className="mb-0 mx-auto"
         />
       </header>
@@ -172,11 +177,13 @@ export function Leaderboard() {
             aria-hidden="true"
           />
           <h2 className="font-display text-2xl font-bold text-text-main mb-2 uppercase tracking-wide">
-            No leaderboard yet
+            {text("No leaderboard yet", "Chưa có bảng xếp hạng")}
           </h2>
           <p className="text-text-main font-mono text-xs border border-border-main bg-accent p-4 inline-block font-bold mt-4">
-            Sign in and complete lessons at DSUC Academy to appear on the Hall
-            of Fame.
+            {text(
+              "Sign in and complete lessons at DSUC Academy to appear on the Hall of Fame.",
+              "Hãy đăng nhập và hoàn thành bài học trong DSUC Academy để xuất hiện trên Hall of Fame.",
+            )}
           </p>
         </SoftBrutalCard>
       ) : (
@@ -203,8 +210,8 @@ export function Leaderboard() {
       {leaderboardData.length > 0 && (
         <div className="space-y-4 max-w-3xl mx-auto relative z-10">
           <div className="flex items-center justify-between text-[10px] font-mono font-bold text-text-main px-6 mx-2 mb-2 uppercase tracking-widest bg-main-bg border border-border-main p-2">
-            <span>Rank / Member</span>
-            <span>Streak</span>
+            <span>{text("Rank / Member", "Hạng / Thành viên")}</span>
+            <span>{text("Streak", "Streak")}</span>
           </div>
 
           <div className="flex flex-col gap-2">
@@ -250,7 +257,7 @@ export function Leaderboard() {
                         </span>
                         {isCurrentUser && (
                           <span className="px-1 py-0.5 border border-primary-foreground bg-primary-foreground text-primary text-[8px] font-mono font-bold uppercase tracking-widest shrink-0">
-                            YOU
+                            {text("YOU", "BẠN")}
                           </span>
                         )}
                       </div>
@@ -275,7 +282,7 @@ export function Leaderboard() {
           <div className="mb-3 flex items-center gap-3 px-2">
             <div className="h-2 w-2 bg-primary" />
             <span className="font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-text-muted">
-              Your Rank
+              {text("Your Rank", "Xếp hạng của bạn")}
             </span>
           </div>
 
@@ -303,7 +310,7 @@ export function Leaderboard() {
                   {currentUserRank.name}
                 </div>
                 <div className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                  {rankedLeaderboard.length} members ranked
+                  {rankedLeaderboard.length} {text("members ranked", "thành viên được xếp hạng")}
                 </div>
               </div>
 

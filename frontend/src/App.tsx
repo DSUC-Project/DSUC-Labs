@@ -35,6 +35,7 @@ import { Admin } from "./pages/Admin";
 import { AcademyAdmin } from "./pages/AcademyAdmin";
 import { MyProfile } from "./pages/MyProfile";
 import { useStore } from "./store/useStore";
+import { LocaleProvider } from "./lib/locale";
 
 const GOOGLE_CLIENT_ID = (import.meta as any).env.VITE_GOOGLE_CLIENT_ID || "";
 
@@ -104,84 +105,86 @@ export default function App() {
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <BrowserRouter>
-        <ScrollToTop />
-        <Routes>
-          <Route element={<PageShell />}>
-            <Route path="/" element={<Navigate to="/home" replace />} />
-            <Route path="/home" element={<Home />} />
-            <Route path="/members" element={<Members />} />
-            <Route path="/members/:id" element={<MemberDetail />} />
-            <Route path="/member/:id" element={<MemberDetail />} />
-            <Route path="/events" element={<Events />} />
-            <Route
-              path="/finance"
-              element={
-                <OfficialMemberRoute>
-                  <Finance />
-                </OfficialMemberRoute>
-              }
-            />
-            <Route path="/academy" element={<AcademyHome />} />
-            <Route path="/academy/path/:pathId" element={<AcademyPath />} />
-            <Route
-              path="/academy/course/:courseId"
-              element={<AcademyCourse />}
-            />
-            <Route
-              path="/academy/course/:courseId/:unitId"
-              element={<AcademyUnit />}
-            />
-            <Route
-              path="/academy/unit/:courseId/:unitId"
-              element={<AcademyUnit />}
-            />
-            <Route
-              path="/academy/community/:track"
-              element={<AcademyTrack />}
-            />
-            <Route
-              path="/academy/community/:track/:lesson"
-              element={<AcademyLesson />}
-            />
-            <Route
-              path="/academy/track/:track"
-              element={<LegacyCommunityTrackRedirect />}
-            />
-            <Route
-              path="/academy/learn/:track/:lesson"
-              element={<LegacyCommunityLessonRedirect />}
-            />
-            <Route path="/academy/:track" element={<AcademyTrack />} />
-            <Route path="/academy/:track/:lesson" element={<AcademyLesson />} />
-            <Route path="/resources" element={<Resources />} />
-            <Route path="/projects" element={<Projects />} />
-            <Route path="/projects/:id" element={<ProjectDetail />} />
-            <Route path="/project/:id" element={<ProjectDetail />} />
-            <Route path="/leaderboard" element={<Leaderboard />} />
-            <Route path="/meet" element={<Meet />} />
-            <Route path="/work" element={<Work />} />
-            <Route
-              path="/admin"
-              element={
-                <ExecutiveAdminRoute>
-                  <Admin />
-                </ExecutiveAdminRoute>
-              }
-            />
-            <Route
-              path="/academy-admin"
-              element={
-                <ExecutiveAdminRoute>
-                  <AcademyAdmin />
-                </ExecutiveAdminRoute>
-              }
-            />
-            <Route path="/profile" element={<MyProfile />} />
-            <Route path="*" element={<Navigate to="/home" replace />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      <LocaleProvider>
+        <BrowserRouter>
+          <ScrollToTop />
+          <Routes>
+            <Route element={<PageShell />}>
+              <Route path="/" element={<Navigate to="/home" replace />} />
+              <Route path="/home" element={<Home />} />
+              <Route path="/members" element={<Members />} />
+              <Route path="/members/:id" element={<MemberDetail />} />
+              <Route path="/member/:id" element={<MemberDetail />} />
+              <Route path="/events" element={<Events />} />
+              <Route
+                path="/finance"
+                element={
+                  <OfficialMemberRoute>
+                    <Finance />
+                  </OfficialMemberRoute>
+                }
+              />
+              <Route path="/academy" element={<AcademyHome />} />
+              <Route path="/academy/path/:pathId" element={<AcademyPath />} />
+              <Route
+                path="/academy/course/:courseId"
+                element={<AcademyCourse />}
+              />
+              <Route
+                path="/academy/course/:courseId/:unitId"
+                element={<AcademyUnit />}
+              />
+              <Route
+                path="/academy/unit/:courseId/:unitId"
+                element={<AcademyUnit />}
+              />
+              <Route
+                path="/academy/community/:track"
+                element={<AcademyTrack />}
+              />
+              <Route
+                path="/academy/community/:track/:lesson"
+                element={<AcademyLesson />}
+              />
+              <Route
+                path="/academy/track/:track"
+                element={<LegacyCommunityTrackRedirect />}
+              />
+              <Route
+                path="/academy/learn/:track/:lesson"
+                element={<LegacyCommunityLessonRedirect />}
+              />
+              <Route path="/academy/:track" element={<AcademyTrack />} />
+              <Route path="/academy/:track/:lesson" element={<AcademyLesson />} />
+              <Route path="/resources" element={<Resources />} />
+              <Route path="/projects" element={<Projects />} />
+              <Route path="/projects/:id" element={<ProjectDetail />} />
+              <Route path="/project/:id" element={<ProjectDetail />} />
+              <Route path="/leaderboard" element={<Leaderboard />} />
+              <Route path="/meet" element={<Meet />} />
+              <Route path="/work" element={<Work />} />
+              <Route
+                path="/admin"
+                element={
+                  <ExecutiveAdminRoute>
+                    <Admin />
+                  </ExecutiveAdminRoute>
+                }
+              />
+              <Route
+                path="/academy-admin"
+                element={
+                  <ExecutiveAdminRoute>
+                    <AcademyAdmin />
+                  </ExecutiveAdminRoute>
+                }
+              />
+              <Route path="/profile" element={<MyProfile />} />
+              <Route path="*" element={<Navigate to="/home" replace />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </LocaleProvider>
     </GoogleOAuthProvider>
   );
 }

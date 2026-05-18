@@ -22,6 +22,8 @@ import {
 } from "@/lib/academy/v2Progress";
 import { useStore } from "@/store/useStore";
 import { ActionButton } from "@/components/ui/Primitives";
+import { useLocale } from "@/lib/locale";
+import { localizeAcademyCourse } from "@/lib/academy/academyLocale";
 import {
   AcademyBackLink,
   AcademyBadge,
@@ -61,10 +63,13 @@ function countCompletedModuleUnits(
   ).length;
 }
 
-function difficultyLabel(value: AcademyV2CourseDetail["difficulty"]) {
-  if (value === "advanced") return "Advanced";
-  if (value === "intermediate") return "Intermediate";
-  return "Beginner";
+function difficultyLabel(
+  value: AcademyV2CourseDetail["difficulty"],
+  text: (english: string, vietnamese: string) => string,
+) {
+  if (value === "advanced") return text("Advanced", "Nâng cao");
+  if (value === "intermediate") return text("Intermediate", "Trung cấp");
+  return text("Beginner", "Nhập môn");
 }
 
 function moduleAnchor(moduleId: string) {
@@ -72,6 +77,7 @@ function moduleAnchor(moduleId: string) {
 }
 
 export function AcademyCourse() {
+  const { text, isVIE } = useLocale();
   const { courseId = "" } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
   const { currentUser, walletAddress, authToken } = useStore();
@@ -115,7 +121,9 @@ export function AcademyCourse() {
         }
       } catch (err: any) {
         if (!cancelled) {
-          setError(err.message || "Could not load course.");
+          setError(
+            err.message || text("Could not load course.", "Không thể tải course."),
+          );
         }
       } finally {
         if (!cancelled) {
@@ -142,15 +150,23 @@ export function AcademyCourse() {
     return (
       <AcademyPage>
         <AcademyEmptyState
-          title="Could not load course"
-          description={error || "Course data is unavailable right now."}
+          title={text("Could not load course", "Không thể tải course")}
+          description={
+            error ||
+            text(
+              "Course data is unavailable right now.",
+              "Dữ liệu course hiện không khả dụng.",
+            )
+          }
           action={
             <div className="flex flex-wrap justify-center gap-4">
               <ActionButton onClick={() => setReloadNonce((value) => value + 1)}>
-                Reload
+                {text("Reload", "Tải lại")}
               </ActionButton>
               <Link to="/academy">
-                <ActionButton variant="secondary">Academy Home</ActionButton>
+                <ActionButton variant="secondary">
+                  {text("Academy Home", "Trang chủ Academy")}
+                </ActionButton>
               </Link>
             </div>
           }
@@ -159,25 +175,27 @@ export function AcademyCourse() {
     );
   }
 
-  const flatUnits = flattenCourseUnits(course);
+  const localizedCourse = localizeAcademyCourse(course, isVIE);
+
+  const flatUnits = flattenCourseUnits(localizedCourse);
   const completedCount = countCompletedAcademyV2CourseUnits(
     progress.state.completedLessons,
-    course.id,
+    localizedCourse.id,
   );
   const progressPercent =
-    course.total_unit_count > 0
-      ? Math.round((completedCount / course.total_unit_count) * 100)
+    localizedCourse.total_unit_count > 0
+      ? Math.round((completedCount / localizedCourse.total_unit_count) * 100)
       : 0;
   const firstIncomplete =
     flatUnits.find(
       (unit) =>
         !isAcademyV2UnitCompleted(
           progress.state.completedLessons,
-          course.id,
+          localizedCourse.id,
           unit.id,
         ),
     ) || null;
-  const completedModules = course.modules.filter((module) => {
+  const completedModules = localizedCourse.modules.filter((module) => {
     const moduleUnitCount =
       module.learn_units.length + module.practice_units.length;
     if (moduleUnitCount === 0) {
@@ -187,7 +205,7 @@ export function AcademyCourse() {
       countCompletedModuleUnits(
         module,
         progress.state.completedLessons,
-        course.id,
+        localizedCourse.id,
       ) >= moduleUnitCount
     );
   }).length;
@@ -196,36 +214,47 @@ export function AcademyCourse() {
     <AcademyPage>
       <section className="space-y-6">
         <AcademyBackLink
-          to={course.path_id ? `/academy/path/${course.path_id}` : "/academy"}
-          label={`Back to ${course.path_id ? "Path" : "Academy"}`}
+          to={
+            localizedCourse.path_id
+              ? `/academy/path/${localizedCourse.path_id}`
+              : "/academy"
+          }
+          label={
+            localizedCourse.path_id
+              ? text("Back to Path", "Quay lại Path")
+              : text("Back to Academy", "Quay lại Academy")
+          }
         />
 
         <AcademyPanel tone="primary" padding="p-5 sm:p-6">
           <div className="space-y-5">
             <div className="flex flex-wrap items-center gap-3">
               <AcademyBadge tone="primary">
-                {course.path_title || "Course"}
+                {localizedCourse.path_title || text("Course", "Course")}
               </AcademyBadge>
               <AcademyBadge tone="muted">
-                {difficultyLabel(course.difficulty)}
+                {difficultyLabel(localizedCourse.difficulty, text)}
               </AcademyBadge>
               <AcademyBadge tone="muted">
-                Stage {String(Math.max(1, course.track_level || 1)).padStart(2, "0")}
+                {text("Stage", "Stage")}{" "}
+                {String(
+                  Math.max(1, localizedCourse.track_level || 1),
+                ).padStart(2, "0")}
               </AcademyBadge>
             </div>
 
             <div className="space-y-3">
               <h1 className="font-display text-4xl font-black uppercase tracking-tighter text-text-main sm:text-5xl lg:text-6xl">
-                {course.title}
+                {localizedCourse.title}
               </h1>
               <p className="max-w-3xl font-mono text-sm leading-relaxed text-text-muted">
-                {course.description}
+                {localizedCourse.description}
               </p>
             </div>
 
-            {course.tags.length > 0 ? (
+            {localizedCourse.tags.length > 0 ? (
               <div className="flex flex-wrap gap-2">
-                {course.tags.map((tag) => (
+                {localizedCourse.tags.map((tag) => (
                   <AcademyBadge key={tag} tone="muted">
                     {tag}
                   </AcademyBadge>
@@ -235,31 +264,37 @@ export function AcademyCourse() {
 
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <AcademyCompactStat
-                label="Duration"
-                value={`${course.duration_hours}h`}
-                meta="Estimated duration"
+                label={text("Duration", "Thời lượng")}
+                value={`${localizedCourse.duration_hours}h`}
+                meta={text("Estimated duration", "Thời lượng ước tính")}
               />
               <AcademyCompactStat
-                label="Modules"
-                value={course.module_count}
-                meta={`${completedModules} completed`}
+                label={text("Modules", "Module")}
+                value={localizedCourse.module_count}
+                meta={text(
+                  `${completedModules} completed`,
+                  `Hoàn thành ${completedModules}`,
+                )}
               />
               <AcademyCompactStat
-                label="Exercises"
-                value={course.practice_unit_count}
-                meta="Hands-on units"
+                label={text("Exercises", "Bài thực hành")}
+                value={localizedCourse.practice_unit_count}
+                meta={text("Hands-on units", "Các unit thực hành")}
               />
               <AcademyCompactStat
-                label="Progress"
+                label={text("Progress", "Tiến độ")}
                 value={`${progressPercent}%`}
-                meta={`${completedCount}/${course.total_unit_count} total units`}
+                meta={text(
+                  `${completedCount}/${localizedCourse.total_unit_count} total units`,
+                  `${completedCount}/${localizedCourse.total_unit_count} unit`,
+                )}
                 valueClassName="text-primary"
               />
             </div>
 
             <div>
               <div className="mb-2 flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
-                <span>Course completion</span>
+                <span>{text("Course completion", "Mức hoàn thành course")}</span>
                 <span>{progressPercent}%</span>
               </div>
               <AcademyProgressBar value={progressPercent} className="h-2.5" />
@@ -271,17 +306,20 @@ export function AcademyCourse() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section className="space-y-6">
           <AcademySectionTitle
-            eyebrow="Course Outline"
-            title="Syllabus"
-            description="Each module keeps learn units and practice units separated, but within one progression lane."
+            eyebrow={text("Course Outline", "Cấu trúc course")}
+            title={text("Syllabus", "Nội dung course")}
+            description={text(
+              "Each module keeps learn units and practice units separated, but within one progression lane.",
+              "Mỗi module giữ phần learn units và practice units tách riêng, nhưng vẫn nằm trong cùng một lộ trình tiến dần.",
+            )}
           />
 
           <div className="space-y-5">
-            {course.modules.map((module, index) => {
+            {localizedCourse.modules.map((module, index) => {
               const moduleCompleted = countCompletedModuleUnits(
                 module,
                 progress.state.completedLessons,
-                course.id,
+                localizedCourse.id,
               );
               const moduleTotal =
                 module.learn_units.length + module.practice_units.length;
@@ -297,10 +335,13 @@ export function AcademyCourse() {
                       <div className="space-y-3">
                         <div className="flex flex-wrap items-center gap-2">
                           <AcademyBadge tone="muted">
-                            Module {String(index + 1).padStart(2, "0")}
+                            {text("Module", "Module")} {String(index + 1).padStart(2, "0")}
                           </AcademyBadge>
                           <AcademyBadge tone={modulePercent === 100 ? "success" : "muted"}>
-                            {moduleCompleted}/{moduleTotal} done
+                            {text(
+                              `${moduleCompleted}/${moduleTotal} done`,
+                              `Xong ${moduleCompleted}/${moduleTotal}`,
+                            )}
                           </AcademyBadge>
                         </div>
                         <div>
@@ -317,13 +358,13 @@ export function AcademyCourse() {
 
                       <div className="grid gap-3 sm:grid-cols-2 lg:w-[220px]">
                         <AcademyStat
-                          label="Theory"
+                          label={text("Theory", "Lý thuyết")}
                           value={module.learn_units.length}
                           className="px-4 py-3"
                           valueClassName="text-2xl"
                         />
                         <AcademyStat
-                          label="Practice"
+                          label={text("Practice", "Thực hành")}
                           value={module.practice_units.length}
                           className="px-4 py-3"
                           valueClassName="text-2xl"
@@ -338,16 +379,16 @@ export function AcademyCourse() {
 
                     <div className="grid gap-4 md:grid-cols-2">
                       <UnitLane
-                        title="Theory"
+                        title={text("Theory", "Lý thuyết")}
                         units={module.learn_units}
-                        courseId={course.id}
+                        courseId={localizedCourse.id}
                         flatUnits={flatUnits}
                         completedLessons={progress.state.completedLessons}
                       />
                       <UnitLane
-                        title="Practice"
+                        title={text("Practice", "Thực hành")}
                         units={module.practice_units}
-                        courseId={course.id}
+                        courseId={localizedCourse.id}
                         flatUnits={flatUnits}
                         completedLessons={progress.state.completedLessons}
                       />
@@ -363,26 +404,38 @@ export function AcademyCourse() {
           <AcademyPanel tone="primary">
             <div className="space-y-5">
               <div>
-                <AcademyBadge tone="muted">Your next move</AcademyBadge>
+                <AcademyBadge tone="muted">
+                  {text("Your next move", "Bước tiếp theo")}
+                </AcademyBadge>
                 <h2 className="mt-4 font-display text-3xl font-black uppercase tracking-tighter text-text-main">
-                  {firstIncomplete ? firstIncomplete.title : "Course completed"}
+                  {firstIncomplete
+                    ? firstIncomplete.title
+                    : text("Course completed", "Đã hoàn thành course")}
                 </h2>
                 <p className="mt-3 font-mono text-sm leading-relaxed text-text-muted">
                   {firstIncomplete
-                    ? `Continue in ${firstIncomplete.moduleTitle} to keep the sequence intact.`
-                    : "All units in this course are complete. You can review or head back to the path."}
+                    ? text(
+                        `Continue in ${firstIncomplete.moduleTitle} to keep the sequence intact.`,
+                        `Tiếp tục ở ${firstIncomplete.moduleTitle} để giữ đúng mạch học.`,
+                      )
+                    : text(
+                        "All units in this course are complete. You can review or head back to the path.",
+                        "Bạn đã hoàn thành tất cả unit trong course này. Có thể review lại hoặc quay về path.",
+                      )}
                 </p>
               </div>
 
               {firstIncomplete ? (
                 <AcademyBadge tone="primary">{firstIncomplete.moduleTitle}</AcademyBadge>
               ) : (
-                <AcademyBadge tone="success">Great job, all units finished</AcademyBadge>
+                <AcademyBadge tone="success">
+                  {text("Great job, all units finished", "Làm tốt lắm, bạn đã xong toàn bộ unit")}
+                </AcademyBadge>
               )}
 
               <div>
                 <div className="mb-2 flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
-                  <span>Completion</span>
+                  <span>{text("Completion", "Hoàn thành")}</span>
                   <span className="text-primary">{progressPercent}%</span>
                 </div>
                 <AcademyProgressBar value={progressPercent} />
@@ -392,33 +445,39 @@ export function AcademyCourse() {
                 type="button"
                 onClick={() =>
                   firstIncomplete
-                    ? navigate(`/academy/unit/${course.id}/${firstIncomplete.id}`)
+                    ? navigate(`/academy/unit/${localizedCourse.id}/${firstIncomplete.id}`)
                     : navigate(
-                        course.path_id ? `/academy/path/${course.path_id}` : "/academy",
+                        localizedCourse.path_id
+                          ? `/academy/path/${localizedCourse.path_id}`
+                          : "/academy",
                       )
                 }
                 className="inline-flex w-full items-center justify-center gap-2 border-2 border-text-main bg-primary px-5 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-primary-foreground shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
               >
-                {firstIncomplete ? "Continue learning" : "Return to path"}
+                {firstIncomplete
+                  ? text("Continue learning", "Tiếp tục học")
+                  : text("Return to path", "Quay lại path")}
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>
           </AcademyPanel>
 
-          {course.instructor ? (
+          {localizedCourse.instructor ? (
             <AcademyPanel>
               <div className="space-y-4">
-                <AcademyBadge tone="muted">Instructor</AcademyBadge>
+                <AcademyBadge tone="muted">
+                      {text("Instructor", "Người hướng dẫn")}
+                </AcademyBadge>
                 <div className="flex items-start gap-4">
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center border border-border-main bg-main-bg text-text-muted shadow-sm">
                     <User className="h-5 w-5" />
                   </div>
                   <div>
                     <div className="font-display text-2xl font-black uppercase tracking-tight text-text-main">
-                      {course.instructor.name}
+                      {localizedCourse.instructor.name}
                     </div>
                     <p className="mt-2 font-mono text-sm leading-relaxed text-text-muted">
-                      {course.instructor.bio}
+                      {localizedCourse.instructor.bio}
                     </p>
                   </div>
                 </div>
@@ -429,17 +488,19 @@ export function AcademyCourse() {
           <AcademyPanel>
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-3">
-                <AcademyBadge tone="muted">Table of contents</AcademyBadge>
+                <AcademyBadge tone="muted">
+                  {text("Table of contents", "Mục lục")}
+                </AcademyBadge>
                 <span className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
-                  Jump by module
+                  {text("Jump by module", "Nhảy theo module")}
                 </span>
               </div>
               <div className="border-l-2 border-border-main">
-                {course.modules.map((module, index) => {
+                {localizedCourse.modules.map((module, index) => {
                   const completed = countCompletedModuleUnits(
                     module,
                     progress.state.completedLessons,
-                    course.id,
+                    localizedCourse.id,
                   );
                   const total =
                     module.learn_units.length + module.practice_units.length;

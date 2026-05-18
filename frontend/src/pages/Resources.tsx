@@ -18,6 +18,7 @@ import { Resource, ResourceCategory } from "@/types";
 import { ModalShell } from "@/components/ui/ModalShell";
 import { Card } from "@/components/ui/Cards";
 import { ShowcaseCard } from "@/components/ui/ShowcaseCard";
+import { useLocale } from "@/lib/locale";
 
 const CATEGORIES: ResourceCategory[] = [
   "Learning",
@@ -26,6 +27,48 @@ const CATEGORIES: ResourceCategory[] = [
   "Media",
   "Hackathon",
 ];
+
+function getResourceCategoryLabel(
+  value: string,
+  text: (english: string, vietnamese: string) => string,
+) {
+  switch (value) {
+    case "All":
+      return text("All", "Tất cả");
+    case "Learning":
+      return text("Learning", "Học tập");
+    case "Training":
+      return text("Training", "Thực hành");
+    case "Document":
+      return text("Document", "Tài liệu");
+    case "Media":
+      return text("Media", "Media");
+    case "Hackathon":
+      return text("Hackathon", "Hackathon");
+    default:
+      return value;
+  }
+}
+
+function getResourceTypeLabel(
+  value: string,
+  text: (english: string, vietnamese: string) => string,
+) {
+  switch (value) {
+    case "Document":
+      return text("Document", "Tài liệu");
+    case "Video":
+      return text("Video", "Video");
+    case "Drive":
+      return text("Folder / Drive", "Thư mục / Drive");
+    case "Link":
+      return text("Link", "Link");
+    case "Doc":
+      return text("Doc", "Doc");
+    default:
+      return value;
+  }
+}
 
 function AddResourceModal({
   isOpen,
@@ -36,6 +79,7 @@ function AddResourceModal({
   onClose: () => void;
   onAdd: (r: Resource) => void;
 }) {
+  const { text } = useLocale();
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
@@ -62,8 +106,8 @@ function AddResourceModal({
     <ModalShell
       isOpen={isOpen}
       onClose={onClose}
-      title="Add Resource"
-      label="LIBRARY"
+      title={text("Add Resource", "Thêm tài nguyên")}
+      label={text("LIBRARY", "THƯ VIỆN")}
       footer={
         <div className="w-full flex items-center justify-end">
           <ActionButton
@@ -76,7 +120,7 @@ function AddResourceModal({
             }
             variant="primary"
           >
-            Upload Resource
+            {text("Upload Resource", "Lưu tài nguyên")}
           </ActionButton>
         </div>
       }
@@ -88,7 +132,7 @@ function AddResourceModal({
       >
         <div className="space-y-1.5">
           <label className="text-xs font-bold uppercase tracking-widest text-text-muted">
-            Title / Name
+            {text("Title / Name", "Tiêu đề / tên")}
           </label>
           <input
             name="name"
@@ -99,7 +143,7 @@ function AddResourceModal({
 
         <div className="space-y-1.5">
           <label className="text-xs font-bold uppercase tracking-widest text-text-muted">
-            Description
+            {text("Description", "Mô tả")}
           </label>
           <textarea
             name="description"
@@ -123,22 +167,22 @@ function AddResourceModal({
 
         <div className="space-y-1.5">
           <label className="text-xs font-bold uppercase tracking-widest text-text-muted">
-            Type
+            {text("Type", "Loại")}
           </label>
           <select
             name="type"
             className="w-full bg-surface border border-border-main px-4 py-3 outline-none font-sans text-sm transition-all appearance-none focus:border-primary cursor-pointer"
           >
-            <option value="Document">Document</option>
-            <option value="Video">Video</option>
-            <option value="Drive">Folder / Drive</option>
-            <option value="Link">Link</option>
+            <option value="Document">{text("Document", "Tài liệu")}</option>
+            <option value="Video">{text("Video", "Video")}</option>
+            <option value="Drive">{text("Folder / Drive", "Thư mục / Drive")}</option>
+            <option value="Link">{text("Link", "Link")}</option>
           </select>
         </div>
 
         <div className="space-y-1.5">
           <label className="text-xs font-bold uppercase tracking-widest text-text-muted">
-            Category
+            {text("Category", "Danh mục")}
           </label>
           <select
             name="category"
@@ -146,7 +190,7 @@ function AddResourceModal({
           >
             {CATEGORIES.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {getResourceCategoryLabel(c, text)}
               </option>
             ))}
           </select>
@@ -157,6 +201,7 @@ function AddResourceModal({
 }
 
 export function Resources() {
+  const { text } = useLocale();
   const { resources, fetchResources, addResource, currentUser } = useStore();
   const [data, setData] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -205,17 +250,22 @@ export function Resources() {
     try {
       return new URL(url).hostname.replace(/^www\./, "");
     } catch {
-      return fallbackType || "External link";
+      return fallbackType || text("External link", "Liên kết ngoài");
     }
   };
 
   const handleAddClick = () => {
     if (!currentUser) {
-      toast("Vui lòng đăng nhập trước!");
+      toast(text("Please sign in first.", "Vui lòng đăng nhập trước."));
       return;
     }
     if (!canManage) {
-      toast("Tài khoản cộng đồng không thể thêm tài nguyên.");
+      toast(
+        text(
+          "Community accounts cannot add resources.",
+          "Tài khoản community không thể thêm tài nguyên.",
+        ),
+      );
       return;
     }
     setIsModalOpen(true);
@@ -225,8 +275,11 @@ export function Resources() {
     <div className="container mx-auto px-4 py-8 md:py-16 space-y-12">
       <div className="flex flex-col md:flex-row md:items-end justify-between items-start gap-4 mb-8">
         <SectionHeader
-          title="Resources"
-          subtitle="Documentation, guides, and tools for the community."
+          title={text("Resources", "Tài nguyên")}
+          subtitle={text(
+            "Documentation, guides, and tools for the community.",
+            "Tài liệu, hướng dẫn và công cụ dành cho cộng đồng.",
+          )}
           className="mb-0 border-none pb-0"
         />
         <div className="w-full md:w-auto mt-4 md:mt-0 flex gap-4">
@@ -237,7 +290,7 @@ export function Resources() {
               className="w-full md:w-auto"
             >
               <span className="flex items-center gap-2 justify-center">
-                <Plus size={16} /> Add Resource
+                <Plus size={16} /> {text("Add Resource", "Thêm tài nguyên")}
               </span>
             </ActionButton>
           )}
@@ -253,7 +306,7 @@ export function Resources() {
               onClick={() => setActiveCategory(c)}
               className={`px-4 py-2 font-mono text-xs uppercase tracking-widest border border-border-main transition-colors ${activeCategory === c ? "bg-primary text-main-bg font-bold" : "bg-surface hover:bg-main-bg text-text-muted hover:text-text-main shadow-sm"}`}
             >
-              {c}
+              {getResourceCategoryLabel(c, text)}
             </button>
           ))}
         </div>
@@ -262,7 +315,7 @@ export function Resources() {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
             type="text"
-            placeholder="Search resources..."
+            placeholder={text("Search resources...", "Tìm tài nguyên...")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-surface border border-border-main p-3 pl-10 font-mono text-xs focus:outline-none focus:border-primary transition-colors shadow-sm"
@@ -283,17 +336,17 @@ export function Resources() {
             <ShowcaseCard
               icon={getIcon(resource.type || "Link")}
               title={resource.title || resource.name}
-              category={resource.category}
-              accentLabel={resource.type || "Link"}
+              category={getResourceCategoryLabel(resource.category, text)}
+              accentLabel={getResourceTypeLabel(resource.type || "Link", text)}
               description={resource.description}
               tags={resource.tags || []}
-              footerLabel="Source"
+              footerLabel={text("Source", "Nguồn")}
               footerValue={getResourceSource(resource.url, resource.type || "Link")}
               footerAside={
                 <>
                   <Globe className="h-3.5 w-3.5" aria-hidden="true" />
                   <span className="font-mono text-[9px] font-bold uppercase tracking-widest">
-                    Open
+                    {text("Open", "Mở")}
                   </span>
                 </>
               }
@@ -302,7 +355,7 @@ export function Resources() {
         ))}
         {filteredResources.length === 0 && (
           <Card className="col-span-full p-12 text-center text-text-muted font-mono text-xs uppercase font-bold tracking-widest shadow-sm">
-            No resources found.
+            {text("No resources found.", "Không tìm thấy tài nguyên nào.")}
           </Card>
         )}
       </div>

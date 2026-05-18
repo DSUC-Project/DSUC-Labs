@@ -1,11 +1,9 @@
-import React, { FormEvent, useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import React, { useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import {
   AlertCircle,
   Boxes,
-  CheckCircle2,
   Database,
-  Edit3,
   History,
   Layers3,
   Plus,
@@ -17,7 +15,23 @@ import {
   Users,
 } from "lucide-react";
 
-import type {
+import { ActionButton } from "@/components/ui/Primitives";
+import {
+  AdminEmptyState,
+  AdminField,
+  AdminHero,
+  AdminListButton,
+  AdminMetricCard,
+  AdminNotice,
+  AdminPageSection,
+  AdminPanel,
+  AdminTabs,
+  adminInputClass,
+  adminSelectClass,
+  adminTextareaClass,
+} from "@/components/admin/AdminConsole";
+import { useStore } from "@/store/useStore";
+import {
   AcademyActivity,
   AcademyLessonAdmin,
   AcademyOverview,
@@ -31,13 +45,20 @@ import type {
   AcademyV2UnitSummary,
   PublishStatus,
 } from "@/types";
-import { useStore } from "@/store/useStore";
-import { SoftBrutalCard } from "@/components/ui/Primitives";
 import {
   normalizeAcademyLesson,
   normalizeAcademyTrack,
 } from "@/lib/academy/catalog";
 import { normalizeAcademyQuestion } from "@/lib/academy/questions";
+
+type AcademyTab =
+  | "curated"
+  | "tracks"
+  | "lessons"
+  | "questions"
+  | "learners"
+  | "progress"
+  | "activity";
 
 type TrackFormState = {
   id: string;
@@ -45,18 +66,18 @@ type TrackFormState = {
   subtitle: string;
   description: string;
   status: PublishStatus;
-  sort_order: number;
+  sort_order: string;
 };
 
 type LessonFormState = {
   track: string;
   lesson_id: string;
   title: string;
-  minutes: number;
+  minutes: string;
   content_md: string;
   callouts_text: string;
   status: PublishStatus;
-  sort_order: number;
+  sort_order: string;
 };
 
 type QuestionFormState = {
@@ -66,8 +87,23 @@ type QuestionFormState = {
   choices: AcademyQuestionChoice[];
   correct_choice_id: string;
   explanation: string;
-  sort_order: number;
+  sort_order: string;
   status: PublishStatus;
+};
+
+type AcademyProgressRow = {
+  id: string;
+  user_id: string;
+  user_name: string;
+  role: string;
+  member_type: "member" | "community";
+  track: string;
+  lesson_id: string;
+  lesson_completed: boolean;
+  quiz_passed: boolean;
+  checklist: boolean[];
+  xp_awarded: number;
+  updated_at?: string;
 };
 
 type CuratedBrowserUnit = AcademyV2UnitSummary & {
@@ -76,15 +112,6 @@ type CuratedBrowserUnit = AcademyV2UnitSummary & {
 };
 
 const STATUS_OPTIONS: PublishStatus[] = ["Draft", "Published", "Archived"];
-
-function normalizeTrackId(value: string) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-}
 
 function buildAuthHeaders(token: string | null, walletAddress: string | null) {
   const headers: Record<string, string> = {
@@ -100,6 +127,19 @@ function buildAuthHeaders(token: string | null, walletAddress: string | null) {
   return headers;
 }
 
+function getApiBase() {
+  return (import.meta as any).env.VITE_API_BASE_URL || "";
+}
+
+function normalizeTrackId(value: string) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 function createEmptyTrackForm(): TrackFormState {
   return {
     id: "",
@@ -107,20 +147,44 @@ function createEmptyTrackForm(): TrackFormState {
     subtitle: "",
     description: "",
     status: "Published",
-    sort_order: 0,
+    sort_order: "0",
   };
 }
 
-function createEmptyLessonForm(track = "", lessonId = ""): LessonFormState {
+function trackToForm(track: AcademyTrackAdmin): TrackFormState {
+  return {
+    id: track.id,
+    title: track.title,
+    subtitle: track.subtitle,
+    description: track.description,
+    status: track.status || "Published",
+    sort_order: String(track.sort_order || 0),
+  };
+}
+
+function createEmptyLessonForm(track = ""): LessonFormState {
   return {
     track,
-    lesson_id: lessonId,
+    lesson_id: "",
     title: "",
-    minutes: 10,
+    minutes: "10",
     content_md: "",
     callouts_text: "[]",
     status: "Published",
-    sort_order: 0,
+    sort_order: "0",
+  };
+}
+
+function lessonToForm(lesson: AcademyLessonAdmin): LessonFormState {
+  return {
+    track: lesson.track,
+    lesson_id: lesson.lesson_id,
+    title: lesson.title,
+    minutes: String(lesson.minutes || 10),
+    content_md: lesson.content_md || "",
+    callouts_text: JSON.stringify(lesson.callouts || [], null, 2),
+    status: lesson.status || "Published",
+    sort_order: String(lesson.sort_order || 0),
   };
 }
 
@@ -136,21 +200,8 @@ function createEmptyQuestionForm(track = "", lessonId = ""): QuestionFormState {
     ],
     correct_choice_id: "a",
     explanation: "",
-    sort_order: 0,
+    sort_order: "0",
     status: "Published",
-  };
-}
-
-function lessonToForm(lesson: AcademyLessonAdmin): LessonFormState {
-  return {
-    track: lesson.track,
-    lesson_id: lesson.lesson_id,
-    title: lesson.title,
-    minutes: Number(lesson.minutes || 10),
-    content_md: lesson.content_md || "",
-    callouts_text: JSON.stringify(lesson.callouts || [], null, 2),
-    status: lesson.status || "Published",
-    sort_order: Number(lesson.sort_order || 0),
   };
 }
 
@@ -165,7 +216,7 @@ function questionToForm(question: AcademyQuestion): QuestionFormState {
         : createEmptyQuestionForm(question.track, question.lesson_id).choices,
     correct_choice_id: question.correct_choice_id || "a",
     explanation: question.explanation || "",
-    sort_order: Number(question.sort_order || 0),
+    sort_order: String(question.sort_order || 0),
     status: question.status || "Published",
   };
 }
@@ -178,7 +229,7 @@ function parseCalloutsText(value: string) {
 
   const parsed = JSON.parse(text);
   if (!Array.isArray(parsed)) {
-    throw new Error("Callouts must be a JSON array");
+    throw new Error("Callouts must be a JSON array.");
   }
 
   return parsed
@@ -189,36 +240,7 @@ function parseCalloutsText(value: string) {
     .filter((item) => item.title || item.body);
 }
 
-function validateQuestionForm(form: QuestionFormState) {
-  if (!form.track) {
-    return "Track is required.";
-  }
-  if (!form.lesson_id) {
-    return "Lesson is required.";
-  }
-  if (!form.prompt.trim()) {
-    return "Question prompt is required.";
-  }
-
-  const validChoices = form.choices.filter(
-    (choice) => choice.id.trim() && choice.label.trim(),
-  );
-  if (validChoices.length < 2) {
-    return "Add at least two answer choices.";
-  }
-
-  if (!validChoices.some((choice) => choice.id === form.correct_choice_id)) {
-    return "Correct answer must match one of the choice IDs.";
-  }
-
-  if (!form.explanation.trim()) {
-    return "Explanation is required.";
-  }
-
-  return null;
-}
-
-function extractPreviewText(value: string, maxLength = 320) {
+function extractPreviewText(value: string, maxLength = 220) {
   const normalized = String(value || "")
     .replace(/```[\s\S]*?```/g, " ")
     .replace(/`([^`]+)`/g, "$1")
@@ -235,7 +257,7 @@ function extractPreviewText(value: string, maxLength = 320) {
     : normalized;
 }
 
-function flattenCuratedCourseUnits(course: AcademyV2CourseDetail | null) {
+function flattenCuratedUnits(course: AcademyV2CourseDetail | null) {
   if (!course) {
     return [] as CuratedBrowserUnit[];
   }
@@ -252,334 +274,280 @@ function flattenCuratedCourseUnits(course: AcademyV2CourseDetail | null) {
   );
 }
 
+function formatDateTime(value?: string | null) {
+  if (!value) {
+    return "No activity";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString("en-GB", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function AcademyAdmin() {
   const { authToken, walletAddress } = useStore();
+  const headers = useMemo(
+    () => buildAuthHeaders(authToken, walletAddress),
+    [authToken, walletAddress],
+  );
+
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const [activeTab, setActiveTab] = useState<AcademyTab>("curated");
+
   const [tracks, setTracks] = useState<AcademyTrackAdmin[]>([]);
   const [lessons, setLessons] = useState<AcademyLessonAdmin[]>([]);
   const [questions, setQuestions] = useState<AcademyQuestion[]>([]);
-  const [curatedPaths, setCuratedPaths] = useState<AcademyV2Path[]>([]);
   const [learnerOverview, setLearnerOverview] = useState<AcademyOverview[]>([]);
-  const [recentActivity, setRecentActivity] = useState<AcademyActivity[]>([]);
+  const [progressRows, setProgressRows] = useState<AcademyProgressRow[]>([]);
+  const [activityRows, setActivityRows] = useState<AcademyActivity[]>([]);
+  const [curatedPaths, setCuratedPaths] = useState<AcademyV2Path[]>([]);
+  const [communityTrackSummaries, setCommunityTrackSummaries] = useState<any[]>(
+    [],
+  );
+  const [curatedAnalytics, setCuratedAnalytics] =
+    useState<AcademyV2Analytics | null>(null);
+
+  const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null);
+  const [trackForm, setTrackForm] = useState<TrackFormState>(createEmptyTrackForm());
+  const [creatingTrack, setCreatingTrack] = useState(false);
+  const [trackSaving, setTrackSaving] = useState(false);
+  const [trackDeleting, setTrackDeleting] = useState(false);
+
+  const [lessonTrackFilter, setLessonTrackFilter] = useState("");
+  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
+  const [lessonForm, setLessonForm] = useState<LessonFormState>(
+    createEmptyLessonForm(),
+  );
+  const [creatingLesson, setCreatingLesson] = useState(false);
+  const [lessonSaving, setLessonSaving] = useState(false);
+  const [lessonDeleting, setLessonDeleting] = useState(false);
+
+  const [questionTrackFilter, setQuestionTrackFilter] = useState("");
+  const [questionLessonFilter, setQuestionLessonFilter] = useState("");
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(
+    null,
+  );
+  const [questionForm, setQuestionForm] = useState<QuestionFormState>(
+    createEmptyQuestionForm(),
+  );
+  const [creatingQuestion, setCreatingQuestion] = useState(false);
+  const [questionSaving, setQuestionSaving] = useState(false);
+  const [questionDeleting, setQuestionDeleting] = useState(false);
+
+  const [learnerQuery, setLearnerQuery] = useState("");
+  const [selectedLearnerId, setSelectedLearnerId] = useState<string | null>(null);
+
+  const [progressQuery, setProgressQuery] = useState("");
+  const [selectedProgressId, setSelectedProgressId] = useState<string | null>(null);
+  const [progressDeleting, setProgressDeleting] = useState(false);
+
+  const [activityQuery, setActivityQuery] = useState("");
+  const [selectedActivityId, setSelectedActivityId] = useState<string | null>(
+    null,
+  );
+  const [activityDeleting, setActivityDeleting] = useState(false);
+
   const [selectedCuratedCourseId, setSelectedCuratedCourseId] = useState("");
   const [selectedCuratedUnitId, setSelectedCuratedUnitId] = useState("");
   const [curatedCourseDetail, setCuratedCourseDetail] =
     useState<AcademyV2CourseDetail | null>(null);
   const [curatedUnitDetail, setCuratedUnitDetail] =
     useState<AcademyV2UnitDetail | null>(null);
-  const [curatedAnalytics, setCuratedAnalytics] =
-    useState<AcademyV2Analytics | null>(null);
-  const [curatedBrowserLoading, setCuratedBrowserLoading] = useState(false);
+  const [curatedCourseLoading, setCuratedCourseLoading] = useState(false);
   const [curatedUnitLoading, setCuratedUnitLoading] = useState(false);
-  const [curatedBrowserError, setCuratedBrowserError] = useState("");
-
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [deletingKey, setDeletingKey] = useState<string | null>(null);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-
-  const [filterTrack, setFilterTrack] = useState("");
-  const [filterLesson, setFilterLesson] = useState("");
-
-  const [trackForm, setTrackForm] = useState<TrackFormState>(() =>
-    createEmptyTrackForm(),
-  );
-  const [lessonForm, setLessonForm] = useState<LessonFormState>(() =>
-    createEmptyLessonForm(),
-  );
-  const [questionForm, setQuestionForm] = useState<QuestionFormState>(() =>
-    createEmptyQuestionForm(),
-  );
-
-  const [editingTrackId, setEditingTrackId] = useState<string | null>(null);
-  const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
-  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(
-    null,
-  );
-
-  const headers = useMemo(
-    () => buildAuthHeaders(authToken, walletAddress),
-    [authToken, walletAddress],
-  );
 
   const trackOptions = useMemo(
     () =>
       [...tracks].sort(
-        (a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0),
+        (left, right) => Number(left.sort_order || 0) - Number(right.sort_order || 0),
       ),
     [tracks],
   );
 
-  const lessonsForTrack = useMemo(() => {
-    if (!filterTrack) {
-      return lessons;
-    }
-    return lessons.filter((lesson) => lesson.track === filterTrack);
-  }, [filterTrack, lessons]);
-
-  const questionTrackOptions = useMemo(() => {
-    if (!questionForm.track) {
-      return [];
-    }
-    return lessons
-      .filter((lesson) => lesson.track === questionForm.track)
-      .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0));
-  }, [lessons, questionForm.track]);
-
-  const lessonTrackOptions = useMemo(() => {
-    if (!lessonForm.track) {
-      return [];
-    }
-    return lessons
-      .filter((lesson) => lesson.track === lessonForm.track)
-      .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0));
-  }, [lessons, lessonForm.track]);
+  const filteredLessons = useMemo(() => {
+    return [...lessons]
+      .filter((lesson) =>
+        lessonTrackFilter ? lesson.track === lessonTrackFilter : true,
+      )
+      .sort((left, right) => {
+        if (left.track !== right.track) {
+          return left.track.localeCompare(right.track);
+        }
+        return Number(left.sort_order || 0) - Number(right.sort_order || 0);
+      });
+  }, [lessonTrackFilter, lessons]);
 
   const filteredQuestions = useMemo(() => {
-    return questions
-      .filter((question) => {
-        if (filterTrack && question.track !== filterTrack) {
-          return false;
+    return [...questions]
+      .filter((question) =>
+        questionTrackFilter ? question.track === questionTrackFilter : true,
+      )
+      .filter((question) =>
+        questionLessonFilter ? question.lesson_id === questionLessonFilter : true,
+      )
+      .sort((left, right) => {
+        if (left.track !== right.track) {
+          return left.track.localeCompare(right.track);
         }
-        if (filterLesson && question.lesson_id !== filterLesson) {
-          return false;
+        if (left.lesson_id !== right.lesson_id) {
+          return left.lesson_id.localeCompare(right.lesson_id);
         }
-        return true;
-      })
-      .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0));
-  }, [filterLesson, filterTrack, questions]);
+        return Number(left.sort_order || 0) - Number(right.sort_order || 0);
+      });
+  }, [questionLessonFilter, questionTrackFilter, questions]);
 
-  const lessonCountByTrack = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const lesson of lessons) {
-      map.set(lesson.track, Number(map.get(lesson.track) || 0) + 1);
+  const filteredLearners = useMemo(() => {
+    const query = learnerQuery.trim().toLowerCase();
+    const rows = [...learnerOverview].sort((left, right) => {
+      const xpDelta = Number(right.xp || 0) - Number(left.xp || 0);
+      if (xpDelta !== 0) {
+        return xpDelta;
+      }
+      return Number(right.streak || 0) - Number(left.streak || 0);
+    });
+
+    if (!query) {
+      return rows;
     }
-    return map;
-  }, [lessons]);
 
-  const curatedStats = useMemo(() => {
-    const courses = curatedPaths.flatMap((path) => path.courses);
-    return {
-      paths: curatedPaths.length,
-      courses: courses.length,
-      learnUnits: curatedPaths.reduce(
-        (sum, path) => sum + path.learn_unit_count,
-        0,
-      ),
-      practiceUnits: curatedPaths.reduce(
-        (sum, path) => sum + path.practice_unit_count,
-        0,
-      ),
-      totalUnits: curatedPaths.reduce(
-        (sum, path) => sum + path.total_unit_count,
-        0,
-      ),
-    };
-  }, [curatedPaths]);
+    return rows.filter((row) =>
+      [row.user_id, row.name, row.role, row.member_type]
+        .join(" ")
+        .toLowerCase()
+        .includes(query),
+    );
+  }, [learnerOverview, learnerQuery]);
 
-  const curatedCourseOptions = useMemo(
-    () =>
-      curatedPaths.flatMap((path) =>
-        path.courses.map((course) => ({
-          pathId: path.id,
-          pathTitle: path.title,
-          pathTag: path.tag,
-          course,
-        })),
-      ),
-    [curatedPaths],
+  const filteredProgressRows = useMemo(() => {
+    const query = progressQuery.trim().toLowerCase();
+    if (!query) {
+      return progressRows;
+    }
+
+    return progressRows.filter((row) =>
+      [row.user_name, row.user_id, row.track, row.lesson_id]
+        .join(" ")
+        .toLowerCase()
+        .includes(query),
+    );
+  }, [progressQuery, progressRows]);
+
+  const filteredActivityRows = useMemo(() => {
+    const query = activityQuery.trim().toLowerCase();
+    if (!query) {
+      return activityRows;
+    }
+
+    return activityRows.filter((row) =>
+      [row.user_name, row.user_id, row.track, row.lesson_id, row.action]
+        .join(" ")
+        .toLowerCase()
+        .includes(query),
+    );
+  }, [activityQuery, activityRows]);
+
+  const selectedLearner =
+    learnerOverview.find((row) => row.user_id === selectedLearnerId) || null;
+  const selectedProgress =
+    progressRows.find((row) => row.id === selectedProgressId) || null;
+  const selectedActivity =
+    activityRows.find((row) => row.id === selectedActivityId) || null;
+
+  const communityLessonsCount = useMemo(
+    () => lessons.filter((lesson) => lesson.status !== "Archived").length,
+    [lessons],
   );
 
-  const curatedBrowserUnits = useMemo(
-    () => flattenCuratedCourseUnits(curatedCourseDetail),
+  const curatedUnits = useMemo(
+    () => flattenCuratedUnits(curatedCourseDetail),
     [curatedCourseDetail],
   );
 
-  const selectedCuratedCourseMeta = useMemo(
-    () =>
-      curatedCourseOptions.find(
-        (item) => item.course.id === selectedCuratedCourseId,
-      ) || null,
-    [curatedCourseOptions, selectedCuratedCourseId],
-  );
+  async function loadAll(nextMode: "initial" | "refresh" = "initial") {
+    const base = getApiBase();
 
-  const selectedCuratedUnitMeta = useMemo(
-    () =>
-      curatedBrowserUnits.find((item) => item.id === selectedCuratedUnitId) ||
-      null,
-    [curatedBrowserUnits, selectedCuratedUnitId],
-  );
-
-  const learnerStats = useMemo(() => {
-    const academyEnabled = learnerOverview.filter(
-      (member) => member.academy_access,
-    ).length;
-    const activeLearners = learnerOverview.filter(
-      (member) =>
-        member.completed_lessons > 0 || member.quiz_passed > 0 || member.xp > 0,
-    ).length;
-    const totalXp = learnerOverview.reduce(
-      (sum, member) => sum + Number(member.xp || 0),
-      0,
-    );
-    const topStreak = learnerOverview.reduce(
-      (max, member) => Math.max(max, Number(member.streak || 0)),
-      0,
-    );
-    return {
-      academyEnabled,
-      activeLearners,
-      totalXp,
-      topStreak,
-    };
-  }, [learnerOverview]);
-
-  const topLearners = useMemo(
-    () =>
-      [...learnerOverview]
-        .sort((left, right) => {
-          const xpDelta = Number(right.xp || 0) - Number(left.xp || 0);
-          if (xpDelta !== 0) {
-            return xpDelta;
-          }
-          return (
-            Number(right.completed_lessons || 0) -
-            Number(left.completed_lessons || 0)
-          );
-        })
-        .slice(0, 5),
-    [learnerOverview],
-  );
-
-  async function refreshAll(showSpinner = false) {
-    if (showSpinner) {
-      setRefreshing(true);
-    } else {
+    if (nextMode === "initial") {
       setLoading(true);
+    } else {
+      setRefreshing(true);
     }
+
     setError("");
 
     try {
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
       const [
-        trackRes,
-        lessonRes,
-        questionRes,
+        tracksRes,
+        lessonsRes,
+        questionsRes,
         overviewRes,
-        historyRes,
-        curatedRes,
+        progressRes,
+        activityRes,
+        catalogRes,
         analyticsRes,
       ] = await Promise.all([
-        fetch(`${base}/api/academy/admin/tracks`, {
-          headers,
-          credentials: "include",
-        }),
-        fetch(`${base}/api/academy/admin/lessons`, {
-          headers,
-          credentials: "include",
-        }),
-        fetch(`${base}/api/academy/admin/questions`, {
-          headers,
-          credentials: "include",
-        }),
-        fetch(`${base}/api/academy/admin/overview`, {
-          headers,
-          credentials: "include",
-        }),
-        fetch(`${base}/api/academy/admin/history`, {
-          headers,
-          credentials: "include",
-        }),
-        fetch(`${base}/api/academy/admin/v2/catalog`, {
-          headers,
-          credentials: "include",
-        }),
-        fetch(`${base}/api/academy/admin/v2/analytics`, {
-          headers,
-          credentials: "include",
-        }),
+        fetch(`${base}/api/academy/admin/tracks`, { headers }),
+        fetch(`${base}/api/academy/admin/lessons`, { headers }),
+        fetch(`${base}/api/academy/admin/questions`, { headers }),
+        fetch(`${base}/api/academy/admin/overview`, { headers }),
+        fetch(`${base}/api/academy/admin/progress`, { headers }),
+        fetch(`${base}/api/academy/admin/activity`, { headers }),
+        fetch(`${base}/api/academy/admin/v2/catalog`, { headers }),
+        fetch(`${base}/api/academy/admin/v2/analytics`, { headers }),
       ]);
 
       const [
-        trackJson,
-        lessonJson,
-        questionJson,
+        tracksJson,
+        lessonsJson,
+        questionsJson,
         overviewJson,
-        historyJson,
-        curatedJson,
+        progressJson,
+        activityJson,
+        catalogJson,
         analyticsJson,
       ] = await Promise.all([
-        trackRes.json().catch(() => null),
-        lessonRes.json().catch(() => null),
-        questionRes.json().catch(() => null),
-        overviewRes.json().catch(() => null),
-        historyRes.json().catch(() => null),
-        curatedRes.json().catch(() => null),
-        analyticsRes.json().catch(() => null),
+        tracksRes.json(),
+        lessonsRes.json(),
+        questionsRes.json(),
+        overviewRes.json(),
+        progressRes.json(),
+        activityRes.json(),
+        catalogRes.json(),
+        analyticsRes.json(),
       ]);
 
-      if (!trackRes.ok || !trackJson?.success) {
-        throw new Error(trackJson?.message || "Failed to load academy tracks.");
-      }
-      if (!lessonRes.ok || !lessonJson?.success) {
-        throw new Error(
-          lessonJson?.message || "Failed to load academy lessons.",
-        );
-      }
-      if (!questionRes.ok || !questionJson?.success) {
-        throw new Error(
-          questionJson?.message || "Failed to load academy questions.",
-        );
-      }
-      if (!overviewRes.ok || !overviewJson?.success) {
-        throw new Error(
-          overviewJson?.message || "Failed to load academy learner overview.",
-        );
-      }
-      if (!historyRes.ok || !historyJson?.success) {
-        throw new Error(
-          historyJson?.message || "Failed to load academy activity history.",
-        );
-      }
-      if (!curatedRes.ok || !curatedJson?.success) {
-        throw new Error(
-          curatedJson?.message || "Failed to load curated academy catalog.",
-        );
-      }
-      if (!analyticsRes.ok || !analyticsJson?.success) {
-        throw new Error(
-          analyticsJson?.message || "Failed to load curated academy analytics.",
-        );
-      }
+      if (!tracksRes.ok) throw new Error(tracksJson?.message || "Failed to load tracks.");
+      if (!lessonsRes.ok) throw new Error(lessonsJson?.message || "Failed to load lessons.");
+      if (!questionsRes.ok) throw new Error(questionsJson?.message || "Failed to load questions.");
+      if (!overviewRes.ok) throw new Error(overviewJson?.message || "Failed to load learners.");
+      if (!progressRes.ok) throw new Error(progressJson?.message || "Failed to load progress.");
+      if (!activityRes.ok) throw new Error(activityJson?.message || "Failed to load activity.");
+      if (!catalogRes.ok) throw new Error(catalogJson?.message || "Failed to load curated catalog.");
+      if (!analyticsRes.ok) throw new Error(analyticsJson?.message || "Failed to load academy analytics.");
 
-      const nextTracks = (trackJson.data || []).map(normalizeAcademyTrack);
-      const nextLessons = (lessonJson.data || []).map(normalizeAcademyLesson);
-      const nextQuestions = (questionJson.data || []).map(
-        normalizeAcademyQuestion,
-      );
-      const nextCuratedPaths = (
-        (curatedJson.data?.curated_paths || []) as AcademyV2Path[]
-      )
-        .slice()
-        .sort((a, b) => a.order - b.order);
-      const nextCuratedAnalytics = (analyticsJson.data ||
-        null) as AcademyV2Analytics | null;
-      const nextLearnerOverview = (overviewJson.data ||
-        []) as AcademyOverview[];
-      const nextRecentActivity = (
-        (historyJson.data || []) as AcademyActivity[]
-      ).slice(0, 8);
-
-      setTracks(nextTracks);
-      setLessons(nextLessons);
-      setQuestions(nextQuestions);
-      setCuratedPaths(nextCuratedPaths);
-      setCuratedAnalytics(nextCuratedAnalytics);
-      setLearnerOverview(nextLearnerOverview);
-      setRecentActivity(nextRecentActivity);
-    } catch (err: any) {
-      setError(err.message || "Failed to load academy admin data.");
+      setTracks((tracksJson.data || []).map(normalizeAcademyTrack));
+      setLessons((lessonsJson.data || []).map(normalizeAcademyLesson));
+      setQuestions((questionsJson.data || []).map(normalizeAcademyQuestion));
+      setLearnerOverview(overviewJson.data || []);
+      setProgressRows(progressJson.data || []);
+      setActivityRows(activityJson.data || []);
+      setCuratedPaths(catalogJson.data?.curated_paths || []);
+      setCommunityTrackSummaries(catalogJson.data?.community_tracks || []);
+      setCuratedAnalytics(analyticsJson.data || null);
+    } catch (fetchError: any) {
+      setError(fetchError?.message || "Failed to load academy admin data.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -587,94 +555,167 @@ export function AcademyAdmin() {
   }
 
   useEffect(() => {
-    void refreshAll();
+    void loadAll("initial");
   }, [headers]);
 
   useEffect(() => {
-    if (!curatedCourseOptions.length) {
-      setSelectedCuratedCourseId("");
-      setSelectedCuratedUnitId("");
-      setCuratedCourseDetail(null);
-      setCuratedUnitDetail(null);
+    if (creatingTrack) {
       return;
     }
 
-    if (
-      !selectedCuratedCourseId ||
-      !curatedCourseOptions.some(
-        (item) => item.course.id === selectedCuratedCourseId,
-      )
-    ) {
-      setSelectedCuratedCourseId(curatedCourseOptions[0].course.id);
+    const selected = tracks.find((row) => row.id === selectedTrackId) || tracks[0] || null;
+    if (!selected) {
+      setSelectedTrackId(null);
+      setTrackForm(createEmptyTrackForm());
+      return;
     }
-  }, [curatedCourseOptions, selectedCuratedCourseId]);
+    if (selected.id !== selectedTrackId) {
+      setSelectedTrackId(selected.id);
+    }
+    setTrackForm(trackToForm(selected));
+  }, [creatingTrack, selectedTrackId, tracks]);
+
+  useEffect(() => {
+    if (creatingLesson) {
+      return;
+    }
+
+    const selected =
+      lessons.find((row) => row.id === selectedLessonId) || lessons[0] || null;
+    if (!selected) {
+      setSelectedLessonId(null);
+      setLessonForm(createEmptyLessonForm(lessonTrackFilter || trackOptions[0]?.id || ""));
+      return;
+    }
+    if (selected.id !== selectedLessonId) {
+      setSelectedLessonId(selected.id);
+    }
+    setLessonForm(lessonToForm(selected));
+  }, [creatingLesson, lessonTrackFilter, lessons, selectedLessonId, trackOptions]);
+
+  useEffect(() => {
+    if (creatingQuestion) {
+      return;
+    }
+
+    const selected =
+      questions.find((row) => row.id === selectedQuestionId) || questions[0] || null;
+    if (!selected) {
+      setSelectedQuestionId(null);
+      setQuestionForm(
+        createEmptyQuestionForm(
+          questionTrackFilter || trackOptions[0]?.id || "",
+          questionLessonFilter,
+        ),
+      );
+      return;
+    }
+    if (selected.id !== selectedQuestionId) {
+      setSelectedQuestionId(selected.id);
+    }
+    setQuestionForm(questionToForm(selected));
+  }, [
+    creatingQuestion,
+    questionLessonFilter,
+    questionTrackFilter,
+    questions,
+    selectedQuestionId,
+    trackOptions,
+  ]);
+
+  useEffect(() => {
+    if (!learnerOverview.length) {
+      setSelectedLearnerId(null);
+      return;
+    }
+    if (!selectedLearnerId || !learnerOverview.some((row) => row.user_id === selectedLearnerId)) {
+      setSelectedLearnerId(learnerOverview[0].user_id);
+    }
+  }, [learnerOverview, selectedLearnerId]);
+
+  useEffect(() => {
+    if (!progressRows.length) {
+      setSelectedProgressId(null);
+      return;
+    }
+    if (!selectedProgressId || !progressRows.some((row) => row.id === selectedProgressId)) {
+      setSelectedProgressId(progressRows[0].id);
+    }
+  }, [progressRows, selectedProgressId]);
+
+  useEffect(() => {
+    if (!activityRows.length) {
+      setSelectedActivityId(null);
+      return;
+    }
+    if (!selectedActivityId || !activityRows.some((row) => row.id === selectedActivityId)) {
+      setSelectedActivityId(activityRows[0].id);
+    }
+  }, [activityRows, selectedActivityId]);
+
+  useEffect(() => {
+    const firstCourseId = curatedPaths[0]?.courses[0]?.id || "";
+    const hasCourse = curatedPaths.some((path) =>
+      path.courses.some((course) => course.id === selectedCuratedCourseId),
+    );
+
+    if (!selectedCuratedCourseId || !hasCourse) {
+      setSelectedCuratedCourseId(firstCourseId);
+    }
+  }, [curatedPaths, selectedCuratedCourseId]);
 
   useEffect(() => {
     if (!selectedCuratedCourseId) {
       setCuratedCourseDetail(null);
-      setCuratedUnitDetail(null);
-      setCuratedBrowserError("");
       return;
     }
 
+    const base = getApiBase();
     let cancelled = false;
 
-    async function loadCuratedCourse() {
-      setCuratedBrowserLoading(true);
-      setCuratedBrowserError("");
+    async function loadCourse() {
+      setCuratedCourseLoading(true);
       try {
-        const base = (import.meta as any).env.VITE_API_BASE_URL || "";
         const response = await fetch(
           `${base}/api/academy/admin/v2/course/${selectedCuratedCourseId}`,
-          { headers, credentials: "include" },
+          { headers },
         );
-        const result = await response.json().catch(() => null);
-
-        if (!response.ok || !result?.success) {
-          throw new Error(
-            result?.message || "Failed to load curated academy course.",
-          );
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result?.message || "Failed to load curated course.");
         }
-
         if (!cancelled) {
-          setCuratedCourseDetail(result.data as AcademyV2CourseDetail);
-          setCuratedBrowserError("");
+          setCuratedCourseDetail(result.data || null);
         }
-      } catch (err: any) {
+      } catch (courseError: any) {
         if (!cancelled) {
-          setCuratedCourseDetail(null);
-          setCuratedUnitDetail(null);
-          setCuratedBrowserError(
-            err.message || "Failed to load curated academy course.",
-          );
+          setError(courseError?.message || "Failed to load curated course.");
         }
       } finally {
         if (!cancelled) {
-          setCuratedBrowserLoading(false);
+          setCuratedCourseLoading(false);
         }
       }
     }
 
-    void loadCuratedCourse();
+    void loadCourse();
     return () => {
       cancelled = true;
     };
   }, [headers, selectedCuratedCourseId]);
 
   useEffect(() => {
-    if (!curatedBrowserUnits.length) {
+    if (!curatedCourseDetail) {
       setSelectedCuratedUnitId("");
-      setCuratedUnitDetail(null);
       return;
     }
 
-    if (
-      !selectedCuratedUnitId ||
-      !curatedBrowserUnits.some((unit) => unit.id === selectedCuratedUnitId)
-    ) {
-      setSelectedCuratedUnitId(curatedBrowserUnits[0].id);
+    const units = flattenCuratedUnits(curatedCourseDetail);
+    const hasUnit = units.some((unit) => unit.id === selectedCuratedUnitId);
+    if (!selectedCuratedUnitId || !hasUnit) {
+      setSelectedCuratedUnitId(units[0]?.id || "");
     }
-  }, [curatedBrowserUnits, selectedCuratedUnitId]);
+  }, [curatedCourseDetail, selectedCuratedUnitId]);
 
   useEffect(() => {
     if (!curatedCourseDetail || !selectedCuratedUnitId) {
@@ -682,42 +723,29 @@ export function AcademyAdmin() {
       return;
     }
 
+    const base = getApiBase();
     let cancelled = false;
 
-    async function loadCuratedUnit() {
+    async function loadUnit() {
       setCuratedUnitLoading(true);
-      setCuratedBrowserError("");
       try {
-        const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-        const query = new URLSearchParams({
+        const params = new URLSearchParams({
           course_id: curatedCourseDetail.id,
           unit_id: selectedCuratedUnitId,
         });
-        const response = await fetch(
-          `${base}/api/academy/admin/v2/unit?${query.toString()}`,
-          {
-            headers,
-            credentials: "include",
-          },
-        );
-        const result = await response.json().catch(() => null);
-
-        if (!response.ok || !result?.success) {
-          throw new Error(
-            result?.message || "Failed to load curated academy unit.",
-          );
+        const response = await fetch(`${base}/api/academy/admin/v2/unit?${params}`, {
+          headers,
+        });
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result?.message || "Failed to load curated unit.");
         }
-
         if (!cancelled) {
-          setCuratedUnitDetail(result.data as AcademyV2UnitDetail);
-          setCuratedBrowserError("");
+          setCuratedUnitDetail(result.data || null);
         }
-      } catch (err: any) {
+      } catch (unitError: any) {
         if (!cancelled) {
-          setCuratedUnitDetail(null);
-          setCuratedBrowserError(
-            err.message || "Failed to load curated academy unit.",
-          );
+          setError(unitError?.message || "Failed to load curated unit.");
         }
       } finally {
         if (!cancelled) {
@@ -726,2094 +754,1545 @@ export function AcademyAdmin() {
       }
     }
 
-    void loadCuratedUnit();
+    void loadUnit();
     return () => {
       cancelled = true;
     };
   }, [curatedCourseDetail, headers, selectedCuratedUnitId]);
 
-  useEffect(() => {
-    if (trackOptions.length === 0) {
-      setFilterTrack("");
-      setFilterLesson("");
-      return;
-    }
-
-    if (
-      !filterTrack ||
-      !trackOptions.some((track) => track.id === filterTrack)
-    ) {
-      setFilterTrack(trackOptions[0].id);
-    }
-  }, [filterTrack, trackOptions]);
-
-  useEffect(() => {
-    if (!filterTrack) {
-      setFilterLesson("");
-      return;
-    }
-
-    const options = lessons
-      .filter((lesson) => lesson.track === filterTrack)
-      .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0));
-
-    if (options.length === 0) {
-      setFilterLesson("");
-      return;
-    }
-
-    if (
-      !filterLesson ||
-      !options.some((lesson) => lesson.lesson_id === filterLesson)
-    ) {
-      setFilterLesson(options[0].lesson_id);
-    }
-  }, [filterLesson, filterTrack, lessons]);
-
-  useEffect(() => {
-    if (!trackOptions.length) {
-      return;
-    }
-
-    if (
-      !lessonForm.track ||
-      !trackOptions.some((track) => track.id === lessonForm.track)
-    ) {
-      setLessonForm((prev) => ({
-        ...prev,
-        track: trackOptions[0].id,
-      }));
-    }
-
-    if (
-      !questionForm.track ||
-      !trackOptions.some((track) => track.id === questionForm.track)
-    ) {
-      const defaultTrack = trackOptions[0].id;
-      const firstLesson = lessons
-        .filter((lesson) => lesson.track === defaultTrack)
-        .sort(
-          (a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0),
-        )[0];
-      setQuestionForm((prev) => ({
-        ...prev,
-        track: defaultTrack,
-        lesson_id: firstLesson?.lesson_id || "",
-      }));
-    }
-  }, [lessonForm.track, lessons, questionForm.track, trackOptions]);
-
-  useEffect(() => {
-    if (!lessonForm.track) {
-      return;
-    }
-
-    if (
-      lessonTrackOptions.length > 0 &&
-      !lessonTrackOptions.some(
-        (item) => item.lesson_id === lessonForm.lesson_id,
-      )
-    ) {
-      setLessonForm((prev) => ({
-        ...prev,
-        lesson_id: lessonTrackOptions[0].lesson_id,
-      }));
-    }
-  }, [lessonForm.lesson_id, lessonTrackOptions]);
-
-  useEffect(() => {
-    if (!questionForm.track) {
-      return;
-    }
-
-    if (
-      questionTrackOptions.length > 0 &&
-      !questionTrackOptions.some(
-        (item) => item.lesson_id === questionForm.lesson_id,
-      )
-    ) {
-      setQuestionForm((prev) => ({
-        ...prev,
-        lesson_id: questionTrackOptions[0].lesson_id,
-      }));
-    }
-  }, [questionForm.lesson_id, questionTrackOptions, questionForm.track]);
-
-  function resetTrackForm() {
-    setEditingTrackId(null);
-    setTrackForm(createEmptyTrackForm());
-  }
-
-  function resetLessonForm() {
-    setEditingLessonId(null);
-    const defaultTrack = trackOptions[0]?.id || "";
-    const firstLesson = lessons
-      .filter((lesson) => lesson.track === defaultTrack)
-      .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))[0];
-    setLessonForm(
-      createEmptyLessonForm(defaultTrack, firstLesson?.lesson_id || ""),
-    );
-  }
-
-  function resetQuestionForm() {
-    setEditingQuestionId(null);
-    const defaultTrack = trackOptions[0]?.id || "";
-    const firstLesson = lessons
-      .filter((lesson) => lesson.track === defaultTrack)
-      .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))[0];
-    setQuestionForm(
-      createEmptyQuestionForm(defaultTrack, firstLesson?.lesson_id || ""),
-    );
-  }
-
-  async function saveTrack(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function saveTrack() {
+    const base = getApiBase();
+    setTrackSaving(true);
     setError("");
     setNotice("");
 
-    const id = normalizeTrackId(trackForm.id);
-    if (!editingTrackId && !id) {
-      setError("Track ID is required.");
-      return;
-    }
-    if (!trackForm.title.trim()) {
-      setError("Track title is required.");
-      return;
-    }
-
-    setSaving(true);
     try {
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-      const endpoint = editingTrackId
-        ? `${base}/api/academy/admin/tracks/${editingTrackId}`
-        : `${base}/api/academy/admin/tracks`;
-      const response = await fetch(endpoint, {
-        method: editingTrackId ? "PATCH" : "POST",
-        headers,
-        credentials: "include",
-        body: JSON.stringify({
-          ...trackForm,
-          ...(editingTrackId ? {} : { id }),
-        }),
-      });
-      const result = await response.json().catch(() => null);
+      const payload = {
+        id: normalizeTrackId(trackForm.id),
+        title: trackForm.title.trim(),
+        subtitle: trackForm.subtitle.trim(),
+        description: trackForm.description.trim(),
+        status: trackForm.status,
+        sort_order: Number(trackForm.sort_order || 0),
+      };
 
-      if (!response.ok || !result?.success) {
+      const endpoint = creatingTrack
+        ? `${base}/api/academy/admin/tracks`
+        : `${base}/api/academy/admin/tracks/${selectedTrackId}`;
+      const method = creatingTrack ? "POST" : "PATCH";
+
+      const response = await fetch(endpoint, {
+        method,
+        headers,
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
         throw new Error(result?.message || "Failed to save track.");
       }
 
-      setNotice(editingTrackId ? "Track updated." : "Track created.");
-      resetTrackForm();
-      await refreshAll(true);
-    } catch (err: any) {
-      setError(err.message || "Failed to save track.");
+      toast.success(creatingTrack ? "Track created" : "Track updated");
+      setNotice(creatingTrack ? "Track created successfully." : "Track updated successfully.");
+      setCreatingTrack(false);
+      await loadAll("refresh");
+      if (result?.data?.id) {
+        setSelectedTrackId(result.data.id);
+      }
+    } catch (saveError: any) {
+      const message = saveError?.message || "Failed to save track.";
+      setError(message);
+      toast.error(message);
     } finally {
-      setSaving(false);
+      setTrackSaving(false);
     }
   }
 
-  async function saveLesson(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function deleteTrack() {
+    if (!selectedTrackId || creatingTrack) {
+      return;
+    }
+
+    const base = getApiBase();
+    setTrackDeleting(true);
     setError("");
     setNotice("");
 
-    if (!lessonForm.track) {
-      setError("Track is required for lesson.");
-      return;
-    }
-    if (!lessonForm.lesson_id.trim()) {
-      setError("Lesson ID is required.");
-      return;
-    }
-    if (!lessonForm.title.trim()) {
-      setError("Lesson title is required.");
-      return;
-    }
-
-    let parsedCallouts: { title: string; body: string }[];
     try {
-      parsedCallouts = parseCalloutsText(lessonForm.callouts_text);
-    } catch (err: any) {
-      setError(err.message || "Invalid callouts JSON.");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-      const endpoint = editingLessonId
-        ? `${base}/api/academy/admin/lessons/${editingLessonId}`
-        : `${base}/api/academy/admin/lessons`;
-      const response = await fetch(endpoint, {
-        method: editingLessonId ? "PATCH" : "POST",
+      const response = await fetch(`${base}/api/academy/admin/tracks/${selectedTrackId}`, {
+        method: "DELETE",
         headers,
-        credentials: "include",
-        body: JSON.stringify({
-          ...lessonForm,
-          track: normalizeTrackId(lessonForm.track),
-          lesson_id: lessonForm.lesson_id.trim(),
-          callouts: parsedCallouts,
-        }),
       });
-      const result = await response.json().catch(() => null);
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result?.message || "Failed to delete track.");
+      }
+      toast.success("Track deleted");
+      setNotice("Track deleted successfully.");
+      await loadAll("refresh");
+    } catch (deleteError: any) {
+      const message = deleteError?.message || "Failed to delete track.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setTrackDeleting(false);
+    }
+  }
 
-      if (!response.ok || !result?.success) {
+  async function saveLesson() {
+    const base = getApiBase();
+    setLessonSaving(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const payload = {
+        track: normalizeTrackId(lessonForm.track),
+        lesson_id: lessonForm.lesson_id.trim(),
+        title: lessonForm.title.trim(),
+        minutes: Number(lessonForm.minutes || 10),
+        content_md: lessonForm.content_md,
+        callouts: parseCalloutsText(lessonForm.callouts_text),
+        status: lessonForm.status,
+        sort_order: Number(lessonForm.sort_order || 0),
+      };
+
+      const endpoint = creatingLesson
+        ? `${base}/api/academy/admin/lessons`
+        : `${base}/api/academy/admin/lessons/${selectedLessonId}`;
+      const method = creatingLesson ? "POST" : "PATCH";
+
+      const response = await fetch(endpoint, {
+        method,
+        headers,
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+      if (!response.ok) {
         throw new Error(result?.message || "Failed to save lesson.");
       }
 
-      setNotice(editingLessonId ? "Lesson updated." : "Lesson created.");
-      resetLessonForm();
-      await refreshAll(true);
-    } catch (err: any) {
-      setError(err.message || "Failed to save lesson.");
+      toast.success(creatingLesson ? "Lesson created" : "Lesson updated");
+      setNotice(
+        creatingLesson
+          ? "Lesson created successfully."
+          : "Lesson updated successfully.",
+      );
+      setCreatingLesson(false);
+      await loadAll("refresh");
+      if (result?.data?.id) {
+        setSelectedLessonId(result.data.id);
+      }
+    } catch (saveError: any) {
+      const message = saveError?.message || "Failed to save lesson.";
+      setError(message);
+      toast.error(message);
     } finally {
-      setSaving(false);
+      setLessonSaving(false);
     }
   }
 
-  function updateChoice(index: number, patch: Partial<AcademyQuestionChoice>) {
-    setQuestionForm((prev) => ({
-      ...prev,
-      choices: prev.choices.map((choice, choiceIndex) =>
-        choiceIndex === index ? { ...choice, ...patch } : choice,
-      ),
-    }));
-  }
-
-  function addChoice() {
-    setQuestionForm((prev) => {
-      const nextId = String.fromCharCode(97 + prev.choices.length);
-      return {
-        ...prev,
-        choices: [...prev.choices, { id: nextId, label: "" }],
-      };
-    });
-  }
-
-  function removeChoice(index: number) {
-    setQuestionForm((prev) => {
-      const nextChoices = prev.choices.filter(
-        (_, choiceIndex) => choiceIndex !== index,
-      );
-      const correctStillExists = nextChoices.some(
-        (choice) => choice.id === prev.correct_choice_id,
-      );
-
-      return {
-        ...prev,
-        choices: nextChoices,
-        correct_choice_id: correctStillExists
-          ? prev.correct_choice_id
-          : nextChoices[0]?.id || "a",
-      };
-    });
-  }
-
-  async function saveQuestion(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError("");
-    setNotice("");
-
-    const validationError = validateQuestionForm(questionForm);
-    if (validationError) {
-      setError(validationError);
+  async function deleteLesson() {
+    if (!selectedLessonId || creatingLesson) {
       return;
     }
 
-    setSaving(true);
-    try {
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-      const endpoint = editingQuestionId
-        ? `${base}/api/academy/admin/questions/${editingQuestionId}`
-        : `${base}/api/academy/admin/questions`;
-      const response = await fetch(endpoint, {
-        method: editingQuestionId ? "PATCH" : "POST",
-        headers,
-        credentials: "include",
-        body: JSON.stringify({
-          ...questionForm,
-          track: normalizeTrackId(questionForm.track),
-          lesson_id: questionForm.lesson_id.trim(),
-          choices: questionForm.choices.filter(
-            (choice) => choice.id.trim() && choice.label.trim(),
-          ),
-        }),
-      });
-      const result = await response.json().catch(() => null);
+    const base = getApiBase();
+    setLessonDeleting(true);
+    setError("");
+    setNotice("");
 
-      if (!response.ok || !result?.success) {
+    try {
+      const response = await fetch(`${base}/api/academy/admin/lessons/${selectedLessonId}`, {
+        method: "DELETE",
+        headers,
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result?.message || "Failed to delete lesson.");
+      }
+      toast.success("Lesson deleted");
+      setNotice("Lesson deleted successfully.");
+      await loadAll("refresh");
+    } catch (deleteError: any) {
+      const message = deleteError?.message || "Failed to delete lesson.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLessonDeleting(false);
+    }
+  }
+
+  async function saveQuestion() {
+    const base = getApiBase();
+    setQuestionSaving(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const validChoices = questionForm.choices
+        .map((choice) => ({
+          id: choice.id.trim(),
+          label: choice.label.trim(),
+        }))
+        .filter((choice) => choice.id && choice.label);
+
+      if (validChoices.length < 2) {
+        throw new Error("Add at least two valid answer choices.");
+      }
+
+      const payload = {
+        track: normalizeTrackId(questionForm.track),
+        lesson_id: questionForm.lesson_id.trim(),
+        prompt: questionForm.prompt.trim(),
+        choices: validChoices,
+        correct_choice_id: questionForm.correct_choice_id.trim(),
+        explanation: questionForm.explanation.trim(),
+        sort_order: Number(questionForm.sort_order || 0),
+        status: questionForm.status,
+      };
+
+      const endpoint = creatingQuestion
+        ? `${base}/api/academy/admin/questions`
+        : `${base}/api/academy/admin/questions/${selectedQuestionId}`;
+      const method = creatingQuestion ? "POST" : "PATCH";
+
+      const response = await fetch(endpoint, {
+        method,
+        headers,
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+      if (!response.ok) {
         throw new Error(result?.message || "Failed to save question.");
       }
 
-      setNotice(editingQuestionId ? "Question updated." : "Question created.");
-      resetQuestionForm();
-      await refreshAll(true);
-    } catch (err: any) {
-      setError(err.message || "Failed to save question.");
+      toast.success(creatingQuestion ? "Question created" : "Question updated");
+      setNotice(
+        creatingQuestion
+          ? "Question created successfully."
+          : "Question updated successfully.",
+      );
+      setCreatingQuestion(false);
+      await loadAll("refresh");
+      if (result?.data?.id) {
+        setSelectedQuestionId(result.data.id);
+      }
+    } catch (saveError: any) {
+      const message = saveError?.message || "Failed to save question.";
+      setError(message);
+      toast.error(message);
     } finally {
-      setSaving(false);
+      setQuestionSaving(false);
     }
   }
 
-  function downloadCuratedSnapshot() {
-    const payload = {
-      generated_at: new Date().toISOString(),
-      curated_paths: curatedPaths,
-      curated_analytics: curatedAnalytics,
-      selected_course_id: selectedCuratedCourseId || null,
-      selected_course: curatedCourseDetail,
-      selected_unit_id: selectedCuratedUnitId || null,
-      selected_unit: curatedUnitDetail,
-    };
-
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-      type: "application/json",
-    });
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = objectUrl;
-    link.download = `academy-v2-snapshot-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(objectUrl);
-    setNotice("Curated Academy snapshot exported.");
-  }
-
-  async function deleteTrack(track: AcademyTrackAdmin) {
-    if (
-      !window.confirm(
-        `Delete track "${track.title}" and all related lessons/questions/progress?`,
-      )
-    ) {
+  async function deleteQuestion() {
+    if (!selectedQuestionId || creatingQuestion) {
       return;
     }
 
-    setDeletingKey(`track:${track.id}`);
+    const base = getApiBase();
+    setQuestionDeleting(true);
     setError("");
     setNotice("");
+
     try {
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
       const response = await fetch(
-        `${base}/api/academy/admin/tracks/${track.id}`,
+        `${base}/api/academy/admin/questions/${selectedQuestionId}`,
         {
           method: "DELETE",
           headers,
-          credentials: "include",
         },
       );
-      const result = await response.json().catch(() => null);
-      if (!response.ok || result?.success === false) {
-        throw new Error(result?.message || "Failed to delete track.");
-      }
-
-      setNotice("Track deleted.");
-      if (editingTrackId === track.id) {
-        resetTrackForm();
-      }
-      await refreshAll(true);
-    } catch (err: any) {
-      setError(err.message || "Failed to delete track.");
-    } finally {
-      setDeletingKey(null);
-    }
-  }
-
-  async function deleteLesson(lesson: AcademyLessonAdmin) {
-    if (
-      !window.confirm(
-        `Delete lesson "${lesson.title}" and related questions/progress?`,
-      )
-    ) {
-      return;
-    }
-
-    setDeletingKey(`lesson:${lesson.id}`);
-    setError("");
-    setNotice("");
-    try {
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-      const response = await fetch(
-        `${base}/api/academy/admin/lessons/${lesson.id}`,
-        {
-          method: "DELETE",
-          headers,
-          credentials: "include",
-        },
-      );
-      const result = await response.json().catch(() => null);
-      if (!response.ok || result?.success === false) {
-        throw new Error(result?.message || "Failed to delete lesson.");
-      }
-
-      setNotice("Lesson deleted.");
-      if (editingLessonId === lesson.id) {
-        resetLessonForm();
-      }
-      await refreshAll(true);
-    } catch (err: any) {
-      setError(err.message || "Failed to delete lesson.");
-    } finally {
-      setDeletingKey(null);
-    }
-  }
-
-  async function deleteQuestion(question: AcademyQuestion) {
-    if (!window.confirm(`Delete this question?\n\n${question.prompt}`)) {
-      return;
-    }
-
-    setDeletingKey(`question:${question.id}`);
-    setError("");
-    setNotice("");
-    try {
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-      const response = await fetch(
-        `${base}/api/academy/admin/questions/${question.id}`,
-        {
-          method: "DELETE",
-          headers,
-          credentials: "include",
-        },
-      );
-      const result = await response.json().catch(() => null);
-      if (!response.ok || result?.success === false) {
+      const result = await response.json();
+      if (!response.ok) {
         throw new Error(result?.message || "Failed to delete question.");
       }
-
-      setNotice("Question deleted.");
-      if (editingQuestionId === question.id) {
-        resetQuestionForm();
-      }
-      await refreshAll(true);
-    } catch (err: any) {
-      setError(err.message || "Failed to delete question.");
+      toast.success("Question deleted");
+      setNotice("Question deleted successfully.");
+      await loadAll("refresh");
+    } catch (deleteError: any) {
+      const message = deleteError?.message || "Failed to delete question.";
+      setError(message);
+      toast.error(message);
     } finally {
-      setDeletingKey(null);
+      setQuestionDeleting(false);
     }
+  }
+
+  async function deleteProgressRow() {
+    if (!selectedProgressId) {
+      return;
+    }
+
+    const base = getApiBase();
+    setProgressDeleting(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch(
+        `${base}/api/academy/admin/progress/${selectedProgressId}`,
+        {
+          method: "DELETE",
+          headers,
+        },
+      );
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result?.message || "Failed to delete progress row.");
+      }
+      toast.success("Progress row deleted");
+      setNotice("Progress row deleted successfully.");
+      await loadAll("refresh");
+    } catch (deleteError: any) {
+      const message = deleteError?.message || "Failed to delete progress row.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setProgressDeleting(false);
+    }
+  }
+
+  async function deleteActivityRow() {
+    if (!selectedActivityId) {
+      return;
+    }
+
+    const base = getApiBase();
+    setActivityDeleting(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch(
+        `${base}/api/academy/admin/activity/${selectedActivityId}`,
+        {
+          method: "DELETE",
+          headers,
+        },
+      );
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result?.message || "Failed to delete activity row.");
+      }
+      toast.success("Activity row deleted");
+      setNotice("Activity row deleted successfully.");
+      await loadAll("refresh");
+    } catch (deleteError: any) {
+      const message = deleteError?.message || "Failed to delete activity row.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setActivityDeleting(false);
+    }
+  }
+
+  const tabs = [
+    { id: "curated" as const, label: "Curated", count: curatedPaths.length },
+    { id: "tracks" as const, label: "Tracks", count: tracks.length },
+    { id: "lessons" as const, label: "Lessons", count: lessons.length },
+    { id: "questions" as const, label: "Questions", count: questions.length },
+    { id: "learners" as const, label: "Learners", count: learnerOverview.length },
+    { id: "progress" as const, label: "Progress", count: progressRows.length },
+    { id: "activity" as const, label: "Activity", count: activityRows.length },
+  ];
+
+  if (loading) {
+    return (
+      <div className="container mx-auto max-w-7xl px-4 py-10 md:py-14">
+        <AdminEmptyState
+          title="Loading academy control plane"
+          description="Fetching curated catalog, community tables, learner progress, and academy activity."
+        />
+      </div>
+    );
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 pb-20">
-      <header className="flex flex-col gap-4 -blue/20 pb-6 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 -blue/30 bg-cyber-blue/10 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.28em] text-cyber-blue">
-            <Database size={14} aria-hidden="true" />
-            Academy Admin
-          </div>
-          <div>
-            <h1 className="font-display text-3xl font-bold uppercase tracking-widest text-white md:text-5xl">
-              Academy Control Plane
-            </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-relaxed text-white/60">
-              Curated Academy v2 currently ships from repo seed, while community
-              tracks stay DB-driven. Use this page to monitor the v2 system and
-              keep the legacy community lane editable until full cutover.
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => void refreshAll(true)}
-          disabled={loading || refreshing}
-          className="inline-flex min-h-11 items-center justify-center gap-2 border border-cyber-blue/50 bg-cyber-blue/10 px-4 py-2 font-display text-xs font-bold uppercase tracking-widest text-cyber-blue transition-colors hover:bg-cyber-blue hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-blue/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <RefreshCw
-            size={16}
-            className={refreshing || loading ? "animate-spin" : ""}
-            aria-hidden="true"
-          />
-          Refresh
-        </button>
-      </header>
+    <div className="container mx-auto max-w-7xl space-y-8 px-4 py-10 md:space-y-10 md:py-14">
+      <AdminHero
+        eyebrow="Academy Control Plane"
+        title="Academy Admin"
+        subtitle="Browse curated curriculum, manage community learning tables, and inspect the live progress and activity data that drive the academy experience."
+        actions={
+          <ActionButton
+            type="button"
+            variant="secondary"
+            onClick={() => void loadAll("refresh")}
+            disabled={refreshing}
+          >
+            <span className="inline-flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" />
+              {refreshing ? "Refreshing" : "Refresh"}
+            </span>
+          </ActionButton>
+        }
+        metrics={
+          <>
+            <AdminMetricCard
+              label="Curated Paths"
+              value={curatedPaths.length}
+              meta={`${curatedPaths.reduce((sum, path) => sum + Number(path.course_count || 0), 0)} curated courses`}
+              icon={<Layers3 className="h-5 w-5" />}
+              tone="primary"
+            />
+            <AdminMetricCard
+              label="Community Tracks"
+              value={tracks.length}
+              meta={`${communityLessonsCount} live lessons`}
+              icon={<Route className="h-5 w-5" />}
+            />
+            <AdminMetricCard
+              label="Learners"
+              value={learnerOverview.length}
+              meta={`${progressRows.length} progress rows`}
+              icon={<Users className="h-5 w-5" />}
+            />
+            <AdminMetricCard
+              label="Question Bank"
+              value={questions.length}
+              meta={`${activityRows.length} activity logs`}
+              icon={<Trophy className="h-5 w-5" />}
+              tone="accent"
+            />
+          </>
+        }
+      />
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <AdminMetric
-          icon={<Layers3 className="h-4 w-4" aria-hidden="true" />}
-          label="Curated paths"
-          value={String(curatedStats.paths)}
-          detail={`${curatedStats.courses} curated courses live`}
-        />
-        <AdminMetric
-          icon={<Route className="h-4 w-4" aria-hidden="true" />}
-          label="Tracked units"
-          value={String(curatedStats.totalUnits)}
-          detail={`${curatedStats.learnUnits} learn / ${curatedStats.practiceUnits} practice`}
-        />
-        <AdminMetric
-          icon={<Users className="h-4 w-4" aria-hidden="true" />}
-          label="Active learners"
-          value={String(learnerStats.activeLearners)}
-          detail={`${learnerStats.academyEnabled} academy-enabled accounts`}
-        />
-        <AdminMetric
-          icon={<Trophy className="h-4 w-4" aria-hidden="true" />}
-          label="Total XP"
-          value={String(learnerStats.totalXp)}
-          detail={`Top streak ${learnerStats.topStreak} days`}
-        />
-      </section>
+      {error ? <AdminNotice tone="error" message={error} /> : null}
+      {notice ? <AdminNotice tone="success" message={notice} /> : null}
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_420px]">
-        <div className="-blue/20 bg-surface/80 p-5">
-          <div className="flex flex-col gap-4 /8 pb-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 -blue/25 bg-cyber-blue/10 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.24em] text-cyber-blue">
-                <Route size={13} aria-hidden="true" />
-                Curated Academy v2
-              </div>
-              <h2 className="mt-3 font-display text-2xl font-bold uppercase tracking-widest text-white">
-                Seeded System Map
-              </h2>
-              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/58">
-                Đây là phần learner flow mới kiểu Superteam. Nội dung đang đọc
-                từ repo seed nên hiện vẫn là read-only ở admin này.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={downloadCuratedSnapshot}
-                disabled={!curatedPaths.length}
-                className="inline-flex min-h-11 items-center rounded-full border border-cyber-blue/25 bg-cyber-blue/10 px-4 text-[11px] font-mono uppercase tracking-[0.18em] text-cyber-blue transition-colors hover:bg-cyber-blue hover:text-black disabled:cursor-not-allowed disabled:opacity-55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      <AdminTabs
+        tabs={tabs}
+        active={activeTab}
+        onChange={(value) => setActiveTab(value as AcademyTab)}
+      />
+
+      {activeTab === "curated" ? (
+        <AdminPageSection>
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
+            <div className="space-y-6">
+              <AdminPanel
+                eyebrow="Curated Browser"
+                title="Paths and Courses"
+                description="Curated academy content is code-driven, so this browser gives you context before you inspect unit details or analytics."
               >
-                Download snapshot
-              </button>
-              <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-mono uppercase tracking-[0.18em] text-white/48">
-                Read-only for now
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-5 grid gap-4 lg:grid-cols-2">
-            {curatedPaths.length === 0 ? (
-              <div className=" /12 bg-black/18 p-5 text-sm leading-7 text-white/52 lg:col-span-2">
-                No curated paths loaded from the local seed yet.
-              </div>
-            ) : (
-              curatedPaths.map((path) => (
-                <article
-                  key={path.id}
-                  className="rounded-[20px] /10 bg-black/18 p-4"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="inline-flex min-h-8 items-center rounded-full border border-cyber-yellow/20 bg-cyber-yellow/10 px-3 text-[10px] font-mono uppercase tracking-[0.22em] text-cyber-yellow">
-                        {path.tag || path.difficulty}
-                      </div>
-                      <h3 className="mt-3 font-display text-lg font-bold uppercase tracking-[0.08em] text-white">
-                        {path.title}
-                      </h3>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/42">
-                        Courses
-                      </div>
-                      <div className="mt-1 font-display text-2xl font-bold text-white">
-                        {path.course_count}
-                      </div>
-                    </div>
-                  </div>
-                  <p className="mt-3 line-clamp-3 text-sm leading-7 text-white/58">
-                    {path.description}
-                  </p>
-                  <div className="mt-4 grid grid-cols-3 gap-3">
-                    <MiniMetric
-                      value={String(path.learn_unit_count)}
-                      label="learn"
-                    />
-                    <MiniMetric
-                      value={String(path.practice_unit_count)}
-                      label="practice"
-                    />
-                    <MiniMetric
-                      value={String(path.total_unit_count)}
-                      label="total"
-                    />
-                  </div>
-                </article>
-              ))
-            )}
-          </div>
-
-          <div className="mt-6 /8 pt-5">
-            <div className="flex flex-col gap-4 /8 pb-4 md:flex-row md:items-end md:justify-between">
-              <div>
-                <div className="inline-flex items-center gap-2 -yellow/20 bg-cyber-yellow/10 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.24em] text-cyber-yellow">
-                  <Layers3 size={13} aria-hidden="true" />
-                  Content browser
-                </div>
-                <h3 className="mt-3 font-display text-xl font-bold uppercase tracking-widest text-white">
-                  Path / Course / Unit Preview
-                </h3>
-                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/58">
-                  Browse the curated seed exactly as learners consume it. This
-                  is read-only for now, but it gives ops a real map of the
-                  shipped Academy v2 curriculum.
-                </p>
-              </div>
-              <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-mono uppercase tracking-[0.18em] text-white/48">
-                {selectedCuratedCourseMeta
-                  ? `${selectedCuratedCourseMeta.pathTitle} / ${selectedCuratedCourseMeta.course.title}`
-                  : "Select a course"}
-              </div>
-            </div>
-
-            {curatedPaths.length === 0 ? (
-              <div className="mt-5 /12 bg-black/18 p-5 text-sm leading-7 text-white/52">
-                Curated content browser will appear here after the seed catalog
-                is available.
-              </div>
-            ) : (
-              <>
-                <div className="mt-5 space-y-4">
+                <div className="space-y-5">
                   {curatedPaths.map((path) => (
-                    <div
-                      key={path.id}
-                      className="rounded-[20px] /10 bg-black/16 p-4"
-                    >
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div key={path.id} className="border border-border-main bg-main-bg p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-cyber-blue/72">
-                            {path.tag || path.difficulty}
-                          </div>
-                          <div className="mt-2 font-display text-lg font-bold uppercase tracking-[0.08em] text-white">
+                          <div className="font-heading text-2xl font-black uppercase tracking-tight text-text-main">
                             {path.title}
                           </div>
-                        </div>
-                        <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-white/42">
-                          {path.courses.length} courses
-                        </div>
-                      </div>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {path.courses.map((course) => {
-                          const selected =
-                            selectedCuratedCourseId === course.id;
-                          return (
-                            <button
-                              key={course.id}
-                              type="button"
-                              onClick={() =>
-                                setSelectedCuratedCourseId(course.id)
-                              }
-                              className={`inline-flex min-h-11 items-center rounded-full border px-4 text-left text-[11px] font-mono uppercase tracking-[0.16em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                                selected
-                                  ? "border-cyber-yellow/35 bg-cyber-yellow/12 text-cyber-yellow"
-                                  : "border-white/10 bg-white/4 text-white/66 hover:border-cyber-blue/35 hover:bg-cyber-blue/8 hover:text-white"
-                              }`}
-                            >
-                              {course.title}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_340px]">
-                  <div className="rounded-[22px] /10 bg-black/18 p-5">
-                    {curatedBrowserLoading ? (
-                      <div className="space-y-4">
-                        <div className="h-6 w-48 animate-pulse rounded-full bg-white/10" />
-                        <div className="h-24 animate-pulse rounded-[18px] bg-white/8" />
-                        <div className="h-24 animate-pulse rounded-[18px] bg-white/8" />
-                      </div>
-                    ) : curatedBrowserError ? (
-                      <div className="rounded-[18px] -400/30 bg-red-500/10 p-4 text-sm leading-7 text-red-100">
-                        {curatedBrowserError}
-                      </div>
-                    ) : !curatedCourseDetail ? (
-                      <div className="rounded-[18px] border-dashed /12 bg-white/4 p-4 text-sm leading-7 text-white/56">
-                        Select a curated course to inspect its module and unit
-                        structure.
-                      </div>
-                    ) : (
-                      <div className="space-y-5">
-                        <div className="rounded-[18px] -blue/18 bg-cyber-blue/8 p-5">
-                          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                            <div>
-                              <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-cyber-blue/74">
-                                {selectedCuratedCourseMeta?.pathTitle ||
-                                  curatedCourseDetail.path_title}
-                              </div>
-                              <div className="mt-2 font-display text-2xl font-bold uppercase tracking-[0.08em] text-white">
-                                {curatedCourseDetail.title}
-                              </div>
-                              <p className="mt-3 max-w-3xl text-sm leading-7 text-white/64">
-                                {curatedCourseDetail.description ||
-                                  "No course description provided in the current seed."}
-                              </p>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                              <MiniMetric
-                                value={String(curatedCourseDetail.module_count)}
-                                label="modules"
-                              />
-                              <MiniMetric
-                                value={String(
-                                  curatedCourseDetail.total_unit_count,
-                                )}
-                                label="units"
-                              />
-                              <MiniMetric
-                                value={String(
-                                  curatedCourseDetail.learn_unit_count,
-                                )}
-                                label="learn"
-                              />
-                              <MiniMetric
-                                value={String(
-                                  curatedCourseDetail.practice_unit_count,
-                                )}
-                                label="practice"
-                              />
-                            </div>
+                          <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                            {path.course_count} courses • {path.total_unit_count} units • {path.difficulty}
                           </div>
                         </div>
-
-                        <div className="space-y-4">
-                          {curatedCourseDetail.modules.map((module) => {
-                            const orderedUnits = [
-                              ...module.learn_units,
-                              ...module.practice_units,
-                            ].sort(
-                              (left, right) =>
-                                Number(left.order || 0) -
-                                Number(right.order || 0),
-                            );
-
-                            return (
-                              <section
-                                key={module.id}
-                                className="rounded-[18px] /10 bg-white/4 p-4"
-                              >
-                                <div className="flex flex-col gap-3 /8 pb-4 sm:flex-row sm:items-end sm:justify-between">
-                                  <div>
-                                    <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-cyber-yellow/74">
-                                      Module {module.order || 0}
-                                    </div>
-                                    <div className="mt-2 font-display text-lg font-bold uppercase tracking-[0.08em] text-white">
-                                      {module.title}
-                                    </div>
-                                    <p className="mt-2 text-sm leading-7 text-white/58">
-                                      {module.description ||
-                                        "No module description for this step yet."}
-                                    </p>
-                                  </div>
-                                  <div className="grid grid-cols-3 gap-3">
-                                    <MiniMetric
-                                      value={String(module.learn_units.length)}
-                                      label="learn"
-                                    />
-                                    <MiniMetric
-                                      value={String(
-                                        module.practice_units.length,
-                                      )}
-                                      label="practice"
-                                    />
-                                    <MiniMetric
-                                      value={String(orderedUnits.length)}
-                                      label="steps"
-                                    />
-                                  </div>
-                                </div>
-
-                                <div className="mt-4 space-y-3">
-                                  {orderedUnits.map((unit) => {
-                                    const selected =
-                                      selectedCuratedUnitId === unit.id;
-                                    return (
-                                      <button
-                                        key={unit.id}
-                                        type="button"
-                                        onClick={() =>
-                                          setSelectedCuratedUnitId(unit.id)
-                                        }
-                                        className={`flex min-h-12 w-full items-center justify-between gap-3 rounded-[16px] border px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-yellow/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                                          selected
-                                            ? "border-cyber-yellow/35 bg-cyber-yellow/10"
-                                            : "border-white/10 bg-black/18 hover:border-cyber-blue/35 hover:bg-cyber-blue/8"
-                                        }`}
-                                      >
-                                        <div className="min-w-0 flex-1">
-                                          <div className="truncate font-display text-sm font-bold uppercase tracking-[0.08em] text-white">
-                                            {unit.title}
-                                          </div>
-                                          <div className="mt-1 text-[10px] font-mono uppercase tracking-[0.16em] text-white/44">
-                                            {unit.section} / {unit.type} / XP{" "}
-                                            {unit.xp_reward}
-                                          </div>
-                                        </div>
-                                        <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-white/54">
-                                          {unit.language || unit.type}
-                                        </div>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </section>
-                            );
-                          })}
+                        <div className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
+                          {path.tag}
                         </div>
                       </div>
-                    )}
-                  </div>
 
-                  <aside className="rounded-[22px] /10 bg-black/18 p-5">
-                    <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-cyber-yellow/74">
-                      Unit preview
-                    </div>
-                    {curatedUnitLoading ? (
-                      <div className="mt-4 space-y-4">
-                        <div className="h-6 w-40 animate-pulse rounded-full bg-white/10" />
-                        <div className="h-24 animate-pulse rounded-[18px] bg-white/8" />
-                        <div className="h-40 animate-pulse rounded-[18px] bg-white/8" />
-                      </div>
-                    ) : !curatedUnitDetail ? (
-                      <div className="mt-4 rounded-[18px] border-dashed /12 bg-white/4 p-4 text-sm leading-7 text-white/56">
-                        Choose a unit to inspect its lesson brief, starter code,
-                        tests, and hint footprint.
-                      </div>
-                    ) : (
-                      <div className="mt-4 space-y-4">
-                        <div>
-                          <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/42">
-                            {selectedCuratedUnitMeta?.moduleTitle ||
-                              curatedUnitDetail.module_title}
-                          </div>
-                          <div className="mt-2 font-display text-xl font-bold uppercase tracking-[0.08em] text-white">
-                            {curatedUnitDetail.title}
-                          </div>
-                          <p className="mt-3 text-sm leading-7 text-white/60">
-                            {extractPreviewText(curatedUnitDetail.content_md) ||
-                              "No markdown content preview available for this unit yet."}
-                          </p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <MiniMetric
-                            value={curatedUnitDetail.section}
-                            label="section"
-                          />
-                          <MiniMetric
-                            value={curatedUnitDetail.type}
-                            label="type"
-                          />
-                          <MiniMetric
-                            value={String(curatedUnitDetail.tests.length)}
-                            label="tests"
-                          />
-                          <MiniMetric
-                            value={String(curatedUnitDetail.hints.length)}
-                            label="hints"
-                          />
-                        </div>
-
-                        <div className="rounded-[18px] /10 bg-white/4 p-4">
-                          <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-cyber-blue/74">
-                            Runtime profile
-                          </div>
-                          <div className="mt-3 space-y-2 text-sm text-white/66">
-                            <div>
-                              Language:{" "}
-                              {curatedUnitDetail.language ||
-                                "Browser challenge / content"}
-                            </div>
-                            <div>
-                              Build type:{" "}
-                              {curatedUnitDetail.build_type || "standard"}
-                            </div>
-                            <div>
-                              Deployable:{" "}
-                              {curatedUnitDetail.deployable ? "Yes" : "No"}
-                            </div>
-                            <div>XP reward: {curatedUnitDetail.xp_reward}</div>
-                          </div>
-                        </div>
-
-                        <div className="rounded-[18px] /10 bg-white/4 p-4">
-                          <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-cyber-yellow/74">
-                            Test map
-                          </div>
-                          <div className="mt-3 space-y-2">
-                            {curatedUnitDetail.tests.length === 0 ? (
-                              <div className="text-sm leading-7 text-white/56">
-                                This unit does not define structured tests.
-                              </div>
-                            ) : (
-                              curatedUnitDetail.tests
-                                .slice(0, 5)
-                                .map((test) => (
-                                  <div
-                                    key={test.id}
-                                    className="rounded-[14px] /10 bg-black/18 px-3 py-2 text-sm leading-6 text-white/66"
+                      <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                        {path.courses.map((course) => (
+                          <AdminListButton
+                            key={course.id}
+                            title={course.title}
+                            meta={`${course.module_count} modules • ${course.total_unit_count} units • ${course.duration_hours}h`}
+                            active={selectedCuratedCourseId === course.id}
+                            onClick={() => setSelectedCuratedCourseId(course.id)}
+                            badges={
+                              <div className="flex flex-wrap gap-2">
+                                {course.tags.slice(0, 3).map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="bg-surface px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-text-muted"
                                   >
-                                    <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-white/42">
-                                      {test.hidden
-                                        ? "Hidden check"
-                                        : "Visible check"}
-                                    </div>
-                                    <div className="mt-1">
-                                      {test.description}
-                                    </div>
-                                  </div>
-                                ))
-                            )}
-                          </div>
-                        </div>
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            }
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </AdminPanel>
 
-                        <div className="rounded-[18px] /10 bg-black/28 p-4">
-                          <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-cyber-blue/74">
-                            Starter code preview
-                          </div>
-                          {curatedUnitDetail.code ? (
-                            <pre className="mt-3 max-h-[320px] overflow-auto rounded-[14px] border border-cyber-blue/18 bg-black/40 p-4 font-mono text-xs leading-6 text-cyan-100">
-                              <code>{curatedUnitDetail.code}</code>
-                            </pre>
-                          ) : (
-                            <div className="mt-3 text-sm leading-7 text-white/56">
-                              This unit does not ship starter code.
+              <AdminPanel
+                eyebrow="Analytics"
+                title="Lane Split"
+                description="This roll-up shows where learner progress is actually flowing between curated paths and community tracks."
+              >
+                {curatedAnalytics ? (
+                  <div className="space-y-5">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="border border-border-main bg-main-bg p-4">
+                        <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                          Curated Lane
+                        </div>
+                        <div className="mt-2 font-heading text-3xl font-black uppercase tracking-tight text-text-main">
+                          {curatedAnalytics.lane_split.curated_rows}
+                        </div>
+                        <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                          {curatedAnalytics.lane_split.curated_learners} learners • {curatedAnalytics.lane_split.curated_xp} XP
+                        </div>
+                      </div>
+                      <div className="border border-border-main bg-main-bg p-4">
+                        <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                          Community Lane
+                        </div>
+                        <div className="mt-2 font-heading text-3xl font-black uppercase tracking-tight text-text-main">
+                          {curatedAnalytics.lane_split.community_rows}
+                        </div>
+                        <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                          {curatedAnalytics.lane_split.community_learners} learners • {curatedAnalytics.lane_split.community_xp} XP
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 lg:grid-cols-2">
+                      <div className="space-y-3">
+                        <div className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
+                          Top Paths
+                        </div>
+                        {curatedAnalytics.top_paths.map((path) => (
+                          <div key={path.id} className="border border-border-main bg-main-bg px-4 py-3">
+                            <div className="font-heading text-lg font-black uppercase tracking-tight text-text-main">
+                              {path.title}
                             </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </aside>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        <aside className="space-y-6">
-          <div className="-blue/20 bg-surface/80 p-5">
-            <div className="flex items-center gap-2 -blue/25 bg-cyber-blue/10 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.24em] text-cyber-blue">
-              <Trophy size={13} aria-hidden="true" />
-              Curated analytics
-            </div>
-            <h2 className="mt-4 font-display text-2xl font-bold uppercase tracking-widest text-white">
-              Route Performance
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed text-white/58">
-              Completion, XP, and learner split for curated Academy v2 versus
-              the legacy community lane.
-            </p>
-
-            {!curatedAnalytics ? (
-              <div className="mt-5 border-dashed /12 bg-black/18 p-4 text-sm leading-7 text-white/52">
-                No curated analytics available yet.
-              </div>
-            ) : (
-              <div className="mt-5 space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <MiniMetric
-                    value={String(curatedAnalytics.lane_split.curated_rows)}
-                    label="curated rows"
-                  />
-                  <MiniMetric
-                    value={String(curatedAnalytics.lane_split.community_rows)}
-                    label="community rows"
-                  />
-                  <MiniMetric
-                    value={String(curatedAnalytics.lane_split.curated_learners)}
-                    label="curated learners"
-                  />
-                  <MiniMetric
-                    value={String(
-                      curatedAnalytics.lane_split.community_learners,
-                    )}
-                    label="community learners"
-                  />
-                </div>
-
-                <div className="rounded-[18px] /10 bg-black/18 p-4">
-                  <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-cyber-yellow/74">
-                    Top curated paths
-                  </div>
-                  <div className="mt-3 space-y-3">
-                    {curatedAnalytics.top_paths.length === 0 ? (
-                      <div className="text-sm leading-7 text-white/56">
-                        No curated path completions recorded yet.
-                      </div>
-                    ) : (
-                      curatedAnalytics.top_paths.slice(0, 4).map((path) => (
-                        <div
-                          key={path.id}
-                          className="rounded-[14px] /10 bg-white/4 p-3"
-                        >
-                          <div className="font-display text-sm font-bold uppercase tracking-[0.08em] text-white">
-                            {path.title}
-                          </div>
-                          <div className="mt-2 grid grid-cols-3 gap-2">
-                            <MiniMetric
-                              value={String(path.completions)}
-                              label="complete"
-                            />
-                            <MiniMetric
-                              value={String(path.practice_completions)}
-                              label="practice"
-                            />
-                            <MiniMetric
-                              value={String(path.learner_count)}
-                              label="learners"
-                            />
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                <div className="rounded-[18px] /10 bg-black/18 p-4">
-                  <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-cyber-blue/74">
-                    Top curated courses
-                  </div>
-                  <div className="mt-3 space-y-3">
-                    {curatedAnalytics.top_courses.length === 0 ? (
-                      <div className="text-sm leading-7 text-white/56">
-                        No curated course completions recorded yet.
-                      </div>
-                    ) : (
-                      curatedAnalytics.top_courses.slice(0, 4).map((course) => (
-                        <div
-                          key={course.id}
-                          className="rounded-[14px] /10 bg-white/4 p-3"
-                        >
-                          <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-white/42">
-                            {course.path_title || "Curated route"}
-                          </div>
-                          <div className="mt-1 font-display text-sm font-bold uppercase tracking-[0.08em] text-white">
-                            {course.title}
-                          </div>
-                          <div className="mt-2 grid grid-cols-3 gap-2">
-                            <MiniMetric
-                              value={String(course.completions)}
-                              label="complete"
-                            />
-                            <MiniMetric
-                              value={String(course.practice_completions)}
-                              label="practice"
-                            />
-                            <MiniMetric
-                              value={String(course.learner_count)}
-                              label="learners"
-                            />
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="-yellow/20 bg-surface/80 p-5">
-            <div className="flex items-center gap-2 -yellow/20 bg-cyber-yellow/10 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.24em] text-cyber-yellow">
-              <Users size={13} aria-hidden="true" />
-              Learner overview
-            </div>
-            <h2 className="mt-4 font-display text-2xl font-bold uppercase tracking-widest text-white">
-              Top learners
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed text-white/58">
-              Snapshot này đọc từ progress/activity trong DB, nên phản ánh cả
-              curated flow mới lẫn community lane cũ.
-            </p>
-
-            <div className="mt-5 space-y-3">
-              {topLearners.length === 0 ? (
-                <div className="border-dashed /12 bg-black/18 p-4 text-sm leading-7 text-white/52">
-                  No learner activity recorded yet.
-                </div>
-              ) : (
-                topLearners.map((learner, index) => (
-                  <div
-                    key={learner.user_id}
-                    className="rounded-[18px] /10 bg-black/18 p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/42">
-                          Rank {index + 1}
-                        </div>
-                        <div className="mt-2 font-display text-lg font-bold uppercase tracking-[0.08em] text-white">
-                          {learner.name}
-                        </div>
-                        <div className="mt-1 text-xs uppercase tracking-[0.16em] text-white/46">
-                          {learner.role} / {learner.member_type}
-                        </div>
-                      </div>
-                      <div className="rounded-full border border-cyber-blue/20 bg-cyber-blue/10 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-cyber-blue">
-                        XP {learner.xp}
-                      </div>
-                    </div>
-                    <div className="mt-4 grid grid-cols-3 gap-3">
-                      <MiniMetric
-                        value={String(learner.completed_lessons)}
-                        label="lessons"
-                      />
-                      <MiniMetric
-                        value={String(learner.quiz_passed)}
-                        label="quizzes"
-                      />
-                      <MiniMetric
-                        value={String(learner.streak || 0)}
-                        label="streak"
-                      />
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="-blue/20 bg-surface/80 p-5">
-            <div className="flex items-center gap-2 -blue/25 bg-cyber-blue/10 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.24em] text-cyber-blue">
-              <History size={13} aria-hidden="true" />
-              Recent activity
-            </div>
-            <h2 className="mt-4 font-display text-2xl font-bold uppercase tracking-widest text-white">
-              Live learning trail
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed text-white/58">
-              Recent progress writes from both curated Academy v2 and the legacy
-              community lane.
-            </p>
-
-            <div className="mt-5 space-y-3">
-              {recentActivity.length === 0 ? (
-                <div className="border-dashed /12 bg-black/18 p-4 text-sm leading-7 text-white/52">
-                  No activity recorded yet.
-                </div>
-              ) : (
-                recentActivity.map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="rounded-[18px] /10 bg-black/18 p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="font-display text-sm font-bold uppercase tracking-[0.08em] text-white">
-                          {entry.user_name}
-                        </div>
-                        <div className="mt-1 text-[10px] font-mono uppercase tracking-[0.16em] text-white/42">
-                          {entry.track} / {entry.lesson_id}
-                        </div>
-                      </div>
-                      <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-white/54">
-                        {entry.action.replace(/_/g, " ")}
-                      </div>
-                    </div>
-                    <div className="mt-3 text-xs leading-6 text-white/56">
-                      XP snapshot {entry.xp_snapshot} • {entry.member_type} •{" "}
-                      {new Date(entry.recorded_at).toLocaleString()}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </aside>
-      </section>
-
-      {error && (
-        <div className="flex items-start gap-3 -500/40 bg-red-500/10 p-4 text-sm text-red-100">
-          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {notice && (
-        <div className="flex items-start gap-3 -400/40 bg-emerald-400/10 p-4 text-sm text-emerald-100">
-          <CheckCircle2
-            className="mt-0.5 h-5 w-5 shrink-0"
-            aria-hidden="true"
-          />
-          <span>{notice}</span>
-        </div>
-      )}
-
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Boxes className="h-4 w-4 text-cyber-yellow" aria-hidden="true" />
-            <h2 className="font-display text-xl font-bold uppercase tracking-widest text-white">
-              Community Tracks
-            </h2>
-          </div>
-          <p className="text-sm leading-relaxed text-white/56">
-            Đây là lane DB-driven cũ để DSUC tự tạo nội dung riêng. Nó vẫn hoạt
-            động song song trong lúc curated Academy v2 chưa có admin content
-            model hoàn chỉnh.
-          </p>
-          {loading ? (
-            <div className="h-28 animate-pulse /10 bg-white/[0.03]" />
-          ) : trackOptions.length === 0 ? (
-            <div className="border-dashed -blue/30 bg-surface/60 p-6 text-sm text-white/60">
-              No tracks yet. Create your first track on the right.
-            </div>
-          ) : (
-            <div className="grid gap-3">
-              {trackOptions.map((track) => (
-                <motion.article
-                  key={track.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
-                  <SoftBrutalCard intent="default" className="p-4">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="border border-cyber-blue/30 bg-cyber-blue/10 px-2 py-1 text-[10px] font-mono uppercase tracking-widest text-cyber-blue">
-                          {track.id}
-                        </span>
-                        <span className="border border-white/10 bg-black/40 px-2 py-1 text-[10px] font-mono uppercase tracking-widest text-white/60">
-                          {track.status}
-                        </span>
-                        <span className="border border-white/10 bg-black/40 px-2 py-1 text-[10px] font-mono uppercase tracking-widest text-white/60">
-                          Lessons: {lessonCountByTrack.get(track.id) || 0}
-                        </span>
-                      </div>
-                      <h3 className="font-display text-lg font-bold uppercase tracking-wide text-white">
-                        {track.title}
-                      </h3>
-                      {track.subtitle && (
-                        <p className="text-sm text-white/70">
-                          {track.subtitle}
-                        </p>
-                      )}
-                      {track.description && (
-                        <p className="text-sm text-white/55">
-                          {track.description}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex shrink-0 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingTrackId(track.id);
-                          setTrackForm({
-                            id: track.id,
-                            title: track.title,
-                            subtitle: track.subtitle || "",
-                            description: track.description || "",
-                            status: track.status || "Published",
-                            sort_order: Number(track.sort_order || 0),
-                          });
-                        }}
-                        className="inline-flex min-h-10 items-center justify-center gap-2 border border-cyber-blue/40 px-3 py-2 text-xs font-bold uppercase tracking-widest text-cyber-blue transition-colors hover:bg-cyber-blue hover:text-black"
-                      >
-                        <Edit3 size={14} aria-hidden="true" />
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void deleteTrack(track)}
-                        disabled={deletingKey === `track:${track.id}`}
-                        className="inline-flex min-h-10 items-center justify-center gap-2 border border-red-400/40 px-3 py-2 text-xs font-bold uppercase tracking-widest text-red-200 transition-colors hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        <Trash2 size={14} aria-hidden="true" />
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                  </SoftBrutalCard>
-                </motion.article>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <aside className="h-fit -blue/25 bg-surface/85 p-5 xl:sticky xl:top-28">
-          <form onSubmit={saveTrack} className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="font-display text-xl font-bold uppercase tracking-widest text-white">
-                {editingTrackId
-                  ? "Edit Community Track"
-                  : "New Community Track"}
-              </h3>
-              {editingTrackId && (
-                <button
-                  type="button"
-                  onClick={resetTrackForm}
-                  className="min-h-10 border border-white/10 px-3 py-2 text-xs font-bold uppercase tracking-widest text-white/60 transition-colors hover:border-white/30 hover:text-white"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-
-            <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-              Track ID
-              <input
-                value={trackForm.id}
-                disabled={!!editingTrackId}
-                onChange={(event) =>
-                  setTrackForm((prev) => ({ ...prev, id: event.target.value }))
-                }
-                className="min-h-11 w-full border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60"
-                placeholder="solana-beginner"
-              />
-            </label>
-
-            <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-              Title
-              <input
-                value={trackForm.title}
-                onChange={(event) =>
-                  setTrackForm((prev) => ({
-                    ...prev,
-                    title: event.target.value,
-                  }))
-                }
-                className="min-h-11 w-full border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
-                placeholder="Solana Beginner"
-              />
-            </label>
-
-            <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-              Subtitle
-              <input
-                value={trackForm.subtitle}
-                onChange={(event) =>
-                  setTrackForm((prev) => ({
-                    ...prev,
-                    subtitle: event.target.value,
-                  }))
-                }
-                className="min-h-11 w-full border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
-                placeholder="Build your first onchain app"
-              />
-            </label>
-
-            <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-              Description
-              <textarea
-                value={trackForm.description}
-                onChange={(event) =>
-                  setTrackForm((prev) => ({
-                    ...prev,
-                    description: event.target.value,
-                  }))
-                }
-                rows={3}
-                className="w-full resize-y border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
-              />
-            </label>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-                Status
-                <select
-                  value={trackForm.status}
-                  onChange={(event) =>
-                    setTrackForm((prev) => ({
-                      ...prev,
-                      status: event.target.value as PublishStatus,
-                    }))
-                  }
-                  className="min-h-11 w-full border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
-                >
-                  {STATUS_OPTIONS.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-                Sort Order
-                <input
-                  value={String(trackForm.sort_order)}
-                  onChange={(event) =>
-                    setTrackForm((prev) => ({
-                      ...prev,
-                      sort_order: Number(event.target.value || 0),
-                    }))
-                  }
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  className="min-h-11 w-full border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
-                />
-              </label>
-            </div>
-
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex min-h-12 w-full items-center justify-center gap-2 bg-cyber-yellow px-4 py-3 font-display text-sm font-bold uppercase tracking-widest text-black transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {editingTrackId ? (
-                <Save size={16} aria-hidden="true" />
-              ) : (
-                <Plus size={16} aria-hidden="true" />
-              )}
-              {saving
-                ? "Saving..."
-                : editingTrackId
-                  ? "Save Track"
-                  : "Create Track"}
-            </button>
-          </form>
-        </aside>
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="space-y-4">
-          <div className="grid gap-3 /10 bg-surface/75 p-4 md:grid-cols-2">
-            <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-              Track Filter
-              <select
-                value={filterTrack}
-                onChange={(event) => setFilterTrack(event.target.value)}
-                className="min-h-11 w-full border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
-              >
-                {trackOptions.map((track) => (
-                  <option key={track.id} value={track.id}>
-                    {track.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="flex items-end pb-1 text-xs font-mono uppercase tracking-widest text-white/45">
-              Lessons: {lessonsForTrack.length}
-            </div>
-          </div>
-
-          <h2 className="font-display text-xl font-bold uppercase tracking-widest text-white">
-            Lessons
-          </h2>
-          {loading ? (
-            <div className="h-28 animate-pulse /10 bg-white/[0.03]" />
-          ) : lessonsForTrack.length === 0 ? (
-            <div className="border-dashed -blue/30 bg-surface/60 p-6 text-sm text-white/60">
-              No lessons in selected track.
-            </div>
-          ) : (
-            <div className="grid gap-3">
-              {lessonsForTrack
-                .sort(
-                  (a, b) =>
-                    Number(a.sort_order || 0) - Number(b.sort_order || 0),
-                )
-                .map((lesson) => (
-                  <motion.article
-                    key={lesson.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="border border-white/10 bg-surface/75 p-4"
-                  >
-                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="border border-cyber-blue/30 bg-cyber-blue/10 px-2 py-1 text-[10px] font-mono uppercase tracking-widest text-cyber-blue">
-                            {lesson.track} / {lesson.lesson_id}
-                          </span>
-                          <span className="border border-white/10 bg-black/40 px-2 py-1 text-[10px] font-mono uppercase tracking-widest text-white/60">
-                            {lesson.status}
-                          </span>
-                          <span className="border border-white/10 bg-black/40 px-2 py-1 text-[10px] font-mono uppercase tracking-widest text-white/60">
-                            {lesson.minutes} min
-                          </span>
-                        </div>
-                        <h3 className="font-display text-lg font-bold uppercase tracking-wide text-white">
-                          {lesson.title}
-                        </h3>
-                        {lesson.content_md && (
-                          <p className="line-clamp-2 text-sm text-white/55">
-                            {lesson.content_md}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="flex shrink-0 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingLessonId(lesson.id);
-                            setLessonForm(lessonToForm(lesson));
-                          }}
-                          className="inline-flex min-h-10 items-center justify-center gap-2 border border-cyber-blue/40 px-3 py-2 text-xs font-bold uppercase tracking-widest text-cyber-blue transition-colors hover:bg-cyber-blue hover:text-black"
-                        >
-                          <Edit3 size={14} aria-hidden="true" />
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void deleteLesson(lesson)}
-                          disabled={deletingKey === `lesson:${lesson.id}`}
-                          className="inline-flex min-h-10 items-center justify-center gap-2 border border-red-400/40 px-3 py-2 text-xs font-bold uppercase tracking-widest text-red-200 transition-colors hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          <Trash2 size={14} aria-hidden="true" />
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  </motion.article>
-                ))}
-            </div>
-          )}
-        </div>
-
-        <aside className="h-fit -blue/25 bg-surface/85 p-5 xl:sticky xl:top-28">
-          <form onSubmit={saveLesson} className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="font-display text-xl font-bold uppercase tracking-widest text-white">
-                {editingLessonId ? "Edit Lesson" : "New Lesson"}
-              </h3>
-              {editingLessonId && (
-                <button
-                  type="button"
-                  onClick={resetLessonForm}
-                  className="min-h-10 border border-white/10 px-3 py-2 text-xs font-bold uppercase tracking-widest text-white/60 transition-colors hover:border-white/30 hover:text-white"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-
-            <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-              Track
-              <select
-                value={lessonForm.track}
-                onChange={(event) =>
-                  setLessonForm((prev) => ({
-                    ...prev,
-                    track: event.target.value,
-                  }))
-                }
-                className="min-h-11 w-full border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
-              >
-                {trackOptions.map((track) => (
-                  <option key={track.id} value={track.id}>
-                    {track.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-                Lesson ID
-                <input
-                  value={lessonForm.lesson_id}
-                  onChange={(event) =>
-                    setLessonForm((prev) => ({
-                      ...prev,
-                      lesson_id: event.target.value,
-                    }))
-                  }
-                  className="min-h-11 w-full border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
-                  placeholder="module-1"
-                />
-              </label>
-
-              <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-                Minutes
-                <input
-                  value={String(lessonForm.minutes)}
-                  onChange={(event) =>
-                    setLessonForm((prev) => ({
-                      ...prev,
-                      minutes: Number(event.target.value || 0),
-                    }))
-                  }
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  className="min-h-11 w-full border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
-                />
-              </label>
-            </div>
-
-            <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-              Title
-              <input
-                value={lessonForm.title}
-                onChange={(event) =>
-                  setLessonForm((prev) => ({
-                    ...prev,
-                    title: event.target.value,
-                  }))
-                }
-                className="min-h-11 w-full border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
-                placeholder="Module 1: Intro"
-              />
-            </label>
-
-            <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-              Content Markdown
-              <textarea
-                value={lessonForm.content_md}
-                onChange={(event) =>
-                  setLessonForm((prev) => ({
-                    ...prev,
-                    content_md: event.target.value,
-                  }))
-                }
-                rows={6}
-                className="w-full resize-y border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
-              />
-            </label>
-
-            <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-              Callouts JSON Array
-              <textarea
-                value={lessonForm.callouts_text}
-                onChange={(event) =>
-                  setLessonForm((prev) => ({
-                    ...prev,
-                    callouts_text: event.target.value,
-                  }))
-                }
-                rows={5}
-                className="w-full resize-y border border-cyber-blue/25 bg-black/50 px-3 py-2 font-mono text-xs text-white"
-              />
-            </label>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-                Status
-                <select
-                  value={lessonForm.status}
-                  onChange={(event) =>
-                    setLessonForm((prev) => ({
-                      ...prev,
-                      status: event.target.value as PublishStatus,
-                    }))
-                  }
-                  className="min-h-11 w-full border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
-                >
-                  {STATUS_OPTIONS.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-                Sort Order
-                <input
-                  value={String(lessonForm.sort_order)}
-                  onChange={(event) =>
-                    setLessonForm((prev) => ({
-                      ...prev,
-                      sort_order: Number(event.target.value || 0),
-                    }))
-                  }
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  className="min-h-11 w-full border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
-                />
-              </label>
-            </div>
-
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex min-h-12 w-full items-center justify-center gap-2 bg-cyber-yellow px-4 py-3 font-display text-sm font-bold uppercase tracking-widest text-black transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {editingLessonId ? (
-                <Save size={16} aria-hidden="true" />
-              ) : (
-                <Plus size={16} aria-hidden="true" />
-              )}
-              {saving
-                ? "Saving..."
-                : editingLessonId
-                  ? "Save Lesson"
-                  : "Create Lesson"}
-            </button>
-          </form>
-        </aside>
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="space-y-4">
-          <div className="grid gap-3 /10 bg-surface/75 p-4 md:grid-cols-2">
-            <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-              Track
-              <select
-                value={filterTrack}
-                onChange={(event) => setFilterTrack(event.target.value)}
-                className="min-h-11 w-full border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
-              >
-                {trackOptions.map((track) => (
-                  <option key={track.id} value={track.id}>
-                    {track.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-              Lesson
-              <select
-                value={filterLesson}
-                onChange={(event) => setFilterLesson(event.target.value)}
-                className="min-h-11 w-full border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
-              >
-                {lessonsForTrack
-                  .sort(
-                    (a, b) =>
-                      Number(a.sort_order || 0) - Number(b.sort_order || 0),
-                  )
-                  .map((lesson) => (
-                    <option key={lesson.id} value={lesson.lesson_id}>
-                      {lesson.title}
-                    </option>
-                  ))}
-              </select>
-            </label>
-          </div>
-
-          <h2 className="font-display text-xl font-bold uppercase tracking-widest text-white">
-            Questions
-          </h2>
-          {loading ? (
-            <div className="h-28 animate-pulse /10 bg-white/[0.03]" />
-          ) : filteredQuestions.length === 0 ? (
-            <div className="border-dashed -blue/30 bg-surface/60 p-8 text-center">
-              <Database
-                className="mx-auto mb-3 h-10 w-10 text-cyber-blue/50"
-                aria-hidden="true"
-              />
-              <h3 className="font-display text-lg font-bold uppercase tracking-widest text-white">
-                No questions in this lesson
-              </h3>
-              <p className="mx-auto mt-2 max-w-lg text-sm text-white/60">
-                Create questions from the form on the right.
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-3">
-              {filteredQuestions.map((question) => (
-                <motion.article
-                  key={question.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="border border-white/10 bg-surface/75 p-4"
-                >
-                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="border border-cyber-blue/30 bg-cyber-blue/10 px-2 py-1 text-[10px] font-mono uppercase tracking-widest text-cyber-blue">
-                          {question.track} / {question.lesson_id} /{" "}
-                          {question.sort_order}
-                        </span>
-                        <span className="border border-white/10 bg-black/40 px-2 py-1 text-[10px] font-mono uppercase tracking-widest text-white/60">
-                          {question.status}
-                        </span>
-                      </div>
-                      <h3 className="font-display text-base font-bold uppercase tracking-wide text-white">
-                        {question.prompt}
-                      </h3>
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        {question.choices.map((choice) => (
-                          <div
-                            key={`${question.id}-${choice.id}`}
-                            className={`border px-3 py-2 text-xs ${
-                              choice.id === question.correct_choice_id
-                                ? "border-emerald-400/50 bg-emerald-400/10 text-emerald-100"
-                                : "border-white/10 bg-black/30 text-white/70"
-                            }`}
-                          >
-                            <span className="font-mono uppercase text-white/50">
-                              {choice.id}.
-                            </span>{" "}
-                            {choice.label}
+                            <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                              {path.completions} completions • {path.practice_completions} practice • {path.learner_count} learners
+                            </div>
                           </div>
                         ))}
                       </div>
-                      <p className="text-sm leading-relaxed text-white/55">
-                        {question.explanation}
-                      </p>
-                    </div>
-
-                    <div className="flex shrink-0 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingQuestionId(question.id);
-                          setQuestionForm(questionToForm(question));
-                        }}
-                        className="inline-flex min-h-10 items-center justify-center gap-2 border border-cyber-blue/40 px-3 py-2 text-xs font-bold uppercase tracking-widest text-cyber-blue transition-colors hover:bg-cyber-blue hover:text-black"
-                      >
-                        <Edit3 size={14} aria-hidden="true" />
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void deleteQuestion(question)}
-                        disabled={deletingKey === `question:${question.id}`}
-                        className="inline-flex min-h-10 items-center justify-center gap-2 border border-red-400/40 px-3 py-2 text-xs font-bold uppercase tracking-widest text-red-200 transition-colors hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        <Trash2 size={14} aria-hidden="true" />
-                        Delete
-                      </button>
+                      <div className="space-y-3">
+                        <div className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
+                          Top Courses
+                        </div>
+                        {curatedAnalytics.top_courses.map((course) => (
+                          <div key={course.id} className="border border-border-main bg-main-bg px-4 py-3">
+                            <div className="font-heading text-lg font-black uppercase tracking-tight text-text-main">
+                              {course.title}
+                            </div>
+                            <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                              {course.completions} completions • {course.practice_completions} practice • {course.learner_count} learners
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </motion.article>
-              ))}
+                ) : (
+                  <AdminEmptyState
+                    title="No curated analytics"
+                    description="Analytics data will appear once progress rows exist."
+                  />
+                )}
+              </AdminPanel>
             </div>
-          )}
-        </div>
 
-        <aside className="h-fit -blue/25 bg-surface/85 p-5 xl:sticky xl:top-28">
-          <form onSubmit={saveQuestion} className="space-y-5">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="font-display text-xl font-bold uppercase tracking-widest text-white">
-                {editingQuestionId ? "Edit Question" : "New Question"}
-              </h3>
-              {editingQuestionId && (
-                <button
+            <div className="space-y-6">
+              <AdminPanel
+                eyebrow="Course Detail"
+                title={curatedCourseDetail?.title || "Curated Course"}
+                description={
+                  curatedCourseLoading
+                    ? "Loading selected curated course."
+                    : curatedCourseDetail?.description || "Select a curated course to inspect its module and unit structure."
+                }
+              >
+                {curatedCourseDetail ? (
+                  <div className="space-y-4">
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div className="border border-border-main bg-main-bg px-3 py-3">
+                        <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+                          Modules
+                        </div>
+                        <div className="mt-1 font-heading text-2xl font-black uppercase tracking-tight text-text-main">
+                          {curatedCourseDetail.module_count}
+                        </div>
+                      </div>
+                      <div className="border border-border-main bg-main-bg px-3 py-3">
+                        <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+                          Learn Units
+                        </div>
+                        <div className="mt-1 font-heading text-2xl font-black uppercase tracking-tight text-text-main">
+                          {curatedCourseDetail.learn_unit_count}
+                        </div>
+                      </div>
+                      <div className="border border-border-main bg-main-bg px-3 py-3">
+                        <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+                          Practice
+                        </div>
+                        <div className="mt-1 font-heading text-2xl font-black uppercase tracking-tight text-text-main">
+                          {curatedCourseDetail.practice_unit_count}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="max-h-[320px] space-y-3 overflow-auto pr-1">
+                      {curatedUnits.map((unit) => (
+                        <AdminListButton
+                          key={unit.id}
+                          title={unit.title}
+                          meta={`${unit.moduleTitle} • ${unit.type} • ${unit.xp_reward} XP`}
+                          active={selectedCuratedUnitId === unit.id}
+                          onClick={() => setSelectedCuratedUnitId(unit.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <AdminEmptyState
+                    title="No curated course selected"
+                    description="Choose a course from the curated path browser to inspect it."
+                  />
+                )}
+              </AdminPanel>
+
+              <AdminPanel
+                eyebrow="Unit Detail"
+                title={curatedUnitDetail?.title || "Curated Unit"}
+                description={
+                  curatedUnitLoading
+                    ? "Loading selected unit."
+                    : curatedUnitDetail
+                      ? `${curatedUnitDetail.module_title} • ${curatedUnitDetail.type} • ${curatedUnitDetail.xp_reward} XP`
+                      : "Select a unit to inspect lesson or challenge detail."
+                }
+              >
+                {curatedUnitDetail ? (
+                  <div className="space-y-4">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="border border-border-main bg-main-bg px-4 py-3">
+                        <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+                          Language
+                        </div>
+                        <div className="mt-1 font-mono text-xs font-bold uppercase tracking-[0.16em] text-text-main">
+                          {curatedUnitDetail.language || "Content"}
+                        </div>
+                      </div>
+                      <div className="border border-border-main bg-main-bg px-4 py-3">
+                        <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+                          Tests / Hints
+                        </div>
+                        <div className="mt-1 font-mono text-xs font-bold uppercase tracking-[0.16em] text-text-main">
+                          {curatedUnitDetail.tests.length} tests • {curatedUnitDetail.hints.length} hints
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border border-border-main bg-main-bg px-4 py-4">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                        Content Preview
+                      </div>
+                      <div className="mt-3 font-mono text-xs leading-6 tracking-[0.04em] text-text-main">
+                        {extractPreviewText(curatedUnitDetail.content_md || "") || "No content preview."}
+                      </div>
+                    </div>
+
+                    {communityTrackSummaries.length > 0 ? (
+                      <div className="border border-border-main bg-main-bg px-4 py-4">
+                        <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                          Community Lane Snapshot
+                        </div>
+                        <div className="mt-3 grid gap-3">
+                          {communityTrackSummaries.slice(0, 4).map((track) => (
+                            <div key={track.id} className="flex items-center justify-between gap-3 bg-surface px-3 py-3">
+                              <div>
+                                <div className="font-heading text-base font-black uppercase tracking-tight text-text-main">
+                                  {track.title}
+                                </div>
+                                <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                                  {track.lesson_count} lessons • {track.total_minutes} minutes
+                                </div>
+                              </div>
+                              <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                                community
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <AdminEmptyState
+                    title="No curated unit selected"
+                    description="Choose a unit from the course detail browser to inspect it."
+                  />
+                )}
+              </AdminPanel>
+            </div>
+          </div>
+        </AdminPageSection>
+      ) : null}
+
+      {activeTab === "tracks" ? (
+        <AdminPageSection>
+          <div className="grid gap-6 xl:grid-cols-[minmax(320px,0.95fr)_minmax(0,1.35fr)]">
+            <AdminPanel
+              eyebrow="Community Table"
+              title="Tracks"
+              description="Tracks are the top-level community learning lanes stored in the database."
+              actions={
+                <ActionButton
                   type="button"
-                  onClick={resetQuestionForm}
-                  className="min-h-10 border border-white/10 px-3 py-2 text-xs font-bold uppercase tracking-widest text-white/60 transition-colors hover:border-white/30 hover:text-white"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-              <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-                Track
-                <select
-                  value={questionForm.track}
-                  onChange={(event) => {
-                    const nextTrack = event.target.value;
-                    const firstLesson = lessons
-                      .filter((lesson) => lesson.track === nextTrack)
-                      .sort(
-                        (a, b) =>
-                          Number(a.sort_order || 0) - Number(b.sort_order || 0),
-                      )[0];
-                    setQuestionForm((prev) => ({
-                      ...prev,
-                      track: nextTrack,
-                      lesson_id: firstLesson?.lesson_id || "",
-                    }));
+                  variant="secondary"
+                  onClick={() => {
+                    setCreatingTrack(true);
+                    setSelectedTrackId(null);
+                    setTrackForm(createEmptyTrackForm());
                   }}
-                  className="min-h-11 w-full border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
                 >
-                  {trackOptions.map((track) => (
-                    <option key={track.id} value={track.id}>
-                      {track.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-                Status
-                <select
-                  value={questionForm.status}
-                  onChange={(event) =>
-                    setQuestionForm((prev) => ({
-                      ...prev,
-                      status: event.target.value as PublishStatus,
-                    }))
-                  }
-                  className="min-h-11 w-full border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
-                >
-                  {STATUS_OPTIONS.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-              Lesson
-              <select
-                value={questionForm.lesson_id}
-                onChange={(event) =>
-                  setQuestionForm((prev) => ({
-                    ...prev,
-                    lesson_id: event.target.value,
-                  }))
-                }
-                className="min-h-11 w-full border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
-              >
-                {questionTrackOptions.map((lesson) => (
-                  <option key={lesson.id} value={lesson.lesson_id}>
-                    {lesson.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-              Prompt
-              <textarea
-                value={questionForm.prompt}
-                onChange={(event) =>
-                  setQuestionForm((prev) => ({
-                    ...prev,
-                    prompt: event.target.value,
-                  }))
-                }
-                rows={4}
-                className="w-full resize-y border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
-              />
-            </label>
-
-            <fieldset className="space-y-3">
-              <legend className="text-xs font-mono uppercase tracking-widest text-white/60">
-                Answer Choices
-              </legend>
-              {questionForm.choices.map((choice, index) => (
-                <div
-                  key={`${index}-${choice.id}`}
-                  className="grid grid-cols-[64px_minmax(0,1fr)_40px] gap-2"
-                >
-                  <input
-                    value={choice.id}
-                    onChange={(event) =>
-                      updateChoice(index, { id: event.target.value.trim() })
-                    }
-                    className="min-h-10 border border-cyber-blue/25 bg-black/50 px-2 text-center font-mono text-sm uppercase text-white"
-                    spellCheck={false}
-                  />
-                  <input
-                    value={choice.label}
-                    onChange={(event) =>
-                      updateChoice(index, { label: event.target.value })
-                    }
-                    className="min-h-10 border border-cyber-blue/25 bg-black/50 px-3 text-sm text-white"
-                    placeholder="Answer text"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeChoice(index)}
-                    disabled={questionForm.choices.length <= 2}
-                    className="inline-flex min-h-10 items-center justify-center border border-white/10 text-white/60 transition-colors hover:border-red-400/50 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-30"
-                  >
-                    <Trash2 size={15} aria-hidden="true" />
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={addChoice}
-                className="inline-flex min-h-10 items-center justify-center gap-2 border border-cyber-blue/30 px-3 py-2 text-xs font-bold uppercase tracking-widest text-cyber-blue transition-colors hover:bg-cyber-blue hover:text-black"
-              >
-                <Plus size={14} aria-hidden="true" />
-                Add Choice
-              </button>
-            </fieldset>
-
-            <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-              Correct Choice ID
-              <select
-                value={questionForm.correct_choice_id}
-                onChange={(event) =>
-                  setQuestionForm((prev) => ({
-                    ...prev,
-                    correct_choice_id: event.target.value,
-                  }))
-                }
-                className="min-h-11 w-full border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
-              >
-                {questionForm.choices
-                  .filter((choice) => choice.id.trim())
-                  .map((choice) => (
-                    <option key={choice.id} value={choice.id}>
-                      {choice.id}
-                    </option>
-                  ))}
-              </select>
-            </label>
-
-            <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-              Explanation
-              <textarea
-                value={questionForm.explanation}
-                onChange={(event) =>
-                  setQuestionForm((prev) => ({
-                    ...prev,
-                    explanation: event.target.value,
-                  }))
-                }
-                rows={4}
-                className="w-full resize-y border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
-              />
-            </label>
-
-            <label className="space-y-2 text-xs font-mono uppercase tracking-widest text-white/60">
-              Sort Order
-              <input
-                value={String(questionForm.sort_order)}
-                onChange={(event) =>
-                  setQuestionForm((prev) => ({
-                    ...prev,
-                    sort_order: Number(event.target.value || 0),
-                  }))
-                }
-                inputMode="numeric"
-                pattern="[0-9]*"
-                className="min-h-11 w-full border border-cyber-blue/25 bg-black/50 px-3 py-2 text-sm text-white"
-              />
-            </label>
-
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex min-h-12 w-full items-center justify-center gap-2 bg-cyber-yellow px-4 py-3 font-display text-sm font-bold uppercase tracking-widest text-black transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                  <span className="inline-flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    New Track
+                  </span>
+                </ActionButton>
+              }
             >
-              <Save size={16} aria-hidden="true" />
-              {saving
-                ? "Saving..."
-                : editingQuestionId
-                  ? "Save Question"
-                  : "Create Question"}
-            </button>
-          </form>
-        </aside>
-      </section>
-    </div>
-  );
-}
+              <div className="max-h-[760px] space-y-3 overflow-auto pr-1">
+                {trackOptions.length > 0 ? (
+                  trackOptions.map((track) => (
+                    <AdminListButton
+                      key={track.id}
+                      title={track.title}
+                      meta={`${track.id} • ${track.status} • sort ${track.sort_order}`}
+                      active={!creatingTrack && selectedTrackId === track.id}
+                      onClick={() => {
+                        setCreatingTrack(false);
+                        setSelectedTrackId(track.id);
+                      }}
+                    />
+                  ))
+                ) : (
+                  <AdminEmptyState
+                    title="No community tracks"
+                    description="Create the first track to open a community learning lane."
+                  />
+                )}
+              </div>
+            </AdminPanel>
 
-function AdminMetric({
-  icon,
-  label,
-  value,
-  detail,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  detail: string;
-}) {
-  return (
-    <div className="rounded-[20px] /10 bg-surface/78 p-4">
-      <div className="flex items-center gap-2 text-cyber-blue">{icon}</div>
-      <div className="mt-3 font-display text-3xl font-bold text-white">
-        {value}
-      </div>
-      <div className="mt-1 text-[10px] font-mono uppercase tracking-[0.22em] text-white/38">
-        {label}
-      </div>
-      <div className="mt-3 text-sm leading-6 text-white/56">{detail}</div>
-    </div>
-  );
-}
+            <AdminPanel
+              eyebrow={creatingTrack ? "Create Row" : "Edit Row"}
+              title="Track Editor"
+              description="Track rows define the lane metadata used by community lessons and learner progress."
+              actions={
+                <div className="flex flex-wrap gap-3">
+                  <ActionButton type="button" variant="primary" onClick={() => void saveTrack()} disabled={trackSaving}>
+                    <span className="inline-flex items-center gap-2">
+                      <Save className="h-4 w-4" />
+                      {trackSaving ? "Saving" : creatingTrack ? "Create" : "Save"}
+                    </span>
+                  </ActionButton>
+                  {!creatingTrack ? (
+                    <ActionButton type="button" variant="danger" onClick={() => void deleteTrack()} disabled={trackDeleting}>
+                      <span className="inline-flex items-center gap-2">
+                        <Trash2 className="h-4 w-4" />
+                        {trackDeleting ? "Deleting" : "Delete"}
+                      </span>
+                    </ActionButton>
+                  ) : null}
+                </div>
+              }
+            >
+              <div className="grid gap-4 md:grid-cols-2">
+                <AdminField label="Track ID" hint="slug">
+                  <input value={trackForm.id} onChange={(event) => setTrackForm((current) => ({ ...current, id: normalizeTrackId(event.target.value) }))} className={adminInputClass} disabled={!creatingTrack} />
+                </AdminField>
+                <AdminField label="Sort Order">
+                  <input value={trackForm.sort_order} onChange={(event) => setTrackForm((current) => ({ ...current, sort_order: event.target.value }))} className={adminInputClass} />
+                </AdminField>
+                <div className="md:col-span-2">
+                  <AdminField label="Title">
+                    <input value={trackForm.title} onChange={(event) => setTrackForm((current) => ({ ...current, title: event.target.value }))} className={adminInputClass} />
+                  </AdminField>
+                </div>
+                <div className="md:col-span-2">
+                  <AdminField label="Subtitle">
+                    <input value={trackForm.subtitle} onChange={(event) => setTrackForm((current) => ({ ...current, subtitle: event.target.value }))} className={adminInputClass} />
+                  </AdminField>
+                </div>
+                <div className="md:col-span-2">
+                  <AdminField label="Description">
+                    <textarea value={trackForm.description} onChange={(event) => setTrackForm((current) => ({ ...current, description: event.target.value }))} className={adminTextareaClass} />
+                  </AdminField>
+                </div>
+                <AdminField label="Status">
+                  <select value={trackForm.status} onChange={(event) => setTrackForm((current) => ({ ...current, status: event.target.value as PublishStatus }))} className={adminSelectClass}>
+                    {STATUS_OPTIONS.map((status) => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                </AdminField>
+              </div>
+            </AdminPanel>
+          </div>
+        </AdminPageSection>
+      ) : null}
 
-function MiniMetric({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="rounded-[16px] /10 bg-white/5 px-3 py-3">
-      <div className="font-display text-xl font-bold text-white">{value}</div>
-      <div className="mt-1 text-[10px] font-mono uppercase tracking-[0.18em] text-white/40">
-        {label}
-      </div>
+      {activeTab === "lessons" ? (
+        <AdminPageSection>
+          <div className="grid gap-6 xl:grid-cols-[minmax(320px,0.95fr)_minmax(0,1.35fr)]">
+            <AdminPanel
+              eyebrow="Community Table"
+              title="Lessons"
+              description="Lessons hold markdown content, minutes, status, and callouts for community tracks."
+              actions={
+                <div className="flex flex-wrap gap-3">
+                  <select
+                    value={lessonTrackFilter}
+                    onChange={(event) => setLessonTrackFilter(event.target.value)}
+                    className={adminSelectClass}
+                  >
+                    <option value="">All tracks</option>
+                    {trackOptions.map((track) => (
+                      <option key={track.id} value={track.id}>
+                        {track.title}
+                      </option>
+                    ))}
+                  </select>
+                  <ActionButton
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setCreatingLesson(true);
+                      setSelectedLessonId(null);
+                      setLessonForm(createEmptyLessonForm(lessonTrackFilter || trackOptions[0]?.id || ""));
+                    }}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      New Lesson
+                    </span>
+                  </ActionButton>
+                </div>
+              }
+            >
+              <div className="max-h-[760px] space-y-3 overflow-auto pr-1">
+                {filteredLessons.length > 0 ? (
+                  filteredLessons.map((lesson) => (
+                    <AdminListButton
+                      key={lesson.id}
+                      title={lesson.title}
+                      meta={`${lesson.track} / ${lesson.lesson_id} • ${lesson.minutes} min • ${lesson.status}`}
+                      active={!creatingLesson && selectedLessonId === lesson.id}
+                      onClick={() => {
+                        setCreatingLesson(false);
+                        setSelectedLessonId(lesson.id);
+                      }}
+                    />
+                  ))
+                ) : (
+                  <AdminEmptyState
+                    title="No lessons in scope"
+                    description="Change the filter or create a new lesson for the selected track."
+                  />
+                )}
+              </div>
+            </AdminPanel>
+
+            <AdminPanel
+              eyebrow={creatingLesson ? "Create Row" : "Edit Row"}
+              title="Lesson Editor"
+              description="Content is saved as markdown. Callouts use a JSON array of title/body objects."
+              actions={
+                <div className="flex flex-wrap gap-3">
+                  <ActionButton type="button" variant="primary" onClick={() => void saveLesson()} disabled={lessonSaving}>
+                    <span className="inline-flex items-center gap-2">
+                      <Save className="h-4 w-4" />
+                      {lessonSaving ? "Saving" : creatingLesson ? "Create" : "Save"}
+                    </span>
+                  </ActionButton>
+                  {!creatingLesson ? (
+                    <ActionButton type="button" variant="danger" onClick={() => void deleteLesson()} disabled={lessonDeleting}>
+                      <span className="inline-flex items-center gap-2">
+                        <Trash2 className="h-4 w-4" />
+                        {lessonDeleting ? "Deleting" : "Delete"}
+                      </span>
+                    </ActionButton>
+                  ) : null}
+                </div>
+              }
+            >
+              <div className="grid gap-4 md:grid-cols-2">
+                <AdminField label="Track">
+                  <select value={lessonForm.track} onChange={(event) => setLessonForm((current) => ({ ...current, track: event.target.value }))} className={adminSelectClass}>
+                    <option value="">Select track</option>
+                    {trackOptions.map((track) => (
+                      <option key={track.id} value={track.id}>{track.title}</option>
+                    ))}
+                  </select>
+                </AdminField>
+                <AdminField label="Lesson ID">
+                  <input value={lessonForm.lesson_id} onChange={(event) => setLessonForm((current) => ({ ...current, lesson_id: event.target.value }))} className={adminInputClass} />
+                </AdminField>
+                <div className="md:col-span-2">
+                  <AdminField label="Title">
+                    <input value={lessonForm.title} onChange={(event) => setLessonForm((current) => ({ ...current, title: event.target.value }))} className={adminInputClass} />
+                  </AdminField>
+                </div>
+                <AdminField label="Minutes">
+                  <input value={lessonForm.minutes} onChange={(event) => setLessonForm((current) => ({ ...current, minutes: event.target.value }))} className={adminInputClass} />
+                </AdminField>
+                <AdminField label="Sort Order">
+                  <input value={lessonForm.sort_order} onChange={(event) => setLessonForm((current) => ({ ...current, sort_order: event.target.value }))} className={adminInputClass} />
+                </AdminField>
+                <div className="md:col-span-2">
+                  <AdminField label="Markdown Content">
+                    <textarea value={lessonForm.content_md} onChange={(event) => setLessonForm((current) => ({ ...current, content_md: event.target.value }))} className={adminTextareaClass} />
+                  </AdminField>
+                </div>
+                <div className="md:col-span-2">
+                  <AdminField label="Callouts JSON">
+                    <textarea value={lessonForm.callouts_text} onChange={(event) => setLessonForm((current) => ({ ...current, callouts_text: event.target.value }))} className={adminTextareaClass} />
+                  </AdminField>
+                </div>
+                <AdminField label="Status">
+                  <select value={lessonForm.status} onChange={(event) => setLessonForm((current) => ({ ...current, status: event.target.value as PublishStatus }))} className={adminSelectClass}>
+                    {STATUS_OPTIONS.map((status) => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                </AdminField>
+              </div>
+            </AdminPanel>
+          </div>
+        </AdminPageSection>
+      ) : null}
+
+      {activeTab === "questions" ? (
+        <AdminPageSection>
+          <div className="grid gap-6 xl:grid-cols-[minmax(320px,0.95fr)_minmax(0,1.35fr)]">
+            <AdminPanel
+              eyebrow="Community Table"
+              title="Questions"
+              description="Question rows power community quiz experiences. Keep choice IDs stable and map the correct answer precisely."
+              actions={
+                <div className="flex flex-wrap gap-3">
+                  <select value={questionTrackFilter} onChange={(event) => setQuestionTrackFilter(event.target.value)} className={adminSelectClass}>
+                    <option value="">All tracks</option>
+                    {trackOptions.map((track) => (
+                      <option key={track.id} value={track.id}>{track.title}</option>
+                    ))}
+                  </select>
+                  <input
+                    value={questionLessonFilter}
+                    onChange={(event) => setQuestionLessonFilter(event.target.value)}
+                    placeholder="lesson id filter"
+                    className={adminInputClass}
+                  />
+                  <ActionButton
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setCreatingQuestion(true);
+                      setSelectedQuestionId(null);
+                      setQuestionForm(
+                        createEmptyQuestionForm(
+                          questionTrackFilter || trackOptions[0]?.id || "",
+                          questionLessonFilter,
+                        ),
+                      );
+                    }}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      New Question
+                    </span>
+                  </ActionButton>
+                </div>
+              }
+            >
+              <div className="max-h-[760px] space-y-3 overflow-auto pr-1">
+                {filteredQuestions.length > 0 ? (
+                  filteredQuestions.map((question) => (
+                    <AdminListButton
+                      key={question.id}
+                      title={question.prompt}
+                      meta={`${question.track} / ${question.lesson_id} • ${question.status} • sort ${question.sort_order}`}
+                      active={!creatingQuestion && selectedQuestionId === question.id}
+                      onClick={() => {
+                        setCreatingQuestion(false);
+                        setSelectedQuestionId(question.id);
+                      }}
+                    />
+                  ))
+                ) : (
+                  <AdminEmptyState
+                    title="No questions in scope"
+                    description="Change the filters or create a new question."
+                  />
+                )}
+              </div>
+            </AdminPanel>
+
+            <AdminPanel
+              eyebrow={creatingQuestion ? "Create Row" : "Edit Row"}
+              title="Question Editor"
+              description="Question choices stay in the same row. Use a compact set of IDs like a, b, c to keep the answer key obvious."
+              actions={
+                <div className="flex flex-wrap gap-3">
+                  <ActionButton type="button" variant="primary" onClick={() => void saveQuestion()} disabled={questionSaving}>
+                    <span className="inline-flex items-center gap-2">
+                      <Save className="h-4 w-4" />
+                      {questionSaving ? "Saving" : creatingQuestion ? "Create" : "Save"}
+                    </span>
+                  </ActionButton>
+                  {!creatingQuestion ? (
+                    <ActionButton type="button" variant="danger" onClick={() => void deleteQuestion()} disabled={questionDeleting}>
+                      <span className="inline-flex items-center gap-2">
+                        <Trash2 className="h-4 w-4" />
+                        {questionDeleting ? "Deleting" : "Delete"}
+                      </span>
+                    </ActionButton>
+                  ) : null}
+                </div>
+              }
+            >
+              <div className="grid gap-4 md:grid-cols-2">
+                <AdminField label="Track">
+                  <select value={questionForm.track} onChange={(event) => setQuestionForm((current) => ({ ...current, track: event.target.value }))} className={adminSelectClass}>
+                    <option value="">Select track</option>
+                    {trackOptions.map((track) => (
+                      <option key={track.id} value={track.id}>{track.title}</option>
+                    ))}
+                  </select>
+                </AdminField>
+                <AdminField label="Lesson ID">
+                  <input value={questionForm.lesson_id} onChange={(event) => setQuestionForm((current) => ({ ...current, lesson_id: event.target.value }))} className={adminInputClass} />
+                </AdminField>
+                <div className="md:col-span-2">
+                  <AdminField label="Prompt">
+                    <textarea value={questionForm.prompt} onChange={(event) => setQuestionForm((current) => ({ ...current, prompt: event.target.value }))} className={adminTextareaClass} />
+                  </AdminField>
+                </div>
+                <div className="md:col-span-2 space-y-3">
+                  <div className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
+                    Choices
+                  </div>
+                  {questionForm.choices.map((choice, index) => (
+                    <div key={`${choice.id}-${index}`} className="grid gap-3 border border-border-main bg-main-bg p-3 md:grid-cols-[120px_minmax(0,1fr)_auto]">
+                      <input
+                        value={choice.id}
+                        onChange={(event) =>
+                          setQuestionForm((current) => ({
+                            ...current,
+                            choices: current.choices.map((entry, entryIndex) =>
+                              entryIndex === index
+                                ? { ...entry, id: event.target.value }
+                                : entry,
+                            ),
+                          }))
+                        }
+                        className={adminInputClass}
+                      />
+                      <input
+                        value={choice.label}
+                        onChange={(event) =>
+                          setQuestionForm((current) => ({
+                            ...current,
+                            choices: current.choices.map((entry, entryIndex) =>
+                              entryIndex === index
+                                ? { ...entry, label: event.target.value }
+                                : entry,
+                            ),
+                          }))
+                        }
+                        className={adminInputClass}
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setQuestionForm((current) => ({
+                            ...current,
+                            choices:
+                              current.choices.length <= 2
+                                ? current.choices
+                                : current.choices.filter((_, entryIndex) => entryIndex !== index),
+                          }))
+                        }
+                        className="inline-flex h-11 items-center justify-center border border-border-main bg-surface px-3 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-main"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <ActionButton
+                    type="button"
+                    variant="secondary"
+                    onClick={() =>
+                      setQuestionForm((current) => ({
+                        ...current,
+                        choices: [
+                          ...current.choices,
+                          {
+                            id: String.fromCharCode(97 + current.choices.length),
+                            label: "",
+                          },
+                        ],
+                      }))
+                    }
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      Add Choice
+                    </span>
+                  </ActionButton>
+                </div>
+                <AdminField label="Correct Choice ID">
+                  <input value={questionForm.correct_choice_id} onChange={(event) => setQuestionForm((current) => ({ ...current, correct_choice_id: event.target.value }))} className={adminInputClass} />
+                </AdminField>
+                <AdminField label="Sort Order">
+                  <input value={questionForm.sort_order} onChange={(event) => setQuestionForm((current) => ({ ...current, sort_order: event.target.value }))} className={adminInputClass} />
+                </AdminField>
+                <div className="md:col-span-2">
+                  <AdminField label="Explanation">
+                    <textarea value={questionForm.explanation} onChange={(event) => setQuestionForm((current) => ({ ...current, explanation: event.target.value }))} className={adminTextareaClass} />
+                  </AdminField>
+                </div>
+                <AdminField label="Status">
+                  <select value={questionForm.status} onChange={(event) => setQuestionForm((current) => ({ ...current, status: event.target.value as PublishStatus }))} className={adminSelectClass}>
+                    {STATUS_OPTIONS.map((status) => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                </AdminField>
+              </div>
+            </AdminPanel>
+          </div>
+        </AdminPageSection>
+      ) : null}
+
+      {activeTab === "learners" ? (
+        <AdminPageSection>
+          <div className="grid gap-6 xl:grid-cols-[minmax(320px,0.95fr)_minmax(0,1.35fr)]">
+            <AdminPanel
+              eyebrow="Live Overview"
+              title="Learners"
+              description="This aggregates raw progress and activity into the live member-level academy view."
+            >
+              <div className="space-y-4">
+                <input
+                  value={learnerQuery}
+                  onChange={(event) => setLearnerQuery(event.target.value)}
+                  placeholder="Search learner by name, id, role, or type"
+                  className={adminInputClass}
+                />
+                <div className="max-h-[760px] space-y-3 overflow-auto pr-1">
+                  {filteredLearners.length > 0 ? (
+                    filteredLearners.map((row) => (
+                      <AdminListButton
+                        key={row.user_id}
+                        title={row.name}
+                        meta={`${row.role} • ${row.member_type} • ${row.completed_lessons} lessons`}
+                        active={selectedLearnerId === row.user_id}
+                        onClick={() => setSelectedLearnerId(row.user_id)}
+                        badges={
+                          <div className="flex flex-wrap gap-2">
+                            <span className="bg-surface px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                              {row.xp} XP
+                            </span>
+                            <span className="bg-surface px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                              {row.streak || 0}d streak
+                            </span>
+                          </div>
+                        }
+                      />
+                    ))
+                  ) : (
+                    <AdminEmptyState
+                      title="No learners"
+                      description="No academy learner data is available for the current filter."
+                    />
+                  )}
+                </div>
+              </div>
+            </AdminPanel>
+
+            <AdminPanel
+              eyebrow="Derived View"
+              title={selectedLearner?.name || "Learner Detail"}
+              description={
+                selectedLearner
+                  ? `${selectedLearner.role} • ${selectedLearner.member_type} • last active ${formatDateTime(selectedLearner.last_activity)}`
+                  : "Select a learner to inspect the aggregated academy state."
+              }
+            >
+              {selectedLearner ? (
+                <div className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="border border-border-main bg-main-bg p-4">
+                      <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+                        XP
+                      </div>
+                      <div className="mt-1 font-heading text-3xl font-black uppercase tracking-tight text-text-main">
+                        {selectedLearner.xp}
+                      </div>
+                    </div>
+                    <div className="border border-border-main bg-main-bg p-4">
+                      <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+                        Streak
+                      </div>
+                      <div className="mt-1 font-heading text-3xl font-black uppercase tracking-tight text-text-main">
+                        {selectedLearner.streak || 0}
+                      </div>
+                    </div>
+                    <div className="border border-border-main bg-main-bg p-4">
+                      <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+                        Lessons
+                      </div>
+                      <div className="mt-1 font-heading text-3xl font-black uppercase tracking-tight text-text-main">
+                        {selectedLearner.completed_lessons}
+                      </div>
+                    </div>
+                    <div className="border border-border-main bg-main-bg p-4">
+                      <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+                        Quizzes
+                      </div>
+                      <div className="mt-1 font-heading text-3xl font-black uppercase tracking-tight text-text-main">
+                        {selectedLearner.quiz_passed}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <div className="border border-border-main bg-main-bg p-4">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                        Progress rows
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        {progressRows
+                          .filter((row) => row.user_id === selectedLearner.user_id)
+                          .slice(0, 6)
+                          .map((row) => (
+                            <div key={row.id} className="bg-surface px-3 py-3">
+                              <div className="font-heading text-sm font-black uppercase tracking-tight text-text-main">
+                                {row.track} / {row.lesson_id}
+                              </div>
+                              <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                                {row.xp_awarded} XP • {formatDateTime(row.updated_at)}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+
+                    <div className="border border-border-main bg-main-bg p-4">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                        Recent activity
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        {activityRows
+                          .filter((row) => row.user_id === selectedLearner.user_id)
+                          .slice(0, 6)
+                          .map((row) => (
+                            <div key={row.id} className="bg-surface px-3 py-3">
+                              <div className="font-heading text-sm font-black uppercase tracking-tight text-text-main">
+                                {row.action}
+                              </div>
+                              <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                                {row.track} / {row.lesson_id} • {formatDateTime(row.recorded_at)}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <AdminEmptyState
+                  title="No learner selected"
+                  description="Pick a learner from the overview list to inspect the aggregated data."
+                />
+              )}
+            </AdminPanel>
+          </div>
+        </AdminPageSection>
+      ) : null}
+
+      {activeTab === "progress" ? (
+        <AdminPageSection>
+          <div className="grid gap-6 xl:grid-cols-[minmax(320px,0.95fr)_minmax(0,1.35fr)]">
+            <AdminPanel
+              eyebrow="Raw Table"
+              title="Progress Rows"
+              description="Inspect the exact rows used to build learner XP, completion, and curated/community path state."
+            >
+              <div className="space-y-4">
+                <input
+                  value={progressQuery}
+                  onChange={(event) => setProgressQuery(event.target.value)}
+                  placeholder="Search by learner, track, or lesson"
+                  className={adminInputClass}
+                />
+                <div className="max-h-[760px] space-y-3 overflow-auto pr-1">
+                  {filteredProgressRows.length > 0 ? (
+                    filteredProgressRows.map((row) => (
+                      <AdminListButton
+                        key={row.id}
+                        title={`${row.user_name} • ${row.track}`}
+                        meta={`${row.lesson_id} • ${row.xp_awarded} XP • ${formatDateTime(row.updated_at)}`}
+                        active={selectedProgressId === row.id}
+                        onClick={() => setSelectedProgressId(row.id)}
+                      />
+                    ))
+                  ) : (
+                    <AdminEmptyState
+                      title="No progress rows"
+                      description="No progress rows match the current query."
+                    />
+                  )}
+                </div>
+              </div>
+            </AdminPanel>
+
+            <AdminPanel
+              eyebrow="Row Inspector"
+              title="Progress Detail"
+              description="Delete is available here for cleanup of malformed or stale rows."
+              actions={
+                selectedProgress ? (
+                  <ActionButton type="button" variant="danger" onClick={() => void deleteProgressRow()} disabled={progressDeleting}>
+                    <span className="inline-flex items-center gap-2">
+                      <Trash2 className="h-4 w-4" />
+                      {progressDeleting ? "Deleting" : "Delete Row"}
+                    </span>
+                  </ActionButton>
+                ) : null
+              }
+            >
+              {selectedProgress ? (
+                <div className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="border border-border-main bg-main-bg p-4">
+                      <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+                        User
+                      </div>
+                      <div className="mt-1 font-heading text-xl font-black uppercase tracking-tight text-text-main">
+                        {selectedProgress.user_name}
+                      </div>
+                    </div>
+                    <div className="border border-border-main bg-main-bg p-4">
+                      <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+                        Track
+                      </div>
+                      <div className="mt-1 font-heading text-xl font-black uppercase tracking-tight text-text-main">
+                        {selectedProgress.track}
+                      </div>
+                    </div>
+                    <div className="border border-border-main bg-main-bg p-4">
+                      <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+                        Lesson
+                      </div>
+                      <div className="mt-1 font-heading text-xl font-black uppercase tracking-tight text-text-main">
+                        {selectedProgress.lesson_id}
+                      </div>
+                    </div>
+                    <div className="border border-border-main bg-main-bg p-4">
+                      <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+                        XP
+                      </div>
+                      <div className="mt-1 font-heading text-xl font-black uppercase tracking-tight text-text-main">
+                        {selectedProgress.xp_awarded}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="border border-border-main bg-main-bg p-4">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                        Completion Flags
+                      </div>
+                      <div className="mt-3 font-mono text-[11px] uppercase tracking-[0.16em] text-text-main">
+                        lesson_completed: {String(selectedProgress.lesson_completed)}<br />
+                        quiz_passed: {String(selectedProgress.quiz_passed)}
+                      </div>
+                    </div>
+                    <div className="border border-border-main bg-main-bg p-4">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                        Updated
+                      </div>
+                      <div className="mt-3 font-mono text-[11px] uppercase tracking-[0.16em] text-text-main">
+                        {formatDateTime(selectedProgress.updated_at)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border border-border-main bg-main-bg p-4">
+                    <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                      Checklist Snapshot
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {(selectedProgress.checklist || []).map((value, index) => (
+                        <span key={`${selectedProgress.id}-check-${index}`} className="bg-surface px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-main">
+                          {index + 1}: {value ? "done" : "open"}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <AdminEmptyState
+                  title="No progress row selected"
+                  description="Choose a row from the progress list to inspect it."
+                />
+              )}
+            </AdminPanel>
+          </div>
+        </AdminPageSection>
+      ) : null}
+
+      {activeTab === "activity" ? (
+        <AdminPageSection>
+          <div className="grid gap-6 xl:grid-cols-[minmax(320px,0.95fr)_minmax(0,1.35fr)]">
+            <AdminPanel
+              eyebrow="Raw Table"
+              title="Activity Rows"
+              description="These rows drive recent history, streak qualification, and the academy timeline."
+            >
+              <div className="space-y-4">
+                <input
+                  value={activityQuery}
+                  onChange={(event) => setActivityQuery(event.target.value)}
+                  placeholder="Search by learner, action, track, or lesson"
+                  className={adminInputClass}
+                />
+                <div className="max-h-[760px] space-y-3 overflow-auto pr-1">
+                  {filteredActivityRows.length > 0 ? (
+                    filteredActivityRows.map((row) => (
+                      <AdminListButton
+                        key={row.id}
+                        title={`${row.user_name} • ${row.action}`}
+                        meta={`${row.track} / ${row.lesson_id} • ${formatDateTime(row.recorded_at)}`}
+                        active={selectedActivityId === row.id}
+                        onClick={() => setSelectedActivityId(row.id)}
+                      />
+                    ))
+                  ) : (
+                    <AdminEmptyState
+                      title="No activity rows"
+                      description="No activity rows match the current query."
+                    />
+                  )}
+                </div>
+              </div>
+            </AdminPanel>
+
+            <AdminPanel
+              eyebrow="Row Inspector"
+              title="Activity Detail"
+              description="Use delete carefully here. Removing a row can alter streak history and learner timelines."
+              actions={
+                selectedActivity ? (
+                  <ActionButton type="button" variant="danger" onClick={() => void deleteActivityRow()} disabled={activityDeleting}>
+                    <span className="inline-flex items-center gap-2">
+                      <Trash2 className="h-4 w-4" />
+                      {activityDeleting ? "Deleting" : "Delete Row"}
+                    </span>
+                  </ActionButton>
+                ) : null
+              }
+            >
+              {selectedActivity ? (
+                <div className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="border border-border-main bg-main-bg p-4">
+                      <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+                        User
+                      </div>
+                      <div className="mt-1 font-heading text-xl font-black uppercase tracking-tight text-text-main">
+                        {selectedActivity.user_name}
+                      </div>
+                    </div>
+                    <div className="border border-border-main bg-main-bg p-4">
+                      <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+                        Action
+                      </div>
+                      <div className="mt-1 font-heading text-xl font-black uppercase tracking-tight text-text-main">
+                        {selectedActivity.action}
+                      </div>
+                    </div>
+                    <div className="border border-border-main bg-main-bg p-4">
+                      <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+                        Track
+                      </div>
+                      <div className="mt-1 font-heading text-xl font-black uppercase tracking-tight text-text-main">
+                        {selectedActivity.track}
+                      </div>
+                    </div>
+                    <div className="border border-border-main bg-main-bg p-4">
+                      <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+                        Lesson
+                      </div>
+                      <div className="mt-1 font-heading text-xl font-black uppercase tracking-tight text-text-main">
+                        {selectedActivity.lesson_id}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="border border-border-main bg-main-bg p-4">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                        Recorded At
+                      </div>
+                      <div className="mt-3 font-mono text-[11px] uppercase tracking-[0.16em] text-text-main">
+                        {formatDateTime(selectedActivity.recorded_at)}
+                      </div>
+                    </div>
+                    <div className="border border-border-main bg-main-bg p-4">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                        XP Snapshot
+                      </div>
+                      <div className="mt-3 font-heading text-3xl font-black uppercase tracking-tight text-text-main">
+                        {selectedActivity.xp_snapshot}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="border border-border-main bg-main-bg p-4">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                        Completion Flags
+                      </div>
+                      <div className="mt-3 font-mono text-[11px] uppercase tracking-[0.16em] text-text-main">
+                        lesson_completed: {String(selectedActivity.lesson_completed)}<br />
+                        quiz_passed: {String(selectedActivity.quiz_passed)}
+                      </div>
+                    </div>
+                    <div className="border border-border-main bg-main-bg p-4">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                        Checklist
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {(selectedActivity.checklist || []).map((value, index) => (
+                          <span key={`${selectedActivity.id}-activity-check-${index}`} className="bg-surface px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-main">
+                            {index + 1}: {value ? "done" : "open"}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <AdminEmptyState
+                  title="No activity row selected"
+                  description="Choose a row from the activity list to inspect it."
+                />
+              )}
+            </AdminPanel>
+          </div>
+        </AdminPageSection>
+      ) : null}
     </div>
   );
 }

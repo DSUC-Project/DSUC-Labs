@@ -13,6 +13,8 @@ import type { AcademyTrackCatalog } from "@/types";
 import { useStore } from "@/store/useStore";
 import { loadProgress, isLessonCompleted } from "@/lib/academy/progress";
 import { normalizeAcademyCatalogTrack } from "@/lib/academy/catalog";
+import { localizeCommunityCatalogTrack } from "@/lib/academy/academyLocale";
+import { useLocale } from "@/lib/locale";
 import {
   AcademyBackLink,
   AcademyBadge,
@@ -39,6 +41,7 @@ function buildAuthHeaders(token: string | null, walletAddress: string | null) {
 export function AcademyTrack() {
   const params = useParams<{ track: string }>();
   const navigate = useNavigate();
+  const { text, isVIE } = useLocale();
   const { currentUser, walletAddress, authToken } = useStore();
   const [trackInfo, setTrackInfo] = useState<AcademyTrackCatalog | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,7 +61,7 @@ export function AcademyTrack() {
   useEffect(() => {
     if (!trackId) {
       setTrackInfo(null);
-      setError("Không tìm thấy lộ trình");
+      setError(text("Track not found", "Không tìm thấy track"));
       setLoading(false);
       return;
     }
@@ -81,7 +84,11 @@ export function AcademyTrack() {
 
         if (!response.ok || !result?.success) {
           throw new Error(
-            result?.message || "Không thể tải chi tiết lộ trình cộng đồng.",
+            result?.message ||
+              text(
+                "Unable to load the community track details.",
+                "Không thể tải chi tiết community track.",
+              ),
           );
         }
 
@@ -90,7 +97,7 @@ export function AcademyTrack() {
 
         if (!cancelled) {
           if (!found) {
-            setError("Không tìm thấy lộ trình");
+            setError(text("Track not found", "Không tìm thấy track"));
             setTrackInfo(null);
           } else {
             setTrackInfo(found);
@@ -98,7 +105,13 @@ export function AcademyTrack() {
         }
       } catch (err: any) {
         if (!cancelled) {
-          setError(err.message || "Không thể tải chi tiết lộ trình cộng đồng.");
+          setError(
+            err.message ||
+              text(
+                "Unable to load the community track details.",
+                "Không thể tải chi tiết community track.",
+              ),
+          );
           setTrackInfo(null);
         }
       } finally {
@@ -113,7 +126,7 @@ export function AcademyTrack() {
     return () => {
       cancelled = true;
     };
-  }, [authToken, trackId, walletAddress]);
+  }, [authToken, text, trackId, walletAddress]);
 
   if (loading) {
     return (
@@ -127,16 +140,23 @@ export function AcademyTrack() {
     return (
       <AcademyPage>
         <AcademyEmptyState
-          title="Không tìm thấy lộ trình"
-          description={error || "Track cộng đồng này hiện không khả dụng."}
+          title={text("Track not found", "Không tìm thấy track")}
+          description={
+            error ||
+            text(
+              "This community track is currently unavailable.",
+              "Community track này hiện chưa khả dụng.",
+            )
+          }
         />
       </AcademyPage>
     );
   }
 
-  const lessons = trackInfo.lessons || [];
+  const localizedTrackInfo = localizeCommunityCatalogTrack(trackInfo, isVIE);
+  const lessons = localizedTrackInfo.lessons || [];
   const completedCount = lessons.filter((lesson) =>
-    isLessonCompleted(state, trackInfo.id, lesson.id),
+    isLessonCompleted(state, localizedTrackInfo.id, lesson.id),
   ).length;
   const progressPercent =
     lessons.length > 0 ? Math.round((completedCount / lessons.length) * 100) : 0;
@@ -144,51 +164,64 @@ export function AcademyTrack() {
   return (
     <AcademyPage>
       <section className="space-y-6">
-        <AcademyBackLink to="/academy" label="Back to Academy" />
+        <AcademyBackLink
+          to="/academy"
+          label={text("Back to Academy", "Quay lại Academy")}
+        />
 
         <AcademyPanel tone="primary" padding="p-5 sm:p-6">
           <div className="space-y-5">
             <div className="flex flex-wrap items-center gap-3">
-              <AcademyBadge tone="muted">Community Track</AcademyBadge>
-              <AcademyBadge tone="primary">Topic: {trackInfo.id}</AcademyBadge>
+              <AcademyBadge tone="muted">
+                {text("Community Track", "Community Track")}
+              </AcademyBadge>
+              <AcademyBadge tone="primary">
+                {text("Topic", "Chủ đề")}: {localizedTrackInfo.id}
+              </AcademyBadge>
             </div>
             <div className="space-y-3">
               <h1 className="font-display text-4xl font-black uppercase tracking-tighter text-text-main sm:text-5xl lg:text-6xl">
-                {trackInfo.title}
+                {localizedTrackInfo.title}
               </h1>
               <p className="max-w-3xl font-mono text-sm leading-relaxed text-text-muted">
-                Community lessons stay compact, but the progression still follows a
-                clear order so reviews, quizzes, and completion feel deliberate.
+                {localizedTrackInfo.description ||
+                  text(
+                    "Community lessons stay compact, but the progression still follows a clear order so reviews, quizzes, and completion feel deliberate.",
+                    "Các community lesson được giữ gọn, nhưng vẫn có thứ tự rõ ràng để việc review, làm quiz và hoàn thành không bị rời rạc.",
+                  )}
               </p>
             </div>
 
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <AcademyCompactStat
-                label="Lessons"
+                label={text("Lessons", "Bài học")}
                 value={lessons.length}
-                meta={`${completedCount} completed`}
+                meta={text(
+                  `${completedCount} completed`,
+                  `Hoàn thành ${completedCount}`,
+                )}
               />
               <AcademyCompactStat
-                label="Progress"
+                label={text("Progress", "Tiến độ")}
                 value={`${progressPercent}%`}
-                meta="Track completion"
+                meta={text("Track completion", "Tiến độ track")}
                 valueClassName="text-primary"
               />
               <AcademyCompactStat
-                label="Streak"
+                label={text("Streak", "Streak")}
                 value={currentUser?.streak || 0}
-                meta="Current streak"
+                meta={text("Current streak", "Streak hiện tại")}
               />
               <AcademyCompactStat
-                label="Builds"
+                label={text("Builds", "Builds")}
                 value={currentUser?.builds || 0}
-                meta="Member profile stat"
+                meta={text("Member profile stat", "Chỉ số từ hồ sơ member")}
               />
             </div>
 
             <div>
               <div className="mb-2 flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
-                <span>Track completion</span>
+                <span>{text("Track completion", "Tiến độ track")}</span>
                 <span>{progressPercent}%</span>
               </div>
               <AcademyProgressBar value={progressPercent} className="h-2.5" />
@@ -199,9 +232,12 @@ export function AcademyTrack() {
 
       <section className="space-y-6">
         <AcademySectionTitle
-          eyebrow="Lesson Timeline"
-          title="Track Flow"
-          description="Each lesson unlocks the next one. Completed lessons stay replayable, while the current lesson remains obvious."
+          eyebrow={text("Lesson Timeline", "Dòng bài học")}
+          title={text("Track Flow", "Luồng học")}
+          description={text(
+            "Each lesson unlocks the next one. Completed lessons stay replayable, while the current lesson remains obvious.",
+            "Mỗi lesson sẽ mở khóa lesson tiếp theo. Lesson đã hoàn thành vẫn có thể học lại, còn lesson hiện tại luôn được làm nổi bật rõ ràng.",
+          )}
         />
 
         {lessons.length > 0 ? (
@@ -222,7 +258,7 @@ export function AcademyTrack() {
                   disabled={isLocked}
                   onClick={() =>
                     !isLocked &&
-                    navigate(`/academy/community/${trackInfo.id}/${lesson.id}`)
+                    navigate(`/academy/community/${localizedTrackInfo.id}/${lesson.id}`)
                   }
                   className="block w-full text-left disabled:cursor-not-allowed"
                 >
@@ -235,15 +271,23 @@ export function AcademyTrack() {
                       <div className="space-y-3">
                         <div className="flex flex-wrap items-center gap-2">
                           <AcademyBadge tone={isCurrent ? "primary" : "muted"}>
-                            Lesson {index + 1}
+                            {text("Lesson", "Bài học")} {index + 1}
                           </AcademyBadge>
                           {isCurrent ? (
-                            <AcademyBadge tone="primary">In progress</AcademyBadge>
+                            <AcademyBadge tone="primary">
+                              {text("In progress", "Đang học")}
+                            </AcademyBadge>
                           ) : null}
                           {isCompleted ? (
-                            <AcademyBadge tone="success">Completed</AcademyBadge>
+                            <AcademyBadge tone="success">
+                              {text("Completed", "Hoàn thành")}
+                            </AcademyBadge>
                           ) : null}
-                          {isLocked ? <AcademyBadge tone="muted">Locked</AcademyBadge> : null}
+                          {isLocked ? (
+                            <AcademyBadge tone="muted">
+                              {text("Locked", "Đã khóa")}
+                            </AcademyBadge>
+                          ) : null}
                         </div>
 
                         <div>
@@ -259,11 +303,11 @@ export function AcademyTrack() {
                           <div className="mt-3 flex flex-wrap items-center gap-3 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-text-muted">
                             <span className="inline-flex items-center gap-1.5">
                               <Clock className="h-3.5 w-3.5" />
-                              {lesson.minutes} phút
+                              {lesson.minutes} min
                             </span>
                             <span className="inline-flex items-center gap-1.5">
                               <Terminal className="h-3.5 w-3.5" />
-                              Community lesson
+                              {text("Community lesson", "Bài học cộng đồng")}
                             </span>
                           </div>
                         </div>
@@ -293,10 +337,10 @@ export function AcademyTrack() {
                           }`}
                         >
                           {isLocked
-                            ? "Locked"
+                            ? text("Locked", "Đã khóa")
                             : isCompleted
-                              ? "Review lesson"
-                              : "Start lesson"}
+                              ? text("Review lesson", "Học lại lesson")
+                              : text("Start lesson", "Bắt đầu lesson")}
                           {!isLocked ? <ArrowRight className="h-3.5 w-3.5" /> : null}
                         </span>
                       </div>
@@ -308,8 +352,11 @@ export function AcademyTrack() {
           </div>
         ) : (
           <AcademyEmptyState
-            title="Không có bài học"
-            description="Track cộng đồng này chưa có lesson nào."
+            title={text("No lessons yet", "Chưa có bài học")}
+            description={text(
+              "This community track does not have any lessons yet.",
+              "Community track này hiện chưa có bài học nào.",
+            )}
           />
         )}
       </section>

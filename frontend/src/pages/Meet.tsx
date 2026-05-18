@@ -16,8 +16,10 @@ import {
 } from "lucide-react";
 import { useStore } from "../store/useStore";
 import { useNavigate } from "react-router-dom";
+import { useLocale } from "@/lib/locale";
 
 export function Meet() {
+  const { text } = useLocale();
   const [inMeeting, setInMeeting] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [meetingCode, setMeetingCode] = useState("");
@@ -110,7 +112,7 @@ export function Meet() {
       <div className="h-[90vh] flex flex-col items-center justify-center space-y-6 bg-main-bg">
         <Loader2 className="w-16 h-16 text-primary animate-spin" />
         <h2 className="text-2xl font-display font-bold text-text-main tracking-wide animate-pulse">
-          Connecting to room...
+          {text("Connecting to room...", "Đang kết nối vào phòng...")}
         </h2>
       </div>
     );
@@ -145,17 +147,19 @@ export function Meet() {
                   <Video size={40} className="animate-pulse" />
                 </div>
                 <h2 className="text-2xl font-display font-bold text-text-main mb-2 tracking-tight uppercase">
-                  Coming Soon
+                  {text("Coming Soon", "Sắp ra mắt")}
                 </h2>
                 <p className="text-text-muted font-mono text-xs leading-relaxed mb-8">
-                  DSUC Meet communication system is currently under maintenance
-                  to provide better connection quality. Check back later!
+                  {text(
+                    "DSUC Meet communication system is currently under maintenance to provide better connection quality. Check back later!",
+                    "Hệ thống liên lạc DSUC Meet hiện đang được bảo trì để cải thiện chất lượng kết nối. Hãy quay lại sau.",
+                  )}
                 </p>
                 <button
                   onClick={() => setShowComingSoon(false)}
                   className="w-full bg-main-bg hover:bg-surface border border-border-main text-text-main font-bold text-sm uppercase tracking-wider py-4 transition-colors"
                 >
-                  Understood
+                  {text("Understood", "Đã hiểu")}
                 </button>
               </motion.div>
             </div>
@@ -164,20 +168,24 @@ export function Meet() {
 
         <div className="flex-1 space-y-8 animate-in slide-in-from-left-8 duration-500">
           <h1 className="text-4xl md:text-5xl font-display font-bold text-text-main leading-tight tracking-tight uppercase">
-            High Quality Connection.
+            {text("High Quality Connection.", "Kết nối chất lượng cao.")}
             <br />
-            <span className="text-primary">For the Community.</span>
+            <span className="text-primary">
+              {text("For the Community.", "Dành cho cộng đồng.")}
+            </span>
           </h1>
           <p className="text-text-muted text-sm font-mono max-w-lg mb-10 leading-relaxed">
-            DSUC Meet is designed to provide a seamless and secure online
-            meeting experience for all club members.
+            {text(
+              "DSUC Meet is designed to provide a seamless and secure online meeting experience for all club members.",
+              "DSUC Meet được thiết kế để mang lại trải nghiệm họp trực tuyến mượt mà và an toàn cho mọi thành viên trong CLB.",
+            )}
           </p>
           <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
             <button
               onClick={handleNewMeeting}
               className="bg-primary text-main-bg hover:opacity-90 border border-border-main px-6 py-4 font-bold text-[10px] sm:text-xs uppercase tracking-widest flex items-center gap-2 w-full sm:w-auto justify-center transition-all shadow-sm hover:translate-y-[2px] hover:shadow-md-none"
             >
-              <Video className="w-5 h-5" /> New Meeting
+              <Video className="w-5 h-5" /> {text("New Meeting", "Cuộc họp mới")}
             </button>
             <form
               onSubmit={handleJoin}
@@ -186,7 +194,7 @@ export function Meet() {
               <Keyboard className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted w-5 h-5" />
               <input
                 type="text"
-                placeholder="Enter meeting code"
+                placeholder={text("Enter meeting code", "Nhập mã phòng họp")}
                 value={meetingCode}
                 onChange={(e) => setMeetingCode(e.target.value)}
                 className="w-full bg-surface border border-border-main px-12 py-4 text-text-main focus:outline-none focus:border-primary font-mono text-sm transition-all"
@@ -197,7 +205,7 @@ export function Meet() {
                 disabled={!meetingCode}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-primary font-bold uppercase tracking-widest text-xs disabled:opacity-50 hover:opacity-80 transition-opacity"
               >
-                Join
+                {text("Join", "Tham gia")}
               </button>
             </form>
           </div>
@@ -206,9 +214,9 @@ export function Meet() {
               href="#"
               className="font-bold text-primary hover:underline transition-colors"
             >
-              Learn more
+              {text("Learn more", "Tìm hiểu thêm")}
             </a>{" "}
-            about DSUC Meet security.
+            {text("about DSUC Meet security.", "về bảo mật của DSUC Meet.")}
           </div>
         </div>
 

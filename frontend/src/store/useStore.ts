@@ -510,16 +510,16 @@ export const useStore = create<AppState>((set, get) => ({
         console.log("[connectWallet] Phantom response:", resp);
         addr = resp?.publicKey?.toString() ?? null;
       } else if (provider === "Solflare" && window.solflare) {
-        // Solflare có thể cần kiểm tra isConnected hoặc connect trước
+        // Solflare may require checking isConnected or calling connect first
         if (!window.solflare.isConnected) {
           await window.solflare.connect();
         }
-        // Lấy publicKey từ solflare - có thể là property trực tiếp
+        // Read publicKey from Solflare, which may exist as a direct property
         const publicKey = window.solflare.publicKey;
         console.log("[connectWallet] Solflare publicKey:", publicKey);
 
         if (publicKey) {
-          // publicKey có thể là object với toString() hoặc string trực tiếp
+          // publicKey may be an object with toString() or a direct string
           addr =
             typeof publicKey === "string" ? publicKey : publicKey.toString();
         }

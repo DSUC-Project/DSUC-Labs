@@ -1566,6 +1566,204 @@ router.get(
   }
 );
 
+router.get(
+  '/admin/progress',
+  authenticateUser as any,
+  requireExecutiveAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = String(req.query.user_id || req.query.userId || '').trim();
+      const track = normalizeTrackId(req.query.track);
+      const lessonId = String(req.query.lesson_id || req.query.lessonId || '').trim();
+
+      let query = db
+        .from('academy_progress')
+        .select('*')
+        .order('updated_at', { ascending: false });
+
+      if (userId) {
+        query = query.eq('user_id', userId);
+      }
+
+      if (track) {
+        query = query.eq('track', track);
+      }
+
+      if (lessonId) {
+        query = query.eq('lesson_id', lessonId);
+      }
+
+      const [{ data: members, error: membersError }, { data: rows, error: rowsError }] =
+        await Promise.all([
+          db.from('members').select('*'),
+          query,
+        ]);
+
+      if (membersError || rowsError) {
+        return res.status(500).json({
+          error: 'Database Error',
+          message: membersError?.message || rowsError?.message,
+        });
+      }
+
+      const memberMap = new Map<string, any>(
+        (members || []).map((member: any) => [member.id, member])
+      );
+
+      const progressRows = (rows || []).map((row: any) => {
+        const member = memberMap.get(row.user_id);
+        return {
+          ...row,
+          user_name: member?.name || row.user_id,
+          role: member?.role || 'Unknown',
+          member_type: member?.member_type || 'member',
+        };
+      });
+
+      res.json({
+        success: true,
+        data: progressRows,
+        count: progressRows.length,
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: error.message,
+      });
+    }
+  }
+);
+
+router.get(
+  '/admin/activity',
+  authenticateUser as any,
+  requireExecutiveAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = String(req.query.user_id || req.query.userId || '').trim();
+      const track = normalizeTrackId(req.query.track);
+      const lessonId = String(req.query.lesson_id || req.query.lessonId || '').trim();
+
+      let query = db
+        .from('academy_activity')
+        .select('*')
+        .order('recorded_at', { ascending: false });
+
+      if (userId) {
+        query = query.eq('user_id', userId);
+      }
+
+      if (track) {
+        query = query.eq('track', track);
+      }
+
+      if (lessonId) {
+        query = query.eq('lesson_id', lessonId);
+      }
+
+      const [{ data: members, error: membersError }, { data: rows, error: rowsError }] =
+        await Promise.all([
+          db.from('members').select('*'),
+          query,
+        ]);
+
+      if (membersError || rowsError) {
+        return res.status(500).json({
+          error: 'Database Error',
+          message: membersError?.message || rowsError?.message,
+        });
+      }
+
+      const memberMap = new Map<string, any>(
+        (members || []).map((member: any) => [member.id, member])
+      );
+
+      const activityRows = (rows || []).map((row: any) => {
+        const member = memberMap.get(row.user_id);
+        return {
+          ...row,
+          user_name: member?.name || row.user_id,
+          role: member?.role || 'Unknown',
+          member_type: member?.member_type || 'member',
+        };
+      });
+
+      res.json({
+        success: true,
+        data: activityRows,
+        count: activityRows.length,
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: error.message,
+      });
+    }
+  }
+);
+
+router.delete(
+  '/admin/progress/:id',
+  authenticateUser as any,
+  requireExecutiveAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { error } = await db
+        .from('academy_progress')
+        .delete()
+        .eq('id', req.params.id);
+
+      if (error) {
+        return res.status(500).json({
+          error: 'Database Error',
+          message: error.message,
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Progress row deleted',
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: error.message,
+      });
+    }
+  }
+);
+
+router.delete(
+  '/admin/activity/:id',
+  authenticateUser as any,
+  requireExecutiveAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { error } = await db
+        .from('academy_activity')
+        .delete()
+        .eq('id', req.params.id);
+
+      if (error) {
+        return res.status(500).json({
+          error: 'Database Error',
+          message: error.message,
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Activity row deleted',
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: error.message,
+      });
+    }
+  }
+);
+
 // GET /api/academy/progress - get all progress rows for current user
 router.get('/stats', authenticateUser as any, async (req: AuthRequest, res: Response) => {
   try {

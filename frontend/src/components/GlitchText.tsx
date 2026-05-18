@@ -1,19 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 export function GlitchText({ className, words = ["DSUC", "BLOCKCHAIN", "DANANG"] }: { className?: string, words?: string[] }) {
   const [index, setIndex] = useState(0);
-  const [displayText, setDisplayText] = useState(words[0]);
+  const [displayText, setDisplayText] = useState(words[0] ?? "");
+  const minWidthCh = useMemo(
+    () => Math.max(...words.map((word) => word.length), 6) + 1,
+    [words],
+  );
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    
+    setIndex(0);
+    setDisplayText(words[0] ?? "");
+  }, [words]);
+
+  useEffect(() => {
+    if (!words.length) {
+      return;
+    }
+
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let glitchInterval: ReturnType<typeof setInterval> | undefined;
+
     const changeWord = () => {
       const nextIndex = (index + 1) % words.length;
       const targetWord = words[nextIndex];
       const chars = "!<>-_\\\\/[]{}—=+*^?#________";
       
       let iterations = 0;
-      const glitchInterval = setInterval(() => {
+      glitchInterval = setInterval(() => {
         setDisplayText((prev) => 
           targetWord.split("")
             .map((letter, i) => {
@@ -38,12 +52,20 @@ export function GlitchText({ className, words = ["DSUC", "BLOCKCHAIN", "DANANG"]
     timeoutId = setTimeout(changeWord, 3000);
 
     return () => {
-      clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      if (glitchInterval) {
+        clearInterval(glitchInterval);
+      }
     };
-  }, [index]);
+  }, [index, words]);
 
   return (
-    <span className={`inline-block whitespace-nowrap min-w-[150px] ${className}`}>
+    <span
+      className={`inline-block whitespace-nowrap ${className}`}
+      style={{ minWidth: `${minWidthCh}ch` }}
+    >
       {displayText}
     </span>
   );

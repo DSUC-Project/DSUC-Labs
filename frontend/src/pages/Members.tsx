@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, Github, Search, Send, Twitter } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { Member } from "@/types";
+import { useLocale } from "@/lib/locale";
 
 function isCommunityMember(member: Member) {
   return (
@@ -12,7 +13,17 @@ function isCommunityMember(member: Member) {
   );
 }
 
+function translateMemberRole(
+  role: string | undefined,
+  text: (english: string, vietnamese: string) => string,
+) {
+  if (!role) return text("Member", "Thành viên");
+  if (role === "Community") return text("Community", "Cộng đồng");
+  return role;
+}
+
 export function Members() {
+  const { text } = useLocale();
   const navigate = useNavigate();
   const { members, fetchMembers } = useStore();
   const [searchQuery, setSearchQuery] = useState("");
@@ -73,7 +84,7 @@ export function Members() {
       <article className="card-shell group relative flex h-full flex-col overflow-hidden border border-border-main bg-surface">
         <button
           type="button"
-          aria-label={`View ${member.name}`}
+          aria-label={text(`View ${member.name}`, `Xem ${member.name}`)}
           onClick={() => navigate(`/members/${member.id}`)}
           className="flex flex-1 flex-col text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
@@ -95,11 +106,13 @@ export function Members() {
             </div>
           </div>
 
-          <div className="absolute right-3 top-2.5 z-10 flex items-center gap-1.5 bg-surface/90 px-2 py-1 font-mono text-[8px] font-black uppercase text-text-main">
+            <div className="absolute right-3 top-2.5 z-10 flex items-center gap-1.5 bg-surface/90 px-2 py-1 font-mono text-[8px] font-black uppercase text-text-main">
             <span
               className={`h-1.5 w-1.5 rounded-full ${member.is_active ? "bg-primary animate-pulse" : "bg-gray-400"}`}
             ></span>
-            {isCommunityMember(member) ? "COMMUNITY" : "CORE"}
+            {isCommunityMember(member)
+              ? text("Community", "Cộng đồng")
+              : text("Core", "Nòng cốt")}
           </div>
 
           <div className="relative z-0 flex flex-1 flex-col gap-2.5 bg-surface px-3.5 pb-3.5 pt-6">
@@ -108,16 +121,16 @@ export function Members() {
                 {member.name}
               </h3>
               <p className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                {member.role || "Member"}
+                {translateMemberRole(member.role, text)}
               </p>
             </div>
 
             <div className="flex flex-wrap gap-1.5">
               <span className="bg-main-bg px-1.5 py-1 font-mono text-[8px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                {member.is_active ? "Live" : "Idle"}
+                {member.is_active ? text("Live", "Đang hoạt động") : text("Idle", "Tạm nghỉ")}
               </span>
               <span className="bg-main-bg px-1.5 py-1 font-mono text-[8px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                {member.skills.length} skills
+                {member.skills.length} {text("skills", "kỹ năng")}
               </span>
               {member.skills.slice(0, 1).map((skill) => (
                 <span
@@ -136,7 +149,7 @@ export function Members() {
 
             <div className="mt-auto flex items-center justify-between gap-3 pt-3">
               <div className="flex items-center gap-1.5 font-mono text-[9px] font-black uppercase tracking-[0.16em] text-text-muted">
-                <span>View</span>
+                <span>{text("View", "Xem")}</span>
                 <ArrowRight size={12} />
               </div>
               <span className="font-mono text-[8px] font-bold uppercase tracking-[0.16em] text-text-muted">
@@ -167,7 +180,7 @@ export function Members() {
             </div>
 
             <span className="font-mono text-[8px] font-bold uppercase tracking-[0.16em] text-text-muted">
-              {socialLinks.length} links
+              {socialLinks.length} {text("links", "liên kết")}
             </span>
           </div>
         )}
@@ -180,10 +193,13 @@ export function Members() {
       <section className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex flex-col">
             <h1 className="text-4xl md:text-5xl font-heading font-black uppercase tracking-tight text-text-main">
-              Members
+              {text("Members", "Thành viên")}
             </h1>
             <p className="mt-3 max-w-2xl text-xs font-mono uppercase tracking-widest text-gray-500">
-              Browse the builders and learners in our community.
+              {text(
+                "Browse the builders and learners in our community.",
+                "Khám phá các builder và learner trong cộng đồng.",
+              )}
             </p>
         </div>
 
@@ -191,7 +207,10 @@ export function Members() {
           <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
           <input
             type="text"
-            placeholder="Search by name or skill..."
+            placeholder={text(
+              "Search by name or skill...",
+              "Tìm theo tên hoặc kỹ năng...",
+            )}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-surface p-4 pl-12 font-mono text-xs font-bold uppercase tracking-widest placeholder:text-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
@@ -204,11 +223,11 @@ export function Members() {
           <div className="flex items-center gap-4">
             <div className="w-2 h-2 bg-primary"></div>
             <h2 className="font-heading font-bold text-2xl uppercase tracking-tight text-text-main">
-              Official Members
+              {text("Official Members", "Thành viên chính thức")}
             </h2>
           </div>
           <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
-            {officialMembers.length} profiles
+            {officialMembers.length} {text("profiles", "hồ sơ")}
           </span>
         </div>
         {officialMembers.length > 0 ? (
@@ -219,7 +238,7 @@ export function Members() {
           </div>
         ) : (
           <div className="bg-surface p-12 text-center font-mono text-xs uppercase tracking-widest text-text-muted">
-            No official members found.
+            {text("No official members found.", "Không tìm thấy thành viên chính thức nào.")}
           </div>
         )}
       </section>
@@ -229,11 +248,11 @@ export function Members() {
           <div className="flex items-center gap-4">
             <div className="w-2 h-2 bg-primary"></div>
             <h2 className="font-heading font-bold text-2xl uppercase tracking-tight text-text-main">
-              Community
+              {text("Community", "Cộng đồng")}
             </h2>
           </div>
           <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
-            {communityMembers.length} profiles
+            {communityMembers.length} {text("profiles", "hồ sơ")}
           </span>
         </div>
         {communityMembers.length > 0 ? (
@@ -244,7 +263,7 @@ export function Members() {
           </div>
         ) : (
           <div className="bg-surface p-12 text-center text-text-muted font-mono uppercase text-xs tracking-widest">
-            No community members found.
+            {text("No community members found.", "Không tìm thấy thành viên cộng đồng nào.")}
           </div>
         )}
       </section>

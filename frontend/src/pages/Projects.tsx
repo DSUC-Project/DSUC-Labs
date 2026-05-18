@@ -17,6 +17,30 @@ import { Link } from "react-router-dom";
 import { ModalShell } from "@/components/ui/ModalShell";
 import { Card } from "@/components/ui/Cards";
 import { ShowcaseCard } from "@/components/ui/ShowcaseCard";
+import { useLocale } from "@/lib/locale";
+
+function getProjectCategoryLabel(
+  value: string,
+  text: (english: string, vietnamese: string) => string,
+) {
+  return value === "All" ? text("All", "Tất cả") : value;
+}
+
+function getProjectStatusLabel(
+  value: string,
+  text: (english: string, vietnamese: string) => string,
+) {
+  switch (String(value || "").toLowerCase()) {
+    case "live":
+      return text("Live", "Đang hoạt động");
+    case "draft":
+      return text("Draft", "Nháp");
+    case "building":
+      return text("Building", "Đang xây");
+    default:
+      return value;
+  }
+}
 
 function AddProjectModal({
   isOpen,
@@ -27,6 +51,7 @@ function AddProjectModal({
   onClose: () => void;
   onAdd: (p: Project) => void;
 }) {
+  const { text } = useLocale();
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
@@ -54,7 +79,7 @@ function AddProjectModal({
     <ModalShell
       isOpen={isOpen}
       onClose={onClose}
-      title="Add Project"
+      title={text("Add Project", "Thêm dự án")}
       label="REGISTRY"
       footer={
         <div className="w-full flex items-center justify-end">
@@ -68,7 +93,7 @@ function AddProjectModal({
             }
             variant="primary"
           >
-            Submit Project
+            {text("Submit Project", "Gửi dự án")}
           </ActionButton>
         </div>
       }
@@ -76,7 +101,7 @@ function AddProjectModal({
       <form id="add-project-form" onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <label className="text-xs font-bold uppercase tracking-widest text-text-muted">
-            Project Name
+            {text("Project Name", "Tên dự án")}
           </label>
           <input
             name="name"
@@ -87,7 +112,7 @@ function AddProjectModal({
 
         <div className="space-y-1.5">
           <label className="text-xs font-bold uppercase tracking-widest text-text-muted">
-            Description
+            {text("Description", "Mô tả")}
           </label>
           <textarea
             name="description"
@@ -99,11 +124,11 @@ function AddProjectModal({
 
         <div className="space-y-1.5">
           <label className="text-xs font-bold uppercase tracking-widest text-text-muted">
-            Category
+            {text("Category", "Danh mục")}
           </label>
           <input
             name="category"
-            placeholder="e.g. Infrastructure, DeFi"
+            placeholder={text("e.g. Infrastructure, DeFi", "ví dụ: Infrastructure, DeFi")}
             required
             className="w-full bg-surface border border-border-main px-4 py-3 outline-none font-sans text-sm transition-all focus:border-primary"
           />
@@ -111,7 +136,7 @@ function AddProjectModal({
 
         <div className="space-y-1.5">
           <label className="text-xs font-bold uppercase tracking-widest text-text-muted">
-            Tech Stack (comma separated)
+            {text("Tech Stack (comma separated)", "Tech stack (ngăn cách bằng dấu phẩy)")}
           </label>
           <input
             name="tech_stack"
@@ -122,11 +147,11 @@ function AddProjectModal({
 
         <div className="space-y-1.5">
           <label className="text-xs font-bold uppercase tracking-widest text-text-muted">
-            Builders (comma separated)
+            {text("Builders (comma separated)", "Builders (ngăn cách bằng dấu phẩy)")}
           </label>
           <input
             name="builders"
-            placeholder="Zah, Cuong..."
+            placeholder={text("Zah, Cuong...", "Zah, Cường...")}
             required
             className="w-full bg-surface border border-border-main px-4 py-3 outline-none font-sans text-sm transition-all focus:border-primary"
           />
@@ -135,7 +160,7 @@ function AddProjectModal({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-widest text-text-muted">
-              Website Link
+              {text("Website Link", "Link website")}
             </label>
             <input
               name="link"
@@ -146,7 +171,7 @@ function AddProjectModal({
 
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-widest text-text-muted">
-              GitHub Repo
+              {text("GitHub Repo", "GitHub repo")}
             </label>
             <input
               name="repoLink"
@@ -160,6 +185,7 @@ function AddProjectModal({
 }
 
 export function Projects() {
+  const { text } = useLocale();
   const { projects, fetchProjects, addProject, currentUser } = useStore();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -203,11 +229,16 @@ export function Projects() {
 
   const handleAddClick = () => {
     if (!currentUser) {
-      toast("Vui lòng đăng nhập trước!");
+      toast(text("Please sign in first.", "Vui lòng đăng nhập trước."));
       return;
     }
     if (!canManage) {
-      toast("Tài khoản cộng đồng không thể tạo dự án.");
+      toast(
+        text(
+          "Community accounts cannot create projects.",
+          "Tài khoản community không thể tạo dự án.",
+        ),
+      );
       return;
     }
     setIsAddModalOpen(true);
@@ -217,8 +248,11 @@ export function Projects() {
     <div className="container mx-auto space-y-12 px-4 py-8 md:py-16">
       <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
         <SectionHeader
-          title="Project Showcase"
-          subtitle="Products shipped by DSUC builders."
+          title={text("Project Showcase", "Dự án nổi bật")}
+          subtitle={text(
+            "Products shipped by DSUC builders.",
+            "Các sản phẩm đã được builder DSUC triển khai.",
+          )}
           className="mb-0 border-none pb-0"
         />
 
@@ -230,12 +264,12 @@ export function Projects() {
               onClick={handleAddClick}
             >
               <span className="flex justify-center items-center gap-2">
-                <Plus size={16} /> Add Project
+                <Plus size={16} /> {text("Add Project", "Thêm dự án")}
               </span>
             </ActionButton>
           ) : (
             <div className="border border-border-main bg-main-bg px-4 py-2 text-center font-mono text-xs text-text-muted">
-              Restricted to Members
+              {text("Restricted to Members", "Chỉ member mới được thêm")}
             </div>
           )}
         </div>
@@ -254,7 +288,7 @@ export function Projects() {
                   : "bg-surface text-text-muted shadow-sm hover:bg-main-bg hover:text-text-main"
               }`}
             >
-              {category}
+              {getProjectCategoryLabel(category, text)}
             </button>
           ))}
         </div>
@@ -263,7 +297,7 @@ export function Projects() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
           <input
             type="text"
-            placeholder="Search projects..."
+            placeholder={text("Search projects...", "Tìm dự án...")}
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             className="w-full border border-border-main bg-surface p-3 pl-10 font-mono text-xs shadow-sm transition-colors focus:border-primary focus:outline-none"
@@ -289,10 +323,10 @@ export function Projects() {
                 icon={<FolderKanban className="h-5 w-5" aria-hidden="true" />}
                 title={proj.name}
                 category={proj.category}
-                accentLabel={proj.status || "Live"}
+                accentLabel={getProjectStatusLabel(proj.status || "Live", text)}
                 description={proj.description}
                 tags={techStack}
-                footerLabel="Builders"
+                footerLabel={text("Builders", "Builders")}
                 footerValue={builders.join(", ") || "DSUC Builders"}
                 footerAside={
                   <>
@@ -312,7 +346,7 @@ export function Projects() {
 
         {filteredProjects.length === 0 && (
           <Card className="col-span-full p-12 text-center font-mono text-xs font-bold uppercase tracking-widest text-text-muted shadow-sm">
-            No projects found.
+            {text("No projects found.", "Không tìm thấy dự án nào.")}
           </Card>
         )}
       </div>

@@ -1,30 +1,40 @@
-import toast from "react-hot-toast";
 import React, { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import toast from "react-hot-toast";
 import {
+  Boxes,
   CheckCircle2,
+  CreditCard,
+  KeyRound,
   Plus,
   RefreshCw,
+  Save,
   ShieldCheck,
   Trash2,
   Users,
   XCircle,
 } from "lucide-react";
 
+import { ActionButton } from "@/components/ui/Primitives";
 import {
-  AdminApiKey,
-  AcademyActivity,
-  AcademyOverview,
-  Bounty,
-  Event,
-  Member,
-  Project,
-  PublishStatus,
-  Repo,
-  Resource,
-} from "../types";
-import { useStore } from "../store/useStore";
-import { SoftBrutalCard } from "@/components/ui/Primitives";
+  AdminEmptyState,
+  AdminField,
+  AdminHero,
+  AdminListButton,
+  AdminMetricCard,
+  AdminNotice,
+  AdminPageSection,
+  AdminPanel,
+  AdminTabs,
+  AdminToggleRow,
+  adminInputClass,
+  adminSelectClass,
+  adminTextareaClass,
+} from "@/components/admin/AdminConsole";
+import { useStore } from "@/store/useStore";
+import type { AdminApiKey, Member } from "@/types";
+
+type AdminTab = "members" | "content" | "finance" | "keys";
+type ContentEntity = "events" | "projects" | "resources" | "bounties" | "repos";
 
 type EditableUser = {
   id: string;
@@ -37,16 +47,45 @@ type EditableUser = {
   is_active: boolean;
 };
 
-type ContentEntity = "events" | "projects" | "resources" | "bounties" | "repos";
+type ContentRow = Record<string, any>;
 
-type AdminContentData = {
-  events: Event[];
-  projects: Project[];
-  resources: Resource[];
-  bounties: Bounty[];
-  repos: Repo[];
-  finance_requests: any[];
-  finance_history: any[];
+type ContentOverview = {
+  events: ContentRow[];
+  projects: ContentRow[];
+  resources: ContentRow[];
+  bounties: ContentRow[];
+  repos: ContentRow[];
+  finance_requests: ContentRow[];
+  finance_history: ContentRow[];
+};
+
+type ContentFormState = Record<string, string>;
+
+type AgentKeyDraft = {
+  name: string;
+  scopesText: string;
+  is_active: boolean;
+};
+
+const EMPTY_CONTENT_DATA: ContentOverview = {
+  events: [],
+  projects: [],
+  resources: [],
+  bounties: [],
+  repos: [],
+  finance_requests: [],
+  finance_history: [],
+};
+
+const EMPTY_USER: EditableUser = {
+  id: "",
+  name: "",
+  email: "",
+  wallet_address: "",
+  member_type: "community",
+  role: "Community",
+  academy_access: true,
+  is_active: true,
 };
 
 const ROLE_OPTIONS = [
@@ -55,27 +94,23 @@ const ROLE_OPTIONS = [
   "Tech-Lead",
   "Media-Lead",
   "Member",
-];
-const PUBLISH_STATUS_OPTIONS: PublishStatus[] = [
-  "Draft",
-  "Published",
-  "Archived",
-];
-const BOUNTY_STATUS_OPTIONS: Bounty["status"][] = [
-  "Open",
-  "In Progress",
-  "Completed",
-  "Closed",
-];
+  "Community",
+] as const;
 
-const EMPTY_CONTENT_DATA: AdminContentData = {
-  events: [],
-  projects: [],
-  resources: [],
-  bounties: [],
-  repos: [],
-  finance_requests: [],
-  finance_history: [],
+const CONTENT_LABELS: Record<ContentEntity, string> = {
+  events: "Events",
+  projects: "Projects",
+  resources: "Resources",
+  bounties: "Bounties",
+  repos: "Repos",
+};
+
+const CONTENT_STATUS_OPTIONS: Record<ContentEntity, string[]> = {
+  events: ["Draft", "Published", "Archived"],
+  projects: ["Draft", "Published", "Archived"],
+  resources: ["Draft", "Published", "Archived"],
+  bounties: ["Open", "In Progress", "Completed", "Closed"],
+  repos: ["Draft", "Published", "Archived"],
 };
 
 function buildAuthHeaders(token: string | null, walletAddress: string | null) {
@@ -92,15 +127,56 @@ function buildAuthHeaders(token: string | null, walletAddress: string | null) {
   return headers;
 }
 
-function formatLessonLabel(activity: AcademyActivity) {
-  return `${String(activity.track || "").toUpperCase()} / ${activity.lesson_id}`;
+function getApiBase() {
+  return (import.meta as any).env.VITE_API_BASE_URL || "";
 }
 
-function formatRequesterName(row: any) {
-  return row.requester_name || row.requesterName || "Unknown";
+function memberToDraft(user: Member): EditableUser {
+  const memberType =
+    user.memberType === "community" || user.member_type === "community"
+      ? "community"
+      : "member";
+
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email || "",
+    wallet_address: user.wallet_address || "",
+    member_type: memberType,
+    role: memberType === "community" ? "Community" : user.role || "Member",
+    academy_access:
+      user.academyAccess !== false && user.academy_access !== false,
+    is_active: user.is_active !== false,
+  };
 }
 
-function formatAmount(value: string | number | undefined) {
+function parseCsvList(value: string) {
+  return String(value || "")
+    .split(/[,\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) {
+    return "No activity";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString("en-GB", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatCurrency(value: string | number | undefined) {
   const numeric = Number(value || 0);
   if (Number.isNaN(numeric)) {
     return String(value || "0");
@@ -109,1323 +185,1777 @@ function formatAmount(value: string | number | undefined) {
   return numeric.toLocaleString("vi-VN");
 }
 
-function parseScopes(text: string): string[] {
-  const values = String(text || "")
-    .split(/[,\n]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
+function entityPath(entity: ContentEntity) {
+  switch (entity) {
+    case "events":
+      return "/api/events";
+    case "projects":
+      return "/api/projects";
+    case "resources":
+      return "/api/resources";
+    case "bounties":
+      return "/api/work/bounties";
+    case "repos":
+      return "/api/work/repos";
+  }
+}
 
-  return values.length > 0 ? values : ["*"];
+function emptyContentForm(entity: ContentEntity): ContentFormState {
+  switch (entity) {
+    case "events":
+      return {
+        title: "",
+        date: "",
+        time: "",
+        type: "Workshop",
+        location: "",
+        luma_link: "",
+        attendees: "0",
+        status: "Published",
+      };
+    case "projects":
+      return {
+        name: "",
+        description: "",
+        category: "",
+        builders: "",
+        link: "",
+        repo_link: "",
+        image_url: "",
+        status: "Published",
+      };
+    case "resources":
+      return {
+        name: "",
+        type: "Link",
+        url: "",
+        size: "",
+        category: "Learning",
+        status: "Published",
+      };
+    case "bounties":
+      return {
+        title: "",
+        description: "",
+        reward: "",
+        difficulty: "Medium",
+        tags: "",
+        submit_link: "",
+        status: "Open",
+      };
+    case "repos":
+      return {
+        name: "",
+        description: "",
+        language: "",
+        url: "",
+        stars: "0",
+        forks: "0",
+        status: "Published",
+      };
+  }
+}
+
+function rowToContentForm(entity: ContentEntity, row: ContentRow): ContentFormState {
+  switch (entity) {
+    case "events":
+      return {
+        title: String(row.title || ""),
+        date: String(row.date || ""),
+        time: String(row.time || ""),
+        type: String(row.type || "Workshop"),
+        location: String(row.location || ""),
+        luma_link: String(row.luma_link || ""),
+        attendees: String(row.attendees ?? 0),
+        status: String(row.status || "Published"),
+      };
+    case "projects":
+      return {
+        name: String(row.name || ""),
+        description: String(row.description || ""),
+        category: String(row.category || ""),
+        builders: Array.isArray(row.builders) ? row.builders.join(", ") : "",
+        link: String(row.link || ""),
+        repo_link: String(row.repo_link || row.repoLink || ""),
+        image_url: String(row.image_url || ""),
+        status: String(row.status || "Published"),
+      };
+    case "resources":
+      return {
+        name: String(row.name || ""),
+        type: String(row.type || "Link"),
+        url: String(row.url || ""),
+        size: String(row.size || ""),
+        category: String(row.category || "Learning"),
+        status: String(row.status || "Published"),
+      };
+    case "bounties":
+      return {
+        title: String(row.title || ""),
+        description: String(row.description || ""),
+        reward: String(row.reward || ""),
+        difficulty: String(row.difficulty || "Medium"),
+        tags: Array.isArray(row.tags) ? row.tags.join(", ") : "",
+        submit_link: String(row.submit_link || row.submitLink || ""),
+        status: String(row.status || "Open"),
+      };
+    case "repos":
+      return {
+        name: String(row.name || ""),
+        description: String(row.description || ""),
+        language: String(row.language || ""),
+        url: String(row.url || ""),
+        stars: String(row.stars ?? 0),
+        forks: String(row.forks ?? 0),
+        status: String(row.status || "Published"),
+      };
+  }
+}
+
+function contentFormToPayload(entity: ContentEntity, form: ContentFormState) {
+  switch (entity) {
+    case "events":
+      return {
+        title: form.title.trim(),
+        date: form.date.trim(),
+        time: form.time.trim(),
+        type: form.type.trim(),
+        location: form.location.trim(),
+        luma_link: form.luma_link.trim(),
+        attendees: Number(form.attendees || 0),
+        status: form.status,
+      };
+    case "projects":
+      return {
+        name: form.name.trim(),
+        description: form.description.trim(),
+        category: form.category.trim(),
+        builders: parseCsvList(form.builders),
+        link: form.link.trim(),
+        repo_link: form.repo_link.trim(),
+        image_url: form.image_url.trim(),
+        status: form.status,
+      };
+    case "resources":
+      return {
+        name: form.name.trim(),
+        type: form.type.trim(),
+        url: form.url.trim(),
+        size: form.size.trim(),
+        category: form.category.trim(),
+        status: form.status,
+      };
+    case "bounties":
+      return {
+        title: form.title.trim(),
+        description: form.description.trim(),
+        reward: form.reward.trim(),
+        difficulty: form.difficulty.trim(),
+        tags: parseCsvList(form.tags),
+        submitLink: form.submit_link.trim(),
+        status: form.status,
+      };
+    case "repos":
+      return {
+        name: form.name.trim(),
+        description: form.description.trim(),
+        language: form.language.trim(),
+        url: form.url.trim(),
+        stars: Number(form.stars || 0),
+        forks: Number(form.forks || 0),
+        status: form.status,
+      };
+  }
+}
+
+function getContentItems(
+  data: ContentOverview,
+  entity: ContentEntity,
+): ContentRow[] {
+  return data[entity] || [];
+}
+
+function getContentTitle(entity: ContentEntity, row: ContentRow) {
+  switch (entity) {
+    case "events":
+      return row.title || "Untitled event";
+    case "projects":
+      return row.name || "Untitled project";
+    case "resources":
+      return row.name || "Untitled resource";
+    case "bounties":
+      return row.title || "Untitled bounty";
+    case "repos":
+      return row.name || "Untitled repo";
+  }
+}
+
+function getContentMeta(entity: ContentEntity, row: ContentRow) {
+  switch (entity) {
+    case "events":
+      return `${row.date || "No date"} • ${row.type || "Workshop"} • ${row.location || "No location"}`;
+    case "projects":
+      return `${row.category || "General"} • ${(row.builders || []).length || 0} builders`;
+    case "resources":
+      return `${row.category || "Learning"} • ${row.type || "Link"}`;
+    case "bounties":
+      return `${row.difficulty || "Medium"} • ${row.reward || "No reward"}`;
+    case "repos":
+      return `${row.language || "Unknown"} • ${Number(row.stars || 0)} stars`;
+  }
+}
+
+function getFinanceRequesterName(row: ContentRow) {
+  return row.requester_name || row.requesterName || row.requesterId || "Unknown";
+}
+
+function getFinanceDate(row: ContentRow) {
+  return row.date || row.created_at || row.updated_at || "";
 }
 
 export function Admin() {
-  const { currentUser, authToken, walletAddress, fetchMembers } = useStore();
-  const [users, setUsers] = useState<Member[]>([]);
-  const [academyOverview, setAcademyOverview] = useState<AcademyOverview[]>([]);
-  const [academyHistory, setAcademyHistory] = useState<AcademyActivity[]>([]);
-  const [agentKeys, setAgentKeys] = useState<AdminApiKey[]>([]);
-  const [contentData, setContentData] =
-    useState<AdminContentData>(EMPTY_CONTENT_DATA);
-  const [contentDrafts, setContentDrafts] = useState<Record<string, string>>(
-    {},
-  );
-  const [drafts, setDrafts] = useState<Record<string, EditableUser>>({});
-  const [agentKeyDrafts, setAgentKeyDrafts] = useState<
-    Record<string, { name: string; scopesText: string; is_active: boolean }>
-  >({});
-  const [loading, setLoading] = useState(true);
-  const [savingId, setSavingId] = useState<string | null>(null);
-  const [statusSavingKey, setStatusSavingKey] = useState<string | null>(null);
-  const [deletingKey, setDeletingKey] = useState<string | null>(null);
-  const [financeActionId, setFinanceActionId] = useState<string | null>(null);
-  const [agentKeySaving, setAgentKeySaving] = useState(false);
-  const [agentKeyActionId, setAgentKeyActionId] = useState<string | null>(null);
-  const [newAgentKeyName, setNewAgentKeyName] = useState("");
-  const [newAgentKeyScopes, setNewAgentKeyScopes] = useState("*");
-  const [lastCreatedAgentKey, setLastCreatedAgentKey] = useState("");
-  const [rotatedAgentKey, setRotatedAgentKey] = useState("");
-  const [createForm, setCreateForm] = useState<EditableUser>({
-    id: "",
-    name: "",
-    email: "",
-    wallet_address: "",
-    member_type: "community",
-    role: "Community",
-    academy_access: true,
-    is_active: true,
-  });
-
+  const { authToken, walletAddress, fetchMembers } = useStore();
   const headers = useMemo(
     () => buildAuthHeaders(authToken, walletAddress),
     [authToken, walletAddress],
   );
 
-  const academyMap = useMemo(() => {
-    return new Map(academyOverview.map((item) => [item.user_id, item]));
-  }, [academyOverview]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
-  const memberCount = users.filter(
-    (user) => (user.memberType || user.member_type) !== "community",
-  ).length;
-  const communityCount = users.filter(
-    (user) => (user.memberType || user.member_type) === "community",
-  ).length;
+  const [activeTab, setActiveTab] = useState<AdminTab>("members");
+  const [contentEntity, setContentEntity] = useState<ContentEntity>("events");
+
+  const [users, setUsers] = useState<Member[]>([]);
+  const [contentData, setContentData] =
+    useState<ContentOverview>(EMPTY_CONTENT_DATA);
+  const [agentKeys, setAgentKeys] = useState<AdminApiKey[]>([]);
+
+  const [memberQuery, setMemberQuery] = useState("");
+  const [contentQuery, setContentQuery] = useState("");
+  const [selectedFinanceId, setSelectedFinanceId] = useState<string | null>(null);
+
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [memberDraft, setMemberDraft] = useState<EditableUser>(EMPTY_USER);
+  const [creatingMember, setCreatingMember] = useState(false);
+  const [memberSaving, setMemberSaving] = useState(false);
+  const [memberDeleting, setMemberDeleting] = useState(false);
+
+  const [selectedContentId, setSelectedContentId] = useState<string | null>(null);
+  const [contentDraft, setContentDraft] = useState<ContentFormState>(
+    emptyContentForm("events"),
+  );
+  const [creatingContent, setCreatingContent] = useState(false);
+  const [contentSaving, setContentSaving] = useState(false);
+  const [contentDeleting, setContentDeleting] = useState(false);
+
+  const [selectedKeyId, setSelectedKeyId] = useState<string | null>(null);
+  const [keyDraft, setKeyDraft] = useState<AgentKeyDraft>({
+    name: "",
+    scopesText: "*",
+    is_active: true,
+  });
+  const [creatingKey, setCreatingKey] = useState(false);
+  const [keySaving, setKeySaving] = useState(false);
+  const [keyDeleting, setKeyDeleting] = useState(false);
+  const [issuedKey, setIssuedKey] = useState("");
+
   const pendingFinance = contentData.finance_requests.filter(
-    (row) => row.status === "pending",
+    (row) => String(row.status || "").toLowerCase() === "pending",
   );
 
-  const applyUsers = (nextUsers: Member[]) => {
-    setUsers(nextUsers);
-    setDrafts(
-      Object.fromEntries(
-        nextUsers.map((user: Member) => [
-          user.id,
-          {
-            id: user.id,
-            name: user.name,
-            email: user.email || "",
-            wallet_address: user.wallet_address || "",
-            member_type:
-              user.memberType === "community" ||
-              user.member_type === "community"
-                ? "community"
-                : "member",
-            role: user.role,
-            academy_access:
-              user.academyAccess !== false && user.academy_access !== false,
-            is_active: user.is_active !== false,
-          },
-        ]),
-      ),
-    );
-  };
+  const filteredUsers = useMemo(() => {
+    const query = memberQuery.trim().toLowerCase();
+    if (!query) {
+      return users;
+    }
 
-  const applyContentData = (nextData: Partial<AdminContentData>) => {
-    const merged: AdminContentData = {
-      ...EMPTY_CONTENT_DATA,
-      ...nextData,
-    };
-
-    setContentData(merged);
-
-    const nextDrafts: Record<string, string> = {};
-    const attachStatusDrafts = (entity: ContentEntity, items: any[]) => {
-      items.forEach((item) => {
-        nextDrafts[`${entity}:${item.id}`] = item.status || "";
-      });
-    };
-
-    attachStatusDrafts("events", merged.events);
-    attachStatusDrafts("projects", merged.projects);
-    attachStatusDrafts("resources", merged.resources);
-    attachStatusDrafts("bounties", merged.bounties);
-    attachStatusDrafts("repos", merged.repos);
-    setContentDrafts(nextDrafts);
-  };
-
-  const applyAgentKeys = (rows: AdminApiKey[]) => {
-    const normalized = [...rows].sort((a, b) => {
-      const left = String(a.created_at || "");
-      const right = String(b.created_at || "");
-      return left < right ? 1 : left > right ? -1 : 0;
+    return users.filter((user) => {
+      const haystack = [
+        user.id,
+        user.name,
+        user.role,
+        user.email,
+        ...(user.skills || []),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(query);
     });
+  }, [memberQuery, users]);
 
-    setAgentKeys(normalized);
-    setAgentKeyDrafts(
-      Object.fromEntries(
-        normalized.map((row) => [
-          row.id,
-          {
-            name: row.name || "",
-            scopesText: (row.scopes || ["*"]).join(", "),
-            is_active: row.is_active !== false,
-          },
-        ]),
-      ),
-    );
-  };
+  const contentItems = useMemo(
+    () => getContentItems(contentData, contentEntity),
+    [contentData, contentEntity],
+  );
 
-  const refresh = async () => {
-    setLoading(true);
+  const filteredContentItems = useMemo(() => {
+    const query = contentQuery.trim().toLowerCase();
+    if (!query) {
+      return contentItems;
+    }
+
+    return contentItems.filter((item) => {
+      const haystack = JSON.stringify(item).toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [contentItems, contentQuery]);
+
+  const selectedFinance = useMemo(() => {
+    const combined = [
+      ...contentData.finance_requests,
+      ...contentData.finance_history,
+    ];
+    return combined.find((row) => row.id === selectedFinanceId) || null;
+  }, [contentData.finance_history, contentData.finance_requests, selectedFinanceId]);
+
+  async function loadData(nextMode: "initial" | "refresh" = "initial") {
+    const base = getApiBase();
+
+    if (nextMode === "initial") {
+      setLoading(true);
+    } else {
+      setRefreshing(true);
+    }
+
+    setError("");
+
     try {
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-      const [usersRes, academyRes, historyRes, contentRes, agentKeysRes] =
-        await Promise.all([
-          fetch(`${base}/api/members/admin/list`, {
-            headers,
-            credentials: "include",
-          }),
-          fetch(`${base}/api/academy/admin/overview`, {
-            headers,
-            credentials: "include",
-          }),
-          fetch(`${base}/api/academy/admin/history`, {
-            headers,
-            credentials: "include",
-          }),
-          fetch(`${base}/api/admin/overview`, {
-            headers,
-            credentials: "include",
-          }),
-          fetch(`${base}/api/admin/agent-keys`, {
-            headers,
-            credentials: "include",
-          }),
-        ]);
+      const [usersRes, overviewRes, keysRes] = await Promise.all([
+        fetch(`${base}/api/members/admin/list`, { headers }),
+        fetch(`${base}/api/admin/overview`, { headers }),
+        fetch(`${base}/api/admin/agent-keys`, { headers }),
+      ]);
 
-      const usersResult = await usersRes.json();
-      const academyResult = await academyRes.json();
-      const historyResult = await historyRes.json();
-      const contentResult = await contentRes.json();
-      const agentKeysResult = await agentKeysRes.json();
+      const [usersJson, overviewJson, keysJson] = await Promise.all([
+        usersRes.json(),
+        overviewRes.json(),
+        keysRes.json(),
+      ]);
 
-      applyUsers(usersResult?.data || []);
-      setAcademyOverview(academyResult?.data || []);
-      setAcademyHistory(historyResult?.data || []);
-      applyContentData(contentResult?.data || EMPTY_CONTENT_DATA);
-      applyAgentKeys(agentKeysResult?.data || []);
-      await fetchMembers();
+      if (!usersRes.ok) {
+        throw new Error(usersJson?.message || "Failed to load members.");
+      }
+      if (!overviewRes.ok) {
+        throw new Error(overviewJson?.message || "Failed to load admin overview.");
+      }
+      if (!keysRes.ok) {
+        throw new Error(keysJson?.message || "Failed to load agent keys.");
+      }
+
+      setUsers(usersJson.data || []);
+      setContentData({
+        ...EMPTY_CONTENT_DATA,
+        ...(overviewJson.data || {}),
+      });
+      setAgentKeys(keysJson.data || []);
+
+      setSelectedFinanceId((current) => {
+        const financeRows = [
+          ...(overviewJson.data?.finance_requests || []),
+          ...(overviewJson.data?.finance_history || []),
+        ];
+        if (current && financeRows.some((row: ContentRow) => row.id === current)) {
+          return current;
+        }
+        return financeRows[0]?.id || null;
+      });
+    } catch (fetchError: any) {
+      setError(fetchError?.message || "Failed to load admin data.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }
 
   useEffect(() => {
-    void refresh();
+    void loadData("initial");
   }, [headers]);
 
-  const updateDraft = (id: string, patch: Partial<EditableUser>) => {
-    setDrafts((prev) => ({
-      ...prev,
-      [id]: {
-        ...prev[id],
-        ...patch,
-        role:
-          (patch.member_type || prev[id]?.member_type) === "community"
-            ? "Community"
-            : patch.role || prev[id]?.role || "Member",
-      },
-    }));
-  };
-
-  const saveUser = async (id: string) => {
-    const draft = drafts[id];
-    if (!draft) {
+  useEffect(() => {
+    if (creatingMember) {
       return;
     }
 
-    setSavingId(id);
-    try {
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-      const res = await fetch(`${base}/api/members/admin/users/${id}`, {
-        method: "PATCH",
-        headers,
-        credentials: "include",
-        body: JSON.stringify(draft),
-      });
+    const fallback = users[0] || null;
+    const selected =
+      users.find((user) => user.id === selectedMemberId) || fallback;
 
-      if (!res.ok) {
-        const error = await res.json().catch(() => ({}));
-        throw new Error(error?.message || "Failed to update user");
-      }
-
-      await refresh();
-    } catch (error: any) {
-      toast(error.message || "Failed to update user");
-    } finally {
-      setSavingId(null);
+    if (!selected) {
+      setSelectedMemberId(null);
+      setMemberDraft(EMPTY_USER);
+      return;
     }
-  };
 
-  const createUser = async (e: React.FormEvent) => {
-    e.preventDefault();
+    if (selected.id !== selectedMemberId) {
+      setSelectedMemberId(selected.id);
+    }
+
+    setMemberDraft(memberToDraft(selected));
+  }, [creatingMember, selectedMemberId, users]);
+
+  useEffect(() => {
+    if (creatingContent) {
+      return;
+    }
+
+    const fallback = contentItems[0] || null;
+    const selected =
+      contentItems.find((item) => item.id === selectedContentId) || fallback;
+
+    if (!selected) {
+      setSelectedContentId(null);
+      setContentDraft(emptyContentForm(contentEntity));
+      return;
+    }
+
+    if (selected.id !== selectedContentId) {
+      setSelectedContentId(selected.id);
+    }
+
+    setContentDraft(rowToContentForm(contentEntity, selected));
+  }, [contentEntity, contentItems, creatingContent, selectedContentId]);
+
+  useEffect(() => {
+    if (creatingKey) {
+      return;
+    }
+
+    const fallback = agentKeys[0] || null;
+    const selected =
+      agentKeys.find((row) => row.id === selectedKeyId) || fallback;
+
+    if (!selected) {
+      setSelectedKeyId(null);
+      setKeyDraft({ name: "", scopesText: "*", is_active: true });
+      return;
+    }
+
+    if (selected.id !== selectedKeyId) {
+      setSelectedKeyId(selected.id);
+    }
+
+    setKeyDraft({
+      name: selected.name || "",
+      scopesText: (selected.scopes || ["*"]).join(", "),
+      is_active: selected.is_active !== false,
+    });
+  }, [agentKeys, creatingKey, selectedKeyId]);
+
+  useEffect(() => {
+    setCreatingContent(false);
+    setContentQuery("");
+    setSelectedContentId(null);
+    setContentDraft(emptyContentForm(contentEntity));
+  }, [contentEntity]);
+
+  function startCreateMember() {
+    setCreatingMember(true);
+    setSelectedMemberId(null);
+    setMemberDraft(EMPTY_USER);
+  }
+
+  function startCreateContent() {
+    setCreatingContent(true);
+    setSelectedContentId(null);
+    setContentDraft(emptyContentForm(contentEntity));
+  }
+
+  function startCreateKey() {
+    setCreatingKey(true);
+    setSelectedKeyId(null);
+    setKeyDraft({
+      name: "",
+      scopesText: "*",
+      is_active: true,
+    });
+  }
+
+  async function saveMember() {
+    const base = getApiBase();
+    setMemberSaving(true);
+    setError("");
+    setNotice("");
+
     try {
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+      const endpoint = creatingMember
+        ? `${base}/api/members/admin/users`
+        : `${base}/api/members/admin/users/${selectedMemberId}`;
+      const method = creatingMember ? "POST" : "PATCH";
+
       const payload = {
-        ...createForm,
-        role:
-          createForm.member_type === "community"
-            ? "Community"
-            : createForm.role,
+        ...memberDraft,
+        id: memberDraft.id.trim() || undefined,
+        name: memberDraft.name.trim(),
+        email: memberDraft.email.trim(),
+        wallet_address: memberDraft.wallet_address.trim(),
       };
 
-      const res = await fetch(`${base}/api/members/admin/users`, {
-        method: "POST",
+      const response = await fetch(endpoint, {
+        method,
         headers,
-        credentials: "include",
         body: JSON.stringify(payload),
       });
+      const result = await response.json();
 
-      if (!res.ok) {
-        const error = await res.json().catch(() => ({}));
-        throw new Error(error?.message || "Failed to create user");
+      if (!response.ok) {
+        throw new Error(result?.message || "Failed to save member.");
       }
 
-      setCreateForm({
-        id: "",
-        name: "",
-        email: "",
-        wallet_address: "",
-        member_type: "community",
-        role: "Community",
-        academy_access: true,
-        is_active: true,
-      });
-      await refresh();
-    } catch (error: any) {
-      toast(error.message || "Failed to create user");
-    }
-  };
-
-  const deleteUser = async (id: string, name: string) => {
-    if (
-      !window.confirm(`Delete user "${name}"? This action cannot be undone.`)
-    ) {
-      return;
-    }
-
-    setDeletingKey(`user:${id}`);
-    try {
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-      const res = await fetch(`${base}/api/members/admin/users/${id}`, {
-        method: "DELETE",
-        headers,
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        const error = await res.json().catch(() => ({}));
-        throw new Error(error?.message || "Failed to delete user");
+      setNotice(
+        creatingMember
+          ? "Member created successfully."
+          : "Member updated successfully.",
+      );
+      toast.success(creatingMember ? "Member created" : "Member updated");
+      setCreatingMember(false);
+      await loadData("refresh");
+      await fetchMembers();
+      if (result?.data?.id) {
+        setSelectedMemberId(result.data.id);
       }
-
-      await refresh();
-    } catch (error: any) {
-      toast(error.message || "Failed to delete user");
+    } catch (saveError: any) {
+      const message = saveError?.message || "Failed to save member.";
+      setError(message);
+      toast.error(message);
     } finally {
-      setDeletingKey(null);
+      setMemberSaving(false);
     }
-  };
+  }
 
-  const updateContentDraft = (
-    entity: ContentEntity,
-    id: string,
-    status: string,
-  ) => {
-    setContentDrafts((prev) => ({
-      ...prev,
-      [`${entity}:${id}`]: status,
-    }));
-  };
-
-  const saveContentStatus = async (entity: ContentEntity, id: string) => {
-    const status = contentDrafts[`${entity}:${id}`];
-    if (!status) {
+  async function deleteMember() {
+    if (!selectedMemberId || creatingMember) {
       return;
     }
 
-    setStatusSavingKey(`${entity}:${id}`);
+    const base = getApiBase();
+    setMemberDeleting(true);
+    setError("");
+    setNotice("");
+
     try {
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-      const res = await fetch(
-        `${base}/api/admin/content/${entity}/${id}/status`,
+      const response = await fetch(
+        `${base}/api/members/admin/users/${selectedMemberId}`,
         {
-          method: "PATCH",
+          method: "DELETE",
           headers,
-          credentials: "include",
-          body: JSON.stringify({ status }),
         },
       );
+      const result = await response.json();
 
-      if (!res.ok) {
-        const error = await res.json().catch(() => ({}));
-        throw new Error(error?.message || "Failed to update status");
+      if (!response.ok) {
+        throw new Error(result?.message || "Failed to delete member.");
       }
 
-      await refresh();
-    } catch (error: any) {
-      toast(error.message || "Failed to update status");
+      toast.success("Member deleted");
+      setNotice("Member deleted successfully.");
+      await loadData("refresh");
+      await fetchMembers();
+    } catch (deleteError: any) {
+      const message = deleteError?.message || "Failed to delete member.";
+      setError(message);
+      toast.error(message);
     } finally {
-      setStatusSavingKey(null);
+      setMemberDeleting(false);
     }
-  };
+  }
 
-  const deleteContent = async (
-    entity: ContentEntity,
-    id: string,
-    label: string,
-  ) => {
-    if (
-      !window.confirm(
-        `Delete "${label}" from ${entity}? This action cannot be undone.`,
-      )
-    ) {
+  async function saveContent() {
+    const base = getApiBase();
+    setContentSaving(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const payload = contentFormToPayload(contentEntity, contentDraft);
+      const endpoint = creatingContent
+        ? `${base}${entityPath(contentEntity)}`
+        : `${base}${entityPath(contentEntity)}/${selectedContentId}`;
+      const method = creatingContent ? "POST" : "PUT";
+
+      const response = await fetch(endpoint, {
+        method,
+        headers,
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result?.message || "Failed to save content.");
+      }
+
+      const savedRow = result?.data;
+      const nextStatus = contentDraft.status;
+      if (
+        savedRow?.id &&
+        nextStatus &&
+        nextStatus !== (savedRow.status || "Published")
+      ) {
+        const statusResponse = await fetch(
+          `${base}/api/admin/content/${contentEntity}/${savedRow.id}/status`,
+          {
+            method: "PATCH",
+            headers,
+            body: JSON.stringify({ status: nextStatus }),
+          },
+        );
+        const statusResult = await statusResponse.json();
+        if (!statusResponse.ok) {
+          throw new Error(
+            statusResult?.message || "Saved item, but failed to sync status.",
+          );
+        }
+      }
+
+      toast.success(
+        creatingContent
+          ? `${CONTENT_LABELS[contentEntity]} created`
+          : `${CONTENT_LABELS[contentEntity]} updated`,
+      );
+      setNotice(
+        creatingContent
+          ? `${CONTENT_LABELS[contentEntity]} created successfully.`
+          : `${CONTENT_LABELS[contentEntity]} updated successfully.`,
+      );
+      setCreatingContent(false);
+      await loadData("refresh");
+      if (savedRow?.id) {
+        setSelectedContentId(savedRow.id);
+      }
+    } catch (saveError: any) {
+      const message = saveError?.message || "Failed to save content.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setContentSaving(false);
+    }
+  }
+
+  async function deleteContent() {
+    if (!selectedContentId || creatingContent) {
       return;
     }
 
-    setDeletingKey(`content:${entity}:${id}`);
-    try {
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-      const res = await fetch(`${base}/api/admin/content/${entity}/${id}`, {
-        method: "DELETE",
-        headers,
-        credentials: "include",
-      });
+    const base = getApiBase();
+    setContentDeleting(true);
+    setError("");
+    setNotice("");
 
-      if (!res.ok) {
-        const error = await res.json().catch(() => ({}));
-        throw new Error(error?.message || "Failed to delete content");
+    try {
+      const response = await fetch(
+        `${base}/api/admin/content/${contentEntity}/${selectedContentId}`,
+        {
+          method: "DELETE",
+          headers,
+        },
+      );
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result?.message || "Failed to delete content.");
       }
 
-      await refresh();
-    } catch (error: any) {
-      toast(error.message || "Failed to delete content");
+      toast.success(`${CONTENT_LABELS[contentEntity]} deleted`);
+      setNotice(`${CONTENT_LABELS[contentEntity]} deleted successfully.`);
+      await loadData("refresh");
+    } catch (deleteError: any) {
+      const message = deleteError?.message || "Failed to delete content.";
+      setError(message);
+      toast.error(message);
     } finally {
-      setDeletingKey(null);
+      setContentDeleting(false);
     }
-  };
+  }
 
-  const runFinanceAction = async (id: string, action: "approve" | "reject") => {
-    setFinanceActionId(`${action}:${id}`);
+  async function handleFinanceAction(action: "approve" | "reject", id: string) {
+    const base = getApiBase();
+    setError("");
+    setNotice("");
+
     try {
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-      const res = await fetch(`${base}/api/finance/${action}/${id}`, {
+      const response = await fetch(`${base}/api/finance/${action}/${id}`, {
         method: "POST",
         headers,
-        credentials: "include",
       });
+      const result = await response.json();
 
-      if (!res.ok) {
-        const error = await res.json().catch(() => ({}));
-        throw new Error(error?.message || `Failed to ${action} request`);
+      if (!response.ok) {
+        throw new Error(result?.message || `Failed to ${action} request.`);
       }
 
-      await refresh();
-    } catch (error: any) {
-      toast(error.message || "Finance action failed");
-    } finally {
-      setFinanceActionId(null);
+      toast.success(
+        action === "approve" ? "Request approved" : "Request rejected",
+      );
+      setNotice(
+        action === "approve"
+          ? "Finance request approved successfully."
+          : "Finance request rejected successfully.",
+      );
+      await loadData("refresh");
+    } catch (actionError: any) {
+      const message =
+        actionError?.message || `Failed to ${action} finance request.`;
+      setError(message);
+      toast.error(message);
     }
-  };
+  }
 
-  const updateAgentKeyDraft = (
-    id: string,
-    patch: Partial<{ name: string; scopesText: string; is_active: boolean }>,
-  ) => {
-    setAgentKeyDrafts((prev) => ({
-      ...prev,
-      [id]: {
-        ...prev[id],
-        ...patch,
-      },
-    }));
-  };
+  async function saveKey() {
+    const base = getApiBase();
+    setKeySaving(true);
+    setError("");
+    setNotice("");
 
-  const createAgentKey = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newAgentKeyName.trim()) {
-      toast("Key name is required");
-      return;
-    }
-
-    setAgentKeySaving(true);
-    setLastCreatedAgentKey("");
-    setRotatedAgentKey("");
     try {
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-      const res = await fetch(`${base}/api/admin/agent-keys`, {
-        method: "POST",
+      const payload = {
+        name: keyDraft.name.trim(),
+        scopes: parseCsvList(keyDraft.scopesText),
+        is_active: keyDraft.is_active,
+      };
+
+      const endpoint = creatingKey
+        ? `${base}/api/admin/agent-keys`
+        : `${base}/api/admin/agent-keys/${selectedKeyId}`;
+      const method = creatingKey ? "POST" : "PATCH";
+
+      const response = await fetch(endpoint, {
+        method,
         headers,
-        credentials: "include",
-        body: JSON.stringify({
-          name: newAgentKeyName.trim(),
-          scopes: parseScopes(newAgentKeyScopes),
-        }),
+        body: JSON.stringify(payload),
       });
-      const result = await res.json().catch(() => ({}));
+      const result = await response.json();
 
-      if (!res.ok || !result?.success) {
-        throw new Error(result?.message || "Failed to create agent key");
+      if (!response.ok) {
+        throw new Error(result?.message || "Failed to save agent key.");
       }
 
-      setLastCreatedAgentKey(result?.key || "");
-      setNewAgentKeyName("");
-      setNewAgentKeyScopes("*");
-      await refresh();
-    } catch (error: any) {
-      toast(error.message || "Failed to create agent key");
-    } finally {
-      setAgentKeySaving(false);
-    }
-  };
+      if (result?.key) {
+        setIssuedKey(result.key);
+      }
 
-  const saveAgentKey = async (id: string) => {
-    const draft = agentKeyDrafts[id];
-    if (!draft) {
+      toast.success(creatingKey ? "Agent key created" : "Agent key updated");
+      setNotice(
+        creatingKey
+          ? "Agent key created successfully."
+          : "Agent key updated successfully.",
+      );
+      setCreatingKey(false);
+      await loadData("refresh");
+      if (result?.data?.id) {
+        setSelectedKeyId(result.data.id);
+      }
+    } catch (saveError: any) {
+      const message = saveError?.message || "Failed to save agent key.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setKeySaving(false);
+    }
+  }
+
+  async function rotateKey() {
+    if (!selectedKeyId || creatingKey) {
       return;
     }
 
-    setAgentKeyActionId(`save:${id}`);
-    setRotatedAgentKey("");
+    const base = getApiBase();
+    setKeySaving(true);
+    setError("");
+    setNotice("");
+
     try {
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-      const res = await fetch(`${base}/api/admin/agent-keys/${id}`, {
+      const response = await fetch(`${base}/api/admin/agent-keys/${selectedKeyId}`, {
         method: "PATCH",
         headers,
-        credentials: "include",
-        body: JSON.stringify({
-          name: draft.name.trim(),
-          scopes: parseScopes(draft.scopesText),
-          is_active: draft.is_active,
-        }),
-      });
-      const result = await res.json().catch(() => ({}));
-
-      if (!res.ok || !result?.success) {
-        throw new Error(result?.message || "Failed to update agent key");
-      }
-
-      await refresh();
-    } catch (error: any) {
-      toast(error.message || "Failed to update agent key");
-    } finally {
-      setAgentKeyActionId(null);
-    }
-  };
-
-  const rotateAgentKey = async (id: string) => {
-    if (
-      !window.confirm(
-        "Rotate this key now? Old key will stop working immediately.",
-      )
-    ) {
-      return;
-    }
-
-    setAgentKeyActionId(`rotate:${id}`);
-    setRotatedAgentKey("");
-    try {
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-      const res = await fetch(`${base}/api/admin/agent-keys/${id}`, {
-        method: "PATCH",
-        headers,
-        credentials: "include",
         body: JSON.stringify({ rotate: true }),
       });
-      const result = await res.json().catch(() => ({}));
+      const result = await response.json();
 
-      if (!res.ok || !result?.success) {
-        throw new Error(result?.message || "Failed to rotate agent key");
+      if (!response.ok) {
+        throw new Error(result?.message || "Failed to rotate key.");
       }
 
-      setRotatedAgentKey(result?.key || "");
-      await refresh();
-    } catch (error: any) {
-      toast(error.message || "Failed to rotate agent key");
-    } finally {
-      setAgentKeyActionId(null);
-    }
-  };
+      if (result?.key) {
+        setIssuedKey(result.key);
+      }
 
-  const deleteAgentKey = async (id: string, name: string) => {
-    if (!window.confirm(`Delete agent key "${name}"?`)) {
+      toast.success("Agent key rotated");
+      setNotice("Agent key rotated successfully.");
+      await loadData("refresh");
+    } catch (rotateError: any) {
+      const message = rotateError?.message || "Failed to rotate key.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setKeySaving(false);
+    }
+  }
+
+  async function deleteKey() {
+    if (!selectedKeyId || creatingKey) {
       return;
     }
 
-    setAgentKeyActionId(`delete:${id}`);
-    setRotatedAgentKey("");
+    const base = getApiBase();
+    setKeyDeleting(true);
+    setError("");
+    setNotice("");
+
     try {
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-      const res = await fetch(`${base}/api/admin/agent-keys/${id}`, {
+      const response = await fetch(`${base}/api/admin/agent-keys/${selectedKeyId}`, {
         method: "DELETE",
         headers,
-        credentials: "include",
       });
-      const result = await res.json().catch(() => ({}));
+      const result = await response.json();
 
-      if (!res.ok || result?.success === false) {
-        throw new Error(result?.message || "Failed to delete agent key");
+      if (!response.ok) {
+        throw new Error(result?.message || "Failed to delete key.");
       }
 
-      await refresh();
-    } catch (error: any) {
-      toast(error.message || "Failed to delete agent key");
+      toast.success("Agent key deleted");
+      setNotice("Agent key deleted successfully.");
+      setIssuedKey("");
+      await loadData("refresh");
+    } catch (deleteError: any) {
+      const message = deleteError?.message || "Failed to delete key.";
+      setError(message);
+      toast.error(message);
     } finally {
-      setAgentKeyActionId(null);
+      setKeyDeleting(false);
     }
-  };
+  }
 
-  const copyText = async (value: string) => {
-    if (!value) {
-      return;
-    }
+  const adminTabs = [
+    { id: "members" as const, label: "Members", count: users.length },
+    {
+      id: "content" as const,
+      label: "Content",
+      count:
+        contentData.events.length +
+        contentData.projects.length +
+        contentData.resources.length +
+        contentData.bounties.length +
+        contentData.repos.length,
+    },
+    {
+      id: "finance" as const,
+      label: "Finance",
+      count: pendingFinance.length,
+    },
+    { id: "keys" as const, label: "Agent Keys", count: agentKeys.length },
+  ];
 
-    try {
-      await navigator.clipboard.writeText(value);
-      toast("Copied to clipboard");
-    } catch {
-      toast.error("Copy failed. Please copy manually.");
-    }
-  };
-
-  if (!currentUser) {
-    return null;
+  if (loading) {
+    return (
+      <div className="container mx-auto max-w-7xl px-4 py-10 md:py-14">
+        <AdminEmptyState
+          title="Loading admin control plane"
+          description="Fetching members, content, finance requests, and agent keys."
+        />
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 -blue/20 pb-6">
-        <div>
-          <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-cyber-blue mb-2">
-            Executive Admin
-          </div>
-          <h1 className="text-4xl font-display font-bold text-white">
-            Control Plane
-          </h1>
-          <p className="text-white/60 mt-2">
-            Manage members, content status, finance processing, and academy
-            learning history.
-          </p>
-        </div>
-        <button
-          onClick={() => void refresh()}
-          className="bg-cyber-blue text-white hover:bg-white hover:text-black font-display font-bold text-sm px-5 py-3 cyber-button uppercase tracking-widest inline-flex items-center gap-2"
-        >
-          <RefreshCw size={16} /> Refresh
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard
-          icon={ShieldCheck}
-          label="Official Members"
-          value={String(memberCount)}
-        />
-        <StatCard
-          icon={Users}
-          label="Community"
-          value={String(communityCount)}
-        />
-        <StatCard
-          icon={RefreshCw}
-          label="Academy Learners"
-          value={String(
-            academyOverview.filter((item) => item.academy_access).length,
-          )}
-        />
-      </div>
-
-      <motion.form
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        onSubmit={createUser}
-        className="cyber-card p-6 bg-surface/50 border border-cyber-blue/20 space-y-4"
-      >
-        <div className="flex items-center gap-2 text-cyber-yellow font-display font-bold uppercase tracking-widest">
-          <Plus size={16} /> Create Account
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <input
-            value={createForm.name}
-            onChange={(e) =>
-              setCreateForm((prev) => ({ ...prev, name: e.target.value }))
-            }
-            placeholder="Name"
-            required
-            className="bg-black/30 border border-white/10 p-3 text-white outline-none"
-          />
-          <input
-            value={createForm.email}
-            onChange={(e) =>
-              setCreateForm((prev) => ({ ...prev, email: e.target.value }))
-            }
-            placeholder="Email"
-            className="bg-black/30 border border-white/10 p-3 text-white outline-none"
-          />
-          <input
-            value={createForm.wallet_address}
-            onChange={(e) =>
-              setCreateForm((prev) => ({
-                ...prev,
-                wallet_address: e.target.value,
-              }))
-            }
-            placeholder="Wallet address (optional)"
-            className="bg-black/30 border border-white/10 p-3 text-white outline-none"
-          />
-          <select
-            value={createForm.member_type}
-            onChange={(e) =>
-              setCreateForm((prev) => ({
-                ...prev,
-                member_type: e.target.value as "member" | "community",
-                role: e.target.value === "community" ? "Community" : "Member",
-              }))
-            }
-            className="bg-black/30 border border-white/10 p-3 text-white outline-none"
-          >
-            <option value="community">Community</option>
-            <option value="member">Member</option>
-          </select>
-          <select
-            value={createForm.role}
-            onChange={(e) =>
-              setCreateForm((prev) => ({ ...prev, role: e.target.value }))
-            }
-            disabled={createForm.member_type === "community"}
-            className="bg-black/30 border border-white/10 p-3 text-white outline-none disabled:opacity-50"
-          >
-            {createForm.member_type === "community" ? (
-              <option value="Community">Community</option>
-            ) : (
-              ROLE_OPTIONS.map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ))
-            )}
-          </select>
-          <button
-            type="submit"
-            className="bg-cyber-yellow text-black hover:bg-white font-display font-bold py-3 cyber-button uppercase tracking-widest"
-          >
-            Create User
-          </button>
-        </div>
-      </motion.form>
-
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-display font-bold text-white uppercase">
-            Users
-          </h2>
-          <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-white/40">
-            President / Vice-President Only
-          </span>
-        </div>
-        {loading ? (
-          <div className="text-white/40 font-mono">Loading admin data...</div>
-        ) : (
-          users.map((user) => {
-            const draft = drafts[user.id];
-            const overview = academyMap.get(user.id);
-
-            return (
-              <div
-                key={user.id}
-                className="cyber-card p-5 bg-surface/50 /10 space-y-4"
-              >
-                <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
-                  <input
-                    value={draft?.name || ""}
-                    onChange={(e) =>
-                      updateDraft(user.id, { name: e.target.value })
-                    }
-                    className="bg-black/30 border border-white/10 p-3 text-white outline-none"
-                  />
-                  <input
-                    value={draft?.email || ""}
-                    onChange={(e) =>
-                      updateDraft(user.id, { email: e.target.value })
-                    }
-                    className="bg-black/30 border border-white/10 p-3 text-white outline-none"
-                  />
-                  <input
-                    value={draft?.wallet_address || ""}
-                    onChange={(e) =>
-                      updateDraft(user.id, { wallet_address: e.target.value })
-                    }
-                    placeholder="Wallet"
-                    className="bg-black/30 border border-white/10 p-3 text-white outline-none"
-                  />
-                  <select
-                    value={draft?.member_type || "member"}
-                    onChange={(e) =>
-                      updateDraft(user.id, {
-                        member_type: e.target.value as "member" | "community",
-                      })
-                    }
-                    className="bg-black/30 border border-white/10 p-3 text-white outline-none"
-                  >
-                    <option value="member">Member</option>
-                    <option value="community">Community</option>
-                  </select>
-                  <select
-                    value={draft?.role || "Member"}
-                    onChange={(e) =>
-                      updateDraft(user.id, { role: e.target.value })
-                    }
-                    disabled={draft?.member_type === "community"}
-                    className="bg-black/30 border border-white/10 p-3 text-white outline-none disabled:opacity-50"
-                  >
-                    {draft?.member_type === "community" ? (
-                      <option value="Community">Community</option>
-                    ) : (
-                      ROLE_OPTIONS.map((role) => (
-                        <option key={role} value={role}>
-                          {role}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => void saveUser(user.id)}
-                      disabled={
-                        savingId === user.id ||
-                        deletingKey === `user:${user.id}`
-                      }
-                      className="bg-cyber-blue text-white hover:bg-white hover:text-black font-display font-bold py-3 cyber-button uppercase tracking-widest disabled:opacity-60"
-                    >
-                      {savingId === user.id ? "Saving..." : "Save"}
-                    </button>
-                    <button
-                      onClick={() =>
-                        void deleteUser(user.id, draft?.name || user.name)
-                      }
-                      disabled={
-                        deletingKey === `user:${user.id}` ||
-                        currentUser.id === user.id
-                      }
-                      className="bg-red-500/20 border border-red-500/30 text-red-300 hover:bg-red-500 hover:text-white font-display font-bold py-3 uppercase tracking-widest disabled:opacity-40"
-                    >
-                      {deletingKey === `user:${user.id}`
-                        ? "Deleting..."
-                        : "Delete"}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-white/60">
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={draft?.academy_access ?? true}
-                      onChange={(e) =>
-                        updateDraft(user.id, {
-                          academy_access: e.target.checked,
-                        })
-                      }
-                    />
-                    Academy Access
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={draft?.is_active ?? true}
-                      onChange={(e) =>
-                        updateDraft(user.id, { is_active: e.target.checked })
-                      }
-                    />
-                    Active
-                  </label>
-                  <span>ID: {user.id}</span>
-                  <span>Streak: {overview?.streak || user.streak || 0}</span>
-                  <span>XP: {overview?.xp || 0}</span>
-                  <span>Lessons: {overview?.completed_lessons || 0}</span>
-                  <span>Quizzes: {overview?.quiz_passed || 0}</span>
-                  <span>
-                    Last Activity:{" "}
-                    {overview?.last_activity
-                      ? new Date(overview.last_activity).toLocaleString()
-                      : "No progress yet"}
-                  </span>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </section>
-
-      <section className="space-y-6">
-        <div>
-          <h2 className="text-xl font-display font-bold text-white uppercase">
-            Content Status
-          </h2>
-          <p className="text-white/40 font-mono text-xs mt-1">
-            Draft / publish / archive every public surface without touching SQL.
-          </p>
-        </div>
-
-        <StatusSection
-          title="Events"
-          entity="events"
-          items={contentData.events}
-          statusOptions={PUBLISH_STATUS_OPTIONS}
-          getTitle={(item) => `${item.title} • ${item.date}`}
-          drafts={contentDrafts}
-          savingKey={statusSavingKey}
-          deletingKey={deletingKey}
-          onDraftChange={updateContentDraft}
-          onSave={saveContentStatus}
-          onDelete={deleteContent}
-        />
-        <StatusSection
-          title="Projects"
-          entity="projects"
-          items={contentData.projects}
-          statusOptions={PUBLISH_STATUS_OPTIONS}
-          getTitle={(item) => item.name}
-          drafts={contentDrafts}
-          savingKey={statusSavingKey}
-          deletingKey={deletingKey}
-          onDraftChange={updateContentDraft}
-          onSave={saveContentStatus}
-          onDelete={deleteContent}
-        />
-        <StatusSection
-          title="Resources"
-          entity="resources"
-          items={contentData.resources}
-          statusOptions={PUBLISH_STATUS_OPTIONS}
-          getTitle={(item) => item.name}
-          drafts={contentDrafts}
-          savingKey={statusSavingKey}
-          deletingKey={deletingKey}
-          onDraftChange={updateContentDraft}
-          onSave={saveContentStatus}
-          onDelete={deleteContent}
-        />
-        <StatusSection
-          title="Bounties"
-          entity="bounties"
-          items={contentData.bounties}
-          statusOptions={BOUNTY_STATUS_OPTIONS}
-          getTitle={(item) => item.title}
-          drafts={contentDrafts}
-          savingKey={statusSavingKey}
-          deletingKey={deletingKey}
-          onDraftChange={updateContentDraft}
-          onSave={saveContentStatus}
-          onDelete={deleteContent}
-        />
-        <StatusSection
-          title="Open Source Repos"
-          entity="repos"
-          items={contentData.repos}
-          statusOptions={PUBLISH_STATUS_OPTIONS}
-          getTitle={(item) => item.name}
-          drafts={contentDrafts}
-          savingKey={statusSavingKey}
-          deletingKey={deletingKey}
-          onDraftChange={updateContentDraft}
-          onSave={saveContentStatus}
-          onDelete={deleteContent}
-        />
-      </section>
-
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-xl font-display font-bold text-white uppercase">
-            Finance Queue
-          </h2>
-          <p className="text-white/40 font-mono text-xs mt-1">
-            Pending requests can still be approved or rejected from here.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {pendingFinance.length === 0 ? (
-            <div className="cyber-card p-5 bg-surface/50 /10 text-white/40 font-mono text-sm">
-              No pending finance requests.
-            </div>
-          ) : (
-            pendingFinance.map((row) => (
-              <div
-                key={row.id}
-                className="cyber-card p-5 bg-surface/50 /10 space-y-4"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="text-sm font-display font-bold text-white">
-                      {formatRequesterName(row)}
-                    </div>
-                    <div className="text-[11px] font-mono text-white/40">
-                      {row.date || row.created_at || "No date"}
-                    </div>
-                  </div>
-                  <div className="text-cyber-yellow font-display font-bold">
-                    {formatAmount(row.amount)} VND
-                  </div>
-                </div>
-                <p className="text-sm text-white/70">
-                  {row.reason || "No reason provided"}
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => void runFinanceAction(row.id, "approve")}
-                    disabled={financeActionId === `approve:${row.id}`}
-                    className="bg-green-500/20 border border-green-500/30 text-green-300 px-4 py-2 font-display font-bold uppercase text-xs disabled:opacity-60"
-                  >
-                    {financeActionId === `approve:${row.id}`
-                      ? "Processing..."
-                      : "Approve"}
-                  </button>
-                  <button
-                    onClick={() => void runFinanceAction(row.id, "reject")}
-                    disabled={financeActionId === `reject:${row.id}`}
-                    className="bg-red-500/20 border border-red-500/30 text-red-300 px-4 py-2 font-display font-bold uppercase text-xs disabled:opacity-60"
-                  >
-                    {financeActionId === `reject:${row.id}`
-                      ? "Processing..."
-                      : "Reject"}
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-xl font-display font-bold text-white uppercase">
-            Agent API Keys
-          </h2>
-          <p className="text-white/40 font-mono text-xs mt-1">
-            Create keys for automation agents. Use header x-dsuc-agent-key or
-            Authorization: Agent {"<key>"}.
-          </p>
-        </div>
-
-        <div className="cyber-card p-5 bg-surface/50 /10 space-y-4">
-          <form
-            onSubmit={createAgentKey}
-            className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr),minmax(0,1fr),220px] gap-3"
-          >
-            <input
-              value={newAgentKeyName}
-              onChange={(e) => setNewAgentKeyName(e.target.value)}
-              placeholder="Key name (e.g. academy-bot-prod)"
-              required
-              className="bg-black/30 border border-white/10 p-3 text-white outline-none"
-            />
-            <input
-              value={newAgentKeyScopes}
-              onChange={(e) => setNewAgentKeyScopes(e.target.value)}
-              placeholder="Scopes, comma separated (default: *)"
-              className="bg-black/30 border border-white/10 p-3 text-white outline-none"
-            />
-            <button
-              type="submit"
-              disabled={agentKeySaving}
-              className="bg-cyber-yellow text-black hover:bg-white font-display font-bold py-3 cyber-button uppercase tracking-widest disabled:opacity-60"
+    <div className="container mx-auto max-w-7xl space-y-8 px-4 py-10 md:space-y-10 md:py-14">
+      <AdminHero
+        eyebrow="Executive Control Plane"
+        title="Admin"
+        subtitle="Manage the live DSUC dataset across members, content, finance, and automation keys without dropping into raw tables."
+        actions={
+          <>
+            <ActionButton
+              type="button"
+              variant="secondary"
+              onClick={() => void loadData("refresh")}
+              disabled={refreshing}
             >
-              {agentKeySaving ? "Creating..." : "Create Key"}
-            </button>
-          </form>
+              <span className="inline-flex items-center gap-2">
+                <RefreshCw className="h-4 w-4" />
+                {refreshing ? "Refreshing" : "Refresh"}
+              </span>
+            </ActionButton>
+          </>
+        }
+        metrics={
+          <>
+            <AdminMetricCard
+              label="Official + Community"
+              value={users.length}
+              meta={`${users.filter((user) => (user.memberType || user.member_type) === "member").length} official / ${users.filter((user) => (user.memberType || user.member_type) === "community").length} community`}
+              icon={<Users className="h-5 w-5" />}
+              tone="primary"
+            />
+            <AdminMetricCard
+              label="Pending Finance"
+              value={pendingFinance.length}
+              meta={`${contentData.finance_history.length} history rows`}
+              icon={<CreditCard className="h-5 w-5" />}
+              tone="warning"
+            />
+            <AdminMetricCard
+              label="Published Content"
+              value={
+                contentData.events.length +
+                contentData.projects.length +
+                contentData.resources.length +
+                contentData.bounties.length +
+                contentData.repos.length
+              }
+              meta="events, projects, resources, bounties, repos"
+              icon={<Boxes className="h-5 w-5" />}
+            />
+            <AdminMetricCard
+              label="Active Agent Keys"
+              value={agentKeys.filter((row) => row.is_active !== false).length}
+              meta={`${agentKeys.length} total keys`}
+              icon={<ShieldCheck className="h-5 w-5" />}
+              tone="accent"
+            />
+          </>
+        }
+      />
 
-          {lastCreatedAgentKey && (
-            <div className="-yellow/40 bg-cyber-yellow/10 p-4 space-y-2">
-              <div className="text-xs font-mono uppercase tracking-[0.2em] text-cyber-yellow">
-                New key (shown once)
-              </div>
-              <div className="text-sm font-mono text-white break-all">
-                {lastCreatedAgentKey}
-              </div>
-              <button
-                onClick={() => void copyText(lastCreatedAgentKey)}
-                className="bg-black/30 border border-cyber-yellow/40 text-cyber-yellow px-3 py-2 text-xs font-display font-bold uppercase tracking-widest hover:bg-cyber-yellow hover:text-black"
-              >
-                Copy
-              </button>
-            </div>
-          )}
+      {error ? <AdminNotice tone="error" message={error} /> : null}
+      {notice ? <AdminNotice tone="success" message={notice} /> : null}
 
-          {rotatedAgentKey && (
-            <div className="-blue/40 bg-cyber-blue/10 p-4 space-y-2">
-              <div className="text-xs font-mono uppercase tracking-[0.2em] text-cyber-blue">
-                Rotated key (shown once)
-              </div>
-              <div className="text-sm font-mono text-white break-all">
-                {rotatedAgentKey}
-              </div>
-              <button
-                onClick={() => void copyText(rotatedAgentKey)}
-                className="bg-black/30 border border-cyber-blue/40 text-cyber-blue px-3 py-2 text-xs font-display font-bold uppercase tracking-widest hover:bg-cyber-blue hover:text-black"
-              >
-                Copy
-              </button>
-            </div>
-          )}
+      <AdminTabs
+        tabs={adminTabs}
+        active={activeTab}
+        onChange={(value) => setActiveTab(value as AdminTab)}
+      />
 
-          <div className="space-y-3">
-            {agentKeys.length === 0 ? (
-              <div className="text-white/40 font-mono text-sm">
-                No agent keys yet.
-              </div>
-            ) : (
-              agentKeys.map((keyRow) => {
-                const draft = agentKeyDrafts[keyRow.id];
-                const busySave = agentKeyActionId === `save:${keyRow.id}`;
-                const busyRotate = agentKeyActionId === `rotate:${keyRow.id}`;
-                const busyDelete = agentKeyActionId === `delete:${keyRow.id}`;
-                return (
-                  <div
-                    key={keyRow.id}
-                    className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr),minmax(0,1fr),120px,360px] gap-3 items-center /10 bg-black/20 p-3"
-                  >
-                    <input
-                      value={draft?.name || ""}
-                      onChange={(e) =>
-                        updateAgentKeyDraft(keyRow.id, { name: e.target.value })
-                      }
-                      className="bg-black/30 border border-white/10 p-3 text-white outline-none"
-                    />
-                    <input
-                      value={draft?.scopesText || ""}
-                      onChange={(e) =>
-                        updateAgentKeyDraft(keyRow.id, {
-                          scopesText: e.target.value,
-                        })
-                      }
-                      className="bg-black/30 border border-white/10 p-3 text-white outline-none font-mono text-sm"
-                    />
-                    <label className="flex items-center gap-2 text-xs font-mono text-white/60">
-                      <input
-                        type="checkbox"
-                        checked={draft?.is_active !== false}
-                        onChange={(e) =>
-                          updateAgentKeyDraft(keyRow.id, {
-                            is_active: e.target.checked,
-                          })
+      {activeTab === "members" ? (
+        <AdminPageSection>
+          <div className="grid gap-6 xl:grid-cols-[minmax(320px,0.95fr)_minmax(0,1.35fr)]">
+            <AdminPanel
+              eyebrow="User Directory"
+              title="Members Database"
+              description="Search the full member table, then open a row to edit identity, role, access, and active state."
+              actions={
+                <ActionButton type="button" variant="secondary" onClick={startCreateMember}>
+                  <span className="inline-flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    New Member
+                  </span>
+                </ActionButton>
+              }
+            >
+              <div className="space-y-4">
+                <input
+                  value={memberQuery}
+                  onChange={(event) => setMemberQuery(event.target.value)}
+                  placeholder="Search by name, role, id, email, or skill"
+                  className={adminInputClass}
+                />
+
+                <div className="max-h-[720px] space-y-3 overflow-auto pr-1">
+                  {filteredUsers.length > 0 ? (
+                    filteredUsers.map((user) => (
+                      <AdminListButton
+                        key={user.id}
+                        title={user.name}
+                        meta={`${user.role || "Member"} • ${user.id}`}
+                        active={!creatingMember && selectedMemberId === user.id}
+                        onClick={() => {
+                          setCreatingMember(false);
+                          setSelectedMemberId(user.id);
+                        }}
+                        badges={
+                          <div className="flex flex-wrap gap-2">
+                            <span className="bg-surface px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                              {(user.memberType || user.member_type) === "community"
+                                ? "Community"
+                                : "Official"}
+                            </span>
+                            <span className="bg-surface px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                              {user.is_active !== false ? "Active" : "Inactive"}
+                            </span>
+                            <span className="bg-surface px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                              {user.streak || 0}d streak
+                            </span>
+                          </div>
                         }
                       />
-                      Active
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      <button
-                        onClick={() => void saveAgentKey(keyRow.id)}
-                        disabled={busySave || busyRotate || busyDelete}
-                        className="bg-cyber-blue text-white hover:bg-white hover:text-black font-display font-bold py-2 uppercase tracking-widest text-xs disabled:opacity-60"
-                      >
-                        {busySave ? "Saving..." : "Save"}
-                      </button>
-                      <button
-                        onClick={() => void rotateAgentKey(keyRow.id)}
-                        disabled={busySave || busyRotate || busyDelete}
-                        className="bg-cyber-yellow/20 border border-cyber-yellow/30 text-cyber-yellow hover:bg-cyber-yellow hover:text-black font-display font-bold py-2 uppercase tracking-widest text-xs disabled:opacity-60"
-                      >
-                        {busyRotate ? "Rotating..." : "Rotate"}
-                      </button>
-                      <button
-                        onClick={() =>
-                          void deleteAgentKey(keyRow.id, keyRow.name)
-                        }
-                        disabled={busySave || busyRotate || busyDelete}
-                        className="bg-red-500/20 border border-red-500/30 text-red-300 hover:bg-red-500 hover:text-white font-display font-bold py-2 uppercase tracking-widest text-xs disabled:opacity-60"
-                      >
-                        {busyDelete ? "Deleting..." : "Delete"}
-                      </button>
-                    </div>
-                    <div className="lg:col-span-4 text-[11px] font-mono text-white/45">
-                      ID: {keyRow.id} • Last used:{" "}
-                      {keyRow.last_used_at
-                        ? new Date(keyRow.last_used_at).toLocaleString()
-                        : "never"}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-xl font-display font-bold text-white uppercase">
-            Academy History
-          </h2>
-          <p className="text-white/40 font-mono text-xs mt-1">
-            Track who studied what, when they started, and what they completed.
-          </p>
-        </div>
-
-        <div className="cyber-card bg-surface/50 /10 overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 px-5 py-3 /10 text-[10px] font-mono uppercase tracking-[0.25em] text-white/40">
-            <div>User</div>
-            <div>Lesson</div>
-            <div>Action</div>
-            <div>Snapshot</div>
-            <div>Recorded At</div>
-          </div>
-          <div className="/10">
-            {academyHistory.length === 0 ? (
-              <div className="px-5 py-6 text-white/40 font-mono text-sm">
-                No academy history yet.
+                    ))
+                  ) : (
+                    <AdminEmptyState
+                      title="No matching members"
+                      description="Try a broader search or create a new member row."
+                    />
+                  )}
+                </div>
               </div>
-            ) : (
-              academyHistory.slice(0, 80).map((activity) => (
-                <div
-                  key={activity.id}
-                  className="grid grid-cols-1 md:grid-cols-5 gap-4 px-5 py-4 text-sm"
-                >
-                  <div>
-                    <div className="text-white font-display font-bold">
-                      {activity.user_name}
-                    </div>
-                    <div className="text-[11px] font-mono text-white/40">
-                      {activity.member_type} • {activity.role}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-white/80">
-                      {formatLessonLabel(activity)}
-                    </div>
-                    <div className="text-[11px] font-mono text-white/40 uppercase">
-                      {activity.track} / {activity.lesson_id}
-                    </div>
-                  </div>
-                  <div className="text-cyber-blue font-mono uppercase text-xs">
-                    {activity.action.replaceAll("_", " ")}
-                  </div>
-                  <div className="text-[11px] font-mono text-white/60">
-                    <div>XP: {activity.xp_snapshot}</div>
-                    <div>
-                      Lesson: {activity.lesson_completed ? "done" : "not yet"}
-                    </div>
-                    <div>
-                      Quiz: {activity.quiz_passed ? "passed" : "pending"}
-                    </div>
-                  </div>
-                  <div className="text-[11px] font-mono text-white/60">
-                    {new Date(activity.recorded_at).toLocaleString()}
-                  </div>
+            </AdminPanel>
+
+            <AdminPanel
+              eyebrow={creatingMember ? "Create Row" : "Edit Row"}
+              title={creatingMember ? "New Member" : "Member Editor"}
+              description="This editor controls the actual member record used by auth, routing, permissions, and profile visibility."
+              actions={
+                <div className="flex flex-wrap gap-3">
+                  <ActionButton
+                    type="button"
+                    variant="primary"
+                    onClick={() => void saveMember()}
+                    disabled={memberSaving}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <Save className="h-4 w-4" />
+                      {memberSaving ? "Saving" : creatingMember ? "Create" : "Save"}
+                    </span>
+                  </ActionButton>
+                  {!creatingMember ? (
+                    <ActionButton
+                      type="button"
+                      variant="danger"
+                      onClick={() => void deleteMember()}
+                      disabled={memberDeleting}
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <Trash2 className="h-4 w-4" />
+                        {memberDeleting ? "Deleting" : "Delete"}
+                      </span>
+                    </ActionButton>
+                  ) : null}
                 </div>
-              ))
-            )}
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-}
+              }
+            >
+              <div className="grid gap-4 md:grid-cols-2">
+                <AdminField label="Member ID" hint="Leave blank to auto-generate">
+                  <input
+                    value={memberDraft.id}
+                    onChange={(event) =>
+                      setMemberDraft((current) => ({
+                        ...current,
+                        id: event.target.value,
+                      }))
+                    }
+                    disabled={!creatingMember}
+                    className={adminInputClass}
+                  />
+                </AdminField>
+                <AdminField label="Role">
+                  <select
+                    value={memberDraft.role}
+                    onChange={(event) =>
+                      setMemberDraft((current) => ({
+                        ...current,
+                        role: event.target.value,
+                      }))
+                    }
+                    className={adminSelectClass}
+                  >
+                    {ROLE_OPTIONS.map((role) => (
+                      <option key={role} value={role}>
+                        {role}
+                      </option>
+                    ))}
+                  </select>
+                </AdminField>
+                <AdminField label="Name">
+                  <input
+                    value={memberDraft.name}
+                    onChange={(event) =>
+                      setMemberDraft((current) => ({
+                        ...current,
+                        name: event.target.value,
+                      }))
+                    }
+                    className={adminInputClass}
+                  />
+                </AdminField>
+                <AdminField label="Member Type">
+                  <select
+                    value={memberDraft.member_type}
+                    onChange={(event) =>
+                      setMemberDraft((current) => ({
+                        ...current,
+                        member_type: event.target.value as "member" | "community",
+                        role:
+                          event.target.value === "community"
+                            ? "Community"
+                            : current.role === "Community"
+                              ? "Member"
+                              : current.role,
+                      }))
+                    }
+                    className={adminSelectClass}
+                  >
+                    <option value="member">Official</option>
+                    <option value="community">Community</option>
+                  </select>
+                </AdminField>
+                <AdminField label="Email">
+                  <input
+                    value={memberDraft.email}
+                    onChange={(event) =>
+                      setMemberDraft((current) => ({
+                        ...current,
+                        email: event.target.value,
+                      }))
+                    }
+                    className={adminInputClass}
+                  />
+                </AdminField>
+                <AdminField label="Wallet Address">
+                  <input
+                    value={memberDraft.wallet_address}
+                    onChange={(event) =>
+                      setMemberDraft((current) => ({
+                        ...current,
+                        wallet_address: event.target.value,
+                      }))
+                    }
+                    className={adminInputClass}
+                  />
+                </AdminField>
+              </div>
 
-function StatusSection<T extends { id: string; status?: string }>({
-  title,
-  entity,
-  items,
-  statusOptions,
-  getTitle,
-  drafts,
-  savingKey,
-  deletingKey,
-  onDraftChange,
-  onSave,
-  onDelete,
-}: {
-  title: string;
-  entity: ContentEntity;
-  items: T[];
-  statusOptions: readonly string[];
-  getTitle: (item: T) => string;
-  drafts: Record<string, string>;
-  savingKey: string | null;
-  deletingKey: string | null;
-  onDraftChange: (entity: ContentEntity, id: string, status: string) => void;
-  onSave: (entity: ContentEntity, id: string) => Promise<void>;
-  onDelete: (entity: ContentEntity, id: string, label: string) => Promise<void>;
-}) {
-  return (
-    <div className="cyber-card p-5 bg-surface/50 /10 space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-display font-bold text-white uppercase">
-          {title}
-        </h3>
-        <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-white/40">
-          {items.length} items
-        </span>
-      </div>
-
-      {items.length === 0 ? (
-        <div className="text-white/40 font-mono text-sm">No records.</div>
-      ) : (
-        <div className="space-y-3">
-          {items.map((item) => {
-            const draftKey = `${entity}:${item.id}`;
-            const draftStatus =
-              drafts[draftKey] || item.status || statusOptions[0];
-
-            return (
-              <div
-                key={item.id}
-                className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr),220px,240px] gap-3 items-center /10 bg-black/20 px-4 py-3"
-              >
-                <div className="min-w-0">
-                  <div className="text-white font-display font-bold truncate">
-                    {getTitle(item)}
-                  </div>
-                  <div className="text-[11px] font-mono text-white/40">
-                    ID: {item.id}
-                  </div>
-                </div>
-
-                <select
-                  value={draftStatus}
-                  onChange={(e) =>
-                    onDraftChange(entity, item.id, e.target.value)
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <AdminToggleRow
+                  label="Academy Access"
+                  description="Controls entry into member-only academy areas."
+                  checked={memberDraft.academy_access}
+                  onChange={(checked) =>
+                    setMemberDraft((current) => ({
+                      ...current,
+                      academy_access: checked,
+                    }))
                   }
-                  className="bg-black/30 border border-white/10 p-3 text-white outline-none"
-                >
-                  {statusOptions.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
+                />
+                <AdminToggleRow
+                  label="Active Profile"
+                  description="Inactive users disappear from public lists."
+                  checked={memberDraft.is_active}
+                  onChange={(checked) =>
+                    setMemberDraft((current) => ({
+                      ...current,
+                      is_active: checked,
+                    }))
+                  }
+                />
+              </div>
+            </AdminPanel>
+          </div>
+        </AdminPageSection>
+      ) : null}
 
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => void onSave(entity, item.id)}
-                    disabled={
-                      savingKey === draftKey ||
-                      deletingKey === `content:${entity}:${item.id}`
-                    }
-                    className="bg-cyber-blue text-white hover:bg-white hover:text-black font-display font-bold py-3 cyber-button uppercase tracking-widest disabled:opacity-60"
-                  >
-                    {savingKey === draftKey ? "Saving..." : "Save"}
-                  </button>
-                  <button
-                    onClick={() =>
-                      void onDelete(entity, item.id, getTitle(item))
-                    }
-                    disabled={deletingKey === `content:${entity}:${item.id}`}
-                    className="bg-red-500/20 border border-red-500/30 text-red-300 hover:bg-red-500 hover:text-white font-display font-bold py-3 uppercase tracking-widest disabled:opacity-40"
-                  >
-                    {deletingKey === `content:${entity}:${item.id}`
-                      ? "Deleting..."
-                      : "Delete"}
-                  </button>
+      {activeTab === "content" ? (
+        <AdminPageSection>
+          <AdminTabs
+            tabs={
+              (Object.keys(CONTENT_LABELS) as ContentEntity[]).map((entity) => ({
+                id: entity,
+                label: CONTENT_LABELS[entity],
+                count: getContentItems(contentData, entity).length,
+              }))
+            }
+            active={contentEntity}
+            onChange={(value) => setContentEntity(value as ContentEntity)}
+          />
+
+          <div className="grid gap-6 xl:grid-cols-[minmax(320px,0.95fr)_minmax(0,1.35fr)]">
+            <AdminPanel
+              eyebrow="Dataset Browser"
+              title={`${CONTENT_LABELS[contentEntity]} Table`}
+              description="Browse the live rows for this entity, then open a row to edit or create a new one."
+              actions={
+                <ActionButton type="button" variant="secondary" onClick={startCreateContent}>
+                  <span className="inline-flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    New {CONTENT_LABELS[contentEntity].slice(0, -1)}
+                  </span>
+                </ActionButton>
+              }
+            >
+              <div className="space-y-4">
+                <input
+                  value={contentQuery}
+                  onChange={(event) => setContentQuery(event.target.value)}
+                  placeholder={`Search ${CONTENT_LABELS[contentEntity].toLowerCase()}`}
+                  className={adminInputClass}
+                />
+
+                <div className="max-h-[720px] space-y-3 overflow-auto pr-1">
+                  {filteredContentItems.length > 0 ? (
+                    filteredContentItems.map((row) => (
+                      <AdminListButton
+                        key={row.id}
+                        title={getContentTitle(contentEntity, row)}
+                        meta={getContentMeta(contentEntity, row)}
+                        active={!creatingContent && selectedContentId === row.id}
+                        onClick={() => {
+                          setCreatingContent(false);
+                          setSelectedContentId(row.id);
+                        }}
+                        badges={
+                          <div className="flex flex-wrap gap-2">
+                            <span className="bg-surface px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                              {row.status || "Published"}
+                            </span>
+                          </div>
+                        }
+                      />
+                    ))
+                  ) : (
+                    <AdminEmptyState
+                      title={`No ${CONTENT_LABELS[contentEntity].toLowerCase()} found`}
+                      description="Create a new row or broaden the search query."
+                    />
+                  )}
                 </div>
               </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
+            </AdminPanel>
 
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: React.ComponentType<{ className?: string; size?: number }>;
-  label: string;
-  value: string;
-}) {
-  return (
-    <SoftBrutalCard intent="primary" className="p-5 flex flex-col justify-between">
-      <div className="flex items-center gap-3 mb-4 text-primary">
-        <Icon size={18} />
-        <span className="text-[10px] font-mono font-bold uppercase tracking-widest">
-          {label}
-        </span>
-      </div>
-      <div className="font-display font-bold text-3xl text-text-main">
-        {value}
-      </div>
-    </SoftBrutalCard>
+            <AdminPanel
+              eyebrow={creatingContent ? "Create Row" : "Edit Row"}
+              title={`${CONTENT_LABELS[contentEntity].slice(0, -1)} Editor`}
+              description="This writes directly to the live table. Save content first, then the admin layer syncs its status if needed."
+              actions={
+                <div className="flex flex-wrap gap-3">
+                  <ActionButton
+                    type="button"
+                    variant="primary"
+                    onClick={() => void saveContent()}
+                    disabled={contentSaving}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <Save className="h-4 w-4" />
+                      {contentSaving
+                        ? "Saving"
+                        : creatingContent
+                          ? "Create"
+                          : "Save"}
+                    </span>
+                  </ActionButton>
+                  {!creatingContent ? (
+                    <ActionButton
+                      type="button"
+                      variant="danger"
+                      onClick={() => void deleteContent()}
+                      disabled={contentDeleting}
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <Trash2 className="h-4 w-4" />
+                        {contentDeleting ? "Deleting" : "Delete"}
+                      </span>
+                    </ActionButton>
+                  ) : null}
+                </div>
+              }
+            >
+              {contentEntity === "events" ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <AdminField label="Title">
+                    <input value={contentDraft.title || ""} onChange={(event) => setContentDraft((current) => ({ ...current, title: event.target.value }))} className={adminInputClass} />
+                  </AdminField>
+                  <AdminField label="Type">
+                    <select value={contentDraft.type || "Workshop"} onChange={(event) => setContentDraft((current) => ({ ...current, type: event.target.value }))} className={adminSelectClass}>
+                      <option value="Workshop">Workshop</option>
+                      <option value="Hackathon">Hackathon</option>
+                      <option value="Social">Social</option>
+                    </select>
+                  </AdminField>
+                  <AdminField label="Date">
+                    <input type="date" value={contentDraft.date || ""} onChange={(event) => setContentDraft((current) => ({ ...current, date: event.target.value }))} className={adminInputClass} />
+                  </AdminField>
+                  <AdminField label="Time">
+                    <input value={contentDraft.time || ""} onChange={(event) => setContentDraft((current) => ({ ...current, time: event.target.value }))} className={adminInputClass} />
+                  </AdminField>
+                  <div className="md:col-span-2">
+                    <AdminField label="Location">
+                      <input value={contentDraft.location || ""} onChange={(event) => setContentDraft((current) => ({ ...current, location: event.target.value }))} className={adminInputClass} />
+                    </AdminField>
+                  </div>
+                  <div className="md:col-span-2">
+                    <AdminField label="Luma Link">
+                      <input value={contentDraft.luma_link || ""} onChange={(event) => setContentDraft((current) => ({ ...current, luma_link: event.target.value }))} className={adminInputClass} />
+                    </AdminField>
+                  </div>
+                  <AdminField label="Attendees">
+                    <input value={contentDraft.attendees || "0"} onChange={(event) => setContentDraft((current) => ({ ...current, attendees: event.target.value }))} className={adminInputClass} />
+                  </AdminField>
+                  <AdminField label="Status">
+                    <select value={contentDraft.status || "Published"} onChange={(event) => setContentDraft((current) => ({ ...current, status: event.target.value }))} className={adminSelectClass}>
+                      {CONTENT_STATUS_OPTIONS.events.map((status) => (
+                        <option key={status} value={status}>{status}</option>
+                      ))}
+                    </select>
+                  </AdminField>
+                </div>
+              ) : null}
+
+              {contentEntity === "projects" ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <AdminField label="Name">
+                    <input value={contentDraft.name || ""} onChange={(event) => setContentDraft((current) => ({ ...current, name: event.target.value }))} className={adminInputClass} />
+                  </AdminField>
+                  <AdminField label="Category">
+                    <input value={contentDraft.category || ""} onChange={(event) => setContentDraft((current) => ({ ...current, category: event.target.value }))} className={adminInputClass} />
+                  </AdminField>
+                  <div className="md:col-span-2">
+                    <AdminField label="Description">
+                      <textarea value={contentDraft.description || ""} onChange={(event) => setContentDraft((current) => ({ ...current, description: event.target.value }))} className={adminTextareaClass} />
+                    </AdminField>
+                  </div>
+                  <div className="md:col-span-2">
+                    <AdminField label="Builders" hint="Comma or newline separated">
+                      <textarea value={contentDraft.builders || ""} onChange={(event) => setContentDraft((current) => ({ ...current, builders: event.target.value }))} className={adminTextareaClass} />
+                    </AdminField>
+                  </div>
+                  <AdminField label="Live Link">
+                    <input value={contentDraft.link || ""} onChange={(event) => setContentDraft((current) => ({ ...current, link: event.target.value }))} className={adminInputClass} />
+                  </AdminField>
+                  <AdminField label="Repo Link">
+                    <input value={contentDraft.repo_link || ""} onChange={(event) => setContentDraft((current) => ({ ...current, repo_link: event.target.value }))} className={adminInputClass} />
+                  </AdminField>
+                  <div className="md:col-span-2">
+                    <AdminField label="Image URL">
+                      <input value={contentDraft.image_url || ""} onChange={(event) => setContentDraft((current) => ({ ...current, image_url: event.target.value }))} className={adminInputClass} />
+                    </AdminField>
+                  </div>
+                  <AdminField label="Status">
+                    <select value={contentDraft.status || "Published"} onChange={(event) => setContentDraft((current) => ({ ...current, status: event.target.value }))} className={adminSelectClass}>
+                      {CONTENT_STATUS_OPTIONS.projects.map((status) => (
+                        <option key={status} value={status}>{status}</option>
+                      ))}
+                    </select>
+                  </AdminField>
+                </div>
+              ) : null}
+
+              {contentEntity === "resources" ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <AdminField label="Name">
+                    <input value={contentDraft.name || ""} onChange={(event) => setContentDraft((current) => ({ ...current, name: event.target.value }))} className={adminInputClass} />
+                  </AdminField>
+                  <AdminField label="Type">
+                    <select value={contentDraft.type || "Link"} onChange={(event) => setContentDraft((current) => ({ ...current, type: event.target.value }))} className={adminSelectClass}>
+                      {["Drive", "Doc", "Link", "Document", "Video"].map((type) => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                  </AdminField>
+                  <div className="md:col-span-2">
+                    <AdminField label="URL">
+                      <input value={contentDraft.url || ""} onChange={(event) => setContentDraft((current) => ({ ...current, url: event.target.value }))} className={adminInputClass} />
+                    </AdminField>
+                  </div>
+                  <AdminField label="Size">
+                    <input value={contentDraft.size || ""} onChange={(event) => setContentDraft((current) => ({ ...current, size: event.target.value }))} className={adminInputClass} />
+                  </AdminField>
+                  <AdminField label="Category">
+                    <select value={contentDraft.category || "Learning"} onChange={(event) => setContentDraft((current) => ({ ...current, category: event.target.value }))} className={adminSelectClass}>
+                      {["Learning", "Training", "Document", "Media", "Hackathon"].map((category) => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                    </select>
+                  </AdminField>
+                  <AdminField label="Status">
+                    <select value={contentDraft.status || "Published"} onChange={(event) => setContentDraft((current) => ({ ...current, status: event.target.value }))} className={adminSelectClass}>
+                      {CONTENT_STATUS_OPTIONS.resources.map((status) => (
+                        <option key={status} value={status}>{status}</option>
+                      ))}
+                    </select>
+                  </AdminField>
+                </div>
+              ) : null}
+
+              {contentEntity === "bounties" ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <AdminField label="Title">
+                    <input value={contentDraft.title || ""} onChange={(event) => setContentDraft((current) => ({ ...current, title: event.target.value }))} className={adminInputClass} />
+                  </AdminField>
+                  <AdminField label="Reward">
+                    <input value={contentDraft.reward || ""} onChange={(event) => setContentDraft((current) => ({ ...current, reward: event.target.value }))} className={adminInputClass} />
+                  </AdminField>
+                  <div className="md:col-span-2">
+                    <AdminField label="Description">
+                      <textarea value={contentDraft.description || ""} onChange={(event) => setContentDraft((current) => ({ ...current, description: event.target.value }))} className={adminTextareaClass} />
+                    </AdminField>
+                  </div>
+                  <AdminField label="Difficulty">
+                    <select value={contentDraft.difficulty || "Medium"} onChange={(event) => setContentDraft((current) => ({ ...current, difficulty: event.target.value }))} className={adminSelectClass}>
+                      {["Easy", "Medium", "Hard"].map((level) => (
+                        <option key={level} value={level}>{level}</option>
+                      ))}
+                    </select>
+                  </AdminField>
+                  <AdminField label="Status">
+                    <select value={contentDraft.status || "Open"} onChange={(event) => setContentDraft((current) => ({ ...current, status: event.target.value }))} className={adminSelectClass}>
+                      {CONTENT_STATUS_OPTIONS.bounties.map((status) => (
+                        <option key={status} value={status}>{status}</option>
+                      ))}
+                    </select>
+                  </AdminField>
+                  <div className="md:col-span-2">
+                    <AdminField label="Tags" hint="Comma or newline separated">
+                      <textarea value={contentDraft.tags || ""} onChange={(event) => setContentDraft((current) => ({ ...current, tags: event.target.value }))} className={adminTextareaClass} />
+                    </AdminField>
+                  </div>
+                  <div className="md:col-span-2">
+                    <AdminField label="Submit Link">
+                      <input value={contentDraft.submit_link || ""} onChange={(event) => setContentDraft((current) => ({ ...current, submit_link: event.target.value }))} className={adminInputClass} />
+                    </AdminField>
+                  </div>
+                </div>
+              ) : null}
+
+              {contentEntity === "repos" ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <AdminField label="Name">
+                    <input value={contentDraft.name || ""} onChange={(event) => setContentDraft((current) => ({ ...current, name: event.target.value }))} className={adminInputClass} />
+                  </AdminField>
+                  <AdminField label="Language">
+                    <input value={contentDraft.language || ""} onChange={(event) => setContentDraft((current) => ({ ...current, language: event.target.value }))} className={adminInputClass} />
+                  </AdminField>
+                  <div className="md:col-span-2">
+                    <AdminField label="Description">
+                      <textarea value={contentDraft.description || ""} onChange={(event) => setContentDraft((current) => ({ ...current, description: event.target.value }))} className={adminTextareaClass} />
+                    </AdminField>
+                  </div>
+                  <div className="md:col-span-2">
+                    <AdminField label="Repository URL">
+                      <input value={contentDraft.url || ""} onChange={(event) => setContentDraft((current) => ({ ...current, url: event.target.value }))} className={adminInputClass} />
+                    </AdminField>
+                  </div>
+                  <AdminField label="Stars">
+                    <input value={contentDraft.stars || "0"} onChange={(event) => setContentDraft((current) => ({ ...current, stars: event.target.value }))} className={adminInputClass} />
+                  </AdminField>
+                  <AdminField label="Forks">
+                    <input value={contentDraft.forks || "0"} onChange={(event) => setContentDraft((current) => ({ ...current, forks: event.target.value }))} className={adminInputClass} />
+                  </AdminField>
+                  <AdminField label="Status">
+                    <select value={contentDraft.status || "Published"} onChange={(event) => setContentDraft((current) => ({ ...current, status: event.target.value }))} className={adminSelectClass}>
+                      {CONTENT_STATUS_OPTIONS.repos.map((status) => (
+                        <option key={status} value={status}>{status}</option>
+                      ))}
+                    </select>
+                  </AdminField>
+                </div>
+              ) : null}
+            </AdminPanel>
+          </div>
+        </AdminPageSection>
+      ) : null}
+
+      {activeTab === "finance" ? (
+        <AdminPageSection>
+          <div className="grid gap-6 xl:grid-cols-[minmax(320px,0.9fr)_minmax(0,1.4fr)]">
+            <AdminPanel
+              eyebrow="Approvals"
+              title="Pending Requests"
+              description="Approve or reject reimbursements, then inspect the audit trail in finance history."
+            >
+              <div className="max-h-[760px] space-y-3 overflow-auto pr-1">
+                {pendingFinance.length > 0 ? (
+                  pendingFinance.map((row) => (
+                    <AdminListButton
+                      key={row.id}
+                      title={getFinanceRequesterName(row)}
+                      meta={`${formatCurrency(row.amount)} VND • ${getFinanceDate(row)}`}
+                      active={selectedFinanceId === row.id}
+                      onClick={() => setSelectedFinanceId(row.id)}
+                      badges={
+                        <span className="bg-surface px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                          Pending
+                        </span>
+                      }
+                    />
+                  ))
+                ) : (
+                  <AdminEmptyState
+                    title="No pending finance requests"
+                    description="The approval queue is currently empty."
+                  />
+                )}
+              </div>
+            </AdminPanel>
+
+            <div className="space-y-6">
+              <AdminPanel
+                eyebrow="Request Detail"
+                title="Finance Decision"
+                description="Use this panel to inspect the request context before approving or rejecting it."
+                actions={
+                  selectedFinance &&
+                  String(selectedFinance.status || "").toLowerCase() === "pending" ? (
+                    <div className="flex flex-wrap gap-3">
+                      <ActionButton
+                        type="button"
+                        variant="success"
+                        onClick={() => void handleFinanceAction("approve", selectedFinance.id)}
+                      >
+                        <span className="inline-flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4" />
+                          Approve
+                        </span>
+                      </ActionButton>
+                      <ActionButton
+                        type="button"
+                        variant="danger"
+                        onClick={() => void handleFinanceAction("reject", selectedFinance.id)}
+                      >
+                        <span className="inline-flex items-center gap-2">
+                          <XCircle className="h-4 w-4" />
+                          Reject
+                        </span>
+                      </ActionButton>
+                    </div>
+                  ) : null
+                }
+              >
+                {selectedFinance ? (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="border border-border-main bg-main-bg px-4 py-4">
+                      <div className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                        Requester
+                      </div>
+                      <div className="mt-2 font-heading text-2xl font-black uppercase tracking-tight text-text-main">
+                        {getFinanceRequesterName(selectedFinance)}
+                      </div>
+                    </div>
+                    <div className="border border-border-main bg-main-bg px-4 py-4">
+                      <div className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                        Amount
+                      </div>
+                      <div className="mt-2 font-heading text-2xl font-black uppercase tracking-tight text-text-main">
+                        {formatCurrency(selectedFinance.amount)} VND
+                      </div>
+                    </div>
+                    <div className="border border-border-main bg-main-bg px-4 py-4">
+                      <div className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                        Status
+                      </div>
+                      <div className="mt-2 font-mono text-sm font-bold uppercase tracking-[0.16em] text-text-main">
+                        {selectedFinance.status || "Unknown"}
+                      </div>
+                    </div>
+                    <div className="border border-border-main bg-main-bg px-4 py-4">
+                      <div className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                        Date
+                      </div>
+                      <div className="mt-2 font-mono text-sm font-bold uppercase tracking-[0.16em] text-text-main">
+                        {getFinanceDate(selectedFinance) || "No date"}
+                      </div>
+                    </div>
+                    <div className="md:col-span-2 border border-border-main bg-main-bg px-4 py-4">
+                      <div className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                        Reason
+                      </div>
+                      <div className="mt-2 whitespace-pre-wrap font-mono text-xs uppercase tracking-[0.08em] text-text-main">
+                        {selectedFinance.reason || "No reason provided."}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <AdminEmptyState
+                    title="Select a finance request"
+                    description="Choose a row from the queue to inspect and act on it."
+                  />
+                )}
+              </AdminPanel>
+
+              <AdminPanel
+                eyebrow="Audit Trail"
+                title="Finance History"
+                description="Completed and rejected rows remain here as the admin trail for reimbursements."
+              >
+                <div className="max-h-[360px] space-y-3 overflow-auto pr-1">
+                  {contentData.finance_history.length > 0 ? (
+                    contentData.finance_history.map((row) => (
+                      <div
+                        key={row.id}
+                        className="border border-border-main bg-main-bg px-4 py-3"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <div className="font-heading text-lg font-black uppercase tracking-tight text-text-main">
+                              {getFinanceRequesterName(row)}
+                            </div>
+                            <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                              {getFinanceDate(row)}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-heading text-xl font-black uppercase tracking-tight text-text-main">
+                              {formatCurrency(row.amount)} VND
+                            </div>
+                            <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                              {row.status}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <AdminEmptyState
+                      title="No finance history"
+                      description="Approved and rejected requests will appear here."
+                    />
+                  )}
+                </div>
+              </AdminPanel>
+            </div>
+          </div>
+        </AdminPageSection>
+      ) : null}
+
+      {activeTab === "keys" ? (
+        <AdminPageSection>
+          <div className="grid gap-6 xl:grid-cols-[minmax(320px,0.95fr)_minmax(0,1.35fr)]">
+            <AdminPanel
+              eyebrow="Automation"
+              title="Agent Keys"
+              description="Manage machine credentials used by internal agents and automation flows."
+              actions={
+                <ActionButton type="button" variant="secondary" onClick={startCreateKey}>
+                  <span className="inline-flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    New Key
+                  </span>
+                </ActionButton>
+              }
+            >
+              <div className="max-h-[760px] space-y-3 overflow-auto pr-1">
+                {agentKeys.length > 0 ? (
+                  agentKeys.map((row) => (
+                    <AdminListButton
+                      key={row.id}
+                      title={row.name}
+                      meta={`${(row.scopes || ["*"]).join(", ")} • ${formatDateTime(row.last_used_at || row.created_at)}`}
+                      active={!creatingKey && selectedKeyId === row.id}
+                      onClick={() => {
+                        setCreatingKey(false);
+                        setSelectedKeyId(row.id);
+                      }}
+                      badges={
+                        <div className="flex flex-wrap gap-2">
+                          <span className="bg-surface px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                            {row.is_active !== false ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                      }
+                    />
+                  ))
+                ) : (
+                  <AdminEmptyState
+                    title="No agent keys"
+                    description="Create the first automation key for internal tooling."
+                  />
+                )}
+              </div>
+            </AdminPanel>
+
+            <div className="space-y-6">
+              <AdminPanel
+                eyebrow={creatingKey ? "Create Key" : "Edit Key"}
+                title="Key Editor"
+                description="Scopes are stored as a list. Use a comma-separated string here for easier editing."
+                actions={
+                  <div className="flex flex-wrap gap-3">
+                    <ActionButton
+                      type="button"
+                      variant="primary"
+                      onClick={() => void saveKey()}
+                      disabled={keySaving}
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <Save className="h-4 w-4" />
+                        {keySaving ? "Saving" : creatingKey ? "Create" : "Save"}
+                      </span>
+                    </ActionButton>
+                    {!creatingKey ? (
+                      <>
+                        <ActionButton
+                          type="button"
+                          variant="secondary"
+                          onClick={() => void rotateKey()}
+                          disabled={keySaving}
+                        >
+                          <span className="inline-flex items-center gap-2">
+                            <RefreshCw className="h-4 w-4" />
+                            Rotate
+                          </span>
+                        </ActionButton>
+                        <ActionButton
+                          type="button"
+                          variant="danger"
+                          onClick={() => void deleteKey()}
+                          disabled={keyDeleting}
+                        >
+                          <span className="inline-flex items-center gap-2">
+                            <Trash2 className="h-4 w-4" />
+                            {keyDeleting ? "Deleting" : "Delete"}
+                          </span>
+                        </ActionButton>
+                      </>
+                    ) : null}
+                  </div>
+                }
+              >
+                <div className="grid gap-4 md:grid-cols-2">
+                  <AdminField label="Display Name">
+                    <input
+                      value={keyDraft.name}
+                      onChange={(event) =>
+                        setKeyDraft((current) => ({
+                          ...current,
+                          name: event.target.value,
+                        }))
+                      }
+                      className={adminInputClass}
+                    />
+                  </AdminField>
+                  <AdminField label="Scopes" hint="Comma or newline separated">
+                    <input
+                      value={keyDraft.scopesText}
+                      onChange={(event) =>
+                        setKeyDraft((current) => ({
+                          ...current,
+                          scopesText: event.target.value,
+                        }))
+                      }
+                      className={adminInputClass}
+                    />
+                  </AdminField>
+                </div>
+
+                <div className="mt-4">
+                  <AdminToggleRow
+                    label="Key Active"
+                    description="Inactive keys remain stored but can no longer authenticate."
+                    checked={keyDraft.is_active}
+                    onChange={(checked) =>
+                      setKeyDraft((current) => ({
+                        ...current,
+                        is_active: checked,
+                      }))
+                    }
+                  />
+                </div>
+              </AdminPanel>
+
+              {issuedKey ? (
+                <AdminPanel
+                  eyebrow="Store Now"
+                  title="Fresh Agent Key"
+                  description="This raw key is shown only once. Store it in your secret manager before leaving the page."
+                  tone="warning"
+                >
+                  <div className="border border-border-main bg-main-bg px-4 py-4 font-mono text-xs font-bold tracking-[0.04em] text-text-main">
+                    {issuedKey}
+                  </div>
+                </AdminPanel>
+              ) : null}
+            </div>
+          </div>
+        </AdminPageSection>
+      ) : null}
+    </div>
   );
 }

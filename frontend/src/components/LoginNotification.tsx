@@ -8,6 +8,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/lib/locale";
 
 interface LoginNotificationProps {
   isVisible: boolean;
@@ -22,29 +23,39 @@ export function LoginNotification({
   authMethod = "wallet",
   onDismiss,
 }: LoginNotificationProps) {
+  const { text } = useLocale();
   const authMethodLabel =
     authMethod === "google"
       ? "Google"
       : authMethod === "local"
-        ? "Local Admin"
+        ? text("Local Admin", "Admin local")
         : "Wallet";
   const methodMeta =
     authMethod === "google"
       ? {
           icon: Mail,
           badgeClassName: "bg-primary/10 text-primary",
-          helperCopy: "Signed in with your DSUC Google account.",
+          helperCopy: text(
+            "Signed in with your DSUC Google account.",
+            "Bạn đã đăng nhập bằng tài khoản Google DSUC.",
+          ),
         }
       : authMethod === "local"
         ? {
             icon: FlaskConical,
             badgeClassName: "bg-amber-500/10 text-amber-600 dark:text-amber-300",
-            helperCopy: "Local development admin session is active.",
+            helperCopy: text(
+              "Local development admin session is active.",
+              "Phiên admin local cho môi trường phát triển đang hoạt động.",
+            ),
           }
         : {
             icon: Wallet,
             badgeClassName: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
-            helperCopy: "Wallet authentication is active on this device.",
+            helperCopy: text(
+              "Wallet authentication is active on this device.",
+              "Phiên xác thực bằng wallet đang hoạt động trên thiết bị này.",
+            ),
           };
   const MethodIcon = methodMeta.icon;
 
@@ -86,7 +97,7 @@ export function LoginNotification({
                   <div>
                     <div className="inline-flex items-center gap-2 bg-primary px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-main-bg">
                       <MethodIcon className="h-3.5 w-3.5" />
-                      Login Success
+                      {text("Login Success", "Đăng nhập thành công")}
                     </div>
                     <p className="mt-3 text-lg font-heading font-bold leading-tight text-text-main">
                       {userName}
@@ -97,7 +108,7 @@ export function LoginNotification({
                     type="button"
                     onClick={onDismiss}
                     className="flex h-10 w-10 shrink-0 items-center justify-center border border-border-main bg-main-bg text-text-muted transition-colors hover:bg-surface hover:text-text-main focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                    aria-label="Close notification"
+                    aria-label={text("Close notification", "Đóng thông báo")}
                   >
                     <X size={16} strokeWidth={2.5} />
                   </button>
@@ -118,7 +129,7 @@ export function LoginNotification({
                     {authMethodLabel}
                   </span>
                   <span className="inline-flex min-h-9 items-center border border-border-main bg-main-bg px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-text-muted">
-                    Session Ready
+                    {text("Session Ready", "Phiên đã sẵn sàng")}
                   </span>
                 </div>
               </div>

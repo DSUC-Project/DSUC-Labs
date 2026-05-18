@@ -5,6 +5,7 @@ import { ActionButton, SoftBrutalCard, StatusBadge, SectionHeader } from "@/comp
 import { GlitchText } from "@/components/GlitchText";
 import { useStore } from "@/store/useStore";
 import { ArrowRight } from "lucide-react";
+import { useLocale } from "@/lib/locale";
 
 function MarqueeStrip() {
   const text =
@@ -36,6 +37,7 @@ function MarqueeStrip() {
 }
 
 export function Home() {
+  const { text, isVIE } = useLocale();
   const { members, projects, events } = useStore();
 
   const recentEvents = events.slice(0, 3);
@@ -74,20 +76,29 @@ export function Home() {
               className="inline-flex items-center gap-2 px-3 py-1 bg-surface font-mono text-[10px] tracking-widest uppercase font-bold text-text-main mb-8 border-2 border-text-main shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff]"
             >
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-              System Live
+              {text("System Live", "Hệ thống đang hoạt động")}
             </motion.div>
 
             <motion.h1
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="font-display font-black text-6xl md:text-7xl lg:text-8xl tracking-tighter leading-[0.85] uppercase mb-8"
+              className={`font-display font-black text-6xl md:text-7xl lg:text-8xl uppercase mb-8 ${
+                isVIE
+                  ? "tracking-tight leading-[0.98] md:leading-[0.92] lg:leading-[0.9]"
+                  : "tracking-tighter leading-[0.85]"
+              }`}
             >
-              WE
-              <br />
-              <GlitchText words={["BUILD", "LEARN", "SHIP", "GROWING"]} className="text-primary hover:text-accent transition-colors drop-shadow-[2px_2px_0_rgba(0,0,0,0.1)]" />
-              <br />
-              TOGETHER.
+              <span className="block">{isVIE ? "CHÚNG TÔI" : "WE"}</span>
+              <span className={`block ${isVIE ? "mt-2.5 md:mt-3.5" : "mt-1.5 md:mt-2"}`}>
+                <GlitchText
+                  words={isVIE ? ["XÂY", "HỌC", "SHIP", "PHÁT TRIỂN"] : ["BUILD", "LEARN", "SHIP", "GROWING"]}
+                  className="text-primary drop-shadow-[2px_2px_0_rgba(0,0,0,0.1)] motion-safe:transition-colors"
+                />
+              </span>
+              <span className={`block ${isVIE ? "mt-2.5 md:mt-3.5" : "mt-1.5 md:mt-2"}`}>
+                {isVIE ? "CÙNG NHAU." : "TOGETHER."}
+              </span>
             </motion.h1>
 
              <motion.p
@@ -96,8 +107,10 @@ export function Home() {
               transition={{ delay: 0.2 }}
               className="text-lg md:text-xl text-text-muted max-w-sm mb-10 leading-relaxed font-mono"
             >
-              A student builder operating system for learning code, running
-              community, shipping projects, and growing DSUC.
+              {text(
+                "A student builder operating system for learning code, running community, shipping projects, and growing DSUC.",
+                "Một operating system dành cho student builder để học code, vận hành cộng đồng, ship dự án và phát triển DSUC.",
+              )}
             </motion.p>
 
             <motion.div
@@ -108,12 +121,12 @@ export function Home() {
             >
               <Link to="/academy" className="w-full sm:w-auto">
                 <ActionButton variant="primary" className="w-full justify-center">
-                  Start Learning &rarr;
+                  {text("Start Learning", "Bắt đầu học")} &rarr;
                 </ActionButton>
               </Link>
               <Link to="/projects" className="w-full sm:w-auto">
                 <ActionButton variant="secondary" className="w-full justify-center">
-                  Explore Projects
+                  {text("Explore Projects", "Khám phá dự án")}
                 </ActionButton>
               </Link>
             </motion.div>
@@ -188,10 +201,10 @@ export function Home() {
         <div className="container mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-border-main border-x border-border-main">
             {[
-              { label: "Members", val: members.length || "0" },
-              { label: "Projects", val: projects.length || "0" },
-              { label: "Events", val: events.length || "0" },
-              { label: "Academy Units", val: "120+" },
+              { label: text("Members", "Thành viên"), val: members.length || "0" },
+              { label: text("Projects", "Dự án"), val: projects.length || "0" },
+              { label: text("Events", "Sự kiện"), val: events.length || "0" },
+              { label: text("Academy Units", "Academy Units"), val: "120+" },
             ].map((stat, i) => (
               <div
                 key={i}

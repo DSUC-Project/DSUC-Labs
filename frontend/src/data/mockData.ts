@@ -14,7 +14,7 @@ export const ROLES: string[] = [
 export const BANKS: Bank[] = [
   {
     id: "970415",
-    name: "Ngân hàng TMCP Công thương Việt Nam",
+    name: "VietinBank",
     code: "ICB",
     bin: "970415",
     shortName: "VietinBank",
@@ -22,7 +22,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970436",
-    name: "Ngân hàng TMCP Ngoại Thương Việt Nam",
+    name: "Vietcombank",
     code: "VCB",
     bin: "970436",
     shortName: "Vietcombank",
@@ -30,7 +30,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970418",
-    name: "Ngân hàng TMCP Đầu tư và Phát triển Việt Nam",
+    name: "BIDV",
     code: "BIDV",
     bin: "970418",
     shortName: "BIDV",
@@ -38,7 +38,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970405",
-    name: "Ngân hàng Nông nghiệp và Phát triển Nông thôn Việt Nam",
+    name: "Agribank",
     code: "VBA",
     bin: "970405",
     shortName: "Agribank",
@@ -46,7 +46,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970422",
-    name: "Ngân hàng TMCP Quân đội",
+    name: "MBBank",
     code: "MB",
     bin: "970422",
     shortName: "MBBank",
@@ -54,7 +54,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970407",
-    name: "Ngân hàng TMCP Kỹ thương Việt Nam",
+    name: "Techcombank",
     code: "TCB",
     bin: "970407",
     shortName: "Techcombank",
@@ -62,7 +62,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970416",
-    name: "Ngân hàng TMCP Á Châu",
+    name: "ACB",
     code: "ACB",
     bin: "970416",
     shortName: "ACB",
@@ -70,7 +70,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970432",
-    name: "Ngân hàng TMCP Việt Nam Thịnh Vượng",
+    name: "VPBank",
     code: "VPB",
     bin: "970432",
     shortName: "VPBank",
@@ -78,7 +78,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970423",
-    name: "Ngân hàng TMCP Tiên Phong",
+    name: "TPBank",
     code: "TPB",
     bin: "970423",
     shortName: "TPBank",
@@ -86,7 +86,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970403",
-    name: "Ngân hàng TMCP Sài Gòn Thương Tín",
+    name: "Sacombank",
     code: "STB",
     bin: "970403",
     shortName: "Sacombank",
@@ -94,7 +94,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970437",
-    name: "Ngân hàng TMCP Phát triển Thành phố Hồ Chí Minh",
+    name: "HDBank",
     code: "HDB",
     bin: "970437",
     shortName: "HDBank",
@@ -102,7 +102,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970441",
-    name: "Ngân hàng TMCP Quốc tế Việt Nam",
+    name: "VIB",
     code: "VIB",
     bin: "970441",
     shortName: "VIB",
@@ -110,7 +110,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970443",
-    name: "Ngân hàng TMCP Sài Gòn - Hà Nội",
+    name: "SHB",
     code: "SHB",
     bin: "970443",
     shortName: "SHB",
@@ -118,7 +118,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970448",
-    name: "Ngân hàng TMCP Phương Đông",
+    name: "OCB",
     code: "OCB",
     bin: "970448",
     shortName: "OCB",
@@ -126,7 +126,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970431",
-    name: "Ngân hàng TMCP Xuất Nhập khẩu Việt Nam",
+    name: "Eximbank",
     code: "EIB",
     bin: "970431",
     shortName: "Eximbank",
@@ -134,7 +134,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970426",
-    name: "Ngân hàng TMCP Hàng Hải Việt Nam",
+    name: "MSB",
     code: "MSB",
     bin: "970426",
     shortName: "MSB",
@@ -142,7 +142,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970440",
-    name: "Ngân hàng TMCP Đông Nam Á",
+    name: "SeABank",
     code: "SEAB",
     bin: "970440",
     shortName: "SeABank",
@@ -150,7 +150,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970449",
-    name: "Ngân hàng TMCP Lộc Phát Việt Nam",
+    name: "LPBank",
     code: "LPB",
     bin: "970449",
     shortName: "LPBank",
@@ -158,7 +158,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970438",
-    name: "Ngân hàng TMCP Bưu điện Liên Việt",
+    name: "LienVietPostBank",
     code: "LPB",
     bin: "970438",
     shortName: "LienVietPostBank",
@@ -166,7 +166,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970400",
-    name: "Ngân hàng TMCP Sài Gòn Công Thương",
+    name: "SaigonBank",
     code: "SGICB",
     bin: "970400",
     shortName: "SaigonBank",
@@ -174,7 +174,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970419",
-    name: "Ngân hàng TMCP Quốc Dân",
+    name: "NCB",
     code: "NCB",
     bin: "970419",
     shortName: "NCB",
@@ -182,7 +182,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970428",
-    name: "Ngân hàng TMCP Nam Á",
+    name: "Nam A Bank",
     code: "NAB",
     bin: "970428",
     shortName: "Nam A Bank",
@@ -190,7 +190,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970412",
-    name: "Ngân hàng TMCP Đại Chúng Việt Nam",
+    name: "PVcomBank",
     code: "PVCB",
     bin: "970412",
     shortName: "PVcomBank",
@@ -198,7 +198,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "970454",
-    name: "Ngân hàng TMCP Bản Việt",
+    name: "VietCapitalBank",
     code: "VCCB",
     bin: "970454",
     shortName: "VietCapitalBank",
@@ -206,7 +206,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "546034",
-    name: "Ngân hàng số CAKE by VPBank",
+    name: "CAKE by VPBank",
     code: "CAKE",
     bin: "546034",
     shortName: "CAKE",
@@ -214,7 +214,7 @@ export const BANKS: Bank[] = [
   },
   {
     id: "546035",
-    name: "Ngân hàng số Ubank by VPBank",
+    name: "Ubank by VPBank",
     code: "Ubank",
     bin: "546035",
     shortName: "Ubank",

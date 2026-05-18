@@ -21,6 +21,7 @@ import {
 
 import type { AcademyTrackCatalog } from "@/types";
 import { normalizeAcademyCatalogTrack } from "@/lib/academy/catalog";
+import { localizeCommunityCatalogTrack } from "@/lib/academy/academyLocale";
 import { renderMd } from "@/lib/academy/md";
 import {
   loadProgress,
@@ -46,6 +47,7 @@ import {
   AcademyProgressBar,
 } from "@/components/academy/AcademyPrimitives";
 import { streakTheme } from "@/lib/streakTheme";
+import { useLocale } from "@/lib/locale";
 
 const CELEBRATION_AUDIO_SRC = "/theme-submit.mp3";
 
@@ -308,6 +310,7 @@ function buildAuthHeaders(
 }
 
 export function AcademyLesson() {
+  const { text, isVIE } = useLocale();
   const params = useParams<{ track: string; lesson: string }>();
   const navigate = useNavigate();
   const { currentUser, walletAddress, authToken, fetchMembers, checkSession } =
@@ -318,7 +321,7 @@ export function AcademyLesson() {
   if (!track || !lessonId) {
     return (
       <div className="py-20 text-center font-mono font-bold uppercase tracking-widest text-gray-500">
-        Không tìm thấy bài học
+        {text("Lesson not found", "Không tìm thấy lesson")}
       </div>
     );
   }
@@ -372,7 +375,10 @@ export function AcademyLesson() {
   const celebrationAudioRef = useRef<HTMLAudioElement | null>(null);
   const completionPromiseRef = useRef<Promise<boolean> | null>(null);
 
-  const lessons = trackInfo?.lessons || [];
+  const localizedTrackInfo = trackInfo
+    ? localizeCommunityCatalogTrack(trackInfo, isVIE)
+    : null;
+  const lessons = localizedTrackInfo?.lessons || [];
   const lesson = useMemo(
     () => lessons.find((item) => item.id === lessonId) || null,
     [lessonId, lessons],
@@ -381,7 +387,7 @@ export function AcademyLesson() {
   const nextLesson =
     idx >= 0 && idx < lessons.length - 1 ? lessons[idx + 1] : null;
   const isFinalLessonInTrack = idx >= 0 && idx === lessons.length - 1;
-  const trackTitle = trackInfo?.title || track;
+  const trackTitle = localizedTrackInfo?.title || track;
 
   const quiz = dbQuestions;
   const totalSteps = 1 + quiz.length;
@@ -516,7 +522,7 @@ export function AcademyLesson() {
           const result = await response.json().catch(() => null);
           throw new Error(
             result?.message ||
-              `Lỗi đồng bộ tiến độ Học viện (${response.status})`,
+              `Academy progress sync failed (${response.status})`,
           );
         }
 
@@ -568,7 +574,10 @@ export function AcademyLesson() {
         if (!synced) {
           setCompletionSaveStatus("error");
           setErr(
-            "LỖI ĐỒNG BỘ: Không thể lưu tiến độ lên hệ thống. Vui lòng thử lại sau.",
+            text(
+              "SYNC ERROR: Unable to save progress to the system. Please try again.",
+              "LỖI ĐỒNG BỘ: Không thể lưu tiến độ vào hệ thống. Vui lòng thử lại.",
+            ),
           );
           completionPromiseRef.current = null;
           return false;
@@ -668,14 +677,6 @@ export function AcademyLesson() {
     let cancelled = false;
 
     async function fetchCatalog() {
-      if (!canSyncRemote) {
-        setCatalogLessonKeys(null);
-        setTrackInfo(null);
-        setLoadingCatalog(false);
-        setErr("Vui lòng đăng nhập bằng DSUC account để sử dụng Học viện.");
-        return;
-      }
-
       setLoadingCatalog(true);
       try {
         const response = await fetch(`${apiBase}/api/academy/catalog`, {
@@ -686,7 +687,11 @@ export function AcademyLesson() {
 
         if (!response.ok || !result?.success) {
           throw new Error(
-            result?.message || "Không thể tải danh sách học viện.",
+            result?.message ||
+              text(
+                "Unable to load the academy catalog.",
+                "Không thể tải danh mục Academy.",
+              ),
           );
         }
 
@@ -702,12 +707,23 @@ export function AcademyLesson() {
           setCatalogLessonKeys(nextCatalogLessonKeys);
           setTrackInfo(foundTrack);
           if (!foundTrack || !foundLesson) {
-            setErr("Không tìm thấy bài học này trong cấu trúc.");
+            setErr(
+              text(
+                "This lesson could not be found in the academy structure.",
+                "Không tìm thấy lesson này trong cấu trúc Academy.",
+              ),
+            );
           }
         }
       } catch (error: any) {
         if (!cancelled) {
-          setErr(error.message || "Lỗi tải danh mục học viện.");
+          setErr(
+            error.message ||
+              text(
+                "Failed to load the academy catalog.",
+                "Không thể tải danh mục Academy.",
+              ),
+          );
           setCatalogLessonKeys(null);
           setTrackInfo(null);
         }
@@ -722,7 +738,7 @@ export function AcademyLesson() {
     return () => {
       cancelled = true;
     };
-  }, [apiBase, authHeaders, canSyncRemote, lessonId, track]);
+  }, [apiBase, authHeaders, lessonId, text, track]);
 
   useEffect(() => {
     if (!canSyncRemote || loadingCatalog || catalogLessonKeys === null) {
@@ -777,7 +793,10 @@ export function AcademyLesson() {
 
         if (!backfilled) {
           setErr(
-            "LỖI ĐỒNG BỘ: Không đồng bộ quá trình được, hệ thống sẽ sử dụng phiên bản trên máy chủ.",
+            text(
+              "SYNC ERROR: Progress could not be merged, so the server version will be used.",
+              "LỖI ĐỒNG BỘ: Không thể hợp nhất tiến độ, nên hệ thống sẽ dùng phiên bản từ server.",
+            ),
           );
         }
       } catch {
@@ -800,7 +819,7 @@ export function AcademyLesson() {
   ]);
 
   useEffect(() => {
-    if (!canSyncRemote || !lesson) {
+    if (!lesson) {
       setDbQuestions([]);
       return;
     }
@@ -822,7 +841,7 @@ export function AcademyLesson() {
         );
 
         if (!response.ok) {
-          throw new Error("Lỗi lấy bài kiểm tra.");
+          throw new Error(text("Unable to load the quiz.", "Không thể tải quiz."));
         }
 
         const result = await response.json();
@@ -840,7 +859,7 @@ export function AcademyLesson() {
     return () => {
       cancelled = true;
     };
-  }, [apiBase, authHeaders, canSyncRemote, lesson, lessonId, track]);
+  }, [apiBase, authHeaders, lesson, lessonId, text, track]);
 
   useEffect(() => {
     const nextChecklist = [
@@ -885,7 +904,12 @@ export function AcademyLesson() {
     setSubmittedQ(nextSubmittedQ);
 
     if (!correct) {
-      setErr("CHƯA ĐÚNG. HÃY ĐỌC THẬT CẨN THẬN VÀ LÀM LẠI.");
+      setErr(
+        text(
+          "Incorrect. Review the material carefully and try again.",
+          "Chưa đúng. Hãy xem lại nội dung thật kỹ rồi thử lại.",
+        ),
+      );
       return;
     }
 
@@ -929,11 +953,21 @@ export function AcademyLesson() {
 
     if (quiz.length > 0) {
       if (!allSubmitted) {
-        setErr("LỖI: VẪN CÒN CÂU CHƯA NỘP XONG.");
+        setErr(
+          text(
+            "ERROR: Some questions still need to be submitted.",
+            "LỖI: Vẫn còn câu hỏi chưa được submit.",
+          ),
+        );
         return false;
       }
       if (!allCorrect) {
-        setErr("LỖI: BẠN PHẢI TRẢ LỜI ĐÚNG ĐỂ ĐI TIẾP.");
+        setErr(
+          text(
+            "ERROR: You must answer correctly to continue.",
+            "LỖI: Bạn phải trả lời đúng để tiếp tục.",
+          ),
+        );
         return false;
       }
     }
@@ -988,8 +1022,8 @@ export function AcademyLesson() {
     return (
       <AcademyPage>
         <AcademyPanel className="mx-auto max-w-4xl text-center">
-          <div className="py-10 text-sm font-bold uppercase tracking-[0.24em] text-text-muted">
-            {err || "Không tìm thấy bài học"}
+            <div className="py-10 text-sm font-bold uppercase tracking-[0.24em] text-text-muted">
+            {err || text("Lesson not found", "Không tìm thấy lesson")}
           </div>
         </AcademyPanel>
       </AcademyPage>
@@ -1023,13 +1057,13 @@ export function AcademyLesson() {
               className="inline-flex shrink-0 items-center gap-2 border-2 border-text-main bg-surface px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-widest text-text-main shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:text-primary hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)] sm:px-4"
             >
               <ArrowLeft className="w-4 h-4" strokeWidth={2} />
-              <span className="hidden sm:inline">BACK</span>
+              <span className="hidden sm:inline">{text("BACK", "QUAY LẠI")}</span>
             </button>
 
             <div className="min-w-[96px] text-right">
               <div className="inline-flex items-center gap-2 border border-border-main bg-main-bg px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-main shadow-sm">
                 <Flame className={`h-4 w-4 ${streakTheme.flame}`} />
-                <span className="hidden sm:inline">Streak</span>
+                <span className="hidden sm:inline">{text("Streak", "Streak")}</span>
                 <span className="font-display text-xl font-black leading-none">
                   {currentUser?.streak || 0}
                 </span>
@@ -1039,7 +1073,7 @@ export function AcademyLesson() {
 
           <div>
             <div className="mb-2 flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
-              <span>Track progress</span>
+              <span>{text("Track progress", "Tiến độ track")}</span>
               <span>{Math.round(progressPercentage)}%</span>
             </div>
             <AcademyProgressBar value={progressPercentage} className="h-2.5" />
@@ -1047,17 +1081,18 @@ export function AcademyLesson() {
 
           <div className="flex flex-wrap items-center justify-between gap-2">
             <AcademyBadge tone="muted">
-            {trackTitle}
+              {trackTitle}
             </AcademyBadge>
             <AcademyBadge tone="primary">
-            Bước {currentStep + 1}/{totalSteps}
+              {text("Step", "Bước")} {currentStep + 1}/{totalSteps}
             </AcademyBadge>
           </div>
 
           <div className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">
-            Session {studySeconds}s • streak counts after{" "}
-            {ACADEMY_STREAK_COMPLETION_SECONDS}s on a new lesson or{" "}
-            {ACADEMY_STREAK_REVIEW_SECONDS}s when revisiting a completed lesson
+            {text(
+              `Session ${studySeconds}s • streak counts after ${ACADEMY_STREAK_COMPLETION_SECONDS}s on a new lesson or ${ACADEMY_STREAK_REVIEW_SECONDS}s when revisiting a completed lesson`,
+              `Phiên ${studySeconds}s • streak được tính sau ${ACADEMY_STREAK_COMPLETION_SECONDS}s với lesson mới hoặc ${ACADEMY_STREAK_REVIEW_SECONDS}s khi học lại lesson đã hoàn thành`,
+            )}
           </div>
         </div>
       </AcademyPanel>
@@ -1073,7 +1108,9 @@ export function AcademyLesson() {
           <div className="animate-in slide-in-from-right-8 duration-500 fade-in flex-grow">
             <div className="max-w-[78ch]">
             <div className="mb-8 flex flex-col gap-4 border-b border-border-main pb-8">
-              <AcademyBadge tone="primary">Community Lesson</AcademyBadge>
+              <AcademyBadge tone="primary">
+                {text("Community Lesson", "Bài học cộng đồng")}
+              </AcademyBadge>
               <h1 className="mt-2 font-display text-5xl font-black uppercase tracking-tighter text-text-main sm:text-6xl">
                 {lesson.title}
               </h1>
@@ -1093,7 +1130,7 @@ export function AcademyLesson() {
                   >
                     <div className="mb-3 flex w-fit items-center gap-3 border border-border-main bg-surface px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-text-main shadow-sm">
                       <Terminal size={18} className="text-text-main" />
-                      {callout.title || "Lưu ý"}
+                      {callout.title || text("Note", "Ghi chú")}
                     </div>
                     <div className="relative z-10 font-sans text-[15px] leading-7 text-text-main/85">
                       {callout.body}
@@ -1116,14 +1153,16 @@ export function AcademyLesson() {
               <div className="animate-in slide-in-from-right-8 duration-500 fade-in flex flex-grow flex-col justify-center">
                 <div className="mb-6 flex flex-wrap items-center gap-3">
                   <AcademyBadge tone="muted">
-                    Question {currentStep}/{quiz.length}
+                    {text("Question", "Câu hỏi")} {currentStep}/{quiz.length}
                   </AcademyBadge>
-                  <AcademyBadge tone="primary">Quiz mode</AcademyBadge>
+                  <AcademyBadge tone="primary">
+                    {text("Quiz mode", "Chế độ quiz")}
+                  </AcademyBadge>
                 </div>
 
                 <h2 className="mb-6 flex items-center gap-3 font-display text-4xl font-black uppercase tracking-tighter text-text-main">
                   <Code className="h-8 w-8 text-primary" strokeWidth={2.8} />
-                  Challenge Checkpoint
+                  {text("Challenge Checkpoint", "Checkpoint challenge")}
                 </h2>
 
                 <h3 className="mb-8 border border-border-main bg-main-bg/60 p-6 font-mono text-lg font-bold leading-relaxed text-text-main shadow-sm">
@@ -1206,7 +1245,7 @@ export function AcademyLesson() {
                       className={`mb-3 flex w-fit items-center gap-2 border px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.24em] shadow-sm ${correct ? "border-emerald-500/20 bg-surface text-emerald-600 dark:text-emerald-300" : "border-primary/20 bg-main-bg text-primary"}`}
                     >
                       <Terminal size={20} strokeWidth={3} />
-                      {correct ? "CHÍNH XÁC" : "CHƯA ĐÚNG"}
+                      {correct ? text("Correct", "Đúng") : text("Incorrect", "Sai")}
                     </p>
                     <p className="text-lg font-bold leading-relaxed">
                       {currentQuizData.explanation}
@@ -1231,10 +1270,10 @@ export function AcademyLesson() {
               className="flex w-full items-center justify-center gap-3 border-2 border-text-main bg-primary px-8 py-4 font-mono text-[11px] font-bold uppercase tracking-widest text-primary-foreground shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)] sm:w-auto"
             >
               {quiz.length > 0
-                ? "LÀM BÀI KIỂM TRA"
+                ? text("Take Quiz", "Làm quiz")
                 : isFinalLessonInTrack
-                  ? "HOÀN THÀNH CHUYÊN ĐỀ"
-                  : "HOÀN THÀNH BÀI HỌC"}{" "}
+                  ? text("Complete Track", "Hoàn thành track")
+                  : text("Complete Lesson", "Hoàn thành lesson")}{" "}
               <ArrowRight className="h-6 w-6" strokeWidth={3} />
             </button>
           ) : currentQuizData ? (
@@ -1251,7 +1290,7 @@ export function AcademyLesson() {
                     disabled={!hasSelected}
                     className="flex w-full items-center justify-center gap-3 border-2 border-text-main bg-primary px-8 py-4 font-mono text-[11px] font-bold uppercase tracking-widest text-primary-foreground shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-gray-300 disabled:text-gray-600 dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)] sm:w-auto"
                   >
-                    XÁC NHẬN CHỌN
+                    {text("Confirm Choice", "Xác nhận lựa chọn")}
                   </button>
                 );
               }
@@ -1265,7 +1304,7 @@ export function AcademyLesson() {
                     }}
                     className="flex w-full items-center justify-center gap-3 border-2 border-text-main bg-surface px-8 py-4 font-mono text-[11px] font-bold uppercase tracking-widest text-text-main shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:text-primary hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)] sm:w-auto"
                   >
-                    CÂU TIẾP THEO{" "}
+                    {text("Next Question", "Câu tiếp theo")}{" "}
                     <ArrowRight className="h-6 w-6" strokeWidth={3} />
                   </button>
                 );
@@ -1278,10 +1317,10 @@ export function AcademyLesson() {
                   className="flex w-full items-center justify-center gap-3 border-2 border-text-main bg-surface px-8 py-4 font-mono text-[11px] font-bold uppercase tracking-widest text-text-main shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:border-primary hover:bg-primary hover:text-primary-foreground disabled:opacity-50 dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)] sm:w-auto"
                 >
                   {busyFinish
-                    ? "ĐANG LƯU..."
+                    ? text("Saving...", "Đang lưu...")
                     : isFinalLessonInTrack
-                      ? "HOÀN THÀNH CHUYÊN ĐỀ"
-                      : "HOÀN THÀNH BÀI HỌC"}{" "}
+                      ? text("Complete Track", "Hoàn thành track")
+                      : text("Complete Lesson", "Hoàn thành lesson")}{" "}
                   <CheckCircle2 className="h-6 w-6" strokeWidth={3} />
                 </button>
               );
@@ -1313,6 +1352,7 @@ function CompletionCelebration({
   onFinalize: () => void;
   onExit: () => void;
 }) {
+  const { text } = useLocale();
   const reduceMotion = useReducedMotion();
 
   useEffect(() => {
@@ -1418,30 +1458,44 @@ function CompletionCelebration({
 
             <div className="relative mx-auto mb-6 flex w-fit items-center gap-2 border border-border-main bg-main-bg px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-text-main shadow-sm">
               <span className="h-3 w-3 animate-pulse rounded-full bg-primary" />
-              GRADUATION UNLOCKED
+              {text("GRADUATION UNLOCKED", "MỞ KHÓA CỘT MỐC TỐT NGHIỆP")}
             </div>
 
             <div className="mb-4 inline-block border border-border-main bg-main-bg px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-text-main shadow-sm">
-              Completed {trackTitle}
+              {text(`Completed ${trackTitle}`, `Đã hoàn thành ${trackTitle}`)}
             </div>
             <h2
               id="academy-completion-title"
               className="mt-4 font-display text-5xl font-black uppercase tracking-tighter text-text-main sm:text-6xl"
             >
-              Congratulations on graduating!
+              {text("Congratulations on graduating!", "Chúc mừng bạn đã hoàn thành!")}
             </h2>
             <p className="mx-auto mt-6 max-w-xl border border-border-main bg-main-bg/70 p-5 font-mono text-base font-bold leading-relaxed text-text-main shadow-sm sm:text-lg">
-              You have officially completed the{" "}
+              {text(
+                "You have officially completed the track",
+                "Bạn đã chính thức hoàn thành track",
+              )}{" "}
               <span className="font-bold text-primary">{graduationLabel}</span>{" "}
-              track by finishing the final lesson{" "}
-              <span className="font-bold text-primary">{lessonTitle}</span>. Keep up your learning streak!
+              {text(
+                "by finishing the final lesson",
+                "bằng cách hoàn tất lesson cuối cùng",
+              )}{" "}
+              <span className="font-bold text-primary">{lessonTitle}</span>.{" "}
+              {text("Keep up your learning streak!", "Hãy tiếp tục giữ nhịp streak học tập này.")}
             </p>
 
             <div className="mx-auto mt-8 w-fit border border-border-main bg-surface px-6 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-text-main shadow-sm">
-              {saveStatus === "saving" && "Đang lưu tiến trình..."}
-              {saveStatus === "saved" && "Đã lưu lại thành tích."}
-              {saveStatus === "error" && "Không lưu được. Hãy thử lại."}
-              {saveStatus === "idle" && "Chuẩn bị lưu dữ liệu."}
+              {saveStatus === "saving" &&
+                text("Saving progress...", "Đang lưu tiến độ...")}
+              {saveStatus === "saved" &&
+                text("Progress saved.", "Đã lưu tiến độ.")}
+              {saveStatus === "error" &&
+                text("Save failed. Please try again.", "Lưu thất bại. Vui lòng thử lại.")}
+              {saveStatus === "idle" &&
+                text(
+                  "Preparing your completion record.",
+                  "Đang chuẩn bị bản ghi hoàn thành của bạn.",
+                )}
             </div>
 
             <div className="relative mt-10 grid gap-4 sm:grid-cols-2">
@@ -1451,7 +1505,9 @@ function CompletionCelebration({
                 disabled={busy}
                 className="flex min-h-14 items-center justify-center gap-2 border-2 border-text-main bg-primary px-6 py-4 font-mono text-[11px] font-bold uppercase tracking-widest text-primary-foreground shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] disabled:opacity-50 dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
               >
-                {busy || saveStatus === "saving" ? "ĐANG LƯU..." : "NHẬN CÚP"}
+                {busy || saveStatus === "saving"
+                  ? text("Saving...", "Đang lưu...")
+                  : text("Claim Trophy", "Nhận cột mốc")}
                 <CheckCircle2 size={24} strokeWidth={3} />
               </button>
               <button
@@ -1462,7 +1518,7 @@ function CompletionCelebration({
               >
                 <span className="inline-flex items-center justify-center gap-3">
                   <Home size={24} strokeWidth={3} aria-hidden="true" />
-                  Về trang chủ Học Viện
+                  {text("Back to Academy Home", "Quay lại trang chủ Academy")}
                 </span>
               </button>
             </div>

@@ -11,8 +11,10 @@ import {
   ActionButton,
 } from "@/components/ui/Primitives";
 import { Card, ActionCard } from "@/components/ui/Cards";
+import { useLocale } from "@/lib/locale";
 
 export function ProjectDetail() {
+  const { text } = useLocale();
   const { id } = useParams();
   const navigate = useNavigate();
   const { projects } = useStore();
@@ -22,14 +24,14 @@ export function ProjectDetail() {
   if (!project) {
     return (
       <div className="text-text-muted text-center pt-20 font-mono text-sm uppercase">
-        Project Not Found
+        {text("Project Not Found", "Không tìm thấy dự án")}
       </div>
     );
   }
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
-    toast("Link Copied to Clipboard");
+    toast(text("Link copied to clipboard.", "Đã sao chép liên kết."));
   };
 
   return (
@@ -39,7 +41,7 @@ export function ProjectDetail() {
         className="inline-flex items-center gap-2 border-2 border-text-main bg-surface px-4 py-2 text-xs font-bold uppercase tracking-widest font-mono shadow-[2px_2px_0_0_#000] hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#000] transition-all text-text-main"
       >
         <ArrowLeft className="w-4 h-4" strokeWidth={2} />
-        BACK TO PROJECTS
+        {text("Back to Projects", "Quay lại dự án")}
       </button>
 
       <motion.div
@@ -51,7 +53,7 @@ export function ProjectDetail() {
           <button
             onClick={handleCopyLink}
             className="absolute top-8 right-8 text-text-muted hover:text-text-main bg-surface p-3 border border-border-main transition-colors z-20 shadow-sm hover:-translate-y-0.5"
-            title="Share Link"
+            title={text("Share link", "Chia sẻ liên kết")}
           >
             <Share2 size={20} />
           </button>
@@ -90,7 +92,7 @@ export function ProjectDetail() {
 
           <div className="mb-12 relative z-10 bg-main-bg border border-border-main p-8 mt-8">
             <h3 className="text-xs font-mono font-bold text-text-muted uppercase mb-6 tracking-widest flex items-center gap-3">
-              <span className="w-2 h-2 bg-primary block" /> Overview
+              <span className="w-2 h-2 bg-primary block" /> {text("Overview", "Tổng quan")}
             </h3>
             <p className="text-text-main font-sans text-lg font-medium leading-relaxed">
               {project.description}
@@ -99,7 +101,7 @@ export function ProjectDetail() {
             {project.tech_stack && project.tech_stack.length > 0 && (
               <div className="mt-8  pt-6">
                 <h4 className="text-[10px] font-mono text-text-muted uppercase tracking-widest mb-4 font-bold">
-                  Tech Stack
+                  {text("Tech Stack", "Tech Stack")}
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {project.tech_stack.map((tech) => (
@@ -122,7 +124,7 @@ export function ProjectDetail() {
               className="w-full h-14"
             >
               <span className="flex items-center justify-center gap-2">
-                <ExternalLink size={20} /> View Demo
+                <ExternalLink size={20} /> {text("View Demo", "Xem demo")}
               </span>
             </ActionButton>
             {project.repoLink && (
@@ -132,7 +134,7 @@ export function ProjectDetail() {
                 className="w-full h-14 bg-surface"
               >
                 <span className="flex items-center justify-center gap-2">
-                  <Github size={20} /> Source Code
+                  <Github size={20} /> {text("Source Code", "Mã nguồn")}
                 </span>
               </ActionButton>
             )}

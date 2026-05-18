@@ -11,6 +11,7 @@ import { Plus, X, Calendar, MapPin, Clock, ArrowRight } from "lucide-react";
 import { ModalShell } from "@/components/ui/ModalShell";
 import { Card, ActionCard } from "@/components/ui/Cards";
 import { Event as AppEvent } from "@/types";
+import { useLocale } from "@/lib/locale";
 
 function AddEventModal({
   isOpen,
@@ -21,6 +22,7 @@ function AddEventModal({
   onClose: () => void;
   onAdd: (e: AppEvent) => void;
 }) {
+  const { text } = useLocale();
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
@@ -59,8 +61,8 @@ function AddEventModal({
     <ModalShell
       isOpen={isOpen}
       onClose={onClose}
-      title="Add Event"
-      label="SCHEDULER"
+      title={text("Add Event", "Thêm sự kiện")}
+      label={text("SCHEDULER", "LỊCH ĐIỀU PHỐI")}
       footer={
         <div className="w-full flex items-center justify-end">
           <ActionButton
@@ -68,7 +70,7 @@ function AddEventModal({
             form="add-event-form"
             variant="primary"
           >
-            Create Event
+            {text("Create Event", "Tạo sự kiện")}
           </ActionButton>
         </div>
       }
@@ -76,7 +78,7 @@ function AddEventModal({
       <form id="add-event-form" onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <label className="text-xs font-bold uppercase tracking-widest text-text-muted">
-            Event Title
+            {text("Event Title", "Tên sự kiện")}
           </label>
           <input
             name="title"
@@ -87,7 +89,7 @@ function AddEventModal({
 
         <div className="space-y-1.5">
           <label className="text-xs font-bold uppercase tracking-widest text-text-muted">
-            Cover Image (Optional)
+            {text("Cover Image (Optional)", "Ảnh bìa (không bắt buộc)")}
           </label>
           <input
             name="image"
@@ -100,7 +102,7 @@ function AddEventModal({
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-widest text-text-muted">
-              Date
+              {text("Date", "Ngày")}
             </label>
             <input
               name="date"
@@ -111,7 +113,7 @@ function AddEventModal({
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-widest text-text-muted">
-              Time
+              {text("Time", "Giờ")}
             </label>
             <input
               name="time"
@@ -124,7 +126,7 @@ function AddEventModal({
 
         <div className="space-y-1.5">
           <label className="text-xs font-bold uppercase tracking-widest text-text-muted">
-            Location
+            {text("Location", "Địa điểm")}
           </label>
           <input
             name="location"
@@ -135,7 +137,7 @@ function AddEventModal({
 
         <div className="space-y-1.5">
           <label className="text-xs font-bold uppercase tracking-widest text-text-muted">
-            Description
+            {text("Description", "Mô tả")}
           </label>
           <textarea
             name="description"
@@ -145,7 +147,7 @@ function AddEventModal({
 
         <div className="space-y-1.5">
           <label className="text-xs font-bold uppercase tracking-widest text-text-muted">
-            LuMa Link
+            {text("LuMa Link", "Link LuMa")}
           </label>
           <input
             name="luma_link"
@@ -160,6 +162,7 @@ function AddEventModal({
 }
 
 export function Events() {
+  const { text, isVIE } = useLocale();
   const { events, addEvent, currentUser } = useStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filter, setFilter] = useState<"upcoming" | "past" | "all">("upcoming");
@@ -205,11 +208,16 @@ export function Events() {
 
   const handleAddClick = () => {
     if (!currentUser) {
-      toast.error("Please log in first!");
+      toast.error(text("Please log in first!", "Vui lòng đăng nhập trước!"));
       return;
     }
     if (!canManage) {
-      toast.error("Community accounts cannot create events.");
+      toast.error(
+        text(
+          "Community accounts cannot create events.",
+          "Tài khoản community không thể tạo sự kiện.",
+        ),
+      );
       return;
     }
     setIsModalOpen(true);
@@ -219,8 +227,11 @@ export function Events() {
     <div className="container mx-auto px-4 py-8 md:py-16">
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
         <SectionHeader
-          title="Events & Sessions"
-          subtitle="Workshops, meetups, and builder co-working sessions."
+          title={text("Events & Sessions", "Sự kiện & buổi gặp")}
+          subtitle={text(
+            "Workshops, meetups, and builder co-working sessions.",
+            "Workshop, meetup và các buổi co-working dành cho builder.",
+          )}
           className="mb-0"
         />
 
@@ -230,19 +241,19 @@ export function Events() {
               onClick={() => setFilter("upcoming")}
               className={`px-3 py-1.5 border border-border-main transition-all ${filter === "upcoming" ? "bg-text-main text-surface" : "bg-surface text-text-muted hover:text-text-main hover:bg-main-bg shadow-sm"}`}
             >
-              Upcoming
+              {text("Upcoming", "Sắp diễn ra")}
             </button>
             <button
               onClick={() => setFilter("past")}
               className={`px-3 py-1.5 border border-border-main transition-all ${filter === "past" ? "bg-text-main text-surface" : "bg-surface text-text-muted hover:text-text-main hover:bg-main-bg shadow-sm"}`}
             >
-              Past Recordings
+              {text("Past Recordings", "Đã diễn ra")}
             </button>
             <button
               onClick={() => setFilter("all")}
               className={`px-3 py-1.5 border border-border-main transition-all ${filter === "all" ? "bg-text-main text-surface" : "bg-surface text-text-muted hover:text-text-main hover:bg-main-bg shadow-sm"}`}
             >
-              All
+              {text("All", "Tất cả")}
             </button>
           </div>
           {canManage ? (
@@ -252,12 +263,12 @@ export function Events() {
               onClick={handleAddClick}
             >
               <span className="flex items-center gap-2 justify-center">
-                <Plus size={16} /> Add Event
+                <Plus size={16} /> {text("Add Event", "Thêm sự kiện")}
               </span>
             </ActionButton>
           ) : (
             <div className="px-4 py-2 bg-main-bg border border-border-main text-xs font-mono text-text-muted text-center">
-              Events restricted to Members
+              {text("Events restricted to Members", "Chỉ member mới được quản lý sự kiện")}
             </div>
           )}
         </div>
@@ -268,7 +279,9 @@ export function Events() {
           {filteredEvents.length > 0 ? (
             filteredEvents.map((evt) => {
               const dateObj = evt.date ? new Date(evt.date) : new Date();
-              const month = dateObj.toLocaleString("en-US", { month: "short" });
+              const month = dateObj.toLocaleString(isVIE ? "vi-VN" : "en-US", {
+                month: "short",
+              });
               const day = String(dateObj.getDate()).padStart(2, "0");
               const lumaLink = String(
                 (evt as any).luma_link ||
@@ -294,14 +307,14 @@ export function Events() {
                         {evt.title}
                       </h4>
                       <div className="font-mono text-[10px] text-text-muted font-bold mt-1 uppercase">
-                        {evt.type || "RECORDING"} {evt.location ? `• ${evt.location}` : ""}
+                        {evt.type || text("Recording", "Bản ghi")} {evt.location ? `• ${evt.location}` : ""}
                       </div>
                     </div>
                   </div>
                   {lumaLink && (
                      <div className="flex sm:justify-start justify-end">
                        <span className="text-[10px] uppercase font-bold tracking-widest text-primary flex items-center gap-1 hover:underline">
-                         View <ArrowRight size={12} />
+                         {text("View", "Xem")} <ArrowRight size={12} />
                        </span>
                      </div>
                   )}
@@ -310,7 +323,7 @@ export function Events() {
             })
           ) : (
             <Card className="p-12 text-center text-text-muted font-mono uppercase text-xs">
-              <p>No past recordings yet.</p>
+              <p>{text("No past recordings yet.", "Chưa có bản ghi nào.")}</p>
             </Card>
           )}
         </div>
@@ -320,7 +333,9 @@ export function Events() {
           {filteredEvents.length > 0 ? (
             filteredEvents.map((evt, idx) => {
               const dateObj = evt.date ? new Date(evt.date) : new Date();
-              const month = dateObj.toLocaleString("en-US", { month: "short" });
+              const month = dateObj.toLocaleString(isVIE ? "vi-VN" : "en-US", {
+                month: "short",
+              });
               const day = String(dateObj.getDate()).padStart(2, "0");
               const lumaLink = String(
                 (evt as any).luma_link ||
@@ -401,7 +416,7 @@ export function Events() {
             })
           ) : (
             <Card className="p-12 text-center text-text-muted font-mono uppercase text-xs">
-              <p>No events found for this category.</p>
+              <p>{text("No events found for this category.", "Không có sự kiện nào trong mục này.")}</p>
             </Card>
           )}
         </div>

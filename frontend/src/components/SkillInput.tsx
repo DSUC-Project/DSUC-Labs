@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { clsx } from "clsx";
 import { motion, AnimatePresence } from "motion/react";
+import { useLocale } from "@/lib/locale";
 
 export function SkillInput({
   skills,
@@ -12,6 +13,7 @@ export function SkillInput({
   onChange: (skills: string[]) => void;
   maxSkills?: number;
 }) {
+  const { text } = useLocale();
   const [inputValue, setInputValue] = useState("");
 
   const handleAdd = (e?: React.FormEvent) => {
@@ -49,7 +51,7 @@ export function SkillInput({
                 type="button"
                 onClick={() => handleRemove(skill)}
                 className="text-text-muted hover:text-red-500 transition-colors"
-                aria-label={`Remove ${skill}`}
+                aria-label={text(`Remove ${skill}`, `Xóa ${skill}`)}
               >
                 <X size={14} />
               </button>
@@ -64,7 +66,10 @@ export function SkillInput({
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder={`Add a skill (max ${maxSkills})`}
+            placeholder={text(
+              `Add a skill (max ${maxSkills})`,
+              `Thêm kỹ năng (tối đa ${maxSkills})`,
+            )}
             className="flex-1 bg-surface border border-border-main px-4 py-2 font-mono text-sm placeholder:text-text-muted outline-none focus:border-primary transition-colors"
             maxLength={20}
           />
@@ -79,7 +84,10 @@ export function SkillInput({
       )}
       {skills.length >= maxSkills && (
         <p className="text-text-muted text-xs font-mono uppercase">
-          Maximum skills reached ({maxSkills}/{maxSkills})
+          {text(
+            `Maximum skills reached (${maxSkills}/${maxSkills})`,
+            `Đã đạt tối đa số kỹ năng (${maxSkills}/${maxSkills})`,
+          )}
         </p>
       )}
     </div>

@@ -31,6 +31,7 @@ import {
 } from "@/components/academy/CodeSurface";
 import { renderMd, slugifyMarkdownHeading } from "@/lib/academy/md";
 import { fetchAcademyV2Unit } from "@/lib/academy/v2Api";
+import { localizeAcademyUnitResponse } from "@/lib/academy/academyLocale";
 import { useAcademyProgressState } from "@/lib/academy/useAcademyProgress";
 import {
   ACADEMY_STREAK_COMPLETION_SECONDS,
@@ -53,6 +54,7 @@ import {
   AcademySectionTitle,
   AcademyStat,
 } from "@/components/academy/AcademyPrimitives";
+import { useLocale } from "@/lib/locale";
 
 type OutlineItem = {
   id: string;
@@ -66,6 +68,7 @@ type FlatUnit = AcademyV2UnitSummary & {
 };
 
 type WorkspaceTab = "editor" | "results";
+type TranslateFn = (english: string, vietnamese: string) => string;
 
 function getEmbedUrl(url: string): string | null {
   try {
@@ -143,20 +146,20 @@ function isUnitLocked(
     : false;
 }
 
-function practiceModeText(unit: AcademyV2UnitDetail) {
+function practiceModeText(unit: AcademyV2UnitDetail, text: TranslateFn) {
   if (unit.language === "rust" && unit.deployable) {
-    return "Solana Lab";
+    return text("Solana Lab", "Solana Lab");
   }
 
   if (unit.language === "rust") {
-    return "Rust Lab";
+    return text("Rust Lab", "Rust Lab");
   }
 
   if (unit.language === "typescript") {
-    return "TypeScript Challenge";
+    return text("TypeScript Challenge", "TypeScript Challenge");
   }
 
-  return "Practice Challenge";
+  return text("Practice Challenge", "Challenge thực hành");
 }
 
 function outlineIndent(level: number) {
@@ -191,6 +194,7 @@ function buildOutlineNumbers(outline: OutlineItem[]) {
 }
 
 export function AcademyUnit() {
+  const { text, isVIE } = useLocale();
   const { courseId = "", unitId = "" } = useParams<{
     courseId: string;
     unitId: string;
@@ -279,7 +283,9 @@ export function AcademyUnit() {
         }
       } catch (err: any) {
         if (!cancelled) {
-          setError(err.message || "Không thể tải bài học.");
+          setError(
+            err.message || text("Unable to load this lesson.", "Không thể tải lesson này."),
+          );
         }
       } finally {
         if (!cancelled) {
@@ -292,7 +298,7 @@ export function AcademyUnit() {
     return () => {
       cancelled = true;
     };
-  }, [authToken, courseId, reloadNonce, unitId, walletAddress]);
+  }, [authToken, courseId, reloadNonce, text, unitId, walletAddress]);
 
   useEffect(() => {
     if (!unitData || typeof window === "undefined") {
@@ -423,8 +429,14 @@ export function AcademyUnit() {
     return (
       <AcademyPage>
         <AcademyEmptyState
-          title="Failed to load unit"
-          description={error || "The unit could not be loaded. Please try again later."}
+          title={text("Failed to load unit", "Không thể tải unit")}
+          description={
+            error ||
+            text(
+              "The unit could not be loaded. Please try again later.",
+              "Unit này hiện không thể tải. Vui lòng thử lại sau.",
+            )
+          }
           action={
             <div className="flex flex-wrap justify-center gap-4">
               <button
@@ -432,13 +444,13 @@ export function AcademyUnit() {
                 onClick={() => setReloadNonce((value) => value + 1)}
                 className="inline-flex items-center justify-center gap-2 border-2 border-text-main bg-primary px-5 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-primary-foreground shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
               >
-                Retry
+                {text("Retry", "Thử lại")}
               </button>
               <Link
                 to="/academy"
                 className="inline-flex items-center justify-center border-2 border-text-main bg-surface px-5 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-text-main shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:text-primary hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
               >
-                Back to Academy
+                {text("Back to Academy", "Quay lại Academy")}
               </Link>
             </div>
           }
@@ -447,8 +459,9 @@ export function AcademyUnit() {
     );
   }
 
+  const localizedUnitData = localizeAcademyUnitResponse(unitData, isVIE);
   const { course, unit, previous_unit, next_unit, unit_index, total_units } =
-    unitData;
+    localizedUnitData;
   const embedUrl = unit.video_url ? getEmbedUrl(unit.video_url) : null;
   const flatCourseUnits = flattenCourseUnits(course);
   const currentModule =
@@ -479,11 +492,11 @@ export function AcademyUnit() {
     runReport?.runtimeLabel ||
     (unit.language === "rust"
       ? unit.build_type === "buildable"
-        ? "Rust compiler sandbox"
-        : "Guided Rust validator"
+        ? text("Rust compiler sandbox", "Rust compiler sandbox")
+        : text("Guided Rust validator", "Guided Rust validator")
       : runnerSupported
-        ? "Browser challenge runner"
-        : "Practice workspace");
+        ? text("Browser challenge runner", "Trình chạy challenge trên trình duyệt")
+        : text("Practice workspace", "Khu vực thực hành"));
   const completedCount = countCompletedAcademyV2CourseUnits(
     academyProgressState.completedLessons,
     course.id,
@@ -522,8 +535,14 @@ export function AcademyUnit() {
     if (completionBlocked) {
       setNotice(
         runLoading
-          ? "The runner is still executing. Wait for the result before completing this unit."
-          : "Pass all public and hidden checks before marking this challenge complete.",
+          ? text(
+              "The runner is still executing. Wait for the result before completing this unit.",
+              "Trình chạy vẫn đang xử lý. Hãy chờ kết quả trước khi hoàn thành unit này.",
+            )
+          : text(
+              "Pass all public and hidden checks before marking this challenge complete.",
+              "Hãy pass toàn bộ public và hidden checks trước khi đánh dấu challenge này là hoàn thành.",
+            ),
       );
       return;
     }
@@ -537,9 +556,18 @@ export function AcademyUnit() {
     setNotice(
       saved
         ? completionEligible
-          ? "Progress synchronized. This study session counted toward your streak."
-          : `Progress synchronized. Stay at least ${ACADEMY_STREAK_COMPLETION_SECONDS} seconds in a new unit if you want it to count toward your streak.`
-        : "Progress saved locally. The system will attempt to sync next time this lab is loaded.",
+          ? text(
+              "Progress synchronized. This study session counted toward your streak.",
+              "Tiến độ đã được đồng bộ. Phiên học này đã được tính vào streak của bạn.",
+            )
+          : text(
+              `Progress synchronized. Stay at least ${ACADEMY_STREAK_COMPLETION_SECONDS} seconds in a new unit if you want it to count toward your streak.`,
+              `Tiến độ đã được đồng bộ. Hãy ở lại tối thiểu ${ACADEMY_STREAK_COMPLETION_SECONDS} giây trong một unit mới nếu bạn muốn phiên này được tính vào streak.`,
+            )
+        : text(
+            "Progress saved locally. The system will attempt to sync next time this lab is loaded.",
+            "Tiến độ đã được lưu cục bộ. Hệ thống sẽ thử đồng bộ lại vào lần sau khi mở lab này.",
+          ),
     );
   }
 
@@ -549,12 +577,12 @@ export function AcademyUnit() {
     }
 
     void navigator.clipboard.writeText(draftCode);
-    setNotice("Your code has been copied to clipboard.");
+    setNotice(text("Your code has been copied to clipboard.", "Code của bạn đã được sao chép vào clipboard."));
   }
 
   function resetDraft() {
     setDraftCode(unit.code || "");
-    setNotice("Successfully restored the original code of this lab.");
+    setNotice(text("Successfully restored the original code of this lab.", "Đã khôi phục code gốc của lab này."));
   }
 
   function applySolutionToEditor() {
@@ -566,7 +594,7 @@ export function AcademyUnit() {
     setActiveWorkspaceTab("editor");
     setGuidanceOpen(false);
     setPendingEditorReveal(true);
-    setNotice("Reference solution loaded into the editor.");
+    setNotice(text("Reference solution loaded into the editor.", "Đã đưa lời giải tham chiếu vào editor."));
   }
 
   async function handleRunChallenge() {
@@ -594,8 +622,10 @@ export function AcademyUnit() {
         hiddenTotalCount: unit.tests.filter((item) => item.hidden === true)
           .length,
         primaryFunction: null,
-        runtimeLabel: "Browser Challenge",
-        message: runnerError?.message || "An error occurred during execution.",
+        runtimeLabel: text("Browser Challenge", "Challenge trên trình duyệt"),
+        message:
+          runnerError?.message ||
+          text("An error occurred during execution.", "Đã xảy ra lỗi trong lúc chạy."),
         cases: [],
       });
       setLastRunSource(draftCode);
@@ -608,20 +638,24 @@ export function AcademyUnit() {
   return (
     <AcademyPage>
       <section className="space-y-6">
-        <AcademyBackLink to={`/academy/course/${course.id}`} label="Back to Course" />
-
+        <AcademyBackLink
+          to={`/academy/course/${course.id}`}
+          label={text("Back to Course", "Quay lại course")}
+        />
         <AcademyPanel tone="primary" padding="p-5 sm:p-6">
           <div className="space-y-5">
             <div className="flex flex-wrap items-center gap-3">
               <AcademyBadge tone="primary">{course.title}</AcademyBadge>
               <AcademyBadge tone="muted">{unit.module_title}</AcademyBadge>
               <AcademyBadge tone="muted">
-                {isPractice ? practiceModeText(unit) : "Theory Lesson"}
+                {isPractice
+                  ? practiceModeText(unit, text)
+                  : text("Theory Lesson", "Bài lý thuyết")}
               </AcademyBadge>
               {unitDone ? (
                 <AcademyBadge tone="success">
                   <CheckCircle2 className="h-3 w-3" />
-                  Completed
+                  {text("Completed", "Hoàn thành")}
                 </AcademyBadge>
               ) : null}
             </div>
@@ -632,31 +666,47 @@ export function AcademyUnit() {
               </h1>
               <p className="max-w-3xl font-mono text-sm leading-relaxed text-text-muted">
                 {isPractice
-                  ? "Read the brief, work inside the editor, run checks when you need signal, then submit only after the hidden checks pass."
-                  : "Study the material, follow the structure on the page, and mark the unit complete once the concepts are clear."}
+                  ? text(
+                      "Read the brief, work inside the editor, run checks when you need signal, then submit only after the hidden checks pass.",
+                      "Đọc brief, làm việc trực tiếp trong editor, chạy checks khi cần tín hiệu, rồi chỉ submit sau khi hidden checks đều pass.",
+                    )
+                  : text(
+                      "Study the material, follow the structure on the page, and mark the unit complete once the concepts are clear.",
+                      "Học kỹ nội dung, đi theo cấu trúc trên trang, rồi đánh dấu hoàn thành khi bạn đã nắm chắc các khái niệm.",
+                    )}
               </p>
             </div>
 
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <AcademyCompactStat
-                label="Course"
+                label={text("Course", "Course")}
                 value={`${courseProgressPercent}%`}
-                meta={`${completedCount}/${course.total_unit_count} units`}
+                meta={text(
+                  `${completedCount}/${course.total_unit_count} units`,
+                  `${completedCount}/${course.total_unit_count} unit`,
+                )}
               />
               <AcademyCompactStat
-                label="Module"
+                label={text("Module", "Module")}
                 value={`${currentModulePercent}%`}
-                meta={`${currentModuleCompleted}/${currentModuleUnits.length} units`}
+                meta={text(
+                  `${currentModuleCompleted}/${currentModuleUnits.length} units`,
+                  `${currentModuleCompleted}/${currentModuleUnits.length} unit`,
+                )}
               />
               <AcademyCompactStat
-                label="Sequence"
+                label={text("Sequence", "Thứ tự")}
                 value={`${unit_index + 1}/${total_units}`}
-                meta="Current step"
+                meta={text("Current step", "Bước hiện tại")}
               />
               <AcademyCompactStat
-                label="Reward"
-                value={unit.xp_reward ? `${unit.xp_reward} XP` : "Guided"}
-                meta={isPractice ? "Interactive lab" : "Theory lesson"}
+                label={text("Reward", "Thưởng")}
+                value={unit.xp_reward ? `${unit.xp_reward} XP` : text("Guided", "Có hướng dẫn")}
+                meta={
+                  isPractice
+                    ? text("Interactive lab", "Lab tương tác")
+                    : text("Theory lesson", "Bài lý thuyết")
+                }
                 valueClassName="text-primary"
               />
             </div>
@@ -664,14 +714,14 @@ export function AcademyUnit() {
             <div className="grid gap-3 lg:grid-cols-2">
               <div>
                 <div className="mb-2 flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
-                  <span>Course progress</span>
+                  <span>{text("Course progress", "Tiến độ course")}</span>
                   <span>{courseProgressPercent}%</span>
                 </div>
                 <AcademyProgressBar value={courseProgressPercent} />
               </div>
               <div>
                 <div className="mb-2 flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
-                  <span>Module progress</span>
+                  <span>{text("Module progress", "Tiến độ module")}</span>
                   <span>{currentModulePercent}%</span>
                 </div>
                 <AcademyProgressBar
@@ -682,9 +732,10 @@ export function AcademyUnit() {
             </div>
 
             <div className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">
-              Session {studySeconds}s • streak counts after{" "}
-              {ACADEMY_STREAK_COMPLETION_SECONDS}s on a new unit or{" "}
-              {ACADEMY_STREAK_REVIEW_SECONDS}s when reopening a completed one
+              {text(
+                `Session ${studySeconds}s • streak counts after ${ACADEMY_STREAK_COMPLETION_SECONDS}s on a new unit or ${ACADEMY_STREAK_REVIEW_SECONDS}s when reopening a completed one`,
+                `Phiên ${studySeconds}s • streak được tính sau ${ACADEMY_STREAK_COMPLETION_SECONDS}s với unit mới hoặc ${ACADEMY_STREAK_REVIEW_SECONDS}s khi mở lại unit đã hoàn thành`,
+              )}
             </div>
           </div>
         </AcademyPanel>
@@ -705,23 +756,29 @@ export function AcademyUnit() {
             <AcademyPanel>
               <div className="space-y-5">
                 <AcademySectionTitle
-                  eyebrow="Challenge Brief"
-                  title="Instructions"
-                  description="Visible checks, core requirements, and the exact brief for the current lab."
+                  eyebrow={text("Challenge Brief", "Brief challenge")}
+                  title={text("Instructions", "Hướng dẫn")}
+                  description={text(
+                    "Visible checks, core requirements, and the exact brief for the current lab.",
+                    "Public checks, yêu cầu cốt lõi và brief đầy đủ cho lab hiện tại.",
+                  )}
                   className="mb-0"
                 />
                 <div className="grid gap-3 md:grid-cols-2">
                   <AcademyStat
-                    label="Public requirements"
+                    label={text("Public requirements", "Yêu cầu công khai")}
                     value={publicTests.length}
-                    meta="Explicit checks you can reason about"
+                    meta={text(
+                      "Explicit checks you can reason about",
+                      "Các check hiển thị rõ để bạn bám theo",
+                    )}
                     className="px-4 py-3"
                     valueClassName="text-2xl"
                   />
                   <AcademyStat
-                    label="Hidden requirements"
+                    label={text("Hidden requirements", "Yêu cầu ẩn")}
                     value={hiddenTests.length}
-                    meta="Validated by the runner"
+                    meta={text("Validated by the runner", "Được runner xác thực")}
                     className="px-4 py-3"
                     valueClassName="text-2xl"
                   />
@@ -735,7 +792,7 @@ export function AcademyUnit() {
                         className="border border-border-main bg-main-bg px-4 py-4 shadow-sm"
                       >
                         <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-text-muted">
-                          Public check {index + 1}
+                          {text("Public check", "Public check")} {index + 1}
                         </div>
                         <p className="mt-2 font-mono text-sm leading-relaxed text-text-main">
                           {testCase.description}
@@ -757,13 +814,13 @@ export function AcademyUnit() {
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                     <div className="flex flex-wrap items-center gap-2">
                       <WorkspaceSwitch
-                        label="Editor"
+                        label={text("Editor", "Editor")}
                         active={activeWorkspaceTab === "editor"}
                         onClick={() => setActiveWorkspaceTab("editor")}
                       />
                       {runnerSupported ? (
                         <WorkspaceSwitch
-                          label="Results"
+                          label={text("Results", "Kết quả")}
                           active={activeWorkspaceTab === "results"}
                           onClick={() => setActiveWorkspaceTab("results")}
                         />
@@ -772,10 +829,13 @@ export function AcademyUnit() {
                         <WorkspaceSwitch
                           label={
                             guidanceOpen
-                              ? "Hide guidance"
+                              ? text("Hide guidance", "Ẩn hướng dẫn")
                               : unit.hints.length > 0
-                                ? `Hints ${visibleHints.length}/${unit.hints.length}`
-                                : "Guidance"
+                                ? text(
+                                    `Hints ${visibleHints.length}/${unit.hints.length}`,
+                                    `Gợi ý ${visibleHints.length}/${unit.hints.length}`,
+                                  )
+                                : text("Guidance", "Hướng dẫn")
                           }
                           active={guidanceOpen}
                           onClick={() => setGuidanceOpen((current) => !current)}
@@ -796,7 +856,9 @@ export function AcademyUnit() {
                           ) : (
                             <Play className="h-3.5 w-3.5 fill-current" />
                           )}
-                          {runLoading ? "Running..." : "Run checks"}
+                          {runLoading
+                            ? text("Running...", "Đang chạy...")
+                            : text("Run checks", "Chạy checks")}
                         </button>
                       ) : null}
 
@@ -806,7 +868,7 @@ export function AcademyUnit() {
                         className="inline-flex items-center justify-center gap-2 border-2 border-text-main bg-surface px-4 py-2.5 font-mono text-[10px] font-bold uppercase tracking-widest text-text-main shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:text-primary hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
                       >
                         <ClipboardCopy className="h-3.5 w-3.5" />
-                        Copy
+                        {text("Copy", "Sao chép")}
                       </button>
 
                       <button
@@ -815,26 +877,39 @@ export function AcademyUnit() {
                         className="inline-flex items-center justify-center gap-2 border-2 border-text-main bg-surface px-4 py-2.5 font-mono text-[10px] font-bold uppercase tracking-widest text-text-main shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:text-primary hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
                       >
                         <RotateCcw className="h-3.5 w-3.5" />
-                        Reset
+                        {text("Reset", "Khôi phục")}
                       </button>
                     </div>
                   </div>
 
                   <div className="mt-4 flex flex-wrap items-center gap-2">
                     <AcademyBadge tone="muted">{runtimeLabel}</AcademyBadge>
-                    {draftDirty ? <AcademyBadge tone="warning">Modified</AcademyBadge> : null}
+                    {draftDirty ? (
+                      <AcademyBadge tone="warning">
+                        {text("Modified", "Đã chỉnh sửa")}
+                      </AcademyBadge>
+                    ) : null}
                     {runReport && !runReportIsFresh ? (
-                      <AcademyBadge tone="warning">Needs rerun</AcademyBadge>
+                      <AcademyBadge tone="warning">
+                        {text("Needs rerun", "Cần chạy lại")}
+                      </AcademyBadge>
                     ) : null}
                     {activeRunReport?.allPassed ? (
-                      <AcademyBadge tone="success">All checks passed</AcademyBadge>
+                      <AcademyBadge tone="success">
+                        {text("All checks passed", "Đã pass toàn bộ checks")}
+                      </AcademyBadge>
                     ) : null}
                     {runnerSupported ? (
-                      <AcademyBadge tone="muted">Shortcut: Ctrl/Cmd + Enter</AcademyBadge>
+                      <AcademyBadge tone="muted">
+                        {text("Shortcut: Ctrl/Cmd + Enter", "Phím tắt: Ctrl/Cmd + Enter")}
+                      </AcademyBadge>
                     ) : null}
                     {unit.hints.length > 0 ? (
                       <AcademyBadge tone="warning">
-                        {visibleHints.length}/{unit.hints.length} hints visible
+                        {text(
+                          `${visibleHints.length}/${unit.hints.length} hints visible`,
+                          `${visibleHints.length}/${unit.hints.length} gợi ý đang hiển thị`,
+                        )}
                       </AcademyBadge>
                     ) : null}
                   </div>
@@ -847,23 +922,30 @@ export function AcademyUnit() {
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div>
                             <div className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
-                              Guidance
+                              {text("Guidance", "Hướng dẫn")}
                             </div>
                             <p className="mt-2 max-w-2xl font-mono text-sm leading-relaxed text-text-muted">
-                              Reveal hints progressively. Reference solution stays behind a separate unlock and can be sent back into the editor when needed.
+                              {text(
+                                "Reveal hints progressively. Reference solution stays behind a separate unlock and can be sent back into the editor when needed.",
+                                "Mở gợi ý theo từng bước. Lời giải tham chiếu được mở riêng và có thể đẩy ngược lại vào editor khi cần.",
+                              )}
                             </p>
                           </div>
                           <div className="grid gap-3 sm:grid-cols-2">
                             <AcademyCompactStat
-                              label="Hints"
+                              label={text("Hints", "Gợi ý")}
                               value={`${visibleHints.length}/${unit.hints.length}`}
-                              meta="Revealed so far"
+                              meta={text("Revealed so far", "Đã mở đến hiện tại")}
                               className="min-w-[140px]"
                             />
                             <AcademyCompactStat
-                              label="Solution"
-                              value={solutionUnlocked ? "Open" : "Locked"}
-                              meta="Reference state"
+                              label={text("Solution", "Lời giải")}
+                              value={
+                                solutionUnlocked
+                                  ? text("Open", "Đã mở")
+                                  : text("Locked", "Đã khóa")
+                              }
+                              meta={text("Reference state", "Trạng thái tham chiếu")}
                               className="min-w-[140px]"
                             />
                           </div>
@@ -877,7 +959,7 @@ export function AcademyUnit() {
                                 className="border border-amber-500/20 bg-amber-500/8 px-4 py-4 shadow-sm"
                               >
                                 <div className="mb-2 font-mono text-[10px] font-bold uppercase tracking-widest text-amber-700 dark:text-amber-300">
-                                  Hint {index + 1}
+                                  {text("Hint", "Gợi ý")} {index + 1}
                                 </div>
                                 <div className="markdown-body prose-dsuc">
                                   {renderMd(hint)}
@@ -887,7 +969,7 @@ export function AcademyUnit() {
                           </div>
                         ) : (
                           <div className="border border-border-main bg-main-bg/60 px-4 py-4 font-mono text-sm text-text-muted shadow-sm">
-                            No hints have been revealed yet.
+                            {text("No hints have been revealed yet.", "Chưa có gợi ý nào được mở.")}
                           </div>
                         )}
 
@@ -903,7 +985,7 @@ export function AcademyUnit() {
                               className="inline-flex w-full items-center justify-center gap-2 border-2 border-text-main bg-amber-400/30 px-5 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-amber-900 shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:text-amber-200 dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
                             >
                               <Lightbulb className="h-4 w-4" />
-                              Reveal next hint
+                              {text("Reveal next hint", "Mở gợi ý tiếp theo")}
                             </button>
                           ) : null}
 
@@ -914,7 +996,7 @@ export function AcademyUnit() {
                               className="inline-flex w-full items-center justify-center gap-2 border-2 border-text-main bg-surface px-5 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-text-main shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:text-primary hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
                             >
                               <Sparkles className="h-4 w-4" />
-                              Unlock reference solution
+                              {text("Unlock reference solution", "Mở lời giải tham chiếu")}
                             </button>
                           ) : null}
                         </div>
@@ -922,7 +1004,7 @@ export function AcademyUnit() {
                         {solutionUnlocked && unit.solution ? (
                           <div className="space-y-4 border border-primary/20 bg-primary/8 px-4 py-4 shadow-sm">
                             <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-primary">
-                              Reference solution
+                              {text("Reference solution", "Lời giải tham chiếu")}
                             </div>
                             <div className="markdown-body prose-dsuc">
                               {renderMd(unit.solution)}
@@ -932,7 +1014,7 @@ export function AcademyUnit() {
                               onClick={applySolutionToEditor}
                               className="inline-flex w-full items-center justify-center gap-2 border-2 border-text-main bg-primary px-5 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-primary-foreground shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
                             >
-                              Apply solution to editor
+                              {text("Apply solution to editor", "Đưa lời giải vào editor")}
                             </button>
                           </div>
                         ) : null}
@@ -943,7 +1025,10 @@ export function AcademyUnit() {
                       value={draftCode}
                       onChange={setDraftCode}
                       language={unit.language || "text"}
-                      placeholder="Start typing your solution here..."
+                      placeholder={text(
+                        "Start typing your solution here...",
+                        "Bắt đầu nhập lời giải của bạn tại đây...",
+                      )}
                     />
                   </div>
                 ) : runnerSupported ? (
@@ -954,40 +1039,46 @@ export function AcademyUnit() {
                         <TerminalSquare className="h-7 w-7 text-text-muted" />
                       </div>
                       <h3 className="mt-5 font-display text-3xl font-black uppercase tracking-tight text-text-main">
-                        No test results yet
+                        {text("No test results yet", "Chưa có kết quả test")}
                       </h3>
                       <p className="mt-3 max-w-md font-mono text-sm leading-relaxed text-text-muted">
-                        Run your code to see public and hidden check results. This
-                        view is the execution summary, not a second page buried inside the lab.
+                        {text(
+                          "Run your code to see public and hidden check results. This view is the execution summary, not a second page buried inside the lab.",
+                          "Hãy chạy code để xem kết quả public và hidden checks. Đây là phần tổng hợp execution, không phải một trang phụ bị giấu trong lab.",
+                        )}
                       </p>
                     </div>
                   ) : (
                     <>
                       <div className="grid gap-3 md:grid-cols-4">
                         <AcademyStat
-                          label="Passed"
+                          label={text("Passed", "Đã pass")}
                           value={`${runReport.passedCount}/${runReport.totalCount}`}
-                          meta={runReportIsFresh ? "Latest run" : "Outdated after edits"}
+                          meta={
+                            runReportIsFresh
+                              ? text("Latest run", "Lần chạy mới nhất")
+                              : text("Outdated after edits", "Đã cũ sau khi chỉnh sửa")
+                          }
                           className="px-4 py-3"
                           valueClassName={`text-2xl ${runReportIsFresh && runReport.allPassed ? "text-emerald-500" : ""}`}
                         />
                         <AcademyStat
-                          label="Public"
+                          label={text("Public", "Public")}
                           value={`${runReport.visiblePassedCount}/${runReport.visibleTotalCount}`}
-                          meta="Visible checks"
+                          meta={text("Visible checks", "Checks hiển thị")}
                           className="px-4 py-3"
                           valueClassName="text-2xl"
                         />
                         <AcademyStat
-                          label="Hidden"
+                          label={text("Hidden", "Hidden")}
                           value={`${runReport.hiddenPassedCount}/${runReport.hiddenTotalCount}`}
-                          meta="Private checks"
+                          meta={text("Private checks", "Checks riêng")}
                           className="px-4 py-3"
                           valueClassName="text-2xl"
                         />
                         <AcademyStat
-                          label="Entry point"
-                          value={runReport.primaryFunction || "Unknown"}
+                          label={text("Entry point", "Điểm vào")}
+                          value={runReport.primaryFunction || text("Unknown", "Không rõ")}
                           meta={runtimeLabel}
                           className="px-4 py-3"
                           valueClassName="text-base"
@@ -1015,21 +1106,24 @@ export function AcademyUnit() {
                           >
                             {runReportIsFresh
                               ? runReport.allPassed
-                                ? "Ready to submit"
-                                : "Checks failed"
-                              : "Results outdated"}
+                                ? text("Ready to submit", "Sẵn sàng submit")
+                                : text("Checks failed", "Checks chưa pass")
+                              : text("Results outdated", "Kết quả đã cũ")}
                           </AcademyBadge>
                         </div>
                         <p className="mt-3 font-mono text-sm leading-relaxed text-text-main">
                           {runReportIsFresh
                             ? runReport.message
-                            : "You changed the draft after the last execution. Run checks again to refresh the result summary."}
+                            : text(
+                                "You changed the draft after the last execution. Run checks again to refresh the result summary.",
+                                "Bạn đã chỉnh draft sau lần chạy gần nhất. Hãy chạy checks lại để làm mới phần tổng hợp kết quả.",
+                              )}
                         </p>
                       </div>
 
                       <div className="space-y-3">
                         <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-text-muted">
-                          Case details
+                          {text("Case details", "Chi tiết từng case")}
                         </div>
                         {(runReport.cases || []).length > 0 ? (
                           <div className="space-y-3">
@@ -1048,8 +1142,8 @@ export function AcademyUnit() {
                                       tone={caseItem.passed ? "success" : "warning"}
                                     >
                                       {caseItem.hidden
-                                        ? `Hidden ${index + 1}`
-                                        : `Public ${index + 1}`}
+                                        ? text(`Hidden ${index + 1}`, `Hidden ${index + 1}`)
+                                        : text(`Public ${index + 1}`, `Public ${index + 1}`)}
                                     </AcademyBadge>
                                   </div>
                                   <div
@@ -1059,7 +1153,9 @@ export function AcademyUnit() {
                                         : "text-amber-700 dark:text-amber-300"
                                     }`}
                                   >
-                                    {caseItem.passed ? "Passed" : "Needs work"}
+                                    {caseItem.passed
+                                      ? text("Passed", "Đã pass")
+                                      : text("Needs work", "Cần làm lại")}
                                   </div>
                                 </div>
                                 <p className="mt-3 font-mono text-sm leading-relaxed text-text-main">
@@ -1080,8 +1176,10 @@ export function AcademyUnit() {
                           </div>
                         ) : (
                           <div className="border border-border-main bg-surface px-5 py-4 font-mono text-sm text-text-muted shadow-sm">
-                            The runner did not return structured case data for this
-                            lab.
+                            {text(
+                              "The runner did not return structured case data for this lab.",
+                              "Runner không trả về dữ liệu case có cấu trúc cho lab này.",
+                            )}
                           </div>
                         )}
                       </div>
@@ -1098,41 +1196,62 @@ export function AcademyUnit() {
             <AcademyPanel tone="primary">
               <div className="space-y-5">
                 <div>
-                  <AcademyBadge tone="muted">Challenge overview</AcademyBadge>
+                  <AcademyBadge tone="muted">
+                    {text("Challenge overview", "Tổng quan challenge")}
+                  </AcademyBadge>
                   <h2 className="mt-4 font-display text-3xl font-black uppercase tracking-tighter text-text-main">
-                    {practiceModeText(unit)}
+                    {practiceModeText(unit, text)}
                   </h2>
                   <p className="mt-3 font-mono text-sm leading-relaxed text-text-muted">
-                    Visible checks first, hidden checks second, submit last.
+                    {text(
+                      "Visible checks first, hidden checks second, submit last.",
+                      "Xem public checks trước, hidden checks sau, submit ở bước cuối cùng.",
+                    )}
                   </p>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                   <AcademyStat
-                    label="Public checks"
+                    label={text("Public checks", "Public checks")}
                     value={publicTests.length}
-                    meta="Visible acceptance criteria"
+                    meta={text(
+                      "Visible acceptance criteria",
+                      "Điều kiện đạt hiển thị công khai",
+                    )}
                     className="px-4 py-3"
                     valueClassName="text-2xl"
                   />
                   <AcademyStat
-                    label="Hidden checks"
+                    label={text("Hidden checks", "Hidden checks")}
                     value={hiddenTests.length}
-                    meta="Validated on submit"
+                    meta={text("Validated on submit", "Được xác thực khi submit")}
                     className="px-4 py-3"
                     valueClassName="text-2xl"
                   />
                   <AcademyStat
-                    label="Hints"
+                    label={text("Hints", "Gợi ý")}
                     value={unit.hints.length}
-                    meta={`${visibleHints.length} revealed`}
+                    meta={text(
+                      `${visibleHints.length} revealed`,
+                      `Đã mở ${visibleHints.length}`,
+                    )}
                     className="px-4 py-3"
                     valueClassName="text-2xl"
                   />
                   <AcademyStat
-                    label="Runtime"
+                    label={text("Runtime", "Runtime")}
                     value={runtimeLabel}
-                    meta={draftDirty ? "Draft changed since last run" : "Draft matches last run"}
+                    meta={
+                      draftDirty
+                        ? text(
+                            "Draft changed since last run",
+                            "Draft đã thay đổi sau lần chạy gần nhất",
+                          )
+                        : text(
+                            "Draft matches last run",
+                            "Draft trùng với lần chạy gần nhất",
+                          )
+                    }
                     className="px-4 py-3"
                     valueClassName="text-base"
                   />
@@ -1142,14 +1261,14 @@ export function AcademyUnit() {
                   <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-text-muted">
                     <span className="inline-flex items-center gap-1.5">
                       <Sparkles className="h-3.5 w-3.5 text-primary" />
-                      Workflow
+                      {text("Workflow", "Quy trình")}
                     </span>
                   </div>
                   <ol className="mt-3 space-y-2 font-mono text-sm leading-relaxed text-text-muted">
-                    <li>1. Read the brief and visible checks.</li>
-                    <li>2. Write or edit your solution in the workspace.</li>
-                    <li>3. Run checks with <code>Ctrl/Cmd + Enter</code>.</li>
-                    <li>4. Submit only after hidden checks pass.</li>
+                    <li>{text("1. Read the brief and visible checks.", "1. Đọc brief và các public checks.")}</li>
+                    <li>{text("2. Write or edit your solution in the workspace.", "2. Viết hoặc chỉnh lời giải trong workspace.")}</li>
+                    <li>{text("3. Run checks with Ctrl/Cmd + Enter.", "3. Chạy checks bằng Ctrl/Cmd + Enter.")}</li>
+                    <li>{text("4. Submit only after hidden checks pass.", "4. Chỉ submit sau khi hidden checks đều pass.")}</li>
                   </ol>
                 </div>
               </div>
@@ -1158,16 +1277,22 @@ export function AcademyUnit() {
             <AcademyPanel>
               <div className="space-y-4">
                 <AcademyBadge tone="muted">
-                  {currentModule?.title || "Module"}
+                  {currentModule?.title || text("Module", "Module")}
                 </AcademyBadge>
                 <div>
                   <div className="font-display text-2xl font-black uppercase tracking-tight text-text-main">
-                    Module route
+                    {text("Module route", "Lộ trình module")}
                   </div>
                   <p className="mt-2 font-mono text-sm leading-relaxed text-text-muted">
                     {currentModule
-                      ? `${currentModuleCompleted}/${currentModuleUnits.length} lessons completed in this module.`
-                      : "No module information available."}
+                      ? text(
+                          `${currentModuleCompleted}/${currentModuleUnits.length} lessons completed in this module.`,
+                          `Đã hoàn thành ${currentModuleCompleted}/${currentModuleUnits.length} lesson trong module này.`,
+                        )
+                      : text(
+                          "No module information available.",
+                          "Hiện chưa có thông tin module.",
+                        )}
                   </p>
                 </div>
                 <AcademyProgressBar
@@ -1227,7 +1352,9 @@ export function AcademyUnit() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
-                            {routeUnit.section === "practice" ? "Practice" : "Theory"}
+                            {routeUnit.section === "practice"
+                              ? text("Practice", "Thực hành")
+                              : text("Theory", "Lý thuyết")}
                           </div>
                           <div
                             className={`mt-1 line-clamp-2 font-display text-base font-black uppercase tracking-tight ${
@@ -1252,9 +1379,11 @@ export function AcademyUnit() {
             {embedUrl ? (
               <AcademyPanel padding="p-0" className="overflow-hidden">
                 <div className="border-b border-border-main px-6 py-4">
-                  <AcademyBadge tone="muted">Video lesson</AcademyBadge>
+                  <AcademyBadge tone="muted">
+                    {text("Video lesson", "Bài học video")}
+                  </AcademyBadge>
                   <h2 className="mt-3 font-display text-3xl font-black uppercase tracking-tighter text-text-main">
-                    Watch tutorial
+                    {text("Watch tutorial", "Xem hướng dẫn")}
                   </h2>
                 </div>
                 <div className="relative w-full bg-main-bg pb-[56.25%]">
@@ -1272,9 +1401,11 @@ export function AcademyUnit() {
             <AcademyPanel>
               <div className="space-y-5">
                 <div className="flex flex-wrap items-center gap-3">
-                  <AcademyBadge tone="muted">Lesson Notes</AcademyBadge>
+                  <AcademyBadge tone="muted">
+                    {text("Lesson Notes", "Ghi chú bài học")}
+                  </AcademyBadge>
                   <span className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
-                    Main reading for this unit
+                    {text("Main reading for this unit", "Nội dung chính của unit này")}
                   </span>
                 </div>
                 <div className="markdown-body prose-dsuc">
@@ -1289,9 +1420,11 @@ export function AcademyUnit() {
               <AcademyPanel>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between gap-3">
-                    <AcademyBadge tone="muted">Table of contents</AcademyBadge>
+                    <AcademyBadge tone="muted">
+                      {text("Table of contents", "Mục lục")}
+                    </AcademyBadge>
                     <span className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
-                      Quick jumps
+                      {text("Quick jumps", "Đi nhanh")}
                     </span>
                   </div>
                   <div className="border-l-2 border-border-main">
@@ -1317,16 +1450,22 @@ export function AcademyUnit() {
             <AcademyPanel>
               <div className="space-y-5">
                 <AcademyBadge tone="muted">
-                  {currentModule?.title || "Module"}
+                  {currentModule?.title || text("Module", "Module")}
                 </AcademyBadge>
                 <div>
                   <div className="font-display text-2xl font-black uppercase tracking-tight text-text-main">
-                    Module route
+                    {text("Module route", "Lộ trình module")}
                   </div>
                   <p className="mt-2 font-mono text-sm leading-relaxed text-text-muted">
                     {currentModule
-                      ? `${currentModuleCompleted}/${currentModuleUnits.length} lessons completed in this module.`
-                      : "No module information available."}
+                      ? text(
+                          `${currentModuleCompleted}/${currentModuleUnits.length} lessons completed in this module.`,
+                          `Đã hoàn thành ${currentModuleCompleted}/${currentModuleUnits.length} lesson trong module này.`,
+                        )
+                      : text(
+                          "No module information available.",
+                          "Hiện chưa có thông tin module.",
+                        )}
                   </p>
                 </div>
                 <AcademyProgressBar
@@ -1386,7 +1525,9 @@ export function AcademyUnit() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
-                            {routeUnit.section === "practice" ? "Practice" : "Theory"}
+                            {routeUnit.section === "practice"
+                              ? text("Practice", "Thực hành")
+                              : text("Theory", "Lý thuyết")}
                           </div>
                           <div
                             className={`mt-1 line-clamp-2 font-display text-base font-black uppercase tracking-tight ${
@@ -1410,26 +1551,44 @@ export function AcademyUnit() {
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <AcademyBadge tone={unitDone ? "success" : completionBlocked ? "warning" : "primary"}>
-              {unitDone ? "Unit completed" : "Finish this unit"}
+              {unitDone
+                ? text("Unit completed", "Unit đã hoàn thành")
+                : text("Finish this unit", "Hoàn tất unit này")}
             </AcademyBadge>
             <h2 className="mt-4 font-display text-3xl font-black uppercase tracking-tighter text-text-main">
-              {unitDone ? "Recorded successfully" : "Ready when the unit is truly done"}
+              {unitDone
+                ? text("Recorded successfully", "Đã ghi nhận thành công")
+                : text("Ready when the unit is truly done", "Sẵn sàng khi unit thật sự hoàn tất")}
             </h2>
             <p className="mt-3 max-w-2xl font-mono text-sm leading-relaxed text-text-muted">
               {unitDone
-                ? "This unit is already marked complete. You can move on or review the material again."
+                ? text(
+                    "This unit is already marked complete. You can move on or review the material again.",
+                    "Unit này đã được đánh dấu hoàn thành. Bạn có thể đi tiếp hoặc xem lại nội dung bất cứ lúc nào.",
+                  )
                 : isPractice
                   ? runnerSupported
-                    ? "The submit action unlocks only after the latest run passes every public and hidden check."
-                    : "Mark the unit complete when you have finished the lab."
-                  : "Take a final pass over the material, then mark the theory unit complete."}
+                    ? text(
+                        "The submit action unlocks only after the latest run passes every public and hidden check.",
+                        "Nút submit chỉ được mở khi lần chạy gần nhất đã pass toàn bộ public và hidden checks.",
+                      )
+                    : text(
+                        "Mark the unit complete when you have finished the lab.",
+                        "Hãy đánh dấu hoàn thành khi bạn đã làm xong lab.",
+                      )
+                  : text(
+                      "Take a final pass over the material, then mark the theory unit complete.",
+                      "Hãy đọc lại nội dung lần cuối, rồi đánh dấu hoàn thành bài lý thuyết này.",
+                    )}
             </p>
           </div>
 
           <div className="flex flex-col items-start gap-3 lg:items-end">
             {!unitDone && completionBlocked ? (
               <AcademyBadge tone="warning">
-                {runLoading ? "Running checks..." : "All checks must pass"}
+                {runLoading
+                  ? text("Running checks...", "Đang chạy checks...")
+                  : text("All checks must pass", "Tất cả checks phải pass")}
               </AcademyBadge>
             ) : null}
 
@@ -1441,7 +1600,9 @@ export function AcademyUnit() {
                 className="inline-flex items-center justify-center gap-2 border-2 border-text-main bg-primary px-5 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-primary-foreground shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] disabled:pointer-events-none disabled:opacity-50 dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
               >
                 <CheckCircle2 className="h-4 w-4" />
-                {isPractice ? "Submit lab" : "Mark complete"}
+                {isPractice
+                  ? text("Submit lab", "Nộp lab")
+                  : text("Mark complete", "Đánh dấu hoàn thành")}
               </button>
             ) : (
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -1451,7 +1612,7 @@ export function AcademyUnit() {
                     onClick={() => navigate(`/academy/unit/${course.id}/${next_unit.id}`)}
                     className="inline-flex items-center justify-center gap-2 border-2 border-text-main bg-primary px-5 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-primary-foreground shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
                   >
-                    Next unit
+                    {text("Next unit", "Unit tiếp theo")}
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 ) : (
@@ -1460,7 +1621,7 @@ export function AcademyUnit() {
                     onClick={() => navigate(`/academy/course/${course.id}`)}
                     className="inline-flex items-center justify-center gap-2 border-2 border-text-main bg-surface px-5 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-text-main shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:text-primary hover:shadow-[4px_4px_0_0_#000] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.45)] dark:hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.65)]"
                   >
-                    Back to course
+                    {text("Back to course", "Quay lại course")}
                   </button>
                 )}
               </div>
@@ -1471,7 +1632,7 @@ export function AcademyUnit() {
 
       <div className="grid gap-4 md:grid-cols-2">
         <UnitNavCard
-          label="Previous"
+          label={text("Previous", "Trước")}
           unit={previous_unit}
           href={
             previous_unit
@@ -1481,7 +1642,7 @@ export function AcademyUnit() {
           disabled={!previous_unit}
         />
         <UnitNavCard
-          label="Next"
+          label={text("Next", "Tiếp")}
           unit={next_unit}
           href={next_unit ? `/academy/unit/${course.id}/${next_unit.id}` : "#"}
           disabled={!next_unit}
@@ -1529,6 +1690,8 @@ function UnitNavCard({
   disabled: boolean;
   align?: "left" | "right";
 }) {
+  const { text } = useLocale();
+
   if (disabled) {
     return (
       <AcademyPanel className="opacity-60">
@@ -1537,7 +1700,7 @@ function UnitNavCard({
             {label}
           </div>
           <div className="mt-2 font-display text-2xl font-black uppercase tracking-tighter text-text-muted">
-            End of route
+            {text("End of route", "Hết lộ trình")}
           </div>
         </div>
       </AcademyPanel>
@@ -1555,7 +1718,9 @@ function UnitNavCard({
             {unit?.title}
           </div>
           <div className="mt-3 inline-flex border border-border-main bg-main-bg px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-text-muted shadow-sm">
-            {unit?.section === "practice" ? "Interactive lab" : "Theory lesson"}
+            {unit?.section === "practice"
+              ? text("Interactive lab", "Lab tương tác")
+              : text("Theory lesson", "Bài lý thuyết")}
           </div>
         </div>
       </AcademyPanel>

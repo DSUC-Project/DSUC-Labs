@@ -9,8 +9,10 @@ import { BANKS } from "../data/mockData";
 import { ModalShell } from "@/components/ui/ModalShell";
 import { Card, ActionCard } from "@/components/ui/Cards";
 import { SoftBrutalCard } from "@/components/ui/Primitives";
+import { useLocale } from "@/lib/locale";
 
 export function Finance() {
+  const { text } = useLocale();
   const [activeTab, setActiveTab] = useState<
     "submit" | "pending" | "history" | "direct"
   >("submit");
@@ -30,10 +32,10 @@ export function Finance() {
     ? ["submit", "direct", "pending", "history"]
     : ["submit", "direct", "history"];
   const tabLabels: Record<string, string> = {
-    submit: "Yêu cầu",
-    direct: "Chuyển khoản",
-    pending: "Chờ duyệt",
-    history: "Lịch sử",
+    submit: text("Requests", "Yêu cầu"),
+    direct: text("Transfer", "Chuyển khoản"),
+    pending: text("Pending", "Chờ duyệt"),
+    history: text("History", "Lịch sử"),
   };
 
   // Fetch members on mount (needed for bank info lookup in ApprovalModal)
@@ -71,13 +73,19 @@ export function Finance() {
             🔒
           </div>
           <h2 className="font-heading text-3xl font-black uppercase tracking-tight text-text-main">
-            Finance chỉ dành cho member
+            {text("Finance is members-only", "Finance chỉ dành cho member")}
           </h2>
           <p className="max-w-md bg-main-bg px-4 py-3 text-sm font-bold uppercase tracking-widest text-text-main shadow-sm">
-            Hãy đăng nhập bằng tài khoản DSUC member để truy cập module Finance.
+            {text(
+              "Sign in with a DSUC member account to access Finance.",
+              "Hãy đăng nhập bằng tài khoản DSUC member để truy cập Finance.",
+            )}
           </p>
           <div className="max-w-lg text-xs font-mono uppercase tracking-widest">
-            Tài khoản community không có quyền truy cập khu vực này.
+            {text(
+              "Community accounts do not have access to this area.",
+              "Tài khoản community không có quyền truy cập khu vực này.",
+            )}
           </div>
         </SoftBrutalCard>
       </div>
@@ -92,8 +100,10 @@ export function Finance() {
             Finance
           </h2>
           <p className="border-l-4 border-primary pl-4 text-sm font-bold text-text-main">
-            Tạo yêu cầu thanh toán, chuyển khoản trực tiếp và theo dõi lịch sử
-            giao dịch.
+            {text(
+              "Submit payment requests, create direct transfers, and review the transaction ledger.",
+              "Tạo yêu cầu thanh toán, chuyển khoản trực tiếp và theo dõi lịch sử giao dịch.",
+            )}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -135,6 +145,7 @@ export function Finance() {
 }
 
 function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
+  const { text } = useLocale();
   const { submitFinanceRequest, currentUser } = useStore();
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
@@ -159,7 +170,7 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
     e.preventDefault();
 
     if (!currentUser) {
-      toast("Vui lòng đăng nhập trước.");
+      toast(text("Please sign in first.", "Vui lòng đăng nhập trước."));
       return;
     }
 
@@ -171,7 +182,7 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
         date,
         billImage,
         status: "pending",
-        requesterName: currentUser.name || "Unknown",
+        requesterName: currentUser.name || text("Unknown", "Không rõ"),
         requesterId: currentUser.id,
       });
 
@@ -184,7 +195,12 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
 
       onSubmitted();
     } catch (err) {
-      toast("Không thể gửi yêu cầu thanh toán. Vui lòng thử lại.");
+      toast(
+        text(
+          "Unable to submit the payment request. Please try again.",
+          "Không thể gửi yêu cầu thanh toán. Vui lòng thử lại.",
+        ),
+      );
     }
   };
 
@@ -198,21 +214,23 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
         <div>
           <div className="mb-3 inline-flex items-center gap-2 bg-main-bg border border-border-main px-3 py-2 text-[10px] font-mono font-bold uppercase tracking-widest text-primary shadow-sm">
             <Zap size={14} />
-            Yêu cầu thanh toán
+            {text("Payment Request", "Yêu cầu thanh toán")}
           </div>
           <h3 className="font-heading text-3xl font-black uppercase tracking-tight text-text-main">
-            Gửi yêu cầu thanh toán
+            {text("Submit a payment request", "Gửi yêu cầu thanh toán")}
           </h3>
           <p className="mt-4 border-l-4 border-primary pl-4 text-sm font-bold text-text-main">
-            Tạo request hoàn tiền cho chi phí hoạt động của câu lạc bộ. Hóa đơn
-            là bắt buộc để lưu hồ sơ.
+            {text(
+              "Create a reimbursement request for club operating expenses. A bill or receipt is required for record keeping.",
+              "Tạo yêu cầu hoàn ứng cho các khoản chi vận hành của club. Cần có hóa đơn hoặc biên nhận để lưu hồ sơ.",
+            )}
           </p>
         </div>
         <Card className="space-y-6 p-6 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <label className="text-[10px] font-mono font-bold uppercase tracking-widest text-text-muted">
-                Amount (VND)
+                {text("Amount (VND)", "Số tiền (VND)")}
               </label>
               <input
                 value={amount}
@@ -225,7 +243,7 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-mono font-bold uppercase tracking-widest text-text-muted">
-                Target Date
+                {text("Target Date", "Ngày cần thanh toán")}
               </label>
               <input
                 value={date}
@@ -237,7 +255,7 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-mono font-bold uppercase tracking-widest text-text-muted">
-                Justification
+                {text("Justification", "Lý do chi")}
               </label>
               <textarea
                 value={reason}
@@ -245,14 +263,17 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
                 required
                 rows={4}
                 className="w-full border border-border-main bg-main-bg p-4 text-sm font-bold text-text-main outline-none transition-colors focus:border-primary resize-none shadow-sm"
-                placeholder="Mô tả lý do chi tiêu..."
+                placeholder={text(
+                  "Describe the spending reason...",
+                  "Mô tả lý do sử dụng khoản chi...",
+                )}
               />
             </div>
 
             {/* Bill/Receipt Upload */}
             <div className="space-y-2">
               <label className="text-[10px] font-mono font-bold uppercase tracking-widest text-text-muted">
-                Bill / Receipt
+                {text("Bill / Receipt", "Hóa đơn / biên nhận")}
               </label>
               <div className="relative border border-border-main bg-main-bg transition-colors hover:border-primary cursor-pointer group">
                 <input
@@ -266,7 +287,7 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
                   <div className="p-4 flex flex-col items-center">
                     <img
                       src={billImage}
-                      alt="Bill preview"
+                      alt={text("Bill preview", "Xem trước hóa đơn")}
                       className="mb-4 max-h-40 w-auto border border-border-main object-contain bg-white shadow-sm"
                     />
                     <div className="flex items-center justify-center gap-2 font-mono text-xs font-bold text-primary bg-surface py-1.5 px-3 border border-border-main">
@@ -280,10 +301,10 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
                       className="mb-4 text-primary group-hover:scale-110 transition-transform"
                     />
                     <div className="mb-2 font-mono text-xs font-bold text-text-main uppercase tracking-widest">
-                      Click để tải hóa đơn
+                      {text("Click to upload a receipt", "Bấm để tải hóa đơn lên")}
                     </div>
                     <div className="font-mono text-[10px] font-bold text-text-muted uppercase">
-                      PNG, JPG tối đa 10MB
+                      {text("PNG or JPG up to 10MB", "PNG hoặc JPG tối đa 10MB")}
                     </div>
                   </div>
                 )}
@@ -294,7 +315,7 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
               type="submit"
               className="w-full border border-border-main bg-primary text-main-bg py-4 font-mono text-sm font-bold uppercase tracking-widest transition-all hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#1a1b26] border-solid focus:outline-none"
             >
-              Gửi yêu cầu
+              {text("Submit Request", "Gửi yêu cầu")}
             </button>
           </form>
         </Card>
@@ -302,15 +323,17 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
       <Card className="hidden h-full p-8 lg:flex lg:flex-col lg:justify-between bg-main-bg shadow-sm">
         <div className="inline-flex w-fit items-center gap-2 bg-surface px-3 py-2 text-[10px] font-mono font-bold uppercase tracking-widest text-text-main border border-border-main shadow-sm">
           <ScanLine size={14} className="text-primary" />
-          Kênh tài chính
+          {text("Finance Lane", "Kênh finance")}
         </div>
         <div className="mt-8">
           <h4 className="font-heading text-3xl font-black uppercase tracking-tight text-text-main">
-            Minh bạch từng khoản chi
+            {text("Keep every payout transparent", "Giữ mọi khoản chi minh bạch")}
           </h4>
           <p className="mt-4 border-l-4 border-primary pl-4 text-sm font-bold text-text-muted">
-            Mọi request, phê duyệt và lịch sử thanh toán đều được gom tại đây để
-            President và Vice-President quản lý tập trung.
+            {text(
+              "Requests, approvals, and payment history stay in one place so the President and Vice-President can manage them cleanly.",
+              "Yêu cầu, phê duyệt và lịch sử giao dịch được gom về một nơi để President và Vice-President quản lý gọn gàng.",
+            )}
           </p>
         </div>
       </Card>
@@ -319,6 +342,7 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
 }
 
 function DirectTransferTool() {
+  const { text } = useLocale();
   const { members } = useStore();
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [amount, setAmount] = useState("");
@@ -357,7 +381,7 @@ function DirectTransferTool() {
       {/* Left: Member Selection */}
       <div className="space-y-6">
         <h3 className="flex items-center gap-2 font-heading text-2xl font-black uppercase tracking-widest text-text-main mb-6">
-          <Zap size={20} className="text-primary" /> QUICK TRANSFER LINK
+          <Zap size={20} className="text-primary" /> {text("Quick Transfer Link", "Chuyển khoản nhanh")}
         </h3>
 
         {!selectedMember ? (
@@ -415,7 +439,10 @@ function DirectTransferTool() {
             })}
             {eligibleMembers.length === 0 && (
               <Card className="col-span-1 md:col-span-2 py-10 text-center text-sm font-mono font-bold uppercase tracking-widest text-text-muted">
-                Không tìm thấy member có dữ liệu ngân hàng
+                {text(
+                  "No members with bank details found",
+                  "Không có thành viên nào đã thiết lập thông tin ngân hàng",
+                )}
               </Card>
             )}
           </div>
@@ -435,7 +462,7 @@ function DirectTransferTool() {
                     {selectedMember.name}
                   </div>
                   <div className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary mt-1">
-                    Đã chọn người nhận
+                    {text("Recipient selected", "Đã chọn người nhận")}
                   </div>
                 </div>
               </div>
@@ -453,7 +480,7 @@ function DirectTransferTool() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-mono font-bold uppercase tracking-widest text-text-muted">
-                  Amount
+                  {text("Amount", "Số tiền")}
                 </label>
                 <input
                   value={amount}
@@ -465,21 +492,21 @@ function DirectTransferTool() {
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-mono font-bold uppercase tracking-widest text-text-muted">
-                  Message
+                  {text("Message", "Nội dung")}
                 </label>
                 <input
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   type="text"
                   className="w-full border border-border-main bg-main-bg p-3 font-mono text-sm font-bold text-text-main outline-none transition-colors focus:border-primary shadow-sm"
-                  placeholder="Payment for..."
+                  placeholder={text("Payment for...", "Chuyển khoản cho...")}
                 />
               </div>
 
               {/* Image Upload */}
               <div className="space-y-2">
                 <label className="text-[10px] font-mono font-bold uppercase tracking-widest text-text-muted">
-                  Proof of Bill
+                  {text("Proof of Bill", "Ảnh hóa đơn")}
                 </label>
                 <div className="relative border border-border-main bg-main-bg p-4 text-center transition-colors hover:border-primary cursor-pointer">
                   <input
@@ -494,7 +521,7 @@ function DirectTransferTool() {
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-2 font-mono text-xs font-bold text-text-muted uppercase tracking-widest">
-                      <Upload size={14} /> Tải ảnh hóa đơn
+                      <Upload size={14} /> {text("Upload receipt image", "Tải ảnh hóa đơn")}
                     </div>
                   )}
                 </div>
@@ -505,7 +532,7 @@ function DirectTransferTool() {
                 disabled={!amount}
                 className="w-full border border-border-main bg-primary text-main-bg py-3 font-mono text-sm font-bold uppercase tracking-widest transition-all hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#1a1b26] disabled:cursor-not-allowed disabled:opacity-50 mt-4"
               >
-                Tạo mã QR
+                {text("Generate QR", "Tạo QR")}
               </button>
             </div>
           </Card>
@@ -529,12 +556,12 @@ function DirectTransferTool() {
             </div>
 
             <div className="bg-primary text-main-bg px-4 py-2 text-xs font-mono font-bold uppercase tracking-widest border border-border-main shadow-sm mb-4">
-              Scan to Pay {selectedMember.name}
+              {text(`Scan to pay ${selectedMember.name}`, `Quét để chuyển cho ${selectedMember.name}`)}
             </div>
 
             <div className="bg-main-bg p-4 border border-border-main text-center w-full max-w-[280px]">
               <div className="font-mono text-[10px] font-bold text-text-muted uppercase mb-1">
-                Bank:{" "}
+                {text("Bank:", "Ngân hàng:")}{" "}
                 <span className="text-primary">
                   {BANKS.find((b) => b.id === bankInfo.bankId)?.shortName ||
                     bankInfo.bankId}
@@ -554,10 +581,13 @@ function DirectTransferTool() {
           <div className="text-center opacity-40">
             <ScanLine size={80} className="mx-auto mb-4 text-text-main" />
             <p className="font-mono text-xs font-bold uppercase tracking-widest text-text-main">
-              QR generator idle
+              {text("QR generator idle", "QR chưa sẵn sàng")}
             </p>
             <p className="font-mono text-[10px] text-text-muted mt-2 max-w-[200px] mx-auto">
-              Chọn người nhận và nhập số tiền để tạo mã QR thanh toán nhanh.
+              {text(
+                "Pick a recipient and enter an amount to generate a quick payment QR code.",
+                "Chọn người nhận và nhập số tiền để tạo mã QR chuyển khoản nhanh.",
+              )}
             </p>
           </div>
         )}
@@ -567,6 +597,7 @@ function DirectTransferTool() {
 }
 
 function PendingRequestsList() {
+  const { text } = useLocale();
   const { financeRequests, approveFinanceRequest, rejectFinanceRequest } =
     useStore();
   const [selectedReq, setSelectedReq] = useState<FinanceRequest | null>(null);
@@ -574,7 +605,7 @@ function PendingRequestsList() {
   if (financeRequests.length === 0) {
     return (
       <Card className="flex h-64 items-center justify-center bg-surface text-sm font-mono font-bold uppercase tracking-widest text-text-muted shadow-sm">
-        Không có yêu cầu chờ duyệt
+        {text("No pending requests", "Không có yêu cầu chờ duyệt")}
       </Card>
     );
   }
@@ -601,7 +632,7 @@ function PendingRequestsList() {
             </p>
             <div className="flex items-center gap-2">
               <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-text-muted">
-                From:
+                {text("From:", "Từ:")}
               </span>
               <span className="text-xs font-bold text-text-main">
                 {req.requesterName}
@@ -645,6 +676,7 @@ function ApprovalModal({
   onApprove: () => void;
   onReject: () => void;
 }) {
+  const { text } = useLocale();
   const { members } = useStore();
   const [showQR, setShowQR] = useState(false);
 
@@ -676,7 +708,8 @@ function ApprovalModal({
     requesterBankInfo?.accountName ||
     (requester ? requester.name : DEFAULT_NAME);
   const bankName =
-    BANKS.find((b) => b.id === bankId)?.shortName || "Unknown Bank";
+    BANKS.find((b) => b.id === bankId)?.shortName ||
+    text("Unknown Bank", "Ngân hàng không rõ");
 
   const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${request.amount}&addInfo=${encodeURIComponent(request.reason)}&accountName=${encodeURIComponent(accountName)}`;
 
@@ -684,7 +717,7 @@ function ApprovalModal({
     <ModalShell
       isOpen={true}
       onClose={onClose}
-      title="Xét duyệt yêu cầu"
+      title={text("Review Request", "Duyệt yêu cầu")}
       label="FINANCE ADMIN"
     >
       <div className="flex flex-col gap-8">
@@ -693,7 +726,7 @@ function ApprovalModal({
           <div className="space-y-4 font-mono text-xs">
             <div className="flex justify-between border-b border-border-main pb-2">
               <span className="uppercase tracking-widest text-text-muted font-bold">
-                Số tiền
+                {text("Amount", "Số tiền")}
               </span>
               <span className="text-base font-bold text-text-main">
                 {parseInt(request.amount).toLocaleString()} VND
@@ -701,7 +734,7 @@ function ApprovalModal({
             </div>
             <div className="flex justify-between border-b border-border-main pb-2">
               <span className="uppercase tracking-widest text-text-muted font-bold">
-                Người gửi
+                {text("Requested by", "Người yêu cầu")}
               </span>
               <span className="text-text-main font-bold">
                 {request.requesterName}
@@ -709,19 +742,19 @@ function ApprovalModal({
             </div>
             <div className="flex justify-between border-b border-border-main pb-2">
               <span className="uppercase tracking-widest text-text-muted font-bold">
-                Ngân hàng
+                {text("Bank", "Ngân hàng")}
               </span>
               <span className="text-primary font-bold">{bankName}</span>
             </div>
             <div className="flex justify-between border-b border-border-main pb-2">
               <span className="uppercase tracking-widest text-text-muted font-bold">
-                Số tài khoản
+                {text("Account number", "Số tài khoản")}
               </span>
               <span className="text-text-main font-bold">{accountNo}</span>
             </div>
             <div className="pt-2 flex-grow">
               <span className="mb-2 block uppercase tracking-widest text-text-muted font-bold">
-                Lý do
+                {text("Reason", "Lý do")}
               </span>
               <p className="border border-border-main bg-main-bg p-4 text-sm text-text-main font-sans leading-relaxed">
                 {request.reason}
@@ -735,13 +768,13 @@ function ApprovalModal({
                 onClick={onReject}
                 className="border border-border-main bg-surface text-text-main py-3 font-mono text-sm font-bold uppercase tracking-widest transition-all hover:-translate-y-1 hover:shadow-sm"
               >
-                Từ chối
+                {text("Reject", "Từ chối")}
               </button>
               <button
                 onClick={() => setShowQR(true)}
                 className="border border-border-main bg-primary text-main-bg py-3 font-mono text-sm font-bold uppercase tracking-widest transition-all hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#1a1b26] border-solid focus:outline-none"
               >
-                Chuyển khoản
+                {text("Open Transfer QR", "Mở QR chuyển khoản")}
               </button>
             </div>
           )}
@@ -768,7 +801,7 @@ function ApprovalModal({
                   onClick={onApprove}
                   className="w-full border border-border-main bg-highlight text-main-bg py-3 font-mono text-xs font-bold uppercase tracking-widest transition-all hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#1a1b26]"
                 >
-                  Xác nhận đã chuyển
+                  {text("Confirm Transfer Sent", "Xác nhận đã chuyển khoản")}
                 </button>
               </div>
             </motion.div>
@@ -780,27 +813,30 @@ function ApprovalModal({
 }
 
 function HistoryList() {
+  const { text } = useLocale();
   const { financeHistory } = useStore();
 
   return (
     <Card className="p-0 overflow-hidden shadow-sm">
       <div className="bg-surface p-6 border-b border-border-main">
         <div className="inline-flex items-center gap-2 bg-main-bg border border-border-main px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-widest text-text-main mb-3">
-          <Zap size={12} className="text-primary" /> Public Ledger
+          <Zap size={12} className="text-primary" /> {text("Public Ledger", "Sổ cái công khai")}
         </div>
         <p className="text-sm font-mono text-text-muted">
-          Tất cả giao dịch đã duyệt hoặc từ chối đều được lưu ở đây để đảm bảo
-          minh bạch.
+          {text(
+            "Every approved or rejected transaction is stored here for transparent review.",
+            "Mọi giao dịch đã duyệt hoặc bị từ chối đều được lưu tại đây để đối soát minh bạch.",
+          )}
         </p>
       </div>
 
       <div className="overflow-x-auto w-full">
         <div className="min-w-[600px]">
           <div className="grid grid-cols-4 px-6 py-4 border-b border-border-main text-[10px] font-mono font-bold uppercase tracking-widest text-text-muted bg-main-bg">
-            <span>Status</span>
-            <span>Amount</span>
-            <span>Reason</span>
-            <span className="text-right">Date</span>
+            <span>{text("Status", "Trạng thái")}</span>
+            <span>{text("Amount", "Số tiền")}</span>
+            <span>{text("Reason", "Lý do")}</span>
+            <span className="text-right">{text("Date", "Ngày")}</span>
           </div>
 
           <div className="divide-y divide-dashed divide-border-main">
@@ -812,11 +848,11 @@ function HistoryList() {
                 <div>
                   {req.status === "completed" ? (
                     <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-highlight/20 border border-border-main text-highlight text-[10px] font-bold uppercase tracking-widest">
-                      <Check size={12} /> Paid
+                      <Check size={12} /> {text("Paid", "Đã thanh toán")}
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-red-500/10 border border-border-main text-red-500 text-[10px] font-bold uppercase tracking-widest">
-                      <X size={12} /> Rejected
+                      <X size={12} /> {text("Rejected", "Từ chối")}
                     </span>
                   )}
                 </div>
@@ -841,7 +877,7 @@ function HistoryList() {
       {financeHistory.length === 0 && (
         <div className="py-16 text-center bg-surface">
           <span className="text-xs font-mono font-bold uppercase tracking-widest text-text-muted">
-            Chưa có giao dịch lưu trữ
+            {text("No archived transactions yet", "Chưa có giao dịch lưu trữ nào")}
           </span>
         </div>
       )}

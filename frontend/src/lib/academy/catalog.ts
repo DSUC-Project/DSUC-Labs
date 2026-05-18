@@ -21,8 +21,8 @@ function normalizeCallouts(value: unknown) {
 
   return parsed
     .map((item: any) => ({
-      title: String(item?.title || "").trim(),
-      body: String(item?.body || "").trim(),
+      title: String(item?.title || item?.label || "").trim(),
+      body: String(item?.body || item?.text || "").trim(),
     }))
     .filter((item) => item.title || item.body);
 }

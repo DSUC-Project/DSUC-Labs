@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Send, MessageCircle, X, Users, Handshake } from "lucide-react";
 import { useStore } from "../store/useStore";
+import { useLocale } from "@/lib/locale";
 
 const FacebookIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
@@ -20,6 +21,7 @@ interface ContactFormData {
 }
 
 export function ContactModal({ isOpen, onClose }: ContactModalProps) {
+  const { text } = useLocale();
   const [formData, setFormData] = useState<ContactFormData>({
     name: "",
     message: "",
@@ -77,7 +79,12 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
 
     if (!formData.name.trim() || !formData.message.trim()) {
       console.warn("[ContactModal] Validation failed - missing fields");
-      setErrorMessage("Please fill in your name and message");
+      setErrorMessage(
+        text(
+          "Please fill in your name and message",
+          "Vui lòng nhập tên và nội dung tin nhắn",
+        ),
+      );
       setSubmitStatus("error");
       setTimeout(() => setSubmitStatus("idle"), 3000);
       return;
@@ -122,14 +129,32 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
         // Set specific error messages based on status code
         if (response.status === 429) {
           setErrorMessage(
-            "Too many messages. Please wait an hour before sending another.",
+            text(
+              "Too many messages. Please wait an hour before sending another.",
+              "Bạn đã gửi quá nhiều tin nhắn. Vui lòng chờ khoảng một giờ rồi thử lại.",
+            ),
           );
         } else if (response.status === 400) {
-          setErrorMessage("Invalid message. Please check your input.");
+          setErrorMessage(
+            text(
+              "Invalid message. Please check your input.",
+              "Nội dung tin nhắn chưa hợp lệ. Vui lòng kiểm tra lại.",
+            ),
+          );
         } else if (response.status === 500) {
-          setErrorMessage("Server error. Please try again later.");
+          setErrorMessage(
+            text(
+              "Server error. Please try again later.",
+              "Máy chủ đang gặp lỗi. Vui lòng thử lại sau.",
+            ),
+          );
         } else {
-          setErrorMessage("Failed to send your message. Please try again.");
+          setErrorMessage(
+            text(
+              "Failed to send your message. Please try again.",
+              "Gửi tin nhắn không thành công. Vui lòng thử lại.",
+            ),
+          );
         }
 
         setSubmitStatus("error");
@@ -138,7 +163,10 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
     } catch (error) {
       console.error("[ContactModal] ✗ Fetch error:", error);
       setErrorMessage(
-        "Network error. Please check your connection and try again.",
+        text(
+          "Network error. Please check your connection and try again.",
+          "Lỗi mạng. Vui lòng kiểm tra kết nối rồi thử lại.",
+        ),
       );
       setSubmitStatus("error");
       setTimeout(() => setSubmitStatus("idle"), 4000);
@@ -192,11 +220,13 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
               <Send size={34} strokeWidth={3} />
             </div>
             <h4 className="font-display text-3xl font-black uppercase tracking-tight text-text-main">
-              Tin nhắn đã được gửi
+              {text("Message sent", "Đã gửi tin nhắn")}
             </h4>
             <p className="mt-3 max-w-md border-4 border-text-main bg-white px-4 py-3 text-sm font-bold text-text-main shadow-sm">
-              DSUC đã nhận được liên hệ của bạn. Chúng tôi sẽ phản hồi sớm nhất
-              có thể.
+              {text(
+                "DSUC received your note. We will get back to you as soon as possible.",
+                "DSUC đã nhận được liên hệ của bạn. Chúng tôi sẽ phản hồi sớm nhất có thể.",
+              )}
             </p>
           </motion.div>
         )}
@@ -206,7 +236,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
             <div className="p-8">
               <div className="mb-6 inline-flex items-center gap-2 -black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-text-main shadow-sm">
                 <Handshake size={14} />
-                Liên hệ trực tiếp
+                {text("Direct Contact", "Liên hệ trực tiếp")}
               </div>
               <div className="-black bg-white p-4 shadow-md">
                 <div className="aspect-square overflow-hidden -black bg-pink-400">
@@ -280,28 +310,30 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
           <div className="mb-8">
             <div className="mb-3 inline-flex items-center gap-2 -black bg-primary px-3 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-sm">
               <Users size={14} />
-              DSUC Contact
+              {text("DSUC Contact", "Liên hệ DSUC")}
             </div>
             <h3 className="font-display text-4xl font-black uppercase tracking-tight text-text-main">
-              Liên hệ với chúng tôi
+              {text("Contact Us", "Liên hệ với chúng tôi")}
             </h3>
             <p className="mt-4 border-l-4 border-pink-400 pl-4 text-sm font-bold text-text-main">
-              Gửi tin nhắn để hỏi về sự kiện, partnership, collaboration hoặc
-              bất kỳ điều gì bạn muốn trao đổi với DSUC.
+              {text(
+                "Send a message to ask about events, partnerships, collaborations, or anything else you want to discuss with DSUC.",
+                "Gửi tin nhắn để hỏi về sự kiện, partnership, collaboration hoặc bất kỳ điều gì bạn muốn trao đổi với DSUC.",
+              )}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <label className="ml-1 text-xs font-black uppercase tracking-widest text-text-main">
-                Tên của bạn
+                {text("Your Name", "Tên của bạn")}
               </label>
               <input
                 type="text"
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                placeholder="Ví dụ: Danh"
+                placeholder={text("Example: Danh", "Ví dụ: Danh")}
                 className="w-full border-4 border-text-main bg-white px-4 py-3 text-sm font-bold text-text-main outline-none transition-colors focus:bg-accent/20 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 required
                 minLength={2}
@@ -311,13 +343,16 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
 
             <div className="relative space-y-2">
               <label className="ml-1 text-xs font-black uppercase tracking-widest text-text-main">
-                Nội dung
+                {text("Message", "Nội dung")}
               </label>
               <textarea
                 name="message"
                 value={formData.message}
                 onChange={handleChange}
-                placeholder="Bạn cần DSUC hỗ trợ gì?"
+                placeholder={text(
+                  "What would you like DSUC to help with?",
+                  "Bạn cần DSUC hỗ trợ gì?",
+                )}
                 className="h-40 w-full resize-none border-4 border-text-main bg-white px-4 py-3 pr-16 text-sm font-bold text-text-main outline-none transition-colors focus:bg-accent/20 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 required
                 minLength={10}
@@ -344,13 +379,18 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
               className="flex min-h-14 w-full items-center justify-center gap-3 border-4 border-text-main bg-accent px-6 py-4 text-sm font-black uppercase tracking-widest text-text-main shadow-md transition-all hover:-translate-y-1 hover:bg-primary hover:text-white hover:shadow-lg disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               <Send size={16} />
-              {isLoading ? "Đang gửi..." : "Gửi tin nhắn"}
+              {isLoading
+                ? text("Sending...", "Đang gửi...")
+                : text("Send Message", "Gửi tin nhắn")}
             </button>
           </form>
 
           <div className="mt-8 -4 -black pt-6">
             <div className="mb-4 text-[10px] font-black uppercase tracking-widest text-text-main">
-              Hoặc kết nối qua mạng xã hội
+              {text(
+                "Or connect through social channels",
+                "Hoặc kết nối qua các kênh mạng xã hội",
+              )}
             </div>
             <div className="flex flex-wrap gap-3">
               {socialLinks.map((social) => {

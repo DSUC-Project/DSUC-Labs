@@ -28,6 +28,7 @@ import { useStore } from "../store/useStore";
 import { BANKS } from "../data/mockData";
 import { SkillInput } from "../components/SkillInput";
 import { GoogleUserInfo } from "../types";
+import { useLocale } from "@/lib/locale";
 import {
   SoftBrutalCard,
 } from "@/components/ui/Primitives";
@@ -42,6 +43,7 @@ interface GoogleJWTPayload {
 
 
 export function MyProfile() {
+  const { text } = useLocale();
   const {
     currentUser,
     updateCurrentUser,
@@ -123,7 +125,10 @@ export function MyProfile() {
   const handleSaveAll = async () => {
     if (isOnboarding && !hasProfileBasics) {
       toast.error(
-        "Please complete basic profile information: name and at least one skill or social link.",
+        text(
+          "Please complete basic profile information: name and at least one skill or social link.",
+          "Vui lòng hoàn thiện thông tin cơ bản: tên và ít nhất một kỹ năng hoặc liên kết mạng xã hội.",
+        ),
       );
       return;
     }
@@ -163,20 +168,32 @@ export function MyProfile() {
       }
       setIsEditingSocials(false);
       setIsEditingBank(false);
-      toast.success("Profile updated successfully");
+      toast.success(
+        text("Profile updated successfully", "Cập nhật hồ sơ thành công"),
+      );
       if (isOnboarding) {
         navigate("/home", { replace: true });
       }
     } catch (err) {
       console.error("[MyProfile] Save failed:", err);
-      toast.error("Failed to update profile. Please check console.");
+      toast.error(
+        text(
+          "Failed to update profile. Please check console.",
+          "Cập nhật hồ sơ thất bại. Vui lòng kiểm tra console.",
+        ),
+      );
     }
   };
 
   const handleSaveIdentity = async () => {
     try {
       if (name.trim().length < 2) {
-        toast.error("Name must be at least 2 characters.");
+        toast.error(
+          text(
+            "Name must be at least 2 characters.",
+            "Tên phải có ít nhất 2 ký tự.",
+          ),
+        );
         return;
       }
       const updates: any = {};
@@ -186,9 +203,11 @@ export function MyProfile() {
         await updateCurrentUser(updates);
       }
       setIsEditingIdentity(false);
-      toast.success("Identity updated successfully");
+      toast.success(
+        text("Identity updated successfully", "Cập nhật thông tin thành công"),
+      );
     } catch (err) {
-      toast.error("Failed to update identity.");
+      toast.error(text("Failed to update identity.", "Cập nhật thông tin thất bại."));
     }
   };
 
@@ -200,9 +219,11 @@ export function MyProfile() {
         await updateCurrentUser(updates);
       }
       setIsEditingSkills(false);
-      toast.success("Skills updated successfully");
+      toast.success(
+        text("Skills updated successfully", "Cập nhật kỹ năng thành công"),
+      );
     } catch (err) {
-      toast.error("Failed to update skills.");
+      toast.error(text("Failed to update skills.", "Cập nhật kỹ năng thất bại."));
     }
   };
 
@@ -213,7 +234,9 @@ export function MyProfile() {
       });
       setIsEditingSocials(false);
     } catch (err) {
-      toast.error("Failed to update social links.");
+      toast.error(
+        text("Failed to update social links.", "Cập nhật liên kết xã hội thất bại."),
+      );
     }
   };
 
@@ -235,7 +258,9 @@ export function MyProfile() {
       });
       setIsEditingBank(false);
     } catch (err) {
-      toast.error("Failed to update bank account.");
+      toast.error(
+        text("Failed to update bank account.", "Cập nhật tài khoản ngân hàng thất bại."),
+      );
     }
   };
 
@@ -271,7 +296,12 @@ export function MyProfile() {
       };
       await linkGoogleAccount(googleUserInfo);
     } catch (error) {
-      toast.error("Failed to link Google account. Please try again.");
+      toast.error(
+        text(
+          "Failed to link Google account. Please try again.",
+          "Liên kết tài khoản Google thất bại. Vui lòng thử lại.",
+        ),
+      );
     } finally {
       setIsLinkingGoogle(false);
     }
@@ -285,10 +315,13 @@ export function MyProfile() {
         <SoftBrutalCard intent="primary" className="p-6">
           <div className="text-xs font-bold uppercase tracking-widest text-primary mb-2">
             First Time Setup
+            {text("First Time Setup", "Thiết lập lần đầu")}
           </div>
           <p className="text-text-muted font-medium text-sm font-mono">
-            Please complete your profile. Add your name and at least one skill
-            or contact information, then click Save Changes.
+            {text(
+              "Please complete your profile. Add your name and at least one skill or contact information, then click Save Changes.",
+              "Vui lòng hoàn thiện hồ sơ. Hãy thêm tên và ít nhất một kỹ năng hoặc thông tin liên hệ rồi bấm Lưu thay đổi.",
+            )}
           </p>
         </SoftBrutalCard>
       )}
@@ -298,13 +331,13 @@ export function MyProfile() {
             onClick={handleSaveAll}
             className="inline-flex min-h-[46px] items-center justify-center gap-2 border-2 border-text-main bg-primary px-6 py-3 font-bold text-xs uppercase tracking-wider text-main-bg md:w-auto"
           >
-            <Save size={16} /> Save Changes
+            <Save size={16} /> {text("Save Changes", "Lưu thay đổi")}
           </button>
           <button
             onClick={handleLogout}
             className="inline-flex min-h-[46px] items-center justify-center gap-2 border-2 border-text-main bg-surface px-6 py-3 font-bold text-xs uppercase tracking-wider text-red-500"
           >
-            <LogOut size={18} /> Log Out
+            <LogOut size={18} /> {text("Log Out", "Đăng xuất")}
           </button>
       </div>
 
@@ -319,10 +352,13 @@ export function MyProfile() {
               <div className="flex justify-between items-start gap-4 mb-6">
                 <div>
                   <h3 className="text-xl font-display font-bold text-text-main uppercase">
-                    Identity
+                    {text("Identity", "Thông tin")}
                   </h3>
                   <p className="mt-2 text-sm text-text-muted font-bold">
-                    Public name, avatar, and member tier.
+                    {text(
+                      "Public name, avatar, and member tier.",
+                      "Tên hiển thị công khai, avatar và loại thành viên.",
+                    )}
                   </p>
                 </div>
                 {!isEditingIdentity ? (
@@ -337,7 +373,7 @@ export function MyProfile() {
                     onClick={handleSaveIdentity}
                     className="bg-primary border border-border-main text-main-bg font-bold text-xs uppercase tracking-wider px-4 py-2 shadow-sm"
                   >
-                    Save
+                    {text("Save", "Lưu")}
                   </button>
                 )}
               </div>
@@ -368,7 +404,7 @@ export function MyProfile() {
                 <div className="w-full space-y-5">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-text-main uppercase tracking-widest pl-1">
-                      Display Name
+                      {text("Display Name", "Tên hiển thị")}
                     </label>
                     {isEditingIdentity ? (
                       <input
@@ -378,19 +414,19 @@ export function MyProfile() {
                       />
                     ) : (
                       <div className="w-full bg-main-bg border border-border-main px-4 py-3 text-text-main font-display font-bold text-lg shadow-sm truncate">
-                        {name || "Not provided"}
+                        {name || text("Not provided", "Chưa cung cấp")}
                       </div>
                     )}
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-text-main uppercase tracking-widest pl-1">
-                      Member Tier
+                      {text("Member Tier", "Loại thành viên")}
                     </label>
                     <div className="w-full bg-main-bg border border-border-main px-4 py-3 text-text-main font-bold text-sm uppercase tracking-wider flex items-center justify-between shadow-sm">
                       <span>
                         {currentUser.memberType === "community"
-                          ? "Community"
+                          ? text("Community", "Cộng đồng")
                           : currentUser.role}
                       </span>
                       <Hexagon size={20} className="text-primary" />
@@ -409,7 +445,7 @@ export function MyProfile() {
             >
               <SoftBrutalCard intent="default" className="p-6">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-4 flex items-center gap-2">
-                  <Hexagon size={16} className="text-primary" /> Wallet Connection
+                  <Hexagon size={16} className="text-primary" /> {text("Wallet Connection", "Kết nối wallet")}
                 </h3>
                 <div className="text-xs font-mono text-text-muted break-all mb-6 bg-main-bg p-4 border border-border-main">
                   {currentUser.wallet_address}
@@ -419,7 +455,9 @@ export function MyProfile() {
                   disabled={isReconnectingWallet}
                   className="w-full bg-surface hover:bg-main-bg border border-border-main text-text-main font-bold text-xs uppercase tracking-wider py-3 transition-colors shadow-sm disabled:opacity-60"
                 >
-                  {isReconnectingWallet ? "Reconnecting..." : "Reconnect Wallet"}
+                  {isReconnectingWallet
+                    ? text("Reconnecting...", "Đang kết nối lại...")
+                    : text("Reconnect Wallet", "Kết nối lại wallet")}
                 </button>
               </SoftBrutalCard>
             </motion.div>
@@ -435,7 +473,7 @@ export function MyProfile() {
               <div className="flex justify-between items-start mb-6">
                 <div>
                     <h3 className="text-xl font-display font-bold text-text-main flex items-center gap-2">
-                      <Link2 size={24} className="text-primary" /> Social Links
+                      <Link2 size={24} className="text-primary" /> {text("Social Links", "Liên kết xã hội")}
                     </h3>
                   </div>
                 {!isEditingSocials ? (
@@ -450,7 +488,7 @@ export function MyProfile() {
                     onClick={handleSaveSocials}
                     className="bg-primary border border-border-main text-main-bg font-bold text-xs uppercase tracking-wider px-4 py-2 shadow-sm hover:opacity-90 transition-colors "
                   >
-                    Save
+                    {text("Save", "Lưu")}
                   </button>
                 )}
               </div>
@@ -521,7 +559,7 @@ export function MyProfile() {
                             {social.value}
                           </a>
                         ) : (
-                          <span className="text-text-muted">Not provided</span>
+                          <span className="text-text-muted">{text("Not provided", "Chưa cung cấp")}</span>
                         )}
                       </div>
                     )}
@@ -546,17 +584,20 @@ export function MyProfile() {
                 <div>
                   <h3 className="text-2xl font-display font-bold flex items-center gap-3">
                     <Trophy size={32} />
-                    Learning Progress
+                    {text("Learning Progress", "Tiến độ học tập")}
                   </h3>
                   <p className="font-bold text-sm mt-2 text-text-muted">
-                    Overview of your learning journey and achievements.
+                    {text(
+                      "Overview of your learning journey and achievements.",
+                      "Tổng quan về hành trình học tập và các mốc thành tích của bạn.",
+                    )}
                   </p>
                 </div>
                 <button
                   onClick={() => navigate("/academy")}
                   className="group flex items-center justify-center gap-2 bg-primary text-main-bg border border-border-main shadow-[4px_4px_0_0_#000] px-6 py-4 font-bold text-xs uppercase tracking-wider transition-colors hover:bg-primary/90"
                 >
-                  Go to Academy{" "}
+                  {text("Go to Academy", "Đi tới Academy")}{" "}
                   <ArrowRight
                     size={16}
                     className="border-l border-current pl-1"
@@ -571,7 +612,7 @@ export function MyProfile() {
                     {currentUser.streak || 0}
                   </div>
                   <div className="text-[10px] font-bold uppercase tracking-widest mt-2 pt-2 w-full">
-                    Learning Streak
+                    {text("Learning Streak", "Streak học tập")}
                   </div>
                 </div>
                 <div className="p-8 flex flex-col items-center justify-center text-center bg-main-bg/20 transition-colors">
@@ -580,7 +621,7 @@ export function MyProfile() {
                     1
                   </div>
                   <div className="text-[10px] font-bold uppercase tracking-widest mt-2 pt-2 w-full">
-                    Projects Completed
+                    {text("Projects Completed", "Dự án đã hoàn thành")}
                   </div>
                 </div>
                 <div className="p-8 flex flex-col items-center justify-center text-center bg-main-bg/20 transition-colors">
@@ -591,7 +632,7 @@ export function MyProfile() {
                     12
                   </div>
                   <div className="text-[10px] font-bold uppercase tracking-widest mt-2 pt-2 w-full">
-                    Lessons
+                    {text("Lessons", "Bài học")}
                   </div>
                 </div>
                 <div className="p-8 flex flex-col items-center justify-center text-center bg-main-bg/20 transition-colors group">
@@ -603,7 +644,7 @@ export function MyProfile() {
                     GENIN
                   </div>
                   <div className="text-[10px] font-bold uppercase tracking-widest mt-2 pt-2 w-full">
-                    Rank
+                    {text("Rank", "Hạng")}
                   </div>
                 </div>
               </div>
@@ -621,11 +662,13 @@ export function MyProfile() {
                 <div className="flex justify-between items-start mb-8">
                   <div>
                     <h3 className="text-xl font-display font-bold text-text-main flex items-center gap-3">
-                      <CreditCard className="text-primary" size={24} /> BANK
-                      DETAILS
+                      <CreditCard className="text-primary" size={24} /> {text("Bank Details", "Thông tin ngân hàng")}
                     </h3>
                     <p className="text-sm text-text-muted font-bold mt-2">
-                      Set up your bank account for support or project funding.
+                      {text(
+                        "Set up your bank account for support or project funding.",
+                        "Thiết lập tài khoản ngân hàng để nhận hỗ trợ hoặc kinh phí dự án.",
+                      )}
                     </p>
                   </div>
                   {!isEditingBank ? (
@@ -640,7 +683,7 @@ export function MyProfile() {
                       onClick={handleSaveBank}
                       className="bg-primary border border-border-main text-main-bg font-bold text-xs uppercase tracking-wider px-6 py-4 shadow-sm hover:opacity-90 transition-colors "
                     >
-                      Save Bank
+                      {text("Save Bank", "Lưu ngân hàng")}
                     </button>
                   )}
                 </div>
@@ -649,14 +692,14 @@ export function MyProfile() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-text-main uppercase tracking-widest ml-1">
-                      Bank
+                      {text("Bank", "Ngân hàng")}
                     </label>
                     <select
                       value={selectedBank?.id || bankId}
                       onChange={(e) => setBankId(e.target.value)}
                       className="w-full bg-surface border border-border-main px-4 py-3 text-text-main focus:border-primary outline-none font-bold text-sm transition-colors shadow-sm appearance-none"
                     >
-                      <option value="">-- SELECT BANK --</option>
+                      <option value="">{text("-- SELECT BANK --", "-- CHỌN NGÂN HÀNG --")}</option>
                       {BANKS.map((b) => (
                         <option key={b.id} value={b.id}>
                           {b.shortName} ({b.code}) - {b.bin}
@@ -666,18 +709,18 @@ export function MyProfile() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-text-main uppercase tracking-widest ml-1">
-                      Account Number
+                      {text("Account Number", "Số tài khoản")}
                     </label>
                     <input
                       value={accountNo}
                       onChange={(e) => setAccountNo(e.target.value)}
-                      placeholder="Enter account number"
+                      placeholder={text("Enter account number", "Nhập số tài khoản")}
                       className="w-full bg-surface border border-border-main px-4 py-3 text-text-main focus:border-primary outline-none font-bold text-sm transition-colors shadow-sm"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-text-main uppercase tracking-widest ml-1">
-                      Bank Code (BIN)
+                      {text("Bank Code (BIN)", "Mã ngân hàng (BIN)")}
                     </label>
                     <input
                       value={bankId}
@@ -688,7 +731,7 @@ export function MyProfile() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-text-main uppercase tracking-widest ml-1">
-                      Account Holder Name
+                      {text("Account Holder Name", "Tên chủ tài khoản")}
                     </label>
                     <input
                       value={accountName}
@@ -702,38 +745,38 @@ export function MyProfile() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-text-main uppercase tracking-widest ml-1">
-                      Bank
+                      {text("Bank", "Ngân hàng")}
                     </label>
                     <div className="w-full bg-main-bg border border-border-main px-4 py-3 font-display font-bold text-text-main text-sm shadow-sm">
                       {selectedBank
                         ? `${selectedBank.shortName} (${selectedBank.bin})`
-                        : bankId || "Not Setup"}
+                        : bankId || text("Not Setup", "Chưa thiết lập")}
                     </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-text-main uppercase tracking-widest ml-1">
-                      Account Number
+                      {text("Account Number", "Số tài khoản")}
                     </label>
                     <div className="w-full bg-main-bg border border-border-main px-4 py-3 font-mono font-bold text-text-main text-sm shadow-sm tracking-wider">
                       {accountNo
                         ? accountNo.replace(/\d(?=\d{4})/g, "*")
-                        : "Not Setup"}
+                        : text("Not Setup", "Chưa thiết lập")}
                     </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-text-main uppercase tracking-widest ml-1">
-                      Bank Code (BIN)
+                      {text("Bank Code (BIN)", "Mã ngân hàng (BIN)")}
                     </label>
                     <div className="w-full bg-main-bg border border-border-main px-4 py-3 font-mono font-bold text-text-main text-sm shadow-sm tracking-wider">
-                      {selectedBank?.code || "Not Setup"}
+                      {selectedBank?.code || text("Not Setup", "Chưa thiết lập")}
                     </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-text-main uppercase tracking-widest ml-1">
-                      Account Holder Name
+                      {text("Account Holder Name", "Tên chủ tài khoản")}
                     </label>
                     <div className="w-full bg-main-bg border border-border-main px-4 py-3 font-bold text-text-main text-sm shadow-sm uppercase">
-                      {accountName || "Not Setup"}
+                      {accountName || text("Not Setup", "Chưa thiết lập")}
                     </div>
                   </div>
                 </div>
@@ -752,10 +795,13 @@ export function MyProfile() {
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <h3 className="text-xl font-display font-bold text-text-main flex items-center gap-3 uppercase">
-                    <Hexagon className="text-primary" size={24} /> Skills & Expertise
+                    <Hexagon className="text-primary" size={24} /> {text("Skills & Expertise", "Kỹ năng & chuyên môn")}
                   </h3>
                   <p className="text-sm text-text-muted font-bold mt-2">
-                    Add multiple skills to showcase your expertise (e.g., TypeScript, React, System Design, UX/UI).
+                    {text(
+                      "Add multiple skills to showcase your expertise (e.g., TypeScript, React, System Design, UX/UI).",
+                      "Thêm nhiều kỹ năng để thể hiện chuyên môn của bạn (ví dụ: TypeScript, React, System Design, UX/UI).",
+                    )}
                   </p>
                 </div>
                 {!isEditingSkills ? (
@@ -770,7 +816,7 @@ export function MyProfile() {
                     onClick={handleSaveSkills}
                     className="bg-primary border border-border-main text-main-bg font-bold text-xs uppercase tracking-wider px-4 py-2 shadow-sm hover:opacity-90 transition-colors ml-4 shrink-0"
                   >
-                    Save
+                    {text("Save", "Lưu")}
                   </button>
                 )}
               </div>
@@ -791,7 +837,7 @@ export function MyProfile() {
                       </div>
                     ))
                   ) : (
-                    <span className="text-text-muted font-mono text-xs">No skills added yet.</span>
+                    <span className="text-text-muted font-mono text-xs">{text("No skills added yet.", "Chưa có kỹ năng nào được thêm.")}</span>
                   )}
                 </div>
               )}
@@ -807,8 +853,7 @@ export function MyProfile() {
             >
               <SoftBrutalCard intent="default" className="p-6">
                 <h3 className="text-xl font-display font-bold text-text-main mb-6 flex items-center gap-3">
-                  <Mail className="text-primary" size={24} /> FALLBACK LOGIN
-                  METHOD
+                  <Mail className="text-primary" size={24} /> {text("Fallback Login Method", "Phương thức đăng nhập dự phòng")}
                 </h3>
 
                 {currentUser?.email ? (
@@ -816,7 +861,7 @@ export function MyProfile() {
                     <CheckCircle className="text-emerald-500" size={32} />
                     <div>
                       <div className="text-xs font-bold text-text-main uppercase tracking-widest">
-                        Linked
+                        {text("Linked", "Đã liên kết")}
                       </div>
                       <div className="text-text-main font-bold mt-1 text-lg">
                         {currentUser.email}
@@ -827,22 +872,25 @@ export function MyProfile() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-surface p-6 border border-border-main shadow-sm gap-4 relative overflow-hidden">
                     <div className="relative z-10">
                       <div className="font-bold text-text-main text-xl tracking-tight uppercase">
-                        Account not linked
+                        {text("Account not linked", "Tài khoản chưa liên kết")}
                       </div>
                       <div className="text-sm font-bold text-text-muted mt-1">
-                        Recommended for account recovery to avoid lost access.
+                        {text(
+                          "Recommended for account recovery to avoid lost access.",
+                          "Nên liên kết để dễ khôi phục tài khoản và tránh mất quyền truy cập.",
+                        )}
                       </div>
                     </div>
                     <div className="relative z-10 shrink-0">
                       {isLinkingGoogle ? (
                         <span className="text-text-main font-bold text-xs uppercase tracking-widest px-4 py-2 bg-primary/10 border border-border-main shadow-sm">
-                          Processing...
+                          {text("Processing...", "Đang xử lý...")}
                         </span>
                       ) : (
                         <div className="bg-surface p-1 shadow-sm border border-border-main inline-block">
                           <GoogleLogin
                             onSuccess={handleGoogleLinkSuccess}
-                            onError={() => toast.error("Failed")}
+                            onError={() => toast.error(text("Failed", "Thất bại"))}
                             useOneTap={false}
                             theme="outline"
                             size="medium"
