@@ -168,12 +168,14 @@ export function useLocale() {
   }
 
   const isVIE = context.locale === "VIE";
+  const text = useCallback(
+    (english: string, vietnamese: string) => (isVIE ? vietnamese : english),
+    [isVIE],
+  );
 
   return {
     ...context,
     isVIE,
-    text(english: string, vietnamese: string) {
-      return isVIE ? vietnamese : english;
-    },
+    text,
   };
 }
