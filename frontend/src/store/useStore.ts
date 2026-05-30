@@ -91,23 +91,8 @@ interface AppState {
 
 const PUBLIC_CACHE_TTL_MS = 1000 * 60 * 30;
 
-function isLocalHostname(hostname: string) {
-  return ["localhost", "127.0.0.1", "::1"].includes(hostname);
-}
-
-function isLocalApiMode() {
-  const env = (import.meta as any).env;
-  const rawApiBase = env?.VITE_API_BASE_URL || "http://localhost";
-
-  try {
-    const apiHost = new URL(rawApiBase, "http://localhost").hostname;
-    return isLocalHostname(apiHost);
-  } catch {
-    return false;
-  }
-}
-
-const USE_DEMO_FALLBACK = !isLocalApiMode();
+const USE_DEMO_FALLBACK =
+  (import.meta as any).env?.VITE_ENABLE_DEMO_FALLBACK === "true";
 
 function normalizeMember(raw: any): Member {
   const rawBankInfo = raw?.bank_info || raw?.bankInfo;
@@ -257,7 +242,7 @@ export const useStore = create<AppState>((set, get) => ({
       const elapsed = Date.now() - startTime;
 
       if (elapsed > INITIALIZING_TIMEOUT) {
-        // Only show "offline" after the 60s grace period
+        // Keep retrying after the initial warm-up window.
         set({ backendStatus: "offline" });
         console.log(
           "[warmupBackend] Backend still unreachable. Retrying in 5s...",

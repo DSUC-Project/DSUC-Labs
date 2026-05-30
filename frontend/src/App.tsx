@@ -82,15 +82,37 @@ export default function App() {
   const checkSession = useStore((state) => state.checkSession);
 
   useEffect(() => {
-    void warmupBackend();
-    void checkSession();
-    void fetchMembers();
-    void fetchFinanceHistory();
-    void fetchEvents();
-    void fetchProjects();
-    void fetchResources();
-    void fetchBounties();
-    void fetchRepos();
+    let isCancelled = false;
+
+    async function bootstrapFromBackend() {
+      await warmupBackend();
+
+      if (isCancelled) {
+        return;
+      }
+
+      await checkSession();
+
+      if (isCancelled) {
+        return;
+      }
+
+      await Promise.all([
+        fetchMembers(),
+        fetchFinanceHistory(),
+        fetchEvents(),
+        fetchProjects(),
+        fetchResources(),
+        fetchBounties(),
+        fetchRepos(),
+      ]);
+    }
+
+    void bootstrapFromBackend();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [
     warmupBackend,
     checkSession,
