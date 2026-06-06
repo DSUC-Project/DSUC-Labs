@@ -4,7 +4,7 @@
  */
 
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -36,6 +36,7 @@ import { AcademyAdmin } from "./pages/AcademyAdmin";
 import { MyProfile } from "./pages/MyProfile";
 import { useStore } from "./store/useStore";
 import { LocaleProvider } from "./lib/locale";
+import { LoadingScreen } from "./components/ui/LoadingScreen";
 
 const GOOGLE_CLIENT_ID = (import.meta as any).env.VITE_GOOGLE_CLIENT_ID || "";
 
@@ -71,7 +72,9 @@ function LegacyCommunityLessonRedirect() {
 }
 
 export default function App() {
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
   const warmupBackend = useStore((state) => state.warmupBackend);
+  const backendStatus = useStore((state) => state.backendStatus);
   const fetchMembers = useStore((state) => state.fetchMembers);
   const fetchFinanceHistory = useStore((state) => state.fetchFinanceHistory);
   const fetchEvents = useStore((state) => state.fetchEvents);
@@ -106,6 +109,10 @@ export default function App() {
         fetchBounties(),
         fetchRepos(),
       ]);
+
+      if (!isCancelled) {
+        setIsBootstrapping(false);
+      }
     }
 
     void bootstrapFromBackend();
@@ -124,6 +131,20 @@ export default function App() {
     fetchBounties,
     fetchRepos,
   ]);
+
+  if (isBootstrapping) {
+    return (
+      <LoadingScreen
+        message={
+          backendStatus === "offline"
+            ? "Backend is waking up. Retrying..."
+            : backendStatus === "online"
+              ? "Loading live data..."
+              : "Connecting to live data..."
+        }
+      />
+    );
+  }
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>

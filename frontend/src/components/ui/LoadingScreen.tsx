@@ -2,7 +2,11 @@ import React from "react";
 import { motion } from "motion/react";
 import { AppBackground } from "../layout/AppBackground";
 
-export function LoadingScreen() {
+export function LoadingScreen({
+  message = "Loading DSUC Labs...",
+}: {
+  message?: string;
+}) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-main-bg font-sans">
       <AppBackground intensity="medium" className="z-0" />
@@ -38,7 +42,7 @@ export function LoadingScreen() {
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           className="font-mono text-sm uppercase tracking-widest text-text-muted font-bold"
         >
-          Loading DSUC Labs...
+          {message}
         </motion.p>
       </div>
     </div>
