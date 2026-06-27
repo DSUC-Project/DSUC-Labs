@@ -39,6 +39,7 @@ import { LocaleProvider } from "./lib/locale";
 import { LoadingScreen } from "./components/ui/LoadingScreen";
 
 const GOOGLE_CLIENT_ID = (import.meta as any).env.VITE_GOOGLE_CLIENT_ID || "";
+const BACKEND_KEEPALIVE_INTERVAL_MS = 1000 * 60 * 13;
 
 function OfficialMemberRoute({ children }: { children: React.ReactNode }) {
   const currentUser = useStore((state) => state.currentUser);
@@ -83,6 +84,37 @@ export default function App() {
   const fetchBounties = useStore((state) => state.fetchBounties);
   const fetchRepos = useStore((state) => state.fetchRepos);
   const checkSession = useStore((state) => state.checkSession);
+
+  useEffect(() => {
+    if (isBootstrapping || backendStatus !== "online") {
+      return;
+    }
+
+    const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+    let cancelled = false;
+
+    const pingBackend = async () => {
+      try {
+        await fetch(`${base}/api/health`, {
+          method: "GET",
+          cache: "no-store",
+        });
+      } catch {
+        // Keepalive is best-effort. If it misses, the next user request can wake it again.
+      }
+    };
+
+    const timerId = window.setInterval(() => {
+      if (!cancelled) {
+        void pingBackend();
+      }
+    }, BACKEND_KEEPALIVE_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timerId);
+    };
+  }, [backendStatus, isBootstrapping]);
 
   useEffect(() => {
     let isCancelled = false;
