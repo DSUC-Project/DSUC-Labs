@@ -11,11 +11,11 @@ import { Card, ActionCard } from "@/components/ui/Cards";
 import { SoftBrutalCard } from "@/components/ui/Primitives";
 import { useLocale } from "@/lib/locale";
 
+type FinanceTab = "submit" | "pending" | "history" | "direct";
+
 export function Finance() {
   const { text } = useLocale();
-  const [activeTab, setActiveTab] = useState<
-    "submit" | "pending" | "history" | "direct"
-  >("submit");
+  const [activeTab, setActiveTab] = useState<FinanceTab>("submit");
   const {
     financeRequests,
     financeHistory,
@@ -24,48 +24,42 @@ export function Finance() {
     fetchMembers,
     currentUser,
   } = useStore();
-  const isOfficialMember = currentUser?.memberType === "member";
+  const hasFinanceAccess = Boolean(currentUser);
   const canModerateFinance =
-    isOfficialMember &&
+    currentUser?.memberType === "member" &&
     ["President", "Vice-President"].includes(currentUser?.role || "");
-  const visibleTabs = canModerateFinance
-    ? ["submit", "direct", "pending", "history"]
-    : ["submit", "direct", "history"];
+  const visibleTabs: FinanceTab[] = ["submit", "direct", "pending", "history"];
   const tabLabels: Record<string, string> = {
     submit: text("Requests", "Yêu cầu"),
     direct: text("Transfer", "Chuyển khoản"),
-    pending: text("Pending", "Chờ duyệt"),
+    pending: canModerateFinance
+      ? text("Pending", "Chờ duyệt")
+      : text("My requests", "Yêu cầu của tôi"),
     history: text("History", "Lịch sử"),
   };
 
   // Fetch members on mount (needed for bank info lookup in ApprovalModal)
   useEffect(() => {
-    if (isOfficialMember) {
+    if (hasFinanceAccess) {
       fetchMembers();
     }
-  }, [isOfficialMember, fetchMembers]);
+  }, [hasFinanceAccess, fetchMembers]);
 
-  // Fetch pending requests when tab changes to pending (for admin)
+  // Fetch pending requests when tab changes to pending
   useEffect(() => {
-    if (activeTab === "pending" && canModerateFinance) {
+    if (activeTab === "pending" && hasFinanceAccess) {
       fetchPendingRequests();
     }
-  }, [activeTab, canModerateFinance, fetchPendingRequests]);
+  }, [activeTab, hasFinanceAccess, fetchPendingRequests]);
 
   // Fetch finance history when tab changes to history
   useEffect(() => {
-    if (activeTab === "history" && isOfficialMember) {
+    if (activeTab === "history" && hasFinanceAccess) {
       fetchFinanceHistory();
     }
-  }, [activeTab, isOfficialMember, fetchFinanceHistory]);
+  }, [activeTab, hasFinanceAccess, fetchFinanceHistory]);
 
-  useEffect(() => {
-    if (activeTab === "pending" && !canModerateFinance) {
-      setActiveTab("submit");
-    }
-  }, [activeTab, canModerateFinance]);
-
-  if (!currentUser || !isOfficialMember) {
+  if (!currentUser) {
     return (
       <div className="mx-auto max-w-5xl space-y-8 pt-10">
         <SoftBrutalCard intent="locked" className="flex min-h-[500px] flex-col items-center justify-center space-y-6 bg-surface px-8 py-12 text-center text-text-muted">
@@ -73,18 +67,18 @@ export function Finance() {
             🔒
           </div>
           <h2 className="font-heading text-3xl font-black uppercase tracking-tight text-text-main">
-            {text("Finance is members-only", "Finance chỉ dành cho member")}
+            {text("Sign in to use Finance", "Đăng nhập để dùng Finance")}
           </h2>
           <p className="max-w-md bg-main-bg px-4 py-3 text-sm font-bold uppercase tracking-widest text-text-main shadow-sm">
             {text(
-              "Sign in with a DSUC member account to access Finance.",
-              "Hãy đăng nhập bằng tài khoản DSUC member để truy cập Finance.",
+              "Finance is available to signed-in DSUC accounts.",
+              "Finance khả dụng cho các tài khoản DSUC đã đăng nhập.",
             )}
           </p>
           <div className="max-w-lg text-xs font-mono uppercase tracking-widest">
             {text(
-              "Community accounts do not have access to this area.",
-              "Tài khoản community không có quyền truy cập khu vực này.",
+              "Use wallet, Google, or local dev login to continue.",
+              "Dùng ví, Google hoặc đăng nhập local dev để tiếp tục.",
             )}
           </div>
         </SoftBrutalCard>
@@ -109,8 +103,9 @@ export function Finance() {
         <div className="flex flex-wrap gap-2">
           {visibleTabs.map((tab) => (
             <button
+              type="button"
               key={tab}
-              onClick={() => setActiveTab(tab as any)}
+              onClick={() => setActiveTab(tab)}
               className={`flex items-center gap-2 border border-border-main px-4 py-3 text-xs font-mono font-bold uppercase tracking-widest transition-all ${activeTab === tab ? "bg-primary text-main-bg shadow-sm" : "bg-surface text-text-muted hover:bg-main-bg hover:text-text-main shadow-sm"}`}
             >
               {tab === "direct" && (
@@ -137,7 +132,9 @@ export function Finance() {
           <SubmitRequestForm onSubmitted={() => setActiveTab("pending")} />
         )}
         {activeTab === "direct" && <DirectTransferTool />}
-        {activeTab === "pending" && <PendingRequestsList />}
+        {activeTab === "pending" && (
+          <PendingRequestsList canModerateFinance={canModerateFinance} />
+        )}
         {activeTab === "history" && <HistoryList />}
       </div>
     </div>
@@ -596,7 +593,11 @@ function DirectTransferTool() {
   );
 }
 
-function PendingRequestsList() {
+function PendingRequestsList({
+  canModerateFinance,
+}: {
+  canModerateFinance: boolean;
+}) {
   const { text } = useLocale();
   const { financeRequests, approveFinanceRequest, rejectFinanceRequest } =
     useStore();
@@ -605,7 +606,9 @@ function PendingRequestsList() {
   if (financeRequests.length === 0) {
     return (
       <Card className="flex h-64 items-center justify-center bg-surface text-sm font-mono font-bold uppercase tracking-widest text-text-muted shadow-sm">
-        {text("No pending requests", "Không có yêu cầu chờ duyệt")}
+        {canModerateFinance
+          ? text("No pending requests", "Không có yêu cầu chờ duyệt")
+          : text("You have no pending requests", "Bạn chưa có yêu cầu chờ duyệt")}
       </Card>
     );
   }
@@ -650,6 +653,7 @@ function PendingRequestsList() {
       {selectedReq && (
         <ApprovalModal
           request={selectedReq}
+          canModerateFinance={canModerateFinance}
           onClose={() => setSelectedReq(null)}
           onApprove={() => {
             approveFinanceRequest(selectedReq.id);
@@ -667,11 +671,13 @@ function PendingRequestsList() {
 
 function ApprovalModal({
   request,
+  canModerateFinance,
   onClose,
   onApprove,
   onReject,
 }: {
   request: FinanceRequest;
+  canModerateFinance: boolean;
   onClose: () => void;
   onApprove: () => void;
   onReject: () => void;
@@ -717,8 +723,12 @@ function ApprovalModal({
     <ModalShell
       isOpen={true}
       onClose={onClose}
-      title={text("Review Request", "Duyệt yêu cầu")}
-      label="FINANCE ADMIN"
+      title={
+        canModerateFinance
+          ? text("Review Request", "Duyệt yêu cầu")
+          : text("Request Detail", "Chi tiết yêu cầu")
+      }
+      label={canModerateFinance ? "FINANCE ADMIN" : "FINANCE REQUEST"}
     >
       <div className="flex flex-col gap-8">
         {/* Top: Details */}
@@ -740,18 +750,22 @@ function ApprovalModal({
                 {request.requesterName}
               </span>
             </div>
-            <div className="flex justify-between border-b border-border-main pb-2">
-              <span className="uppercase tracking-widest text-text-muted font-bold">
-                {text("Bank", "Ngân hàng")}
-              </span>
-              <span className="text-primary font-bold">{bankName}</span>
-            </div>
-            <div className="flex justify-between border-b border-border-main pb-2">
-              <span className="uppercase tracking-widest text-text-muted font-bold">
-                {text("Account number", "Số tài khoản")}
-              </span>
-              <span className="text-text-main font-bold">{accountNo}</span>
-            </div>
+            {canModerateFinance && (
+              <>
+                <div className="flex justify-between border-b border-border-main pb-2">
+                  <span className="uppercase tracking-widest text-text-muted font-bold">
+                    {text("Bank", "Ngân hàng")}
+                  </span>
+                  <span className="text-primary font-bold">{bankName}</span>
+                </div>
+                <div className="flex justify-between border-b border-border-main pb-2">
+                  <span className="uppercase tracking-widest text-text-muted font-bold">
+                    {text("Account number", "Số tài khoản")}
+                  </span>
+                  <span className="text-text-main font-bold">{accountNo}</span>
+                </div>
+              </>
+            )}
             <div className="pt-2 flex-grow">
               <span className="mb-2 block uppercase tracking-widest text-text-muted font-bold">
                 {text("Reason", "Lý do")}
@@ -762,15 +776,17 @@ function ApprovalModal({
             </div>
           </div>
 
-          {!showQR && (
+          {canModerateFinance && !showQR && (
             <div className="grid grid-cols-2 gap-4 mt-8">
               <button
+                type="button"
                 onClick={onReject}
                 className="border border-border-main bg-surface text-text-main py-3 font-mono text-sm font-bold uppercase tracking-widest transition-all hover:-translate-y-1 hover:shadow-sm"
               >
                 {text("Reject", "Từ chối")}
               </button>
               <button
+                type="button"
                 onClick={() => setShowQR(true)}
                 className="border border-border-main bg-primary text-main-bg py-3 font-mono text-sm font-bold uppercase tracking-widest transition-all hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#1a1b26] border-solid focus:outline-none"
               >
@@ -798,6 +814,7 @@ function ApprovalModal({
                   />
                 </div>
                 <button
+                  type="button"
                   onClick={onApprove}
                   className="w-full border border-border-main bg-highlight text-main-bg py-3 font-mono text-xs font-bold uppercase tracking-widest transition-all hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#1a1b26]"
                 >

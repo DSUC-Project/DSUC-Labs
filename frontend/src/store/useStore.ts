@@ -33,6 +33,8 @@ declare global {
   }
 }
 
+export type LocalDevRole = "admin" | "member" | "community";
+
 interface AppState {
   isWalletConnected: boolean;
   walletAddress: string | null;
@@ -41,10 +43,6 @@ interface AppState {
   authMethod: AuthMethod | null; // 'wallet', 'google', or local dev auth
   authToken: string | null; // JWT token for Google or local dev auth
 
-  // Backend Status
-  backendStatus: "connecting" | "online" | "offline";
-  warmupBackend: () => Promise<void>;
-
   connectWallet: (provider: "Phantom" | "Solflare") => void;
   reconnectWallet: () => Promise<void>;
   disconnectWallet: () => void;
@@ -52,10 +50,11 @@ interface AppState {
     googleUserInfo: GoogleUserInfo,
     intent?: AuthIntent,
   ) => Promise<boolean>;
-  loginWithLocalAdmin: () => Promise<boolean>;
+  loginWithLocalAdmin: (role?: LocalDevRole) => Promise<boolean>;
   linkGoogleAccount: (googleUserInfo: GoogleUserInfo) => Promise<boolean>;
   checkSession: () => Promise<void>;
   logout: () => void;
+  fetchBootstrapData: () => Promise<void>;
   fetchMembers: () => Promise<void>;
   fetchFinanceHistory: () => Promise<void>;
   fetchEvents: () => Promise<void>;
@@ -172,6 +171,19 @@ function upsertCurrentMember(state: Pick<AppState, "members">, profile: Member) 
   return members;
 }
 
+function normalizeFinanceHistory(rows: any[]): FinanceRequest[] {
+  return rows.map((r: any) => ({
+    id: r.id,
+    amount: r.amount,
+    reason: r.reason,
+    date: r.date,
+    billImage: r.bill_image || r.billImage,
+    status: r.status,
+    requesterName: r.requester_name || r.requesterName,
+    requesterId: r.requester_id || r.requesterId,
+  }));
+}
+
 export const useStore = create<AppState>((set, get) => ({
   isWalletConnected: false,
   walletAddress: null,
@@ -179,7 +191,6 @@ export const useStore = create<AppState>((set, get) => ({
   currentUser: null,
   authMethod: null,
   authToken: null,
-  backendStatus: "connecting",
 
   members:
     readCache<Member[]>("members", PUBLIC_CACHE_TTL_MS) ||
@@ -203,58 +214,71 @@ export const useStore = create<AppState>((set, get) => ({
   financeHistory:
     readCache<FinanceRequest[]>("financeHistory", PUBLIC_CACHE_TTL_MS) || [],
 
-  // Warmup backend - ping to wake it up logic
-  warmupBackend: async () => {
-    const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-    console.log("[warmupBackend] Starting backend warmup sequence at:", base);
-    set({ backendStatus: "connecting" });
+  fetchBootstrapData: async () => {
+    try {
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+      const res = await fetch(`${base}/api/bootstrap`, {
+        cache: "no-store",
+      });
 
-    const startTime = Date.now();
-    const INITIALIZING_TIMEOUT = 24000; // 24 seconds allowed for "connecting" state
-
-    const ping = async () => {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000); // 10s fetch timeout
-
-        const res = await fetch(`${base}/api/health`, {
-          signal: controller.signal,
-        }).catch(() => null); // Catch network errors silently
-
-        clearTimeout(timeout);
-        return res?.ok;
-      } catch {
-        return false;
-      }
-    };
-
-    // Polling loop
-    while (true) {
-      const isOnline = await ping();
-
-      if (isOnline) {
-        console.log("[warmupBackend] Backend is online!");
-        set({ backendStatus: "online" });
-        break; // Stop checking once online
+      if (!res.ok) {
+        throw new Error(`Bootstrap request failed: ${res.status}`);
       }
 
-      // If still here, it failed. Check constraints.
-      const elapsed = Date.now() - startTime;
-
-      if (elapsed > INITIALIZING_TIMEOUT) {
-        // Keep retrying after the initial warm-up window.
-        set({ backendStatus: "offline" });
-        console.log(
-          "[warmupBackend] Backend still unreachable. Retrying in 5s...",
-        );
-        await new Promise((r) => setTimeout(r, 5000)); // Wait 5s before retry
-      } else {
-        // Still in "Initializing" phase
-        console.log(
-          `[warmupBackend] Waking up... (${Math.round(elapsed / 1000)}s)`,
-        );
-        await new Promise((r) => setTimeout(r, 2000)); // Quick retry every 2s while initializing
+      if (!res.headers.get("content-type")?.includes("application/json")) {
+        throw new Error("Backend not found (no json response)");
       }
+
+      const result = await res.json();
+      const data = result?.data;
+
+      if (!result?.success || !data) {
+        throw new Error("Invalid bootstrap response");
+      }
+
+      const members = (data.members || []).map(normalizeMember);
+      const financeHistory = normalizeFinanceHistory(data.financeHistory || []);
+      const events = (data.events || []).map((e: any) => ({
+        ...e,
+        luma_link: e.luma_link || e.lumaLink || e.link || "",
+      }));
+      const projects = (data.projects || []).map(normalizeProject);
+      const bounties = (data.bounties || []).map(normalizeBounty);
+      const repos = (data.repos || []).map(normalizeRepo);
+      const resources = data.resources || [];
+
+      set((state) => ({
+        members,
+        financeHistory,
+        events,
+        projects,
+        resources,
+        bounties,
+        repos,
+        currentUser: state.currentUser
+          ? members.find((member) => member.id === state.currentUser?.id) ||
+            state.currentUser
+          : state.currentUser,
+      }));
+
+      writeCache("members", members);
+      writeCache("financeHistory", financeHistory);
+      writeCache("events", events);
+      writeCache("projects", projects);
+      writeCache("resources", resources);
+      writeCache("bounties", bounties);
+      writeCache("repos", repos);
+    } catch (e) {
+      console.error("Failed to fetch bootstrap data", e);
+      await Promise.allSettled([
+        get().fetchMembers(),
+        get().fetchFinanceHistory(),
+        get().fetchEvents(),
+        get().fetchProjects(),
+        get().fetchResources(),
+        get().fetchBounties(),
+        get().fetchRepos(),
+      ]);
     }
   },
 
@@ -324,17 +348,7 @@ export const useStore = create<AppState>((set, get) => ({
         const result = await res.json();
         console.log("[fetchFinanceHistory] Raw result:", result);
         if (result && result.success && result.data) {
-          // Normalize snake_case to camelCase
-          const history = result.data.map((r: any) => ({
-            id: r.id,
-            amount: r.amount,
-            reason: r.reason,
-            date: r.date,
-            billImage: r.bill_image || r.billImage,
-            status: r.status,
-            requesterName: r.requester_name || r.requesterName,
-            requesterId: r.requester_id || r.requesterId,
-          }));
+          const history = normalizeFinanceHistory(result.data);
           console.log("[fetchFinanceHistory] Normalized history:", history);
           set({ financeHistory: history });
           writeCache("financeHistory", history);
@@ -697,13 +711,14 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  loginWithLocalAdmin: async () => {
+  loginWithLocalAdmin: async (role: LocalDevRole = "admin") => {
     try {
       const base = (import.meta as any).env.VITE_API_BASE_URL || "";
       const res = await fetch(`${base}/api/auth/dev-login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
+        body: JSON.stringify({ role }),
       });
       const result = await res.json();
 
@@ -1163,10 +1178,6 @@ export const useStore = create<AppState>((set, get) => ({
         throw new Error("User not authenticated");
       }
 
-      if (!canManageClubData(state)) {
-        throw new Error("Community accounts cannot access finance.");
-      }
-
       console.log("[submitFinanceRequest] Submitting:", {
         amount: req.amount,
         reason: req.reason,
@@ -1195,9 +1206,9 @@ export const useStore = create<AppState>((set, get) => ({
         const result = await res.json();
         console.log("[submitFinanceRequest] Success:", result);
         if (result && result.success && result.data) {
-          // Add to local state
+          const submittedRequest = normalizeFinanceHistory([result.data])[0];
           set((state) => ({
-            financeRequests: [...state.financeRequests, result.data],
+            financeRequests: [submittedRequest, ...state.financeRequests],
           }));
         }
       } else {
@@ -1223,17 +1234,12 @@ export const useStore = create<AppState>((set, get) => ({
         return;
       }
 
-      if (!canManageClubData(state)) {
-        set({ financeRequests: [] });
-        return;
-      }
-
-      // Admin roles can see all pending requests
-      const adminRoles = ["President", "Vice-President", "Tech-Lead"];
-      const isAdmin = adminRoles.includes(state.currentUser.role || "");
+      const canModerateFinance =
+        state.currentUser.memberType === "member" &&
+        ["President", "Vice-President"].includes(state.currentUser.role || "");
 
       // Use appropriate endpoint based on role
-      const endpoint = isAdmin
+      const endpoint = canModerateFinance
         ? "/api/finance/pending"
         : "/api/finance/my-requests";
 
@@ -1248,21 +1254,11 @@ export const useStore = create<AppState>((set, get) => ({
         const result = await res.json();
         if (result && result.success && result.data) {
           // For non-admin, filter to only show pending requests
-          const rawRequests = isAdmin
+          const rawRequests = canModerateFinance
             ? result.data
             : result.data.filter((r: any) => r.status === "pending");
 
-          // Normalize snake_case to camelCase
-          const pendingRequests = rawRequests.map((r: any) => ({
-            id: r.id,
-            amount: r.amount,
-            reason: r.reason,
-            date: r.date,
-            billImage: r.bill_image || r.billImage,
-            status: r.status,
-            requesterName: r.requester_name || r.requesterName,
-            requesterId: r.requester_id || r.requesterId,
-          }));
+          const pendingRequests = normalizeFinanceHistory(rawRequests);
 
           console.log(
             "[fetchPendingRequests] Normalized requests:",

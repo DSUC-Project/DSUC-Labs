@@ -2,7 +2,8 @@ import { Router, Request, Response } from "express";
 import { db } from "../db";
 import {
   authenticateUser,
-  requireAdmin,
+  hasExecutiveAdminRole,
+  isOfficialMember,
   requireExecutiveAdmin,
   requireOfficialMember,
 } from "../middleware/auth";
@@ -17,7 +18,6 @@ const router = Router();
 router.post(
   "/request",
   authenticateUser as any,
-  requireOfficialMember,
   async (req: Request, res: Response) => {
     try {
       const { amount, reason, date, bill_image } = req.body;
@@ -155,7 +155,6 @@ router.get(
 router.get(
   "/history",
   authenticateUser as any,
-  requireOfficialMember,
   async (req: Request, res: Response) => {
     try {
       const { data: requests, error } = await db
@@ -191,7 +190,6 @@ router.get(
 router.get(
   "/my-requests",
   authenticateUser as any,
-  requireOfficialMember,
   async (req: Request, res: Response) => {
     try {
       const { data: requests, error } = await db
@@ -227,7 +225,6 @@ router.get(
 router.get(
   "/request/:id",
   authenticateUser as any,
-  requireOfficialMember,
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -243,6 +240,16 @@ router.get(
         return res.status(404).json({
           error: "Not Found",
           message: "Finance request not found",
+        });
+      }
+
+      const canReviewAllFinance =
+        isOfficialMember(req.user) && hasExecutiveAdminRole(req.user);
+
+      if (!canReviewAllFinance && request.requester_id !== req.user!.id) {
+        return res.status(403).json({
+          error: "Forbidden",
+          message: "You can only view your own finance requests",
         });
       }
 
@@ -459,7 +466,6 @@ router.post(
 router.get(
   "/members-with-bank",
   authenticateUser as any,
-  requireOfficialMember,
   async (req: Request, res: Response) => {
     try {
       const { data: members, error } = await db

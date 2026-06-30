@@ -14,7 +14,17 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
 const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL || "http://localhost:3001/api/auth/google/callback";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
-const DEV_AUTH_DEFAULT_ADMIN_ID = "101240059";
+type DevAuthRole = "admin" | "member" | "community";
+
+const DEV_AUTH_ACCOUNTS: Record<DevAuthRole, { id: string; label: string }> = {
+  admin: { id: "101240059", label: "Local Admin" },
+  member: { id: "123250164", label: "Local Member" },
+  community: { id: "community-001", label: "Local Community" },
+};
+
+function normalizeDevAuthRole(value: unknown): DevAuthRole {
+  return value === "member" || value === "community" ? value : "admin";
+}
 
 function isLocalHostname(hostname: string | undefined) {
   return ["localhost", "127.0.0.1", "::1"].includes(String(hostname || ""));
@@ -455,7 +465,7 @@ router.post("/google/login", async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/auth/dev-login - Local-only mock admin login for dev
+// POST /api/auth/dev-login - Local-only mock login for dev
 router.post("/dev-login", async (req: Request, res: Response) => {
   try {
     if (!canUseDevAuth(req)) {
@@ -466,10 +476,11 @@ router.post("/dev-login", async (req: Request, res: Response) => {
       });
     }
 
+    const requestedRole = normalizeDevAuthRole(req.body?.role);
     const requestedUserId =
       typeof req.body?.userId === "string" && req.body.userId.trim()
         ? req.body.userId.trim()
-        : DEV_AUTH_DEFAULT_ADMIN_ID;
+        : DEV_AUTH_ACCOUNTS[requestedRole].id;
 
     const { data: member, error } = await db
       .from("members")
@@ -506,7 +517,8 @@ router.post("/dev-login", async (req: Request, res: Response) => {
       data: memberWithStats,
       token,
       authMethod: "local",
-      message: "Local admin session created.",
+      devRole: requestedRole,
+      message: `${DEV_AUTH_ACCOUNTS[requestedRole].label} session created.`,
     });
   } catch (error: any) {
     console.error("Error with local dev login:", error);

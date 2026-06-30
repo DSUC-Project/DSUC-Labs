@@ -4,7 +4,7 @@
  */
 
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -36,19 +36,9 @@ import { AcademyAdmin } from "./pages/AcademyAdmin";
 import { MyProfile } from "./pages/MyProfile";
 import { useStore } from "./store/useStore";
 import { LocaleProvider } from "./lib/locale";
-import { LoadingScreen } from "./components/ui/LoadingScreen";
 
 const GOOGLE_CLIENT_ID = (import.meta as any).env.VITE_GOOGLE_CLIENT_ID || "";
 const BACKEND_KEEPALIVE_INTERVAL_MS = 1000 * 60 * 13;
-
-function OfficialMemberRoute({ children }: { children: React.ReactNode }) {
-  const currentUser = useStore((state) => state.currentUser);
-  return currentUser?.memberType === "member" ? (
-    <>{children}</>
-  ) : (
-    <Navigate to="/home" replace />
-  );
-}
 
 function ExecutiveAdminRoute({ children }: { children: React.ReactNode }) {
   const currentUser = useStore((state) => state.currentUser);
@@ -73,23 +63,10 @@ function LegacyCommunityLessonRedirect() {
 }
 
 export default function App() {
-  const [isBootstrapping, setIsBootstrapping] = useState(true);
-  const warmupBackend = useStore((state) => state.warmupBackend);
-  const backendStatus = useStore((state) => state.backendStatus);
-  const fetchMembers = useStore((state) => state.fetchMembers);
-  const fetchFinanceHistory = useStore((state) => state.fetchFinanceHistory);
-  const fetchEvents = useStore((state) => state.fetchEvents);
-  const fetchProjects = useStore((state) => state.fetchProjects);
-  const fetchResources = useStore((state) => state.fetchResources);
-  const fetchBounties = useStore((state) => state.fetchBounties);
-  const fetchRepos = useStore((state) => state.fetchRepos);
+  const fetchBootstrapData = useStore((state) => state.fetchBootstrapData);
   const checkSession = useStore((state) => state.checkSession);
 
   useEffect(() => {
-    if (isBootstrapping || backendStatus !== "online") {
-      return;
-    }
-
     const base = (import.meta as any).env.VITE_API_BASE_URL || "";
     let cancelled = false;
 
@@ -114,69 +91,11 @@ export default function App() {
       cancelled = true;
       window.clearInterval(timerId);
     };
-  }, [backendStatus, isBootstrapping]);
+  }, []);
 
   useEffect(() => {
-    let isCancelled = false;
-
-    async function bootstrapFromBackend() {
-      await warmupBackend();
-
-      if (isCancelled) {
-        return;
-      }
-
-      await checkSession();
-
-      if (isCancelled) {
-        return;
-      }
-
-      await Promise.all([
-        fetchMembers(),
-        fetchFinanceHistory(),
-        fetchEvents(),
-        fetchProjects(),
-        fetchResources(),
-        fetchBounties(),
-        fetchRepos(),
-      ]);
-
-      if (!isCancelled) {
-        setIsBootstrapping(false);
-      }
-    }
-
-    void bootstrapFromBackend();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [
-    warmupBackend,
-    checkSession,
-    fetchMembers,
-    fetchFinanceHistory,
-    fetchEvents,
-    fetchProjects,
-    fetchResources,
-    fetchBounties,
-    fetchRepos,
-  ]);
-
-  if (isBootstrapping) {
-    return (
-      <LoadingScreen
-        message={
-          backendStatus === "offline"
-            ? "Backend is waking up. Retrying..."
-            : backendStatus === "online"
-              ? "Loading live data..."
-              : "Connecting to live data..."
-        }
-      />
-    );
-  }
+    void Promise.allSettled([fetchBootstrapData(), checkSession()]);
+  }, [fetchBootstrapData, checkSession]);
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
@@ -191,14 +110,7 @@ export default function App() {
               <Route path="/members/:id" element={<MemberDetail />} />
               <Route path="/member/:id" element={<MemberDetail />} />
               <Route path="/events" element={<Events />} />
-              <Route
-                path="/finance"
-                element={
-                  <OfficialMemberRoute>
-                    <Finance />
-                  </OfficialMemberRoute>
-                }
-              />
+              <Route path="/finance" element={<Finance />} />
               <Route path="/academy" element={<AcademyHome />} />
               <Route path="/academy/path/:pathId" element={<AcademyPath />} />
               <Route

@@ -64,7 +64,7 @@ export function Navbar({
     { name: text("Leaderboard", "Bảng xếp hạng"), path: "/leaderboard", icon: Trophy },
     { name: "Meet", path: "/meet", icon: MessagesSquare },
     { name: text("Work", "Công việc"), path: "/work", icon: BriefcaseBusiness },
-    { name: "Finance", path: "/finance", icon: Wallet, locked: !isOfficialMember },
+    { name: "Finance", path: "/finance", icon: Wallet, locked: isGuest },
     ...(isAdmin
       ? [
           { name: "Admin", path: "/admin", icon: Shield },

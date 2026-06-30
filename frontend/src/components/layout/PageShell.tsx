@@ -6,7 +6,7 @@ import { Navbar } from "./Navbar";
 import { AppBackground } from "./AppBackground";
 import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
-import { useStore } from "@/store/useStore";
+import { LocalDevRole, useStore } from "@/store/useStore";
 import { AuthIntent, GoogleUserInfo } from "@/types";
 import { LoginNotification } from "../LoginNotification";
 import { ContactModal } from "../ContactModal";
@@ -233,7 +233,37 @@ function RealAuthModal({
   const { loginWithGoogle, loginWithLocalAdmin } = useStore();
   const { text } = useLocale();
   const [isLoading, setIsLoading] = useState(false);
+  const [localDevRole, setLocalDevRole] = useState<LocalDevRole>("admin");
   const localDevAuthEnabled = React.useMemo(() => isLocalDevAuthEnabled(), []);
+  const localRoleCopy: Record<
+    LocalDevRole,
+    {
+      label: string;
+      description: string;
+    }
+  > = {
+    admin: {
+      label: text("Admin", "Admin"),
+      description: text(
+        "President permissions for admin, finance, and academy management.",
+        "Quyền President để test admin, tài chính và quản lý academy.",
+      ),
+    },
+    member: {
+      label: text("Member", "Member"),
+      description: text(
+        "Official member access for events, projects, finance, and submissions.",
+        "Quyền thành viên chính thức để test events, projects, finance và submit.",
+      ),
+    },
+    community: {
+      label: text("Community", "Community"),
+      description: text(
+        "Community profile with limited club permissions and onboarding checks.",
+        "Tài khoản community với quyền CLB giới hạn và luồng onboarding.",
+      ),
+    },
+  };
 
   const handleGoogleSuccess = async (
     credentialResponse: CredentialResponse,
@@ -268,7 +298,7 @@ function RealAuthModal({
   const handleLocalAdminLogin = async () => {
     setIsLoading(true);
     try {
-      const success = await loginWithLocalAdmin();
+      const success = await loginWithLocalAdmin(localDevRole);
       if (success) {
         onClose();
       }
@@ -486,6 +516,32 @@ function RealAuthModal({
               <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-text-muted">
                 {text("Local Testing Only", "Chỉ dành cho test local")}
               </p>
+              <div className="mt-3 space-y-2">
+                <label
+                  htmlFor="local-dev-role"
+                  className="block text-sm font-semibold text-text-main"
+                >
+                  {text("Mock account role", "Role tài khoản mock")}
+                </label>
+                <select
+                  id="local-dev-role"
+                  value={localDevRole}
+                  onChange={(event) =>
+                    setLocalDevRole(event.target.value as LocalDevRole)
+                  }
+                  disabled={isLoading}
+                  className="min-h-11 w-full border border-border-main bg-surface px-3 py-2 font-mono text-xs font-bold uppercase tracking-widest text-text-main focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {(Object.keys(localRoleCopy) as LocalDevRole[]).map((role) => (
+                    <option key={role} value={role}>
+                      {localRoleCopy[role].label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-sm leading-relaxed text-text-muted">
+                  {localRoleCopy[localDevRole].description}
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={handleLocalAdminLogin}
@@ -493,12 +549,14 @@ function RealAuthModal({
                 className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 border border-border-main bg-surface px-4 py-3 font-mono text-xs font-bold uppercase tracking-widest text-text-main transition-colors hover:bg-primary hover:text-main-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <FlaskConical className="h-4 w-4" />
-                {text("Use Local Admin", "Dùng admin local")}
+                {isLoading
+                  ? text("Signing in...", "Đang đăng nhập...")
+                  : text("Use Local Account", "Dùng tài khoản local")}
               </button>
               <p className="mt-3 text-sm leading-relaxed text-text-muted">
                 {text(
-                  "Starts a mock admin session against the localhost backend without touching production auth.",
-                  "Khởi động phiên admin giả lập với backend localhost mà không đụng tới luồng xác thực production.",
+                  "Starts a mock session against the localhost backend without touching production auth.",
+                  "Khởi động phiên giả lập với backend localhost mà không đụng tới luồng xác thực production.",
                 )}
               </p>
             </div>

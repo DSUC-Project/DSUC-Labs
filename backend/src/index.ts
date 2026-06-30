@@ -17,6 +17,7 @@ import financeHistoryRoutes from "./routes/finance-history";
 import contactRoutes from "./routes/contact";
 import academyRoutes from "./routes/academy";
 import adminRoutes from "./routes/admin";
+import bootstrapRoutes from "./routes/bootstrap";
 
 // Initialize Express app
 const app: Express = express();
@@ -66,6 +67,7 @@ app.get("/api/health", (req: Request, res: Response) => {
 
 // API Routes
 app.use("/api/members", memberRoutes);
+app.use("/api/bootstrap", bootstrapRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/finance", financeRoutes);
