@@ -34,6 +34,7 @@ declare global {
 }
 
 export type LocalDevRole = "admin" | "member" | "community";
+export type BootstrapStatus = "idle" | "loading" | "slow" | "ready" | "error";
 
 interface AppState {
   isWalletConnected: boolean;
@@ -42,6 +43,8 @@ interface AppState {
   currentUser: Member | null; // The logged-in user's profile
   authMethod: AuthMethod | null; // 'wallet', 'google', or local dev auth
   authToken: string | null; // JWT token for Google or local dev auth
+  bootstrapStatus: BootstrapStatus;
+  bootstrapError: string | null;
 
   connectWallet: (provider: "Phantom" | "Solflare") => void;
   reconnectWallet: () => Promise<void>;
@@ -89,6 +92,7 @@ interface AppState {
 }
 
 const PUBLIC_CACHE_TTL_MS = 1000 * 60 * 30;
+const BOOTSTRAP_SLOW_MS = 2500;
 
 const USE_DEMO_FALLBACK =
   (import.meta as any).env?.VITE_ENABLE_DEMO_FALLBACK === "true";
@@ -191,6 +195,8 @@ export const useStore = create<AppState>((set, get) => ({
   currentUser: null,
   authMethod: null,
   authToken: null,
+  bootstrapStatus: "idle",
+  bootstrapError: null,
 
   members:
     readCache<Member[]>("members", PUBLIC_CACHE_TTL_MS) ||
@@ -215,6 +221,18 @@ export const useStore = create<AppState>((set, get) => ({
     readCache<FinanceRequest[]>("financeHistory", PUBLIC_CACHE_TTL_MS) || [],
 
   fetchBootstrapData: async () => {
+    const currentStatus = get().bootstrapStatus;
+    if (currentStatus === "loading" || currentStatus === "slow") {
+      return;
+    }
+
+    set({ bootstrapStatus: "loading", bootstrapError: null });
+    const slowTimer = window.setTimeout(() => {
+      if (get().bootstrapStatus === "loading") {
+        set({ bootstrapStatus: "slow" });
+      }
+    }, BOOTSTRAP_SLOW_MS);
+
     try {
       const base = (import.meta as any).env.VITE_API_BASE_URL || "";
       const res = await fetch(`${base}/api/bootstrap`, {
@@ -268,6 +286,7 @@ export const useStore = create<AppState>((set, get) => ({
       writeCache("resources", resources);
       writeCache("bounties", bounties);
       writeCache("repos", repos);
+      set({ bootstrapStatus: "ready", bootstrapError: null });
     } catch (e) {
       console.error("Failed to fetch bootstrap data", e);
       await Promise.allSettled([
@@ -279,6 +298,27 @@ export const useStore = create<AppState>((set, get) => ({
         get().fetchBounties(),
         get().fetchRepos(),
       ]);
+
+      const fallbackState = get();
+      const hasFallbackData = [
+        fallbackState.members,
+        fallbackState.events,
+        fallbackState.projects,
+        fallbackState.resources,
+        fallbackState.bounties,
+        fallbackState.repos,
+      ].some((items) => items.length > 0);
+
+      set({
+        bootstrapStatus: hasFallbackData ? "ready" : "error",
+        bootstrapError: hasFallbackData
+          ? null
+          : e instanceof Error
+            ? e.message
+            : "Could not refresh live data.",
+      });
+    } finally {
+      window.clearTimeout(slowTimer);
     }
   },
 

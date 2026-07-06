@@ -6,8 +6,12 @@ import { Navbar } from "./Navbar";
 import { AppBackground } from "./AppBackground";
 import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
-import { LocalDevRole, useStore } from "@/store/useStore";
-import { AuthIntent, GoogleUserInfo } from "@/types";
+import {
+  type BootstrapStatus,
+  type LocalDevRole,
+  useStore,
+} from "@/store/useStore";
+import { type AuthIntent, type GoogleUserInfo } from "@/types";
 import { LoginNotification } from "../LoginNotification";
 import { ContactModal } from "../ContactModal";
 import { ModalShell } from "@/components/ui/ModalShell";
@@ -16,7 +20,10 @@ import {
   BadgeCheck,
   CheckCircle2,
   FlaskConical,
+  LoaderCircle,
   Mail,
+  RefreshCw,
+  ServerCrash,
   ShieldCheck,
   Sparkles,
   Terminal,
@@ -109,10 +116,35 @@ export function PageShell() {
   }>({});
   const [theme, setTheme] = useState<AppTheme>(() => readStoredTheme());
 
-  const { currentUser } = useStore();
+  const {
+    bootstrapError,
+    bootstrapStatus,
+    currentUser,
+    fetchBootstrapData,
+    members,
+    events,
+    projects,
+    resources,
+    bounties,
+    repos,
+  } = useStore();
   const navigate = useNavigate();
   const requiresProfileCompletion =
     !!currentUser && currentUser.profile_completed === false;
+  const hasPublicData = [
+    members,
+    events,
+    projects,
+    resources,
+    bounties,
+    repos,
+  ].some((items) => items.length > 0);
+  const showInitialDataScreen =
+    !hasPublicData &&
+    (bootstrapStatus === "idle" ||
+      bootstrapStatus === "loading" ||
+      bootstrapStatus === "slow");
+  const showInitialDataError = !hasPublicData && bootstrapStatus === "error";
 
   const openAuthModal = React.useCallback((mode: AuthIntent) => {
     setAuthMode(mode);
@@ -164,18 +196,36 @@ export function PageShell() {
             setTheme((value) => (value === "dark" ? "light" : "dark"))
           }
         />
+        <BackendWakeBanner
+          status={bootstrapStatus}
+          error={bootstrapError}
+          hasPublicData={hasPublicData}
+          onRetry={() => void fetchBootstrapData()}
+        />
 
         {/* Route Transition Shell */}
         <AnimatePresence mode="wait">
           <motion.main
-            key={location.pathname}
+            key={
+              showInitialDataScreen || showInitialDataError
+                ? "initial-data"
+                : location.pathname
+            }
             initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             exit={{ opacity: 0, scale: 0.98, filter: "blur(4px)" }}
             transition={{ duration: 0.25, ease: "easeOut" }}
             className="flex-1 flex flex-col pt-0 relative z-10"
           >
-            <Outlet />
+            {showInitialDataScreen || showInitialDataError ? (
+              <InitialDataScreen
+                status={bootstrapStatus}
+                error={bootstrapError}
+                onRetry={() => void fetchBootstrapData()}
+              />
+            ) : (
+              <Outlet />
+            )}
           </motion.main>
         </AnimatePresence>
 
@@ -214,6 +264,204 @@ export function PageShell() {
         />
       </div>
     </ContactModalContext.Provider>
+  );
+}
+
+function BackendWakeBanner({
+  status,
+  error,
+  hasPublicData,
+  onRetry,
+}: {
+  status: BootstrapStatus;
+  error: string | null;
+  hasPublicData: boolean;
+  onRetry: () => void;
+}) {
+  const { text } = useLocale();
+  const isError = status === "error";
+  const isVisible = hasPublicData && (status === "slow" || isError);
+
+  return (
+    <AnimatePresence initial={false}>
+      {isVisible && (
+        <motion.div
+          key="backend-wake-banner"
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          role={isError ? "alert" : "status"}
+          aria-live="polite"
+          className="relative z-30 border-y border-border-main bg-surface/95 px-4 py-3 text-text-main backdrop-blur"
+        >
+          <div className="container mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <div
+                className={cn(
+                  "flex h-10 w-10 shrink-0 items-center justify-center border border-border-main bg-main-bg",
+                  isError ? "text-red-500" : "text-primary",
+                )}
+                aria-hidden="true"
+              >
+                {isError ? (
+                  <ServerCrash className="h-4 w-4" />
+                ) : (
+                  <LoaderCircle className="h-4 w-4 motion-safe:animate-spin" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
+                  {isError
+                    ? text("Live data refresh failed", "Chưa làm mới được dữ liệu live")
+                    : text("Backend is waking up", "Backend đang khởi động")}
+                </p>
+                <p className="mt-1 text-sm leading-relaxed text-text-main">
+                  {isError
+                    ? text(
+                        "Showing cached content. Try again when the backend is awake.",
+                        "Đang hiển thị dữ liệu cache. Thử lại khi backend đã thức.",
+                      )
+                    : text(
+                        "Render free tier can take about 15 seconds after sleep. Cached content stays visible.",
+                        "Render free tier có thể mất khoảng 15 giây sau khi sleep. Nội dung cache vẫn được giữ lại.",
+                      )}
+                </p>
+                {isError && error && (
+                  <p className="mt-1 break-words font-mono text-[10px] uppercase tracking-widest text-text-muted">
+                    {error}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {isError && (
+              <button
+                type="button"
+                onClick={onRetry}
+                className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 border border-border-main bg-main-bg px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-main transition-colors hover:bg-primary hover:text-main-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              >
+                <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
+                {text("Retry", "Thử lại")}
+              </button>
+            )}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function InitialDataScreen({
+  status,
+  error,
+  onRetry,
+}: {
+  status: BootstrapStatus;
+  error: string | null;
+  onRetry: () => void;
+}) {
+  const { text } = useLocale();
+  const isError = status === "error";
+  const isSlow = status === "slow";
+
+  return (
+    <div
+      className="container mx-auto flex max-w-7xl flex-1 flex-col gap-8 px-4 py-8 md:py-12"
+      role={isError ? "alert" : "status"}
+      aria-busy={!isError}
+      aria-live="polite"
+    >
+      <section className="border border-border-main bg-surface p-5 shadow-sm md:p-6">
+        <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+          <div className="flex min-w-0 items-start gap-4">
+            <div
+              className={cn(
+                "flex h-12 w-12 shrink-0 items-center justify-center border border-border-main bg-main-bg",
+                isError ? "text-red-500" : "text-primary",
+              )}
+              aria-hidden="true"
+            >
+              {isError ? (
+                <ServerCrash className="h-5 w-5" />
+              ) : (
+                <LoaderCircle className="h-5 w-5 motion-safe:animate-spin" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
+                {isError
+                  ? text("Live data unavailable", "Chưa tải được dữ liệu live")
+                  : text("Initializing live data", "Đang khởi tạo dữ liệu live")}
+              </p>
+              <h1 className="mt-2 font-heading text-3xl font-black uppercase tracking-tight text-text-main md:text-4xl">
+                {isError
+                  ? text("Could not load DSUC data", "Chưa tải được dữ liệu DSUC")
+                  : text("Starting DSUC Labs", "Đang khởi động DSUC Labs")}
+              </h1>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-text-muted md:text-base">
+                {isError
+                  ? text(
+                      "The live backend did not respond. Try again in a moment.",
+                      "Backend live chưa phản hồi. Thử lại sau một chút.",
+                    )
+                  : isSlow
+                    ? text(
+                        "The backend is waking up. This usually takes about 15 seconds after sleep.",
+                        "Backend đang thức dậy. Thường mất khoảng 15 giây sau khi sleep.",
+                      )
+                    : text(
+                        "Loading member profiles and public workspace data.",
+                        "Đang tải hồ sơ thành viên và dữ liệu public của workspace.",
+                      )}
+              </p>
+              {isError && error && (
+                <p className="mt-2 break-words font-mono text-[10px] uppercase tracking-widest text-text-muted">
+                  {error}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {isError && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 border border-border-main bg-main-bg px-4 py-3 font-mono text-xs font-bold uppercase tracking-widest text-text-main transition-colors hover:bg-primary hover:text-main-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+              {text("Retry", "Thử lại")}
+            </button>
+          )}
+        </div>
+      </section>
+
+      <section className="space-y-5" aria-hidden="true">
+        <div className="flex items-center justify-between gap-4">
+          <div className="h-7 w-48 bg-surface motion-safe:animate-pulse" />
+          <div className="hidden h-5 w-24 bg-surface motion-safe:animate-pulse sm:block" />
+        </div>
+        <div className="grid auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+          {Array.from({ length: 10 }).map((_, index) => (
+            <div
+              key={index}
+              className="min-h-48 border border-border-main bg-surface motion-safe:animate-pulse"
+            >
+              <div className="h-14 bg-main-bg" />
+              <div className="space-y-3 px-4 pb-4 pt-6">
+                <div className="h-4 w-3/4 bg-main-bg" />
+                <div className="h-3 w-1/2 bg-main-bg" />
+                <div className="flex gap-2">
+                  <div className="h-6 w-14 bg-main-bg" />
+                  <div className="h-6 w-20 bg-main-bg" />
+                </div>
+                <div className="h-8 bg-main-bg" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }
 

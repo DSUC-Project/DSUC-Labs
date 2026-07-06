@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Github, Search, Send, Twitter } from "lucide-react";
 import { useStore } from "@/store/useStore";
-import { Member } from "@/types";
+import type { Member } from "@/types";
 import { useLocale } from "@/lib/locale";
 
 function isCommunityMember(member: Member) {
@@ -25,12 +25,8 @@ function translateMemberRole(
 export function Members() {
   const { text } = useLocale();
   const navigate = useNavigate();
-  const { members, fetchMembers } = useStore();
+  const { members } = useStore();
   const [searchQuery, setSearchQuery] = useState("");
-
-  useEffect(() => {
-    fetchMembers();
-  }, [fetchMembers]);
 
   const filteredMembers = members.filter((member) => {
     if (!searchQuery) return true;
