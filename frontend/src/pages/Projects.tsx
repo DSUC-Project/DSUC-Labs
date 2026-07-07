@@ -186,11 +186,13 @@ function AddProjectModal({
 
 export function Projects() {
   const { text } = useLocale();
-  const { projects, fetchProjects, addProject, currentUser } = useStore();
+  const { projects, fetchProjects, addProject, currentUser, bootstrapStatus } = useStore();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const canManage = currentUser?.memberType === "member";
+
+  const isLoadingData = (bootstrapStatus === "loading" || bootstrapStatus === "slow") && projects.length === 0;
 
   useEffect(() => {
     fetchProjects().catch(() => {});
@@ -306,45 +308,59 @@ export function Projects() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {filteredProjects.map((proj) => {
-          const techStack =
-            proj.tech_stack && proj.tech_stack.length > 0
-              ? proj.tech_stack
-              : proj.techStack || [];
-          const builders = proj.builders.filter(Boolean);
+        {isLoadingData ? (
+          Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="border border-border-main bg-surface p-5">
+              <div className="h-5 w-3/4 bg-surface motion-safe:animate-pulse mb-3" />
+              <div className="h-3 w-full bg-surface motion-safe:animate-pulse mb-1.5" />
+              <div className="h-3 w-5/6 bg-surface motion-safe:animate-pulse mb-4" />
+              <div className="flex gap-2">
+                <div className="h-5 w-14 bg-surface motion-safe:animate-pulse" />
+                <div className="h-5 w-20 bg-surface motion-safe:animate-pulse" />
+              </div>
+            </div>
+          ))
+        ) : (
+          filteredProjects.map((proj) => {
+            const techStack =
+              proj.tech_stack && proj.tech_stack.length > 0
+                ? proj.tech_stack
+                : proj.techStack || [];
+            const builders = proj.builders.filter(Boolean);
 
-          return (
-            <Link
-              to={`/project/${proj.id}`}
-              key={proj.id}
-              className="group block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-main-bg"
-            >
-              <ShowcaseCard
-                icon={<FolderKanban className="h-5 w-5" aria-hidden="true" />}
-                title={proj.name}
-                category={proj.category}
-                accentLabel={getProjectStatusLabel(proj.status || "Live", text)}
-                description={proj.description}
-                tags={techStack}
-                footerLabel={text("Builders", "Builders")}
-                footerValue={builders.join(", ") || "DSUC Builders"}
-                footerAside={
-                  <>
-                    <Users className="h-3.5 w-3.5" aria-hidden="true" />
-                    <span className="font-mono text-[9px] font-bold uppercase tracking-widest">
-                      {builders.length}
-                    </span>
-                    {proj.repoLink ? (
-                      <Github className="h-3.5 w-3.5" aria-hidden="true" />
-                    ) : null}
-                  </>
-                }
-              />
-            </Link>
-          );
-        })}
+            return (
+              <Link
+                to={`/project/${proj.id}`}
+                key={proj.id}
+                className="group block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-main-bg"
+              >
+                <ShowcaseCard
+                  icon={<FolderKanban className="h-5 w-5" aria-hidden="true" />}
+                  title={proj.name}
+                  category={proj.category}
+                  accentLabel={getProjectStatusLabel(proj.status || "Live", text)}
+                  description={proj.description}
+                  tags={techStack}
+                  footerLabel={text("Builders", "Builders")}
+                  footerValue={builders.join(", ") || "DSUC Builders"}
+                  footerAside={
+                    <>
+                      <Users className="h-3.5 w-3.5" aria-hidden="true" />
+                      <span className="font-mono text-[9px] font-bold uppercase tracking-widest">
+                        {builders.length}
+                      </span>
+                      {proj.repoLink ? (
+                        <Github className="h-3.5 w-3.5" aria-hidden="true" />
+                      ) : null}
+                    </>
+                  }
+                />
+              </Link>
+            );
+          })
+        )}
 
-        {filteredProjects.length === 0 && (
+        {!isLoadingData && filteredProjects.length === 0 && (
           <Card className="col-span-full p-12 text-center font-mono text-xs font-bold uppercase tracking-widest text-text-muted shadow-sm">
             {text("No projects found.", "Không tìm thấy dự án nào.")}
           </Card>

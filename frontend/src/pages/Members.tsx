@@ -5,6 +5,26 @@ import { useStore } from "@/store/useStore";
 import type { Member } from "@/types";
 import { useLocale } from "@/lib/locale";
 
+function MemberCardSkeleton() {
+  return (
+    <div className="card-shell flex h-full flex-col overflow-hidden border border-border-main bg-surface">
+      <div className="h-14 w-full bg-surface" />
+      <div className="relative flex-1 px-3.5 pb-3.5 pt-6">
+        <div className="absolute left-3.5 top-3 h-14 w-14 bg-surface motion-safe:animate-pulse" />
+        <div className="ml-[72px] space-y-2">
+          <div className="h-4 w-3/4 bg-surface motion-safe:animate-pulse" />
+          <div className="h-3 w-1/3 bg-surface motion-safe:animate-pulse" />
+          <div className="mt-3 flex gap-2">
+            <div className="h-5 w-12 bg-surface motion-safe:animate-pulse" />
+            <div className="h-5 w-16 bg-surface motion-safe:animate-pulse" />
+          </div>
+        </div>
+      </div>
+      <div className="h-9 bg-main-bg/60" />
+    </div>
+  );
+}
+
 function isCommunityMember(member: Member) {
   return (
     member.memberType === "community" ||
@@ -25,8 +45,10 @@ function translateMemberRole(
 export function Members() {
   const { text } = useLocale();
   const navigate = useNavigate();
-  const { members } = useStore();
+  const { members, bootstrapStatus } = useStore();
   const [searchQuery, setSearchQuery] = useState("");
+
+  const isLoadingData = (bootstrapStatus === "loading" || bootstrapStatus === "slow") && members.length === 0;
 
   const filteredMembers = members.filter((member) => {
     if (!searchQuery) return true;
@@ -223,10 +245,16 @@ export function Members() {
             </h2>
           </div>
           <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
-            {officialMembers.length} {text("profiles", "hồ sơ")}
+            {isLoadingData ? "..." : `${officialMembers.length} ${text("profiles", "hồ sơ")}`}
           </span>
         </div>
-        {officialMembers.length > 0 ? (
+        {isLoadingData ? (
+          <div className="grid auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <MemberCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : officialMembers.length > 0 ? (
           <div className="grid auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
             {officialMembers.map((member) => (
               <MemberCard key={member.id} member={member} intent="primary" />
@@ -248,10 +276,16 @@ export function Members() {
             </h2>
           </div>
           <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
-            {communityMembers.length} {text("profiles", "hồ sơ")}
+            {isLoadingData ? "..." : `${communityMembers.length} ${text("profiles", "hồ sơ")}`}
           </span>
         </div>
-        {communityMembers.length > 0 ? (
+        {isLoadingData ? (
+          <div className="grid auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <MemberCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : communityMembers.length > 0 ? (
           <div className="grid auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
             {communityMembers.map((member) => (
               <MemberCard key={member.id} member={member} intent="primary" />

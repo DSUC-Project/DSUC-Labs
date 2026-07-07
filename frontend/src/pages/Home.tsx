@@ -38,7 +38,9 @@ function MarqueeStrip() {
 
 export function Home() {
   const { text, isVIE } = useLocale();
-  const { members, projects, events } = useStore();
+  const { members, projects, events, bootstrapStatus } = useStore();
+
+  const isDataLoading = bootstrapStatus === "loading" || bootstrapStatus === "slow";
 
   const recentEvents = events.slice(0, 3);
   const recentProjects = projects.slice(0, 3);
@@ -201,23 +203,31 @@ export function Home() {
         <div className="container mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-border-main border-x border-border-main">
             {[
-              { label: text("Members", "Thành viên"), val: members.length || "0" },
-              { label: text("Projects", "Dự án"), val: projects.length || "0" },
-              { label: text("Events", "Sự kiện"), val: events.length || "0" },
-              { label: text("Academy Units", "Academy Units"), val: "120+" },
-            ].map((stat, i) => (
-              <div
-                key={i}
-                className="p-6 md:p-8 text-center flex flex-col items-center justify-center"
-              >
-                <p className="font-display font-bold text-4xl lg:text-5xl mb-2">
-                  {stat.val}
-                </p>
-                <p className="font-mono text-xs uppercase tracking-widest text-text-muted">
-                  {stat.label}
-                </p>
-              </div>
-            ))}
+              { label: text("Members", "Thành viên"), val: members.length, key: "members" as const },
+              { label: text("Projects", "Dự án"), val: projects.length, key: "projects" as const },
+              { label: text("Events", "Sự kiện"), val: events.length, key: "events" as const },
+              { label: text("Academy Units", "Academy Units"), val: 120, key: "academy" as const, fixed: true },
+            ].map((stat, i) => {
+              const showSkeleton = isDataLoading && !stat.fixed && (stat.val as number) === 0;
+
+              return (
+                <div
+                  key={i}
+                  className="p-6 md:p-8 text-center flex flex-col items-center justify-center"
+                >
+                  {showSkeleton ? (
+                    <div className="h-10 w-16 md:h-12 md:w-20 bg-surface motion-safe:animate-pulse mb-2" />
+                  ) : (
+                    <p className="font-display font-bold text-4xl lg:text-5xl mb-2">
+                      {stat.fixed ? stat.val : (stat.val || "0")}
+                    </p>
+                  )}
+                  <p className="font-mono text-xs uppercase tracking-widest text-text-muted">
+                    {stat.label}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

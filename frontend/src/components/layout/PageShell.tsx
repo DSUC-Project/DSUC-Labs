@@ -139,11 +139,13 @@ export function PageShell() {
     bounties,
     repos,
   ].some((items) => items.length > 0);
+
+  // Only hard-block the entire UI during the very first load.
+  // Once we hit "slow", prefer showing real layout + partial content / skeletons.
   const showInitialDataScreen =
     !hasPublicData &&
-    (bootstrapStatus === "idle" ||
-      bootstrapStatus === "loading" ||
-      bootstrapStatus === "slow");
+    (bootstrapStatus === "idle" || bootstrapStatus === "loading");
+
   const showInitialDataError = !hasPublicData && bootstrapStatus === "error";
 
   const openAuthModal = React.useCallback((mode: AuthIntent) => {
@@ -280,7 +282,9 @@ function BackendWakeBanner({
 }) {
   const { text } = useLocale();
   const isError = status === "error";
-  const isVisible = hasPublicData && (status === "slow" || isError);
+  // Show banner during slow (waking up) even if we have no data yet.
+  // This lets us render partial UI + inform user.
+  const isVisible = status === "slow" || isError;
 
   return (
     <AnimatePresence initial={false}>
@@ -322,10 +326,15 @@ function BackendWakeBanner({
                         "Showing cached content. Try again when the backend is awake.",
                         "Đang hiển thị dữ liệu cache. Thử lại khi backend đã thức.",
                       )
-                    : text(
-                        "Render free tier can take about 15 seconds after sleep. Cached content stays visible.",
-                        "Render free tier có thể mất khoảng 15 giây sau khi sleep. Nội dung cache vẫn được giữ lại.",
-                      )}
+                    : hasPublicData
+                      ? text(
+                          "Render free tier can take about 15 seconds after sleep. Cached content stays visible.",
+                          "Render free tier có thể mất khoảng 15 giây sau khi sleep. Nội dung cache vẫn được giữ lại.",
+                        )
+                      : text(
+                          "Backend is waking up (~15s). Live data will appear shortly.",
+                          "Backend đang khởi động (~15s). Dữ liệu live sẽ hiện trong giây lát.",
+                        )}
                 </p>
                 {isError && error && (
                   <p className="mt-1 break-words font-mono text-[10px] uppercase tracking-widest text-text-muted">
