@@ -38,7 +38,6 @@ import { useStore } from "./store/useStore";
 import { LocaleProvider } from "./lib/locale";
 
 const GOOGLE_CLIENT_ID = (import.meta as any).env.VITE_GOOGLE_CLIENT_ID || "";
-const BACKEND_KEEPALIVE_INTERVAL_MS = 1000 * 60 * 13;
 
 function ExecutiveAdminRoute({ children }: { children: React.ReactNode }) {
   const currentUser = useStore((state) => state.currentUser);
@@ -65,33 +64,6 @@ function LegacyCommunityLessonRedirect() {
 export default function App() {
   const fetchBootstrapData = useStore((state) => state.fetchBootstrapData);
   const checkSession = useStore((state) => state.checkSession);
-
-  useEffect(() => {
-    const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-    let cancelled = false;
-
-    const pingBackend = async () => {
-      try {
-        await fetch(`${base}/api/health`, {
-          method: "GET",
-          cache: "no-store",
-        });
-      } catch {
-        // Keepalive is best-effort. If it misses, the next user request can wake it again.
-      }
-    };
-
-    const timerId = window.setInterval(() => {
-      if (!cancelled) {
-        void pingBackend();
-      }
-    }, BACKEND_KEEPALIVE_INTERVAL_MS);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(timerId);
-    };
-  }, []);
 
   useEffect(() => {
     void Promise.allSettled([fetchBootstrapData(), checkSession()]);
