@@ -14,9 +14,11 @@ function MemberCardSkeleton() {
         <div className="ml-[72px] space-y-2">
           <div className="h-4 w-3/4 bg-surface motion-safe:animate-pulse" />
           <div className="h-3 w-1/3 bg-surface motion-safe:animate-pulse" />
-          <div className="mt-3 flex gap-2">
-            <div className="h-5 w-12 bg-surface motion-safe:animate-pulse" />
-            <div className="h-5 w-16 bg-surface motion-safe:animate-pulse" />
+          <div className="mt-3 flex flex-wrap gap-1">
+            <div className="h-[15px] w-11 bg-surface motion-safe:animate-pulse" />
+            <div className="h-[15px] w-14 bg-surface motion-safe:animate-pulse" />
+            <div className="h-[15px] w-10 bg-surface motion-safe:animate-pulse" />
+            <div className="h-[15px] w-7 bg-surface motion-safe:animate-pulse" />
           </div>
         </div>
       </div>
@@ -143,27 +145,24 @@ export function Members() {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-1.5">
-              <span className="bg-main-bg px-1.5 py-1 font-mono text-[8px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                {member.is_active ? text("Live", "Đang hoạt động") : text("Idle", "Tạm nghỉ")}
-              </span>
-              <span className="bg-main-bg px-1.5 py-1 font-mono text-[8px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                {member.skills.length} {text("skills", "kỹ năng")}
-              </span>
-              {member.skills.slice(0, 1).map((skill) => (
-                <span
-                  key={skill}
-                  className="bg-main-bg px-1.5 py-1 font-mono text-[8px] font-bold uppercase tracking-[0.16em] text-text-muted"
-                >
-                  {skill}
-                </span>
-              ))}
-              {member.skills.length > 1 && (
-                <span className="bg-main-bg px-1.5 py-1 font-mono text-[8px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                  +{member.skills.length - 1}
-                </span>
-              )}
-            </div>
+            {/* Skills row — pure skill tags (no status, no count) */}
+            {member.skills.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {member.skills.slice(0, 4).map((skill) => (
+                  <span
+                    key={skill}
+                    className="border border-primary/40 bg-main-bg px-2 py-px font-mono text-[9px] font-bold uppercase tracking-[0.1em] text-text-main whitespace-nowrap leading-none"
+                  >
+                    {skill}
+                  </span>
+                ))}
+                {member.skills.length > 4 && (
+                  <span className="border border-dashed border-border-main px-2 py-px font-mono text-[9px] font-bold uppercase tracking-[0.1em] text-text-muted whitespace-nowrap leading-none">
+                    +{member.skills.length - 4}
+                  </span>
+                )}
+              </div>
+            )}
 
             <div className="mt-auto flex items-center justify-between gap-3 pt-3">
               <div className="flex items-center gap-1.5 font-mono text-[9px] font-black uppercase tracking-[0.16em] text-text-muted">
