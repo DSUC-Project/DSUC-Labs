@@ -1,7 +1,7 @@
 import toast from "react-hot-toast";
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { ArrowLeft, ExternalLink, Github, Share2 } from "lucide-react";
 import { useStore } from "../store/useStore";
 import {

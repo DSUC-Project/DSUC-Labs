@@ -49,14 +49,6 @@ export type AuthIntent = "login" | "signup";
 // Server verifies the token and derives email / google_id — never trust client claims alone.
 export type GoogleCredential = string;
 
-/** @deprecated Prefer sending the raw credential JWT to the backend. */
-export interface GoogleUserInfo {
-  email: string;
-  google_id: string;
-  name: string;
-  avatar: string;
-}
-
 export interface Event {
   id: string;
   title: string;
