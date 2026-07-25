@@ -135,9 +135,12 @@ export async function uploadBase64ToImageBB(
   base64String: string
 ): Promise<string> {
   try {
-    // ImageBB API key
-    const API_KEY =
-      process.env.IMAGEBB_API_KEY || "5c5191a763d20c7fad2bfb62035d5210";
+    const API_KEY = process.env.IMAGEBB_API_KEY?.trim();
+    if (!API_KEY) {
+      throw new Error(
+        "IMAGEBB_API_KEY is not set (required for ImageBB uploads)"
+      );
+    }
 
     // Remove data:image/png;base64, prefix if exists
     const base64Data = base64String.replace(/^data:image\/\w+;base64,/, "");

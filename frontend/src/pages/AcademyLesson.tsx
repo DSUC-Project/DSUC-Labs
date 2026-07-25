@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   ArrowLeft,
   ArrowRight,

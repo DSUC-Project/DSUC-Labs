@@ -31,7 +31,7 @@ Production (`.env.example.deployment`):
 | `FRONTEND_URL` | CORS |
 | `JWT_SECRET` | **Strong secret in production** |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_CALLBACK_URL` | Google OAuth |
-| `IMAGEBB_API_KEY` | Optional uploads |
+| `IMAGEBB_API_KEY` | Required only if ImageBB upload helpers are used (no hardcoded fallback) |
 
 Supabase setup: run `database/schema.sql` (+ needed `migration_*.sql`), then `seed.sql` if needed. Create a public Storage bucket `avatars` for profile images. RLS scripts live under `database/` if you need them.
 
