@@ -26,88 +26,23 @@ import {
   markPendingAuthAnnouncement,
 } from "../lib/authUi";
 
-declare global {
-  interface Window {
-    solana?: any;
-    solflare?: any;
-  }
-}
-
 export type LocalDevRole = "admin" | "member" | "community";
 export type BootstrapStatus = "idle" | "loading" | "slow" | "ready" | "error";
 
-function uint8ToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  for (let i = 0; i < bytes.length; i += 1) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
-
-function toSignatureBytes(value: unknown): Uint8Array | null {
-  if (value instanceof Uint8Array) {
-    return value;
-  }
-  if (ArrayBuffer.isView(value)) {
-    const view = value as ArrayBufferView;
-    return new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
-  }
-  if (Array.isArray(value) && value.every((n) => typeof n === "number")) {
-    return Uint8Array.from(value);
-  }
-  return null;
-}
-
-async function signWalletMessage(
-  provider: "Phantom" | "Solflare",
-  message: string,
-): Promise<string> {
-  const encoded = new TextEncoder().encode(message);
-
-  if (provider === "Phantom" && window.solana?.signMessage) {
-    const result = await window.solana.signMessage(encoded, "utf8");
-    const signature =
-      toSignatureBytes(result?.signature) || toSignatureBytes(result);
-    if (!signature) {
-      throw new Error("Phantom did not return a signature");
-    }
-    return uint8ToBase64(signature);
-  }
-
-  if (provider === "Solflare" && window.solflare?.signMessage) {
-    const result = await window.solflare.signMessage(encoded, "utf8");
-    const signature =
-      toSignatureBytes(result?.signature) || toSignatureBytes(result);
-    if (!signature) {
-      throw new Error("Solflare did not return a signature");
-    }
-    return uint8ToBase64(signature);
-  }
-
-  throw new Error(
-    `${provider} does not support message signing. Update your wallet extension.`,
-  );
-}
-
 interface AppState {
-  isWalletConnected: boolean;
+  /** Profile wallet address mirror (not an active connection). */
   walletAddress: string | null;
-  walletProvider: "Phantom" | "Solflare" | null;
   currentUser: Member | null; // The logged-in user's profile
-  authMethod: AuthMethod | null; // 'wallet', 'google', or local dev auth
-  authToken: string | null; // JWT after Google, local, or signed wallet login
+  authMethod: AuthMethod | null; // 'google' or local dev auth
+  authToken: string | null; // JWT after Google or local login
   bootstrapStatus: BootstrapStatus;
   bootstrapError: string | null;
 
-  connectWallet: (provider: "Phantom" | "Solflare") => Promise<void>;
-  reconnectWallet: () => Promise<void>;
-  disconnectWallet: () => void;
   loginWithGoogle: (
     credential: GoogleCredential,
     intent?: AuthIntent,
   ) => Promise<boolean>;
   loginWithLocalAdmin: (role?: LocalDevRole) => Promise<boolean>;
-  linkGoogleAccount: (credential: GoogleCredential) => Promise<boolean>;
   checkSession: () => Promise<void>;
   logout: () => void;
   fetchBootstrapData: () => Promise<void>;
@@ -204,8 +139,7 @@ function getAuthHeaders(
     headers["Content-Type"] = "application/json";
   }
 
-  // Prefer JWT from signed wallet / Google / local login.
-  // Bare x-wallet-address is no longer accepted by the API for auth.
+  // Prefer JWT from Google / local login.
   const token =
     state.authToken ||
     (typeof localStorage !== "undefined"
@@ -248,9 +182,7 @@ function normalizeFinanceHistory(rows: any[]): FinanceRequest[] {
 }
 
 export const useStore = create<AppState>((set, get) => ({
-  isWalletConnected: false,
   walletAddress: null,
-  walletProvider: null,
   currentUser: null,
   authMethod: null,
   authToken: null,
@@ -595,197 +527,7 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  connectWallet: async (provider) => {
-    const clearWalletState = () => {
-      // Keep memory and localStorage in sync so getAuthHeaders() cannot
-      // resurrect a previous JWT after a failed wallet login attempt.
-      localStorage.removeItem("auth_token");
-      set({
-        isWalletConnected: false,
-        walletAddress: null,
-        walletProvider: null,
-        authMethod: null,
-        authToken: null,
-        currentUser: null,
-      });
-    };
-
-    try {
-      let addr: string | null = null;
-
-      if (provider === "Phantom" && window.solana && window.solana.isPhantom) {
-        const resp = await window.solana.connect();
-        addr = resp?.publicKey?.toString() ?? null;
-      } else if (provider === "Solflare" && window.solflare) {
-        if (!window.solflare.isConnected) {
-          await window.solflare.connect();
-        }
-        const publicKey = window.solflare.publicKey;
-        if (publicKey) {
-          addr =
-            typeof publicKey === "string" ? publicKey : publicKey.toString();
-        }
-      } else {
-        toast(
-          `${provider} is not installed or not available. Please install the ${provider} extension.`,
-        );
-        return;
-      }
-
-      if (!addr) {
-        clearWalletState();
-        return;
-      }
-
-      // Show connected address while we challenge/sign; session is not trusted yet.
-      set({
-        isWalletConnected: true,
-        walletAddress: addr,
-        walletProvider: provider,
-        authMethod: null,
-        authToken: null,
-        currentUser: null,
-      });
-
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-
-      const challengeRes = await fetch(`${base}/api/auth/wallet/challenge`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wallet_address: addr }),
-      });
-
-      if (!challengeRes.ok) {
-        const challengeErr = await challengeRes.json().catch(() => ({}));
-        toast(
-          `❌ WALLET CHALLENGE FAILED\n\n${
-            challengeErr.message || "Could not start wallet sign-in."
-          }`,
-        );
-        clearWalletState();
-        return;
-      }
-
-      const challengePayload = await challengeRes.json();
-      const challenge = challengePayload?.data;
-      if (!challenge?.message || !challenge?.nonce) {
-        toast("❌ WALLET CHALLENGE FAILED\n\nInvalid challenge from server.");
-        clearWalletState();
-        return;
-      }
-
-      let signature: string;
-      try {
-        signature = await signWalletMessage(provider, challenge.message);
-      } catch (signError: any) {
-        console.warn("[connectWallet] sign rejected or failed", signError);
-        toast(
-          `❌ SIGNATURE REQUIRED\n\n${
-            signError?.message ||
-            "Approve the sign-in message in your wallet to continue."
-          }`,
-        );
-        clearWalletState();
-        return;
-      }
-
-      const res = await fetch(`${base}/api/auth/wallet`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          wallet_address: addr,
-          signature,
-          nonce: challenge.nonce,
-          message: challenge.message,
-        }),
-      });
-
-      if (!res.headers.get("content-type")?.includes("application/json")) {
-        toast(
-          "❌ AUTHENTICATION FAILED\n\nCannot connect to server. Please try again later.",
-        );
-        clearWalletState();
-        return;
-      }
-
-      const result = await res.json();
-
-      if (res.ok && result?.success && result.data) {
-        const profile = normalizeMember(result.data);
-        const token = result.token || null;
-
-        if (token) {
-          localStorage.setItem("auth_token", token);
-        } else {
-          localStorage.removeItem("auth_token");
-        }
-
-        set((state) => ({
-          isWalletConnected: true,
-          walletAddress: addr,
-          walletProvider: provider,
-          currentUser: profile,
-          authMethod: "wallet",
-          authToken: token,
-          members: (() => {
-            const members = state.members.some((m) => m.id === profile.id)
-              ? state.members.map((member) =>
-                  member.id === profile.id ? profile : member,
-                )
-              : [profile, ...state.members];
-            writeCache("members", members);
-            return members;
-          })(),
-        }));
-        markPendingAuthAnnouncement("wallet");
-        return;
-      }
-
-      if (res.status === 404) {
-        toast(
-          "❌ NOT A CLUB MEMBER\n\nYour wallet is not registered in the system.\nPlease register to use the website!",
-        );
-      } else {
-        toast(
-          `❌ AUTHENTICATION FAILED\n\n${
-            result?.message || "Wallet signature could not be verified."
-          }`,
-        );
-      }
-      clearWalletState();
-    } catch (err) {
-      console.error("connectWallet error", err);
-      toast(
-        "❌ AUTHENTICATION FAILED\n\nCannot complete wallet sign-in. Please try again later.",
-      );
-      clearWalletState();
-    }
-  },
-
-  reconnectWallet: async () => {
-    const state = get();
-    if (!state.walletProvider) {
-      return;
-    }
-
-    await state.connectWallet(state.walletProvider);
-  },
-
-  disconnectWallet: () => {
-    clearPendingAuthAnnouncement();
-    localStorage.removeItem("auth_token");
-    set({
-      isWalletConnected: false,
-      walletAddress: null,
-      walletProvider: null,
-      currentUser: null,
-      authMethod: null,
-      authToken: null,
-    });
-  },
-
-  // Login with Google — send ID token; server verifies and derives identity
+  // Login with Google � send ID token; server verifies and derives identity
   loginWithGoogle: async (
     credential: GoogleCredential,
     intent: AuthIntent = "login",
@@ -810,9 +552,7 @@ export const useStore = create<AppState>((set, get) => ({
       if (res.ok && result.success) {
         const profile = normalizeMember(result.data);
         set((state) => ({
-          isWalletConnected: false,
-          walletAddress: null,
-          walletProvider: null,
+          walletAddress: profile.wallet_address || null,
           currentUser: profile,
           authMethod: "google",
           authToken: result.token,
@@ -828,14 +568,14 @@ export const useStore = create<AppState>((set, get) => ({
         return true;
       } else {
         toast(
-          `❌ LOGIN FAILED\n\n${result.message || "Email is not registered in the system."}`,
+          `? LOGIN FAILED\n\n${result.message || "Email is not registered in the system."}`,
         );
         return false;
       }
     } catch (error) {
       console.error("[loginWithGoogle] Error:", error);
       toast.error(
-        "❌ AUTHENTICATION FAILED\n\nCannot connect to server. Please try again later.",
+        "? AUTHENTICATION FAILED\n\nCannot connect to server. Please try again later.",
       );
       return false;
     }
@@ -855,9 +595,7 @@ export const useStore = create<AppState>((set, get) => ({
       if (res.ok && result.success) {
         const profile = normalizeMember(result.data);
         set((state) => ({
-          isWalletConnected: false,
           walletAddress: profile.wallet_address || null,
-          walletProvider: null,
           currentUser: profile,
           authMethod: "local",
           authToken: result.token,
@@ -873,79 +611,13 @@ export const useStore = create<AppState>((set, get) => ({
       }
 
       toast(
-        `❌ LOCAL LOGIN FAILED\n\n${result.message || "Local dev auth is not available."}`,
+        `? LOCAL LOGIN FAILED\n\n${result.message || "Local dev auth is not available."}`,
       );
       return false;
     } catch (error) {
       console.error("[loginWithLocalAdmin] Error:", error);
       toast.error(
-        "❌ LOCAL LOGIN FAILED\n\nCannot reach the local backend dev auth endpoint.",
-      );
-      return false;
-    }
-  },
-
-  // Link Google account to existing wallet account (server verifies credential)
-  linkGoogleAccount: async (credential: GoogleCredential) => {
-    try {
-      const state = get();
-      if (!state.walletAddress || !state.currentUser) {
-        toast.error(
-          "Please login with wallet first before linking Google account.",
-        );
-        return false;
-      }
-
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-      console.log(
-        "[linkGoogleAccount] Linking Google to wallet:",
-        state.walletAddress,
-      );
-
-      const res = await fetch(`${base}/api/auth/google/link`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(state.authToken
-            ? { Authorization: `Bearer ${state.authToken}` }
-            : {}),
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          credential,
-        }),
-      });
-
-      const result = await res.json();
-      console.log("[linkGoogleAccount] Result:", result);
-
-      if (res.ok && result.success) {
-        const updatedProfile = normalizeMember(result.data);
-        // Update current user with new Google info
-        set((state) => {
-          const members = state.members.map((member) =>
-            member.id === updatedProfile.id ? updatedProfile : member,
-          );
-          writeCache("members", members);
-          return {
-            currentUser: updatedProfile,
-            members,
-          };
-        });
-        toast.success(
-          "✅ Account linked successfully!\n\nYou can now login with either Google or Wallet.",
-        );
-        return true;
-      } else {
-        toast(
-          `❌ Account linking failed\n\n${result.message || "An error occurred."}`,
-        );
-        return false;
-      }
-    } catch (error) {
-      console.error("[linkGoogleAccount] Error:", error);
-      toast.error(
-        "❌ ACCOUNT LINKING FAILED\n\nCannot connect to server. Please try again later.",
+        "? LOCAL LOGIN FAILED\n\nCannot reach the local backend dev auth endpoint.",
       );
       return false;
     }
@@ -970,15 +642,10 @@ export const useStore = create<AppState>((set, get) => ({
 
       if (result.success && result.authenticated && result.data) {
         const profile = normalizeMember(result.data);
-        const sessionAuthMethod =
-          result.authMethod ||
-          (profile.auth_provider === "wallet" ? "wallet" : "google");
+        const sessionAuthMethod: AuthMethod =
+          result.authMethod === "local" ? "local" : "google";
         set((state) => ({
-          isWalletConnected: sessionAuthMethod === "wallet",
-          walletAddress:
-            sessionAuthMethod === "wallet"
-              ? profile.wallet_address || state.walletAddress
-              : state.walletAddress,
+          walletAddress: profile.wallet_address || null,
           currentUser: profile,
           authMethod: sessionAuthMethod,
           authToken: token,
@@ -1007,15 +674,12 @@ export const useStore = create<AppState>((set, get) => ({
     }).catch(console.error);
 
     set({
-      isWalletConnected: false,
       walletAddress: null,
-      walletProvider: null,
       currentUser: null,
       authMethod: null,
       authToken: null,
     });
   },
-
   addEvent: async (event) => {
     const state = get();
 
@@ -1509,6 +1173,7 @@ export const useStore = create<AppState>((set, get) => ({
 
         set({
           currentUser: updatedUser,
+          walletAddress: updatedUser.wallet_address || null,
           members: updatedMembers,
         });
         writeCache("members", updatedMembers);

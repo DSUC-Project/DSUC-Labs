@@ -30,8 +30,10 @@ export interface Member {
   // Google auth fields
   email?: string;
   google_id?: string;
+  /** Legacy DB values may still include "wallet" / "both"; login is Google (or local). */
   auth_provider?: "wallet" | "google" | "both";
   email_verified?: boolean;
+  /** Optional profile field only — not used for authentication. */
   wallet_address?: string | null;
   profile_completed?: boolean;
   streak?: number;
@@ -39,8 +41,8 @@ export interface Member {
   academyRank?: string;
 }
 
-// Auth method type
-export type AuthMethod = "wallet" | "google" | "local";
+// Auth method type (how the current session was established)
+export type AuthMethod = "google" | "local";
 export type AuthIntent = "login" | "signup";
 
 // Google Sign-In credential (ID token JWT from @react-oauth/google).

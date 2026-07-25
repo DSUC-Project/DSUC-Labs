@@ -103,7 +103,7 @@ export function PageShell() {
   const [showLoginNotification, setShowLoginNotification] = useState(false);
   const [lastLoginInfo, setLastLoginInfo] = useState<{
     name?: string;
-    method?: "wallet" | "google" | "local";
+    method?: "google" | "local";
   }>({});
   const [theme, setTheme] = useState<AppTheme>(() => readStoredTheme());
 

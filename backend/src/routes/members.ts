@@ -385,13 +385,12 @@ router.get("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/members/auth - Authenticate with wallet address
-// Legacy endpoint — wallet ownership is no longer proven by address alone.
+// POST /api/members/auth - Legacy wallet auth (removed)
 router.post("/auth", async (_req: Request, res: Response) => {
   return res.status(410).json({
     error: "Gone",
     message:
-      "POST /api/members/auth is disabled. Use POST /api/auth/wallet/challenge then POST /api/auth/wallet with a signed challenge.",
+      "POST /api/members/auth is disabled. Sign in with Google via POST /api/auth/google/login.",
   });
 });
 

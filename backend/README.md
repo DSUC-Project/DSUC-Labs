@@ -39,35 +39,19 @@ Supabase setup: run `database/schema.sql` (+ needed `migration_*.sql`), then `se
 
 ## Auth
 
-**Do not use bare wallet headers.**  
-`x-wallet-address` alone is rejected.  
-`POST /api/members/auth` → **410 Gone**.
+Production login is **Google only**. Local mock login is for development.
 
-### Wallet (signed challenge → JWT)
+`x-wallet-address` alone is rejected (not an auth method).  
+`POST /api/members/auth` and wallet challenge login → **410 Gone**.  
+`members.wallet_address` remains optional **profile data** only.
 
-```bash
-# 1) challenge
-curl -X POST http://localhost:3001/api/auth/wallet/challenge \
-  -H "Content-Type: application/json" \
-  -d '{"wallet_address":"YOUR_SOLANA_ADDRESS"}'
-
-# 2) sign returned `message` with the wallet
-
-# 3) exchange
-curl -X POST http://localhost:3001/api/auth/wallet \
-  -H "Content-Type: application/json" \
-  -d '{"wallet_address":"...","signature":"...","nonce":"..."}'
-```
-
-Then call protected routes with:
+Call protected routes with:
 
 ```http
 Authorization: Bearer <token>
 ```
 
 (Cookie `auth_token` also works when cookies are sent.)
-
-### Other
 
 | Method | Notes |
 |--------|--------|
@@ -76,7 +60,7 @@ Authorization: Bearer <token>
 | Session | `GET /api/auth/session`, `POST /api/auth/logout` |
 | Agent key | `x-dsuc-agent-key` or `Authorization: Agent <key>` |
 
-Code: `src/lib/walletAuth.ts`, `src/routes/auth.ts`, `src/middleware/auth.ts`.
+Code: `src/routes/auth.ts`, `src/middleware/auth.ts`, `src/lib/googleAuth.ts`.
 
 Member ids are student IDs (text), e.g. `101240059` — not UUIDs. Community accounts may use `community-*`.
 
@@ -90,9 +74,7 @@ Academy learner progress/stats need JWT. Curated content seed for validation: `c
 
 | Symptom | Fix |
 |---------|-----|
-| Wallet header rejected | Complete signed login; send JWT |
-| `/api/members/auth` 410 | Use `/api/auth/wallet/challenge` + `/wallet` |
-| Wallet not registered | Member row must exist (or Google onboard / admin) |
-| Challenge invalid/expired | New challenge (~5 min, single-use) |
+| Wallet header rejected | Sign in with Google; send JWT |
+| `/api/members/auth` 410 | Use `/api/auth/google/login` |
 | CORS | Check `FRONTEND_URL` and allowlist in `src/index.ts` |
 | Avatar upload fails | Public `avatars` bucket + policies in Supabase |

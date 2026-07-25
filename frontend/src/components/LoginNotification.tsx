@@ -4,59 +4,48 @@ import {
   CheckCircle2,
   FlaskConical,
   Mail,
-  Wallet,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/lib/locale";
+import type { AuthMethod } from "@/types";
 
 interface LoginNotificationProps {
   isVisible: boolean;
   userName?: string;
-  authMethod?: "wallet" | "google" | "local";
+  authMethod?: AuthMethod;
   onDismiss: () => void;
 }
 
 export function LoginNotification({
   isVisible,
   userName = "User",
-  authMethod = "wallet",
+  authMethod = "google",
   onDismiss,
 }: LoginNotificationProps) {
   const { text } = useLocale();
   const authMethodLabel =
-    authMethod === "google"
-      ? "Google"
-      : authMethod === "local"
-        ? text("Local Admin", "Admin local")
-        : "Wallet";
+    authMethod === "local"
+      ? text("Local Admin", "Admin local")
+      : "Google";
   const methodMeta =
-    authMethod === "google"
+    authMethod === "local"
       ? {
+          icon: FlaskConical,
+          badgeClassName: "bg-amber-500/10 text-amber-600 dark:text-amber-300",
+          helperCopy: text(
+            "Local development admin session is active.",
+            "Phiên admin local cho môi trường phát triển đang hoạt động.",
+          ),
+        }
+      : {
           icon: Mail,
           badgeClassName: "bg-primary/10 text-primary",
           helperCopy: text(
             "Signed in with your DSUC Google account.",
             "Bạn đã đăng nhập bằng tài khoản Google DSUC.",
           ),
-        }
-      : authMethod === "local"
-        ? {
-            icon: FlaskConical,
-            badgeClassName: "bg-amber-500/10 text-amber-600 dark:text-amber-300",
-            helperCopy: text(
-              "Local development admin session is active.",
-              "Phiên admin local cho môi trường phát triển đang hoạt động.",
-            ),
-          }
-        : {
-            icon: Wallet,
-            badgeClassName: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
-            helperCopy: text(
-              "Wallet authentication is active on this device.",
-              "Phiên xác thực bằng wallet đang hoạt động trên thiết bị này.",
-            ),
-          };
+        };
   const MethodIcon = methodMeta.icon;
 
   useEffect(() => {

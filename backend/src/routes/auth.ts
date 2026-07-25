@@ -11,12 +11,6 @@ import {
 } from "../middleware/auth";
 import { attachAcademyStatsToMember } from "../utils/academyStats";
 import { IS_PRODUCTION, USE_MOCK_DB } from "../config/runtime";
-import {
-  createWalletChallenge,
-  consumeWalletChallenge,
-  isLikelySolanaAddress,
-  verifyWalletSignature,
-} from "../lib/walletAuth";
 import { verifyGoogleIdToken } from "../lib/googleAuth";
 
 const router = Router();
@@ -223,150 +217,6 @@ passport.deserializeUser(async (id: string, done: any) => {
   }
 });
 
-// POST /api/auth/wallet/challenge - Issue a one-time message for the wallet to sign
-router.post("/wallet/challenge", async (req: Request, res: Response) => {
-  try {
-    const wallet_address = String(req.body?.wallet_address || "").trim();
-
-    if (!wallet_address) {
-      return res.status(400).json({
-        error: "Bad Request",
-        message: "wallet_address is required",
-      });
-    }
-
-    if (!USE_MOCK_DB && !isLikelySolanaAddress(wallet_address)) {
-      return res.status(400).json({
-        error: "Bad Request",
-        message: "Invalid Solana wallet address format",
-      });
-    }
-
-    const challenge = createWalletChallenge(wallet_address);
-
-    res.json({
-      success: true,
-      data: {
-        wallet_address,
-        ...challenge,
-      },
-      message: "Sign this message with your wallet to prove ownership",
-    });
-  } catch (error: any) {
-    console.error("Error creating wallet challenge:", error);
-    res.status(500).json({
-      error: "Internal Server Error",
-      message: error.message,
-    });
-  }
-});
-
-// POST /api/auth/wallet - Authenticate by signed challenge (proves wallet ownership)
-router.post("/wallet", async (req: Request, res: Response) => {
-  try {
-    const wallet_address = String(req.body?.wallet_address || "").trim();
-    const signature = String(req.body?.signature || "").trim();
-    const nonce = String(req.body?.nonce || "").trim();
-    // Optional: client may echo the message; server always uses the challenge record.
-    const clientMessage =
-      typeof req.body?.message === "string" ? req.body.message : undefined;
-
-    if (!wallet_address || !signature || !nonce) {
-      return res.status(400).json({
-        error: "Bad Request",
-        message:
-          "wallet_address, signature, and nonce are required. Call POST /api/auth/wallet/challenge first.",
-      });
-    }
-
-    if (!USE_MOCK_DB && !isLikelySolanaAddress(wallet_address)) {
-      return res.status(400).json({
-        error: "Bad Request",
-        message: "Invalid Solana wallet address format",
-      });
-    }
-
-    const challenge = consumeWalletChallenge(nonce, wallet_address);
-    if (!challenge.ok) {
-      return res.status(401).json({
-        error: "Unauthorized",
-        message: challenge.reason,
-      });
-    }
-
-    if (clientMessage && clientMessage !== challenge.message) {
-      return res.status(401).json({
-        error: "Unauthorized",
-        message: "Signed message does not match the issued challenge",
-      });
-    }
-
-    const signatureValid = verifyWalletSignature(
-      wallet_address,
-      signature,
-      challenge.message
-    );
-
-    if (!signatureValid) {
-      return res.status(401).json({
-        error: "Unauthorized",
-        message: "Invalid wallet signature for the login challenge",
-      });
-    }
-
-    let memberQuery = db
-      .from("members")
-      .select("*")
-      .eq("wallet_address", wallet_address);
-
-    if (!USE_MOCK_DB) {
-      memberQuery = memberQuery.eq("is_active", true);
-    }
-
-    const { data: memberRow, error } = await (USE_MOCK_DB
-      ? memberQuery
-      : memberQuery.single());
-
-    const member = USE_MOCK_DB
-      ? Array.isArray(memberRow)
-        ? memberRow[0]
-        : memberRow
-      : memberRow;
-
-    if (error || !member) {
-      return res.status(404).json({
-        error: "Not Found",
-        message:
-          "Wallet address not registered. Please sign in with Google first or ask an admin to approve your wallet.",
-      });
-    }
-
-    const token = generateToken({
-      userId: member.id,
-      email: member.email || undefined,
-      wallet_address: member.wallet_address || wallet_address,
-      auth_method: "wallet",
-    });
-
-    const memberWithStats = await attachAcademyStatsToMember(member);
-
-    res.cookie("auth_token", token, getAuthCookieOptions());
-
-    res.json({
-      success: true,
-      data: memberWithStats,
-      token,
-      message: "Authentication successful",
-    });
-  } catch (error: any) {
-    console.error("Error authenticating wallet:", error);
-    res.status(500).json({
-      error: "Internal Server Error",
-      message: error.message,
-    });
-  }
-});
-
 // ============================================
 // GOOGLE OAUTH ROUTES
 // ============================================
@@ -417,147 +267,14 @@ router.get(
   }
 );
 
-// POST /api/auth/google/link - Link Google account to the authenticated wallet session
-router.post(
-  "/google/link",
-  authenticateUser as any,
-  async (req: AuthRequest, res: Response) => {
-    try {
-      const sessionUser = req.user;
-      const credential = String(
-        req.body?.credential || req.body?.id_token || ""
-      ).trim();
-
-      if (!sessionUser?.id) {
-        return res.status(401).json({
-          error: "Unauthorized",
-          message: "Sign in with your wallet before linking Google",
-        });
-      }
-
-      // Require a wallet on the authenticated session — never trust body.wallet_address.
-      const wallet_address = sessionUser.wallet_address || null;
-      if (!wallet_address) {
-        return res.status(403).json({
-          error: "Forbidden",
-          message:
-            "A wallet-authenticated session is required to link a Google account",
-        });
-      }
-
-      if (!credential) {
-        return res.status(400).json({
-          error: "Bad Request",
-          message:
-            "Google ID token (credential) is required. Complete Google Sign-In and send the credential JWT.",
-        });
-      }
-
-      if (!GOOGLE_CLIENT_ID) {
-        return res.status(503).json({
-          error: "Service Unavailable",
-          message: "Google Sign-In is not configured on the server",
-        });
-      }
-
-      let googleIdentity;
-      try {
-        googleIdentity = await verifyGoogleIdToken(
-          credential,
-          GOOGLE_CLIENT_ID
-        );
-      } catch (verifyError: any) {
-        return res.status(401).json({
-          error: "Unauthorized",
-          message:
-            verifyError?.message ||
-            "Invalid or expired Google credential",
-        });
-      }
-
-      const { data: member, error: memberError } = await db
-        .from("members")
-        .select("*")
-        .eq("id", sessionUser.id)
-        .single();
-
-      if (memberError || !member) {
-        return res.status(404).json({
-          error: "Not Found",
-          message: "Authenticated member not found",
-        });
-      }
-
-      if (!member.wallet_address) {
-        return res.status(403).json({
-          error: "Forbidden",
-          message:
-            "A wallet-authenticated session is required to link a Google account",
-        });
-      }
-
-      const { data: existingEmail } = await db
-        .from("members")
-        .select("id")
-        .eq("email", googleIdentity.email)
-        .neq("id", member.id)
-        .single();
-
-      if (existingEmail) {
-        return res.status(409).json({
-          error: "Conflict",
-          message: "Email is already linked to another account",
-        });
-      }
-
-      const { data: existingGoogle } = await db
-        .from("members")
-        .select("id")
-        .eq("google_id", googleIdentity.googleId)
-        .neq("id", member.id)
-        .single();
-
-      if (existingGoogle) {
-        return res.status(409).json({
-          error: "Conflict",
-          message: "This Google account is already linked to another member",
-        });
-      }
-
-      const { data: updatedMember, error: updateError } = await db
-        .from("members")
-        .update({
-          email: googleIdentity.email,
-          google_id: googleIdentity.googleId,
-          auth_provider: "both",
-          email_verified: googleIdentity.emailVerified,
-        })
-        .eq("id", member.id)
-        .select()
-        .single();
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      const updatedMemberWithStats =
-        await attachAcademyStatsToMember(updatedMember);
-
-      res.json({
-        success: true,
-        data: updatedMemberWithStats,
-        message: "Google account linked successfully",
-      });
-    } catch (error: any) {
-      console.error("Error linking Google account:", error);
-      res.status(500).json({
-        error: "Internal Server Error",
-        message: error.message,
-      });
-    }
-  }
-);
-
+// POST /api/auth/google/link - Removed with wallet login (Google is the sole production auth)
+router.post("/google/link", (_req: Request, res: Response) => {
+  return res.status(410).json({
+    error: "Gone",
+    message:
+      "Wallet-to-Google linking is no longer supported. Sign in with Google directly.",
+  });
+});
 // POST /api/auth/google/login - Login with a verified Google ID token
 router.post("/google/login", async (req: Request, res: Response) => {
   try {
@@ -792,8 +509,7 @@ router.get("/session", async (req: Request, res: Response) => {
 
     const memberWithStats = await attachAcademyStatsToMember(member);
     const sessionAuthMethod =
-      payload.auth_method ||
-      (member.wallet_address ? "wallet" : "google");
+      payload.auth_method === "local" ? "local" : "google";
 
     res.json({
       success: true,

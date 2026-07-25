@@ -11,9 +11,7 @@ import {
   Facebook,
   LogOut,
   CreditCard,
-  Mail,
   Link2,
-  CheckCircle,
   Edit2,
   Hexagon,
   Trophy,
@@ -22,7 +20,6 @@ import {
   ArrowRight,
   Globe,
 } from "lucide-react";
-import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import { useStore } from "../store/useStore";
 import { BANKS } from "../data/mockData";
 import { SkillInput } from "../components/SkillInput";
@@ -37,15 +34,10 @@ export function MyProfile() {
   const {
     currentUser,
     updateCurrentUser,
-    linkGoogleAccount,
     logout,
-    authMethod,
-    reconnectWallet,
   } = useStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [isLinkingGoogle, setIsLinkingGoogle] = useState(false);
-  const [isReconnectingWallet, setIsReconnectingWallet] = useState(false);
 
   // Local state for form
   const [name, setName] = useState("");
@@ -259,35 +251,6 @@ export function MyProfile() {
     navigate("/");
   };
 
-  const handleReconnectWallet = async () => {
-    setIsReconnectingWallet(true);
-    try {
-      await reconnectWallet();
-    } finally {
-      setIsReconnectingWallet(false);
-    }
-  };
-
-  const handleGoogleLinkSuccess = async (
-    credentialResponse: CredentialResponse,
-  ) => {
-    if (!credentialResponse.credential) return;
-
-    setIsLinkingGoogle(true);
-    try {
-      await linkGoogleAccount(credentialResponse.credential);
-    } catch (error) {
-      toast.error(
-        text(
-          "Failed to link Google account. Please try again.",
-          "Liên kết tài khoản Google thất bại. Vui lòng thử lại.",
-        ),
-      );
-    } finally {
-      setIsLinkingGoogle(false);
-    }
-  };
-
   if (!currentUser) return null;
 
   return (
@@ -426,20 +389,18 @@ export function MyProfile() {
             >
               <SoftBrutalCard intent="default" className="p-6">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-4 flex items-center gap-2">
-                  <Hexagon size={16} className="text-primary" /> {text("Wallet Connection", "Kết nối wallet")}
+                  <Hexagon size={16} className="text-primary" />{" "}
+                  {text("Wallet Address", "Địa chỉ wallet")}
                 </h3>
-                <div className="text-xs font-mono text-text-muted break-all mb-6 bg-main-bg p-4 border border-border-main">
+                <div className="text-xs font-mono text-text-muted break-all bg-main-bg p-4 border border-border-main">
                   {currentUser.wallet_address}
                 </div>
-                <button
-                  onClick={handleReconnectWallet}
-                  disabled={isReconnectingWallet}
-                  className="w-full bg-surface hover:bg-main-bg border border-border-main text-text-main font-bold text-xs uppercase tracking-wider py-3 transition-colors shadow-sm disabled:opacity-60"
-                >
-                  {isReconnectingWallet
-                    ? text("Reconnecting...", "Đang kết nối lại...")
-                    : text("Reconnect Wallet", "Kết nối lại wallet")}
-                </button>
+                <p className="mt-3 text-xs text-text-muted">
+                  {text(
+                    "Profile field only — not used for sign-in.",
+                    "Chỉ là thông tin hồ sơ — không dùng để đăng nhập.",
+                  )}
+                </p>
               </SoftBrutalCard>
             </motion.div>
           )}
@@ -825,66 +786,6 @@ export function MyProfile() {
             </SoftBrutalCard>
           </motion.div>
 
-          {/* Google Auth - Only show if not fully integrated native */}
-          {authMethod === "wallet" && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-            >
-              <SoftBrutalCard intent="default" className="p-6">
-                <h3 className="text-xl font-display font-bold text-text-main mb-6 flex items-center gap-3">
-                  <Mail className="text-primary" size={24} /> {text("Fallback Login Method", "Phương thức đăng nhập dự phòng")}
-                </h3>
-
-                {currentUser?.email ? (
-                  <div className="flex items-center gap-4 bg-emerald-400/10 border border-border-main p-5 shadow-sm">
-                    <CheckCircle className="text-emerald-500" size={32} />
-                    <div>
-                      <div className="text-xs font-bold text-text-main uppercase tracking-widest">
-                        {text("Linked", "Đã liên kết")}
-                      </div>
-                      <div className="text-text-main font-bold mt-1 text-lg">
-                        {currentUser.email}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-surface p-6 border border-border-main shadow-sm gap-4 relative overflow-hidden">
-                    <div className="relative z-10">
-                      <div className="font-bold text-text-main text-xl tracking-tight uppercase">
-                        {text("Account not linked", "Tài khoản chưa liên kết")}
-                      </div>
-                      <div className="text-sm font-bold text-text-muted mt-1">
-                        {text(
-                          "Recommended for account recovery to avoid lost access.",
-                          "Nên liên kết để dễ khôi phục tài khoản và tránh mất quyền truy cập.",
-                        )}
-                      </div>
-                    </div>
-                    <div className="relative z-10 shrink-0">
-                      {isLinkingGoogle ? (
-                        <span className="text-text-main font-bold text-xs uppercase tracking-widest px-4 py-2 bg-primary/10 border border-border-main shadow-sm">
-                          {text("Processing...", "Đang xử lý...")}
-                        </span>
-                      ) : (
-                        <div className="bg-surface p-1 shadow-sm border border-border-main inline-block">
-                          <GoogleLogin
-                            onSuccess={handleGoogleLinkSuccess}
-                            onError={() => toast.error(text("Failed", "Thất bại"))}
-                            useOneTap={false}
-                            theme="outline"
-                            size="medium"
-                            shape="rectangular"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </SoftBrutalCard>
-            </motion.div>
-          )}
         </div>
       </div>
     </div>

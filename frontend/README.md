@@ -34,13 +34,14 @@ Templates: `.env.example.local`, `.env.example.deployment`. Restart Vite after e
 
 ## Auth (client)
 
-Do **not** send bare `x-wallet-address` as auth.
+Production login is **Google only**. Do not send bare `x-wallet-address` as auth.
 
 | Method | Flow |
 |--------|------|
-| Wallet | challenge → sign → `POST /api/auth/wallet` → JWT in `auth_token` |
-| Google | ID token / OAuth → JWT |
+| Google | ID token / OAuth → JWT in `auth_token` |
 | Local mock | `POST /api/auth/dev-login` (mock backend, local only) |
+
+`wallet_address` on a member is optional profile data (admin-editable), not a sign-in method.
 
 Session: `GET /api/auth/session` with `Authorization: Bearer <token>`.  
 Code: `src/store/useStore.ts`, `src/components/layout/PageShell.tsx`.
