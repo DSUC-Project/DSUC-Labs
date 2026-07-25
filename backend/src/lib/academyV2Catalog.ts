@@ -187,7 +187,18 @@ type BuiltCatalog = {
 
 let cachedCatalog: BuiltCatalog | null = null;
 
+/**
+ * Canonical curated Academy v2 seed (single source of truth for FE + BE).
+ * Frontend resolves the same files via the `@academy-v2-seed` Vite alias.
+ * Layout: backend/content/academy-v2/seed/*.json
+ * (Render rootDir is `backend`, so the seed must live under this package.)
+ * Override with ACADEMY_V2_SEED_DIR only for nonstandard deploys.
+ */
 function seedDir() {
+  if (process.env.ACADEMY_V2_SEED_DIR) {
+    return path.resolve(process.env.ACADEMY_V2_SEED_DIR);
+  }
+  // From backend/src/lib (tsx) or backend/dist/lib (compiled) → backend/content/...
   return path.resolve(__dirname, '../..', 'content', 'academy-v2', 'seed');
 }
 

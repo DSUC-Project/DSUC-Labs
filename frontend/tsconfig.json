@@ -19,9 +19,13 @@
     "moduleDetection": "force",
     "allowJs": true,
     "jsx": "react-jsx",
+    "resolveJsonModule": true,
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@academy-v2-seed/*": [
+        "../backend/content/academy-v2/seed/*"
       ]
     },
     "allowImportingTsExtensions": true,
@@ -29,7 +33,8 @@
   },
   "include": [
     "src",
-    "vite.config.ts"
+    "vite.config.ts",
+    "../backend/content/academy-v2/seed/**/*.json"
   ],
   "exclude": [
     "dist",

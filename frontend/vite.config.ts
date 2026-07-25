@@ -34,6 +34,11 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Single source of truth: backend/content/academy-v2/seed (see scripts/assert-academy-seed.mjs)
+      "@academy-v2-seed": path.resolve(
+        __dirname,
+        "../backend/content/academy-v2/seed",
+      ),
     },
   },
 });

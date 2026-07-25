@@ -45,5 +45,5 @@ Code: `src/store/useStore.ts`, `src/components/layout/PageShell.tsx`.
 ## Notes
 
 - Source lives under `src/`
-- Academy curated seed: `src/content/academy-v2/seed/` (keep in sync with `backend/content/academy-v2/seed/`)
+- Academy curated seed: edit **only** `backend/content/academy-v2/seed/` (loaded here as `@academy-v2-seed`). No FE copy, no sync command — content authors just edit JSON and commit.
 - Production: set env from `.env.example.deployment`, then `npm run build` → deploy `dist/`
