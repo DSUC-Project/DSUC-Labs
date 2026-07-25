@@ -5,13 +5,12 @@ import { motion, AnimatePresence } from "motion/react";
 import { Navbar } from "./Navbar";
 import { AppBackground } from "./AppBackground";
 import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
-import { jwtDecode } from "jwt-decode";
 import {
   type BootstrapStatus,
   type LocalDevRole,
   useStore,
 } from "@/store/useStore";
-import { type AuthIntent, type GoogleUserInfo } from "@/types";
+import { type AuthIntent } from "@/types";
 import { LoginNotification } from "../LoginNotification";
 import { ContactModal } from "../ContactModal";
 import { ModalShell } from "@/components/ui/ModalShell";
@@ -40,14 +39,6 @@ export const ContactModalContext = createContext<{
   openContactModal: () => void;
 }>({ openContactModal: () => {} });
 export const useContactModal = () => useContext(ContactModalContext);
-
-interface GoogleJWTPayload {
-  sub: string;
-  email: string;
-  name: string;
-  picture: string;
-  email_verified: boolean;
-}
 
 const getIntensityForPath = (path: string): "low" | "medium" | "high" => {
   if (
@@ -528,16 +519,10 @@ function RealAuthModal({
     if (!credentialResponse.credential) return;
     setIsLoading(true);
     try {
-      const decoded = jwtDecode<GoogleJWTPayload>(
+      const success = await loginWithGoogle(
         credentialResponse.credential,
+        mode,
       );
-      const googleUserInfo: GoogleUserInfo = {
-        email: decoded.email,
-        google_id: decoded.sub,
-        name: decoded.name,
-        avatar: decoded.picture,
-      };
-      const success = await loginWithGoogle(googleUserInfo, mode);
       if (success) onClose();
     } catch (error) {
       console.error("[GoogleLogin] Error:", error);

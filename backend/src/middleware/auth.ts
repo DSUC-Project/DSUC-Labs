@@ -301,6 +301,14 @@ export async function authenticateToken(
       });
     }
 
+    // Re-check membership status on every request (JWT alone is not enough).
+    if (member.is_active === false) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'This account has been deactivated',
+      });
+    }
+
     req.user = member;
     next();
   } catch (error: any) {
@@ -360,6 +368,13 @@ export async function authenticateUser(
             ? (Array.isArray(member) ? member[0] : member)
             : member;
         }
+      }
+
+      if (agentUser && agentUser.is_active === false) {
+        return res.status(403).json({
+          error: 'Forbidden',
+          message: 'Agent key owner account has been deactivated',
+        });
       }
 
       req.user = agentUser || {

@@ -43,7 +43,11 @@ export interface Member {
 export type AuthMethod = "wallet" | "google" | "local";
 export type AuthIntent = "login" | "signup";
 
-// Google user info from OAuth
+// Google Sign-In credential (ID token JWT from @react-oauth/google).
+// Server verifies the token and derives email / google_id — never trust client claims alone.
+export type GoogleCredential = string;
+
+/** @deprecated Prefer sending the raw credential JWT to the backend. */
 export interface GoogleUserInfo {
   email: string;
   google_id: string;

@@ -17,6 +17,7 @@ import {
   isLikelySolanaAddress,
   verifyWalletSignature,
 } from "../lib/walletAuth";
+import { verifyGoogleIdToken } from "../lib/googleAuth";
 
 const router = Router();
 
@@ -26,6 +27,26 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
 const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL || "http://localhost:3001/api/auth/google/callback";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 type DevAuthRole = "admin" | "member" | "community";
+
+const AUTH_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+function getAuthCookieOptions() {
+  return {
+    httpOnly: true,
+    // Cross-origin SPA → API in production needs Secure + SameSite=None for cookies.
+    secure: IS_PRODUCTION,
+    sameSite: (IS_PRODUCTION ? "none" : "lax") as "none" | "lax",
+    maxAge: AUTH_COOKIE_MAX_AGE_MS,
+  };
+}
+
+function clearAuthCookie(res: Response) {
+  res.clearCookie("auth_token", {
+    httpOnly: true,
+    secure: IS_PRODUCTION,
+    sameSite: IS_PRODUCTION ? "none" : "lax",
+  });
+}
 
 const DEV_AUTH_ACCOUNTS: Record<DevAuthRole, { id: string; label: string }> = {
   admin: { id: "101240059", label: "Local Admin" },
@@ -329,12 +350,7 @@ router.post("/wallet", async (req: Request, res: Response) => {
 
     const memberWithStats = await attachAcademyStatsToMember(member);
 
-    res.cookie("auth_token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("auth_token", token, getAuthCookieOptions());
 
     res.json({
       success: true,
@@ -390,12 +406,7 @@ router.get(
       });
 
       // Set token as HTTP-only cookie
-      res.cookie("auth_token", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
+      res.cookie("auth_token", token, getAuthCookieOptions());
 
       // Redirect to frontend with success
       res.redirect(`${FRONTEND_URL}?auth=success&token=${token}`);
@@ -412,8 +423,10 @@ router.post(
   authenticateUser as any,
   async (req: AuthRequest, res: Response) => {
     try {
-      const { email, google_id } = req.body;
       const sessionUser = req.user;
+      const credential = String(
+        req.body?.credential || req.body?.id_token || ""
+      ).trim();
 
       if (!sessionUser?.id) {
         return res.status(401).json({
@@ -422,28 +435,43 @@ router.post(
         });
       }
 
-      // Prefer wallet from the authenticated session, not a client-supplied address.
-      const wallet_address =
-        sessionUser.wallet_address ||
-        String(req.body?.wallet_address || "").trim() ||
-        null;
-
-      if (!wallet_address || !email || !google_id) {
-        return res.status(400).json({
-          error: "Bad Request",
+      // Require a wallet on the authenticated session — never trust body.wallet_address.
+      const wallet_address = sessionUser.wallet_address || null;
+      if (!wallet_address) {
+        return res.status(403).json({
+          error: "Forbidden",
           message:
-            "Authenticated wallet session, email, and google_id are required",
+            "A wallet-authenticated session is required to link a Google account",
         });
       }
 
-      if (
-        sessionUser.wallet_address &&
-        req.body?.wallet_address &&
-        String(req.body.wallet_address).trim() !== sessionUser.wallet_address
-      ) {
-        return res.status(403).json({
-          error: "Forbidden",
-          message: "Cannot link Google to a different wallet than your session",
+      if (!credential) {
+        return res.status(400).json({
+          error: "Bad Request",
+          message:
+            "Google ID token (credential) is required. Complete Google Sign-In and send the credential JWT.",
+        });
+      }
+
+      if (!GOOGLE_CLIENT_ID) {
+        return res.status(503).json({
+          error: "Service Unavailable",
+          message: "Google Sign-In is not configured on the server",
+        });
+      }
+
+      let googleIdentity;
+      try {
+        googleIdentity = await verifyGoogleIdToken(
+          credential,
+          GOOGLE_CLIENT_ID
+        );
+      } catch (verifyError: any) {
+        return res.status(401).json({
+          error: "Unauthorized",
+          message:
+            verifyError?.message ||
+            "Invalid or expired Google credential",
         });
       }
 
@@ -460,10 +488,18 @@ router.post(
         });
       }
 
+      if (!member.wallet_address) {
+        return res.status(403).json({
+          error: "Forbidden",
+          message:
+            "A wallet-authenticated session is required to link a Google account",
+        });
+      }
+
       const { data: existingEmail } = await db
         .from("members")
         .select("id")
-        .eq("email", email)
+        .eq("email", googleIdentity.email)
         .neq("id", member.id)
         .single();
 
@@ -474,13 +510,27 @@ router.post(
         });
       }
 
+      const { data: existingGoogle } = await db
+        .from("members")
+        .select("id")
+        .eq("google_id", googleIdentity.googleId)
+        .neq("id", member.id)
+        .single();
+
+      if (existingGoogle) {
+        return res.status(409).json({
+          error: "Conflict",
+          message: "This Google account is already linked to another member",
+        });
+      }
+
       const { data: updatedMember, error: updateError } = await db
         .from("members")
         .update({
-          email: email,
-          google_id: google_id,
+          email: googleIdentity.email,
+          google_id: googleIdentity.googleId,
           auth_provider: "both",
-          email_verified: true,
+          email_verified: googleIdentity.emailVerified,
         })
         .eq("id", member.id)
         .select()
@@ -508,18 +558,41 @@ router.post(
   }
 );
 
-// POST /api/auth/google/login - Login with Google token (alternative to OAuth redirect)
+// POST /api/auth/google/login - Login with a verified Google ID token
 router.post("/google/login", async (req: Request, res: Response) => {
   try {
-    const { email, google_id, name, avatar, intent } = req.body;
-    const authIntent = intent === "signup" ? "signup" : "login";
+    const credential = String(
+      req.body?.credential || req.body?.id_token || ""
+    ).trim();
+    const authIntent = req.body?.intent === "signup" ? "signup" : "login";
 
-    if (!email || !google_id) {
+    if (!credential) {
       return res.status(400).json({
         error: "Bad Request",
-        message: "email and google_id are required",
+        message:
+          "Google ID token (credential) is required. Complete Google Sign-In and send the credential JWT.",
       });
     }
+
+    if (!GOOGLE_CLIENT_ID) {
+      return res.status(503).json({
+        error: "Service Unavailable",
+        message: "Google Sign-In is not configured on the server",
+      });
+    }
+
+    let googleIdentity;
+    try {
+      googleIdentity = await verifyGoogleIdToken(credential, GOOGLE_CLIENT_ID);
+    } catch (verifyError: any) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message:
+          verifyError?.message || "Invalid or expired Google credential",
+      });
+    }
+
+    const { email, googleId, name, avatar } = googleIdentity;
 
     // Find member by email or google_id
     let member;
@@ -533,15 +606,15 @@ router.post("/google/login", async (req: Request, res: Response) => {
     if (byEmail) {
       member = byEmail;
       // Update google_id if not set
-      if (!member.google_id || member.google_id !== google_id) {
+      if (!member.google_id || member.google_id !== googleId) {
         const { data: refreshedMember } = await db
           .from("members")
           .update({
-            google_id,
+            google_id: googleId,
             email_verified: true,
             auth_provider: buildAuthProvider({
               ...member,
-              google_id,
+              google_id: googleId,
             }),
           })
           .eq("id", member.id)
@@ -557,7 +630,7 @@ router.post("/google/login", async (req: Request, res: Response) => {
       const { data: byGoogleId } = await db
         .from("members")
         .select("*")
-        .eq("google_id", google_id)
+        .eq("google_id", googleId)
         .eq("is_active", true)
         .single();
 
@@ -578,7 +651,7 @@ router.post("/google/login", async (req: Request, res: Response) => {
 
       member = await createCommunityAccount({
         email,
-        googleId: google_id,
+        googleId,
         name,
         avatar,
       });
@@ -593,6 +666,8 @@ router.post("/google/login", async (req: Request, res: Response) => {
     });
 
     const memberWithStats = await attachAcademyStatsToMember(member);
+
+    res.cookie("auth_token", token, getAuthCookieOptions());
 
     res.json({
       success: true,
@@ -649,12 +724,7 @@ router.post("/dev-login", async (req: Request, res: Response) => {
 
     const memberWithStats = await attachAcademyStatsToMember(member);
 
-    res.cookie("auth_token", token, {
-      httpOnly: true,
-      secure: false,
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("auth_token", token, getAuthCookieOptions());
 
     res.json({
       success: true,
@@ -712,6 +782,14 @@ router.get("/session", async (req: Request, res: Response) => {
       });
     }
 
+    if (member.is_active === false) {
+      return res.json({
+        success: false,
+        authenticated: false,
+        message: "This account has been deactivated",
+      });
+    }
+
     const memberWithStats = await attachAcademyStatsToMember(member);
     const sessionAuthMethod =
       payload.auth_method ||
@@ -735,7 +813,7 @@ router.get("/session", async (req: Request, res: Response) => {
 
 // POST /api/auth/logout - Clear session
 router.post("/logout", (req: Request, res: Response) => {
-  res.clearCookie("auth_token");
+  clearAuthCookie(res);
   res.json({
     success: true,
     message: "Logged out successfully",

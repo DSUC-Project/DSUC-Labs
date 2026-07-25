@@ -138,18 +138,22 @@ function decodeSignature(signature: string): Uint8Array | null {
     return null;
   }
 
+  // Prefer base64 first — first-party client always sends standard base64 from btoa.
   try {
-    if (/^[1-9A-HJ-NP-Za-km-z]+$/.test(raw) && raw.length >= 64) {
-      return bs58.decode(raw);
+    const buf = Buffer.from(raw, "base64");
+    if (buf.length === 64) {
+      return new Uint8Array(buf);
     }
   } catch {
     // fall through
   }
 
   try {
-    const buf = Buffer.from(raw, "base64");
-    if (buf.length === 64) {
-      return new Uint8Array(buf);
+    if (/^[1-9A-HJ-NP-Za-km-z]+$/.test(raw) && raw.length >= 64) {
+      const decoded = bs58.decode(raw);
+      if (decoded.length === 64) {
+        return decoded;
+      }
     }
   } catch {
     // fall through

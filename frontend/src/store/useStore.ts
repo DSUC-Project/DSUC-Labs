@@ -10,7 +10,7 @@ import {
   Project,
   AuthMethod,
   AuthIntent,
-  GoogleUserInfo,
+  GoogleCredential,
 } from "../types";
 import {
   EVENTS,
@@ -103,11 +103,11 @@ interface AppState {
   reconnectWallet: () => Promise<void>;
   disconnectWallet: () => void;
   loginWithGoogle: (
-    googleUserInfo: GoogleUserInfo,
+    credential: GoogleCredential,
     intent?: AuthIntent,
   ) => Promise<boolean>;
   loginWithLocalAdmin: (role?: LocalDevRole) => Promise<boolean>;
-  linkGoogleAccount: (googleUserInfo: GoogleUserInfo) => Promise<boolean>;
+  linkGoogleAccount: (credential: GoogleCredential) => Promise<boolean>;
   checkSession: () => Promise<void>;
   logout: () => void;
   fetchBootstrapData: () => Promise<void>;
@@ -785,27 +785,21 @@ export const useStore = create<AppState>((set, get) => ({
     });
   },
 
-  // Login with Google - for users who have email pre-registered
+  // Login with Google — send ID token; server verifies and derives identity
   loginWithGoogle: async (
-    googleUserInfo: GoogleUserInfo,
+    credential: GoogleCredential,
     intent: AuthIntent = "login",
   ) => {
     try {
       const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-      console.log(
-        "[loginWithGoogle] Attempting login with:",
-        googleUserInfo.email,
-      );
+      console.log("[loginWithGoogle] Attempting login with Google credential");
 
       const res = await fetch(`${base}/api/auth/google/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          email: googleUserInfo.email,
-          google_id: googleUserInfo.google_id,
-          name: googleUserInfo.name,
-          avatar: googleUserInfo.avatar,
+          credential,
           intent,
         }),
       });
@@ -891,8 +885,8 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  // Link Google account to existing wallet account
-  linkGoogleAccount: async (googleUserInfo: GoogleUserInfo) => {
+  // Link Google account to existing wallet account (server verifies credential)
+  linkGoogleAccount: async (credential: GoogleCredential) => {
     try {
       const state = get();
       if (!state.walletAddress || !state.currentUser) {
@@ -918,9 +912,7 @@ export const useStore = create<AppState>((set, get) => ({
         },
         credentials: "include",
         body: JSON.stringify({
-          wallet_address: state.walletAddress,
-          email: googleUserInfo.email,
-          google_id: googleUserInfo.google_id,
+          credential,
         }),
       });
 
