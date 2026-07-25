@@ -23,6 +23,11 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 5173,
+    // Allow reading monorepo academy seed (backend/content/...) during vite dev.
+    // Production build resolves the same alias without this restriction.
+    fs: {
+      allow: [path.resolve(__dirname, "..")],
+    },
   },
   esbuild: {
     jsx: "automatic",
