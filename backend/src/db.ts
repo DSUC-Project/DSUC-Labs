@@ -1,18 +1,14 @@
-import { mockDb } from "./mockDb";
-import { USE_MOCK_DB } from "./config/runtime";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-let supabaseClient: any = null;
+const supabaseUrl = process.env.SUPABASE_URL || "";
+const supabaseKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "";
 
-if (!USE_MOCK_DB) {
-  const { createClient } =
-    require("@supabase/supabase-js") as typeof import("@supabase/supabase-js");
-  supabaseClient = createClient(
-    process.env.SUPABASE_URL || "",
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      process.env.SUPABASE_ANON_KEY ||
-      "",
+if (!supabaseUrl || !supabaseKey) {
+  console.warn(
+    "[db] SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY) are required.",
   );
 }
 
-export const supabase = supabaseClient;
-export const db = (USE_MOCK_DB ? mockDb : supabase) as any;
+export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey);
+export const db = supabase as any;

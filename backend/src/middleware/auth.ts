@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import { db } from '../db';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { USE_MOCK_DB } from '../config/runtime';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dsuc-lab-jwt-secret-change-in-production';
 
@@ -50,7 +49,7 @@ export interface JWTPayload {
   email?: string;
   /** Profile snapshot only; not an auth credential. */
   wallet_address?: string;
-  auth_method?: 'google' | 'local';
+  auth_method?: 'google';
   iat?: number;
   exp?: number;
 }
@@ -220,7 +219,7 @@ export function generateToken(payload: {
   userId: string;
   email?: string;
   wallet_address?: string;
-  auth_method?: 'google' | 'local';
+  auth_method?: 'google';
 }): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 }
@@ -329,17 +328,13 @@ export async function authenticateUser(
 
       let agentUser: any = null;
       if (keyRow.created_by) {
-        const query = db
+        const { data: member, error: memberError } = await db
           .from('members')
           .select('*')
-          .eq('id', keyRow.created_by);
-        const { data: member, error: memberError } = await (USE_MOCK_DB
-          ? query
-          : query.single());
+          .eq('id', keyRow.created_by)
+          .single();
         if (!memberError) {
-          agentUser = USE_MOCK_DB
-            ? (Array.isArray(member) ? member[0] : member)
-            : member;
+          agentUser = member;
         }
       }
 
@@ -375,7 +370,7 @@ export async function authenticateUser(
     }
   }
 
-  // Method 1: JWT (issued after Google login or local dev login)
+  // Method 1: JWT (issued after Google login)
   const token = req.cookies?.auth_token ||
     req.headers.authorization?.replace('Bearer ', '');
   if (token) {

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Check, X, ScanLine, ArrowRight, Zap, Upload } from "lucide-react";
 import { useStore } from "../store/useStore";
 import { FinanceRequest, Member } from "../types";
-import { BANKS } from "../data/mockData";
+import { BANKS } from "../data/constants";
 import { ModalShell } from "@/components/ui/ModalShell";
 import { Card, ActionCard } from "@/components/ui/Cards";
 import { SoftBrutalCard } from "@/components/ui/Primitives";

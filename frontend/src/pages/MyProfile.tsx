@@ -21,7 +21,7 @@ import {
   Globe,
 } from "lucide-react";
 import { useStore } from "../store/useStore";
-import { BANKS } from "../data/mockData";
+import { BANKS } from "../data/constants";
 import { SkillInput } from "../components/SkillInput";
 import { useLocale } from "@/lib/locale";
 import {

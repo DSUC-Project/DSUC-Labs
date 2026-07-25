@@ -7,7 +7,6 @@ import { AppBackground } from "./AppBackground";
 import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import {
   type BootstrapStatus,
-  type LocalDevRole,
   useStore,
 } from "@/store/useStore";
 import { type AuthIntent } from "@/types";
@@ -18,7 +17,6 @@ import {
   ArrowRight,
   BadgeCheck,
   CheckCircle2,
-  FlaskConical,
   LoaderCircle,
   Mail,
   RefreshCw,
@@ -68,30 +66,6 @@ function readStoredTheme(): AppTheme {
     : "light";
 }
 
-function isLocalHostname(hostname: string) {
-  return ["localhost", "127.0.0.1", "::1"].includes(hostname);
-}
-
-function isLocalDevAuthEnabled() {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  const env = (import.meta as any).env;
-  const uiHost = window.location.hostname;
-  const apiBase = env.VITE_API_BASE_URL || window.location.origin;
-
-  try {
-    const apiHost = new URL(apiBase, window.location.origin).hostname;
-    return (
-      env.VITE_ENABLE_LOCAL_AUTH === "true" ||
-      (isLocalHostname(uiHost) && isLocalHostname(apiHost))
-    );
-  } catch {
-    return false;
-  }
-}
-
 export function PageShell() {
   const location = useLocation();
   const intensity = getIntensityForPath(location.pathname);
@@ -103,7 +77,7 @@ export function PageShell() {
   const [showLoginNotification, setShowLoginNotification] = useState(false);
   const [lastLoginInfo, setLastLoginInfo] = useState<{
     name?: string;
-    method?: "google" | "local";
+    method?: "google";
   }>({});
   const [theme, setTheme] = useState<AppTheme>(() => readStoredTheme());
 
@@ -478,41 +452,9 @@ function RealAuthModal({
   onClose: () => void;
   theme: AppTheme;
 }) {
-  const { loginWithGoogle, loginWithLocalAdmin } = useStore();
+  const { loginWithGoogle } = useStore();
   const { text } = useLocale();
   const [isLoading, setIsLoading] = useState(false);
-  const [localDevRole, setLocalDevRole] = useState<LocalDevRole>("admin");
-  const localDevAuthEnabled = React.useMemo(() => isLocalDevAuthEnabled(), []);
-  const localRoleCopy: Record<
-    LocalDevRole,
-    {
-      label: string;
-      description: string;
-    }
-  > = {
-    admin: {
-      label: text("Admin", "Admin"),
-      description: text(
-        "President permissions for admin, finance, and academy management.",
-        "Quyền President để test admin, tài chính và quản lý academy.",
-      ),
-    },
-    member: {
-      label: text("Member", "Member"),
-      description: text(
-        "Official member access for events, projects, finance, and submissions.",
-        "Quyền thành viên chính thức để test events, projects, finance và submit.",
-      ),
-    },
-    community: {
-      label: text("Community", "Community"),
-      description: text(
-        "Community profile with limited club permissions and onboarding checks.",
-        "Tài khoản community với quyền CLB giới hạn và luồng onboarding.",
-      ),
-    },
-  };
-
   const handleGoogleSuccess = async (
     credentialResponse: CredentialResponse,
   ) => {
@@ -532,18 +474,6 @@ function RealAuthModal({
           "Đăng nhập Google thất bại. Vui lòng thử lại.",
         ),
       );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleLocalAdminLogin = async () => {
-    setIsLoading(true);
-    try {
-      const success = await loginWithLocalAdmin(localDevRole);
-      if (success) {
-        onClose();
-      }
     } finally {
       setIsLoading(false);
     }
@@ -753,56 +683,6 @@ function RealAuthModal({
             </p>
           </div>
 
-          {localDevAuthEnabled && (
-            <div className="mt-4 border border-dashed border-border-main bg-main-bg p-4">
-              <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-text-muted">
-                {text("Local Testing Only", "Chỉ dành cho test local")}
-              </p>
-              <div className="mt-3 space-y-2">
-                <label
-                  htmlFor="local-dev-role"
-                  className="block text-sm font-semibold text-text-main"
-                >
-                  {text("Mock account role", "Role tài khoản mock")}
-                </label>
-                <select
-                  id="local-dev-role"
-                  value={localDevRole}
-                  onChange={(event) =>
-                    setLocalDevRole(event.target.value as LocalDevRole)
-                  }
-                  disabled={isLoading}
-                  className="min-h-11 w-full border border-border-main bg-surface px-3 py-2 font-mono text-xs font-bold uppercase tracking-widest text-text-main focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {(Object.keys(localRoleCopy) as LocalDevRole[]).map((role) => (
-                    <option key={role} value={role}>
-                      {localRoleCopy[role].label}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-sm leading-relaxed text-text-muted">
-                  {localRoleCopy[localDevRole].description}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleLocalAdminLogin}
-                disabled={isLoading}
-                className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 border border-border-main bg-surface px-4 py-3 font-mono text-xs font-bold uppercase tracking-widest text-text-main transition-colors hover:bg-primary hover:text-main-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <FlaskConical className="h-4 w-4" />
-                {isLoading
-                  ? text("Signing in...", "Đang đăng nhập...")
-                  : text("Use Local Account", "Dùng tài khoản local")}
-              </button>
-              <p className="mt-3 text-sm leading-relaxed text-text-muted">
-                {text(
-                  "Starts a mock session against the localhost backend without touching production auth.",
-                  "Khởi động phiên giả lập với backend localhost mà không đụng tới luồng xác thực production.",
-                )}
-              </p>
-            </div>
-          )}
         </section>
       </div>
     </ModalShell>

@@ -55,7 +55,7 @@ export function consumePendingAuthAnnouncement(): AuthMethod | null {
 
   window.sessionStorage.removeItem(PENDING_AUTH_ANNOUNCEMENT_KEY);
 
-  if (pendingMethod === "google" || pendingMethod === "local") {
+  if (pendingMethod === "google") {
     return pendingMethod;
   }
 

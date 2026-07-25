@@ -24,6 +24,4 @@ services:
         value: https://dsuc.fun
       - key: JWT_SECRET
         sync: false
-      - key: USE_MOCK_DB
-        value: "false"
     rootDir: backend
