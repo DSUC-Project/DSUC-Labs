@@ -10,7 +10,7 @@ import {
   authenticateUser,
 } from "../middleware/auth";
 import { attachAcademyStatsToMember } from "../utils/academyStats";
-import { IS_PRODUCTION, USE_MOCK_DB } from "../config/runtime";
+import { IS_PRODUCTION } from "../config/runtime";
 import { verifyGoogleIdToken } from "../lib/googleAuth";
 
 const router = Router();
@@ -20,7 +20,6 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
 const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL || "http://localhost:3001/api/auth/google/callback";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
-type DevAuthRole = "admin" | "member" | "community";
 
 const AUTH_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -40,44 +39,6 @@ function clearAuthCookie(res: Response) {
     secure: IS_PRODUCTION,
     sameSite: IS_PRODUCTION ? "none" : "lax",
   });
-}
-
-const DEV_AUTH_ACCOUNTS: Record<DevAuthRole, { id: string; label: string }> = {
-  admin: { id: "101240059", label: "Local Admin" },
-  member: { id: "123250164", label: "Local Member" },
-  community: { id: "community-001", label: "Local Community" },
-};
-
-function normalizeDevAuthRole(value: unknown): DevAuthRole {
-  return value === "member" || value === "community" ? value : "admin";
-}
-
-function isLocalHostname(hostname: string | undefined) {
-  return ["localhost", "127.0.0.1", "::1"].includes(String(hostname || ""));
-}
-
-function isLocalOrigin(originHeader: string | string[] | undefined) {
-  const originValue = Array.isArray(originHeader)
-    ? originHeader[0]
-    : originHeader;
-
-  if (!originValue) {
-    return false;
-  }
-
-  try {
-    return isLocalHostname(new URL(originValue).hostname);
-  } catch {
-    return false;
-  }
-}
-
-function canUseDevAuth(req: Request) {
-  return (
-    USE_MOCK_DB &&
-    !IS_PRODUCTION &&
-    (isLocalHostname(req.hostname) || isLocalOrigin(req.headers.origin))
-  );
 }
 
 function buildCommunityMemberId() {
@@ -401,66 +362,6 @@ router.post("/google/login", async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/auth/dev-login - Local-only mock login for dev
-router.post("/dev-login", async (req: Request, res: Response) => {
-  try {
-    if (!canUseDevAuth(req)) {
-      return res.status(403).json({
-        success: false,
-        error: "Forbidden",
-        message: "Local dev auth is only available on localhost with mock data.",
-      });
-    }
-
-    const requestedRole = normalizeDevAuthRole(req.body?.role);
-    const requestedUserId =
-      typeof req.body?.userId === "string" && req.body.userId.trim()
-        ? req.body.userId.trim()
-        : DEV_AUTH_ACCOUNTS[requestedRole].id;
-
-    const { data: member, error } = await db
-      .from("members")
-      .select("*")
-      .eq("id", requestedUserId)
-      .single();
-
-    if (error || !member) {
-      return res.status(404).json({
-        success: false,
-        error: "Not Found",
-        message: "Requested local dev account was not found.",
-      });
-    }
-
-    const token = generateToken({
-      userId: member.id,
-      email: member.email,
-      wallet_address: member.wallet_address || undefined,
-      auth_method: "local",
-    });
-
-    const memberWithStats = await attachAcademyStatsToMember(member);
-
-    res.cookie("auth_token", token, getAuthCookieOptions());
-
-    res.json({
-      success: true,
-      data: memberWithStats,
-      token,
-      authMethod: "local",
-      devRole: requestedRole,
-      message: `${DEV_AUTH_ACCOUNTS[requestedRole].label} session created.`,
-    });
-  } catch (error: any) {
-    console.error("Error with local dev login:", error);
-    res.status(500).json({
-      success: false,
-      error: "Internal Server Error",
-      message: error.message,
-    });
-  }
-});
-
 // GET /api/auth/session - Check current session/token
 router.get("/session", async (req: Request, res: Response) => {
   try {
@@ -508,8 +409,7 @@ router.get("/session", async (req: Request, res: Response) => {
     }
 
     const memberWithStats = await attachAcademyStatsToMember(member);
-    const sessionAuthMethod =
-      payload.auth_method === "local" ? "local" : "google";
+    const sessionAuthMethod = "google";
 
     res.json({
       success: true,

@@ -42,7 +42,7 @@ export interface Member {
 }
 
 // Auth method type (how the current session was established)
-export type AuthMethod = "google" | "local";
+export type AuthMethod = "google";
 export type AuthIntent = "login" | "signup";
 
 // Google Sign-In credential (ID token JWT from @react-oauth/google).

@@ -12,29 +12,20 @@ import {
   AuthIntent,
   GoogleCredential,
 } from "../types";
-import {
-  EVENTS,
-  BOUNTIES,
-  REPOS,
-  RESOURCES,
-  MEMBERS,
-  PROJECTS,
-} from "../data/mockData";
 import { readCache, writeCache } from "../lib/cache";
 import {
   clearPendingAuthAnnouncement,
   markPendingAuthAnnouncement,
 } from "../lib/authUi";
 
-export type LocalDevRole = "admin" | "member" | "community";
 export type BootstrapStatus = "idle" | "loading" | "slow" | "ready" | "error";
 
 interface AppState {
   /** Profile wallet address mirror (not an active connection). */
   walletAddress: string | null;
   currentUser: Member | null; // The logged-in user's profile
-  authMethod: AuthMethod | null; // 'google' or local dev auth
-  authToken: string | null; // JWT after Google or local login
+  authMethod: AuthMethod | null;
+  authToken: string | null; // JWT after Google login
   bootstrapStatus: BootstrapStatus;
   bootstrapError: string | null;
 
@@ -42,7 +33,6 @@ interface AppState {
     credential: GoogleCredential,
     intent?: AuthIntent,
   ) => Promise<boolean>;
-  loginWithLocalAdmin: (role?: LocalDevRole) => Promise<boolean>;
   checkSession: () => Promise<void>;
   logout: () => void;
   fetchBootstrapData: () => Promise<void>;
@@ -81,9 +71,6 @@ interface AppState {
 
 const PUBLIC_CACHE_TTL_MS = 1000 * 60 * 30;
 const BOOTSTRAP_SLOW_MS = 2500;
-
-const USE_DEMO_FALLBACK =
-  (import.meta as any).env?.VITE_ENABLE_DEMO_FALLBACK === "true";
 
 function normalizeMember(raw: any): Member {
   const rawBankInfo = raw?.bank_info || raw?.bankInfo;
@@ -139,7 +126,7 @@ function getAuthHeaders(
     headers["Content-Type"] = "application/json";
   }
 
-  // Prefer JWT from Google / local login.
+  // Prefer JWT from Google login.
   const token =
     state.authToken ||
     (typeof localStorage !== "undefined"
@@ -189,24 +176,12 @@ export const useStore = create<AppState>((set, get) => ({
   bootstrapStatus: "idle",
   bootstrapError: null,
 
-  members:
-    readCache<Member[]>("members", PUBLIC_CACHE_TTL_MS) ||
-    (USE_DEMO_FALLBACK ? MEMBERS.map(normalizeMember) : []),
-  events:
-    readCache<Event[]>("events", PUBLIC_CACHE_TTL_MS) ||
-    (USE_DEMO_FALLBACK ? EVENTS : []),
-  bounties:
-    readCache<Bounty[]>("bounties", PUBLIC_CACHE_TTL_MS) ||
-    (USE_DEMO_FALLBACK ? BOUNTIES : []),
-  repos:
-    readCache<Repo[]>("repos", PUBLIC_CACHE_TTL_MS) ||
-    (USE_DEMO_FALLBACK ? REPOS : []),
-  resources:
-    readCache<Resource[]>("resources", PUBLIC_CACHE_TTL_MS) ||
-    (USE_DEMO_FALLBACK ? RESOURCES : []),
-  projects:
-    readCache<Project[]>("projects", PUBLIC_CACHE_TTL_MS) ||
-    (USE_DEMO_FALLBACK ? PROJECTS : []),
+  members: readCache<Member[]>("members", PUBLIC_CACHE_TTL_MS) || [],
+  events: readCache<Event[]>("events", PUBLIC_CACHE_TTL_MS) || [],
+  bounties: readCache<Bounty[]>("bounties", PUBLIC_CACHE_TTL_MS) || [],
+  repos: readCache<Repo[]>("repos", PUBLIC_CACHE_TTL_MS) || [],
+  resources: readCache<Resource[]>("resources", PUBLIC_CACHE_TTL_MS) || [],
+  projects: readCache<Project[]>("projects", PUBLIC_CACHE_TTL_MS) || [],
   financeRequests: [],
   financeHistory:
     readCache<FinanceRequest[]>("financeHistory", PUBLIC_CACHE_TTL_MS) || [],
@@ -352,18 +327,6 @@ export const useStore = create<AppState>((set, get) => ({
       }
     } catch (e) {
       console.error("Failed to fetch members from backend", e);
-      if (USE_DEMO_FALLBACK) {
-        set((state) => {
-          const members = MEMBERS.map(normalizeMember);
-          return {
-            members,
-            currentUser: state.currentUser
-              ? members.find((member) => member.id === state.currentUser?.id) ||
-                state.currentUser
-              : state.currentUser,
-          };
-        });
-      }
     }
   },
 
@@ -415,9 +378,6 @@ export const useStore = create<AppState>((set, get) => ({
       }
     } catch (e) {
       console.error("Failed to fetch events", e);
-      if (USE_DEMO_FALLBACK) {
-        set({ events: EVENTS });
-      }
     }
   },
 
@@ -441,9 +401,6 @@ export const useStore = create<AppState>((set, get) => ({
       }
     } catch (e) {
       console.error("Failed to fetch projects", e);
-      if (USE_DEMO_FALLBACK) {
-        set({ projects: PROJECTS });
-      }
     }
   },
 
@@ -466,9 +423,6 @@ export const useStore = create<AppState>((set, get) => ({
       }
     } catch (e) {
       console.error("Failed to fetch resources", e);
-      if (USE_DEMO_FALLBACK) {
-        set({ resources: RESOURCES });
-      }
     }
   },
 
@@ -495,9 +449,6 @@ export const useStore = create<AppState>((set, get) => ({
       }
     } catch (e) {
       console.error("Failed to fetch bounties", e);
-      if (USE_DEMO_FALLBACK) {
-        set({ bounties: BOUNTIES });
-      }
     }
   },
 
@@ -521,9 +472,6 @@ export const useStore = create<AppState>((set, get) => ({
       }
     } catch (e) {
       console.error("Failed to fetch repos", e);
-      if (USE_DEMO_FALLBACK) {
-        set({ repos: REPOS });
-      }
     }
   },
 
@@ -581,48 +529,6 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  loginWithLocalAdmin: async (role: LocalDevRole = "admin") => {
-    try {
-      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-      const res = await fetch(`${base}/api/auth/dev-login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ role }),
-      });
-      const result = await res.json();
-
-      if (res.ok && result.success) {
-        const profile = normalizeMember(result.data);
-        set((state) => ({
-          walletAddress: profile.wallet_address || null,
-          currentUser: profile,
-          authMethod: "local",
-          authToken: result.token,
-          members: upsertCurrentMember(state, profile),
-        }));
-
-        if (result.token) {
-          localStorage.setItem("auth_token", result.token);
-        }
-
-        markPendingAuthAnnouncement("local");
-        return true;
-      }
-
-      toast(
-        `? LOCAL LOGIN FAILED\n\n${result.message || "Local dev auth is not available."}`,
-      );
-      return false;
-    } catch (error) {
-      console.error("[loginWithLocalAdmin] Error:", error);
-      toast.error(
-        "? LOCAL LOGIN FAILED\n\nCannot reach the local backend dev auth endpoint.",
-      );
-      return false;
-    }
-  },
-
   // Check existing session on app load
   checkSession: async () => {
     try {
@@ -642,8 +548,7 @@ export const useStore = create<AppState>((set, get) => ({
 
       if (result.success && result.authenticated && result.data) {
         const profile = normalizeMember(result.data);
-        const sessionAuthMethod: AuthMethod =
-          result.authMethod === "local" ? "local" : "google";
+        const sessionAuthMethod: AuthMethod = "google";
         set((state) => ({
           walletAddress: profile.wallet_address || null,
           currentUser: profile,

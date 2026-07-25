@@ -2,7 +2,6 @@ import React, { useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   CheckCircle2,
-  FlaskConical,
   Mail,
   X,
 } from "lucide-react";
@@ -24,29 +23,7 @@ export function LoginNotification({
   onDismiss,
 }: LoginNotificationProps) {
   const { text } = useLocale();
-  const authMethodLabel =
-    authMethod === "local"
-      ? text("Local Admin", "Admin local")
-      : "Google";
-  const methodMeta =
-    authMethod === "local"
-      ? {
-          icon: FlaskConical,
-          badgeClassName: "bg-amber-500/10 text-amber-600 dark:text-amber-300",
-          helperCopy: text(
-            "Local development admin session is active.",
-            "Phiên admin local cho môi trường phát triển đang hoạt động.",
-          ),
-        }
-      : {
-          icon: Mail,
-          badgeClassName: "bg-primary/10 text-primary",
-          helperCopy: text(
-            "Signed in with your DSUC Google account.",
-            "Bạn đã đăng nhập bằng tài khoản Google DSUC.",
-          ),
-        };
-  const MethodIcon = methodMeta.icon;
+  const MethodIcon = Mail;
 
   useEffect(() => {
     if (!isVisible) {
@@ -104,18 +81,21 @@ export function LoginNotification({
                 </div>
 
                 <p className="mt-2 text-sm leading-relaxed text-text-muted">
-                  {methodMeta.helperCopy}
+                  {text(
+                    "Signed in with your DSUC Google account.",
+                    "Bạn đã đăng nhập bằng tài khoản Google DSUC.",
+                  )}
                 </p>
 
                 <div className="mt-3 flex flex-wrap gap-2">
                   <span
                     className={cn(
                       "inline-flex min-h-9 items-center gap-2 border border-border-main px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest",
-                      methodMeta.badgeClassName,
+                      "bg-primary/10 text-primary",
                     )}
                   >
                     <MethodIcon className="h-3.5 w-3.5" />
-                    {authMethodLabel}
+                    Google
                   </span>
                   <span className="inline-flex min-h-9 items-center border border-border-main bg-main-bg px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-text-muted">
                     {text("Session Ready", "Phiên đã sẵn sàng")}

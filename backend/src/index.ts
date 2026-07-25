@@ -2,7 +2,6 @@ import express, { Express, Request, Response, NextFunction } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import passport from "passport";
-import { USE_MOCK_DB } from "./config/runtime";
 import { db } from "./db";
 
 // Import routes
@@ -133,7 +132,7 @@ app.listen(PORT, () => {
 ║   DSUC Lab Backend Server                 ║
 ║   Port: ${PORT}                           ║
 ║   Environment: ${process.env.NODE_ENV || "development"}              ║
-║   Database: ${USE_MOCK_DB ? 'Mock Data (Local)' : 'Supabase (Production)'}   ║
+║   Database: Supabase                          ║
 ║   Status: ONLINE ✓                        ║
 ╚═══════════════════════════════════════════╝
   `);
