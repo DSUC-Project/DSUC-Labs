@@ -1,117 +1,52 @@
 # DSUC Lab Frontend
 
-Frontend cho DSUC Lab - Web3 Student Hub với Solana wallet integration.
+React + Vite app. Needs the backend API.
 
-## 📋 Yêu cầu hệ thống
-
-- Node.js >= 18.x
-- npm hoặc yarn
-
-## 🚀 Quick Start - Local Development
-
-Chỉ cần 3 bước để bắt đầu phát triển local:
-
-### 1. Cài đặt dependencies
+## Local
 
 ```bash
 cd frontend
 npm install
-```
-
-### 2. Tạo file .env
-
-```bash
 cp .env.example.local .env
-```
-
-File `.env` đã được cấu hình sẵn để kết nối với backend local tại `http://localhost:3001`
-
-### 3. Chạy development server
-
-```bash
 npm run dev
 ```
 
-Frontend sẽ chạy tại `http://localhost:5173`
-
-### 🎯 Test với Mock Data
-
-Đảm bảo backend đã chạy trước (xem [backend/README.md](../backend/README.md))
-
-Frontend sẽ kết nối với backend local và sử dụng mock data. Bạn có thể test với các wallet address sau:
-
-**Mock Wallet Addresses:**
-- **Thodium (Vice-President):** `GEeWZoVZq9JQ9RgWy9zzkhvTAnYBKSvS2gzjXetqutFe`
-- **NekoNora (Tech-Lead):** `CYcvdzKjh8B699tbe3UnYM21Vzcp14JQqy5hXs9iUYBT`
-
-## 🔧 Production Deployment
-
-Khi deploy lên production (Vercel, Netlify, etc.):
-
-### 1. Cấu hình Environment Variables
-
-Sử dụng file `.env.example.deployment` làm reference:
-
-```env
-VITE_API_BASE_URL=https://dsuc-labs-xmxl.onrender.com
-VITE_FRONTEND_URL=https://dsuc.fun
-```
-
-### 2. Build
+- App: http://localhost:5173  
+- Point `VITE_API_BASE_URL` at the backend (default `http://localhost:3001`)
 
 ```bash
+# optional
+npm run dev:mock   # local API + local-auth UI
 npm run build
+npm run preview
 ```
 
-Build output sẽ ở trong thư mục `dist/`
+## Env
 
-## 📁 Cấu trúc Project
+| Variable | Notes |
+|----------|--------|
+| `VITE_API_BASE_URL` | Backend origin |
+| `VITE_FRONTEND_URL` | This app origin |
+| `VITE_GOOGLE_CLIENT_ID` | Google login button |
+| `VITE_ENABLE_LOCAL_AUTH` | Optional local-auth UI |
 
-```
-frontend/
-├── src/
-│   ├── components/    # React components
-│   ├── pages/        # Page components
-│   ├── hooks/        # Custom hooks
-│   ├── store/        # Zustand stores
-│   ├── utils/        # Utility functions
-│   └── App.tsx       # Main App component
-├── public/           # Static assets
-├── .env.example.local         # Local dev template
-├── .env.example.deployment    # Production template
-├── package.json
-└── vite.config.ts
-```
+Templates: `.env.example.local`, `.env.example.deployment`. Restart Vite after env changes.
 
-## 🛠️ Tech Stack
+## Auth (client)
 
-- **React 19** - UI framework
-- **TypeScript** - Type safety
-- **Vite** - Build tool
-- **React Router** - Routing
-- **Zustand** - State management
-- **Framer Motion** - Animations
-- **Tailwind CSS** - Styling
-- **Lucide Icons** - Icon library
+Do **not** send bare `x-wallet-address` as auth.
 
-## 🔧 Available Scripts
+| Method | Flow |
+|--------|------|
+| Wallet | challenge → sign → `POST /api/auth/wallet` → JWT in `auth_token` |
+| Google | ID token / OAuth → JWT |
+| Local mock | `POST /api/auth/dev-login` (mock backend, local only) |
 
-### `npm run dev`
-Chạy development server với hot reload
+Session: `GET /api/auth/session` with `Authorization: Bearer <token>`.  
+Code: `src/store/useStore.ts`, `src/components/layout/PageShell.tsx`.
 
-### `npm run build`
-Build production bundle
+## Notes
 
-### `npm run preview`
-Preview production build locally
-
-## 📝 Notes
-
-- Frontend sử dụng Vite, tất cả environment variables phải có prefix `VITE_`
-- Khi thay đổi `.env`, cần restart dev server
-- Frontend kết nối với backend qua REST API
-- Authentication sử dụng Solana wallet (Phantom, Solflare, etc.)
-
-## 📞 Support
-
-Nếu gặp vấn đề, vui lòng liên hệ Tech-Lead hoặc tạo issue trong repository.
+- Source lives under `src/`
+- Academy curated seed: `src/content/academy-v2/seed/` (keep in sync with `backend/content/academy-v2/seed/`)
+- Production: set env from `.env.example.deployment`, then `npm run build` → deploy `dist/`
