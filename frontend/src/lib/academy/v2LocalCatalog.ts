@@ -163,11 +163,11 @@ async function loadSeedData() {
     lessonsModule,
     instructorsModule,
   ] = await Promise.all([
-    import("@/content/academy-v2/seed/learningPath.json"),
-    import("@/content/academy-v2/seed/course.json"),
-    import("@/content/academy-v2/seed/modules.json"),
-    import("@/content/academy-v2/seed/lessons.json"),
-    import("@/content/academy-v2/seed/instructor.json"),
+    import("@academy-v2-seed/learningPath.json"),
+    import("@academy-v2-seed/course.json"),
+    import("@academy-v2-seed/modules.json"),
+    import("@academy-v2-seed/lessons.json"),
+    import("@academy-v2-seed/instructor.json"),
   ]);
 
   return {

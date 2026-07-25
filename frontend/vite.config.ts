@@ -23,6 +23,11 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 5173,
+    // Allow reading monorepo academy seed (backend/content/...) during vite dev.
+    // Production build resolves the same alias without this restriction.
+    fs: {
+      allow: [path.resolve(__dirname, "..")],
+    },
   },
   esbuild: {
     jsx: "automatic",
@@ -34,6 +39,11 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Single source of truth: backend/content/academy-v2/seed (see scripts/assert-academy-seed.mjs)
+      "@academy-v2-seed": path.resolve(
+        __dirname,
+        "../backend/content/academy-v2/seed",
+      ),
     },
   },
 });

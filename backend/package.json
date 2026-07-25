@@ -5,8 +5,10 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "prebuild": "node scripts/assert-academy-seed.mjs",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "check:academy-seed": "node scripts/assert-academy-seed.mjs"
   },
   "keywords": [
     "solana",

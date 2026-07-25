@@ -4,6 +4,8 @@ React + Vite app. Needs the backend API.
 
 ## Local
 
+Use a **full monorepo checkout** (not a sparse/frontend-only tree). Academy curated content is loaded from `backend/content/academy-v2/seed/` via the `@academy-v2-seed` Vite alias, and `npm run build` runs a prebuild check under `scripts/assert-academy-seed.mjs`.
+
 ```bash
 cd frontend
 npm install
@@ -45,5 +47,5 @@ Code: `src/store/useStore.ts`, `src/components/layout/PageShell.tsx`.
 ## Notes
 
 - Source lives under `src/`
-- Academy curated seed: `src/content/academy-v2/seed/` (keep in sync with `backend/content/academy-v2/seed/`)
+- Academy curated seed: edit **only** `backend/content/academy-v2/seed/` (loaded here as `@academy-v2-seed`). No FE copy or sync script. Seed changes still need a **frontend rebuild/redeploy** for the learner UI (content is bundled at build time); see `backend/content/academy-v2/README.md`.
 - Production: set env from `.env.example.deployment`, then `npm run build` → deploy `dist/`
