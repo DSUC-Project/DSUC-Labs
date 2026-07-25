@@ -3,9 +3,20 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../db";
-import { generateToken, verifyToken, AuthRequest, authenticateWallet } from "../middleware/auth";
+import {
+  generateToken,
+  verifyToken,
+  AuthRequest,
+  authenticateUser,
+} from "../middleware/auth";
 import { attachAcademyStatsToMember } from "../utils/academyStats";
 import { IS_PRODUCTION, USE_MOCK_DB } from "../config/runtime";
+import {
+  createWalletChallenge,
+  consumeWalletChallenge,
+  isLikelySolanaAddress,
+  verifyWalletSignature,
+} from "../lib/walletAuth";
 
 const router = Router();
 
@@ -191,10 +202,10 @@ passport.deserializeUser(async (id: string, done: any) => {
   }
 });
 
-// POST /api/auth/wallet - Authenticate by wallet address (used by frontend)
-router.post("/wallet", async (req: Request, res: Response) => {
+// POST /api/auth/wallet/challenge - Issue a one-time message for the wallet to sign
+router.post("/wallet/challenge", async (req: Request, res: Response) => {
   try {
-    const { wallet_address } = req.body;
+    const wallet_address = String(req.body?.wallet_address || "").trim();
 
     if (!wallet_address) {
       return res.status(400).json({
@@ -203,12 +214,103 @@ router.post("/wallet", async (req: Request, res: Response) => {
       });
     }
 
-    const { data: member, error } = await db
+    if (!USE_MOCK_DB && !isLikelySolanaAddress(wallet_address)) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid Solana wallet address format",
+      });
+    }
+
+    const challenge = createWalletChallenge(wallet_address);
+
+    res.json({
+      success: true,
+      data: {
+        wallet_address,
+        ...challenge,
+      },
+      message: "Sign this message with your wallet to prove ownership",
+    });
+  } catch (error: any) {
+    console.error("Error creating wallet challenge:", error);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: error.message,
+    });
+  }
+});
+
+// POST /api/auth/wallet - Authenticate by signed challenge (proves wallet ownership)
+router.post("/wallet", async (req: Request, res: Response) => {
+  try {
+    const wallet_address = String(req.body?.wallet_address || "").trim();
+    const signature = String(req.body?.signature || "").trim();
+    const nonce = String(req.body?.nonce || "").trim();
+    // Optional: client may echo the message; server always uses the challenge record.
+    const clientMessage =
+      typeof req.body?.message === "string" ? req.body.message : undefined;
+
+    if (!wallet_address || !signature || !nonce) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message:
+          "wallet_address, signature, and nonce are required. Call POST /api/auth/wallet/challenge first.",
+      });
+    }
+
+    if (!USE_MOCK_DB && !isLikelySolanaAddress(wallet_address)) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid Solana wallet address format",
+      });
+    }
+
+    const challenge = consumeWalletChallenge(nonce, wallet_address);
+    if (!challenge.ok) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: challenge.reason,
+      });
+    }
+
+    if (clientMessage && clientMessage !== challenge.message) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "Signed message does not match the issued challenge",
+      });
+    }
+
+    const signatureValid = verifyWalletSignature(
+      wallet_address,
+      signature,
+      challenge.message
+    );
+
+    if (!signatureValid) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "Invalid wallet signature for the login challenge",
+      });
+    }
+
+    let memberQuery = db
       .from("members")
       .select("*")
-      .eq("wallet_address", wallet_address)
-      .eq("is_active", true)
-      .single();
+      .eq("wallet_address", wallet_address);
+
+    if (!USE_MOCK_DB) {
+      memberQuery = memberQuery.eq("is_active", true);
+    }
+
+    const { data: memberRow, error } = await (USE_MOCK_DB
+      ? memberQuery
+      : memberQuery.single());
+
+    const member = USE_MOCK_DB
+      ? Array.isArray(memberRow)
+        ? memberRow[0]
+        : memberRow
+      : memberRow;
 
     if (error || !member) {
       return res.status(404).json({
@@ -218,11 +320,26 @@ router.post("/wallet", async (req: Request, res: Response) => {
       });
     }
 
+    const token = generateToken({
+      userId: member.id,
+      email: member.email || undefined,
+      wallet_address: member.wallet_address || wallet_address,
+      auth_method: "wallet",
+    });
+
     const memberWithStats = await attachAcademyStatsToMember(member);
+
+    res.cookie("auth_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
     res.json({
       success: true,
       data: memberWithStats,
+      token,
       message: "Authentication successful",
     });
   } catch (error: any) {
@@ -289,80 +406,107 @@ router.get(
   }
 );
 
-// POST /api/auth/google/link - Link Google account to existing wallet account
-router.post("/google/link", async (req: Request, res: Response) => {
-  try {
-    const { wallet_address, email, google_id } = req.body;
+// POST /api/auth/google/link - Link Google account to the authenticated wallet session
+router.post(
+  "/google/link",
+  authenticateUser as any,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { email, google_id } = req.body;
+      const sessionUser = req.user;
 
-    // Validate required fields
-    if (!wallet_address || !email || !google_id) {
-      return res.status(400).json({
-        error: "Bad Request",
-        message: "wallet_address, email, and google_id are required",
+      if (!sessionUser?.id) {
+        return res.status(401).json({
+          error: "Unauthorized",
+          message: "Sign in with your wallet before linking Google",
+        });
+      }
+
+      // Prefer wallet from the authenticated session, not a client-supplied address.
+      const wallet_address =
+        sessionUser.wallet_address ||
+        String(req.body?.wallet_address || "").trim() ||
+        null;
+
+      if (!wallet_address || !email || !google_id) {
+        return res.status(400).json({
+          error: "Bad Request",
+          message:
+            "Authenticated wallet session, email, and google_id are required",
+        });
+      }
+
+      if (
+        sessionUser.wallet_address &&
+        req.body?.wallet_address &&
+        String(req.body.wallet_address).trim() !== sessionUser.wallet_address
+      ) {
+        return res.status(403).json({
+          error: "Forbidden",
+          message: "Cannot link Google to a different wallet than your session",
+        });
+      }
+
+      const { data: member, error: memberError } = await db
+        .from("members")
+        .select("*")
+        .eq("id", sessionUser.id)
+        .single();
+
+      if (memberError || !member) {
+        return res.status(404).json({
+          error: "Not Found",
+          message: "Authenticated member not found",
+        });
+      }
+
+      const { data: existingEmail } = await db
+        .from("members")
+        .select("id")
+        .eq("email", email)
+        .neq("id", member.id)
+        .single();
+
+      if (existingEmail) {
+        return res.status(409).json({
+          error: "Conflict",
+          message: "Email is already linked to another account",
+        });
+      }
+
+      const { data: updatedMember, error: updateError } = await db
+        .from("members")
+        .update({
+          email: email,
+          google_id: google_id,
+          auth_provider: "both",
+          email_verified: true,
+        })
+        .eq("id", member.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      const updatedMemberWithStats =
+        await attachAcademyStatsToMember(updatedMember);
+
+      res.json({
+        success: true,
+        data: updatedMemberWithStats,
+        message: "Google account linked successfully",
+      });
+    } catch (error: any) {
+      console.error("Error linking Google account:", error);
+      res.status(500).json({
+        error: "Internal Server Error",
+        message: error.message,
       });
     }
-
-    // Check if wallet exists
-    const { data: member, error: memberError } = await db
-      .from("members")
-      .select("*")
-      .eq("wallet_address", wallet_address)
-      .single();
-
-    if (memberError || !member) {
-      return res.status(404).json({
-        error: "Not Found",
-        message: "Wallet address not found",
-      });
-    }
-
-    // Check if email is already linked to another account
-    const { data: existingEmail } = await db
-      .from("members")
-      .select("id")
-      .eq("email", email)
-      .neq("id", member.id)
-      .single();
-
-    if (existingEmail) {
-      return res.status(409).json({
-        error: "Conflict",
-        message: "Email is already linked to another account",
-      });
-    }
-
-    // Update member with Google info
-    const { data: updatedMember, error: updateError } = await db
-      .from("members")
-      .update({
-        email: email,
-        google_id: google_id,
-        auth_provider: "both",
-        email_verified: true,
-      })
-      .eq("id", member.id)
-      .select()
-      .single();
-
-    if (updateError) {
-      throw updateError;
-    }
-
-    const updatedMemberWithStats = await attachAcademyStatsToMember(updatedMember);
-
-    res.json({
-      success: true,
-      data: updatedMemberWithStats,
-      message: "Google account linked successfully",
-    });
-  } catch (error: any) {
-    console.error("Error linking Google account:", error);
-    res.status(500).json({
-      error: "Internal Server Error",
-      message: error.message,
-    });
   }
-});
+);
 
 // POST /api/auth/google/login - Login with Google token (alternative to OAuth redirect)
 router.post("/google/login", async (req: Request, res: Response) => {

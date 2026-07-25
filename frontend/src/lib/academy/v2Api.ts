@@ -81,14 +81,18 @@ function writeCache<T>(key: string, data: T) {
 
 export function buildAcademyAuthHeaders(
   token: string | null,
-  walletAddress: string | null,
+  _walletAddress?: string | null,
 ) {
   const headers: Record<string, string> = {};
 
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  } else if (walletAddress) {
-    headers["x-wallet-address"] = walletAddress;
+  const authToken =
+    token ||
+    (typeof localStorage !== "undefined"
+      ? localStorage.getItem("auth_token")
+      : null);
+
+  if (authToken) {
+    headers.Authorization = `Bearer ${authToken}`;
   }
 
   return headers;

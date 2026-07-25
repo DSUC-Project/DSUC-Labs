@@ -261,8 +261,6 @@ export function AcademyHome() {
 
         if (token) {
           headers.Authorization = `Bearer ${token}`;
-        } else if (walletAddress) {
-          headers["x-wallet-address"] = walletAddress;
         }
 
         const response = await fetch(`${base}/api/academy/stats`, {

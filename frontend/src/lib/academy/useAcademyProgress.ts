@@ -46,7 +46,7 @@ function rowsToProgressState(rows: any[]): ProgressState {
 
 function buildAuthHeaders(
   token: string | null,
-  walletAddress: string | null,
+  _walletAddress?: string | null,
   includeJson = false,
 ) {
   const headers: Record<string, string> = {};
@@ -55,10 +55,14 @@ function buildAuthHeaders(
     headers["Content-Type"] = "application/json";
   }
 
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  } else if (walletAddress) {
-    headers["x-wallet-address"] = walletAddress;
+  const authToken =
+    token ||
+    (typeof localStorage !== "undefined"
+      ? localStorage.getItem("auth_token")
+      : null);
+
+  if (authToken) {
+    headers.Authorization = `Bearer ${authToken}`;
   }
 
   return headers;

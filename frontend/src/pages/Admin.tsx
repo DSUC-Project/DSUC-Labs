@@ -113,15 +113,14 @@ const CONTENT_STATUS_OPTIONS: Record<ContentEntity, string[]> = {
   repos: ["Draft", "Published", "Archived"],
 };
 
-function buildAuthHeaders(token: string | null, walletAddress: string | null) {
+function buildAuthHeaders(token: string | null, _walletAddress?: string | null) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
 
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  } else if (walletAddress) {
-    headers["x-wallet-address"] = walletAddress;
+  const authToken = token || localStorage.getItem("auth_token");
+  if (authToken) {
+    headers.Authorization = `Bearer ${authToken}`;
   }
 
   return headers;

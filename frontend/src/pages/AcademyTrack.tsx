@@ -26,13 +26,12 @@ import {
   AcademySectionTitle,
 } from "@/components/academy/AcademyPrimitives";
 
-function buildAuthHeaders(token: string | null, walletAddress: string | null) {
+function buildAuthHeaders(token: string | null, _walletAddress?: string | null) {
   const headers: Record<string, string> = {};
 
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  } else if (walletAddress) {
-    headers["x-wallet-address"] = walletAddress;
+  const authToken = token || localStorage.getItem("auth_token");
+  if (authToken) {
+    headers.Authorization = `Bearer ${authToken}`;
   }
 
   return headers;

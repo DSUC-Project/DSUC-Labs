@@ -36,17 +36,70 @@ declare global {
 export type LocalDevRole = "admin" | "member" | "community";
 export type BootstrapStatus = "idle" | "loading" | "slow" | "ready" | "error";
 
+function uint8ToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 1) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+function toSignatureBytes(value: unknown): Uint8Array | null {
+  if (value instanceof Uint8Array) {
+    return value;
+  }
+  if (ArrayBuffer.isView(value)) {
+    const view = value as ArrayBufferView;
+    return new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
+  }
+  if (Array.isArray(value) && value.every((n) => typeof n === "number")) {
+    return Uint8Array.from(value);
+  }
+  return null;
+}
+
+async function signWalletMessage(
+  provider: "Phantom" | "Solflare",
+  message: string,
+): Promise<string> {
+  const encoded = new TextEncoder().encode(message);
+
+  if (provider === "Phantom" && window.solana?.signMessage) {
+    const result = await window.solana.signMessage(encoded, "utf8");
+    const signature =
+      toSignatureBytes(result?.signature) || toSignatureBytes(result);
+    if (!signature) {
+      throw new Error("Phantom did not return a signature");
+    }
+    return uint8ToBase64(signature);
+  }
+
+  if (provider === "Solflare" && window.solflare?.signMessage) {
+    const result = await window.solflare.signMessage(encoded, "utf8");
+    const signature =
+      toSignatureBytes(result?.signature) || toSignatureBytes(result);
+    if (!signature) {
+      throw new Error("Solflare did not return a signature");
+    }
+    return uint8ToBase64(signature);
+  }
+
+  throw new Error(
+    `${provider} does not support message signing. Update your wallet extension.`,
+  );
+}
+
 interface AppState {
   isWalletConnected: boolean;
   walletAddress: string | null;
   walletProvider: "Phantom" | "Solflare" | null;
   currentUser: Member | null; // The logged-in user's profile
   authMethod: AuthMethod | null; // 'wallet', 'google', or local dev auth
-  authToken: string | null; // JWT token for Google or local dev auth
+  authToken: string | null; // JWT after Google, local, or signed wallet login
   bootstrapStatus: BootstrapStatus;
   bootstrapError: string | null;
 
-  connectWallet: (provider: "Phantom" | "Solflare") => void;
+  connectWallet: (provider: "Phantom" | "Solflare") => Promise<void>;
   reconnectWallet: () => Promise<void>;
   disconnectWallet: () => void;
   loginWithGoogle: (
@@ -151,10 +204,16 @@ function getAuthHeaders(
     headers["Content-Type"] = "application/json";
   }
 
-  if (state.authToken) {
-    headers.Authorization = `Bearer ${state.authToken}`;
-  } else if (state.walletAddress) {
-    headers["x-wallet-address"] = state.walletAddress;
+  // Prefer JWT from signed wallet / Google / local login.
+  // Bare x-wallet-address is no longer accepted by the API for auth.
+  const token =
+    state.authToken ||
+    (typeof localStorage !== "undefined"
+      ? localStorage.getItem("auth_token")
+      : null);
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
   }
 
   return headers;
@@ -537,134 +596,167 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   connectWallet: async (provider) => {
+    const clearWalletState = () => {
+      set({
+        isWalletConnected: false,
+        walletAddress: null,
+        walletProvider: null,
+        authMethod: null,
+        authToken: null,
+        currentUser: null,
+      });
+    };
+
     try {
       let addr: string | null = null;
 
-      console.log("[connectWallet] Provider:", provider);
-      console.log("[connectWallet] window.solana:", window.solana);
-      console.log("[connectWallet] window.solflare:", window.solflare);
-
       if (provider === "Phantom" && window.solana && window.solana.isPhantom) {
         const resp = await window.solana.connect();
-        console.log("[connectWallet] Phantom response:", resp);
         addr = resp?.publicKey?.toString() ?? null;
       } else if (provider === "Solflare" && window.solflare) {
-        // Solflare may require checking isConnected or calling connect first
         if (!window.solflare.isConnected) {
           await window.solflare.connect();
         }
-        // Read publicKey from Solflare, which may exist as a direct property
         const publicKey = window.solflare.publicKey;
-        console.log("[connectWallet] Solflare publicKey:", publicKey);
-
         if (publicKey) {
-          // publicKey may be an object with toString() or a direct string
           addr =
             typeof publicKey === "string" ? publicKey : publicKey.toString();
         }
       } else {
-        console.warn("Wallet provider not found");
         toast(
           `${provider} is not installed or not available. Please install the ${provider} extension.`,
         );
         return;
       }
 
-      console.log("[connectWallet] Final address:", addr);
-
       if (!addr) {
-        set({ isWalletConnected: false });
+        clearWalletState();
         return;
       }
 
+      // Show connected address while we challenge/sign; session is not trusted yet.
       set({
         isWalletConnected: true,
         walletAddress: addr,
         walletProvider: provider,
-        authMethod: "wallet",
+        authMethod: null,
+        authToken: null,
+        currentUser: null,
       });
 
-      // Try to get/create member profile from backend
+      const base = (import.meta as any).env.VITE_API_BASE_URL || "";
+
+      const challengeRes = await fetch(`${base}/api/auth/wallet/challenge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet_address: addr }),
+      });
+
+      if (!challengeRes.ok) {
+        const challengeErr = await challengeRes.json().catch(() => ({}));
+        toast(
+          `❌ WALLET CHALLENGE FAILED\n\n${
+            challengeErr.message || "Could not start wallet sign-in."
+          }`,
+        );
+        clearWalletState();
+        return;
+      }
+
+      const challengePayload = await challengeRes.json();
+      const challenge = challengePayload?.data;
+      if (!challenge?.message || !challenge?.nonce) {
+        toast("❌ WALLET CHALLENGE FAILED\n\nInvalid challenge from server.");
+        clearWalletState();
+        return;
+      }
+
+      let signature: string;
       try {
-        const base = (import.meta as any).env.VITE_API_BASE_URL || "";
-        const res = await fetch(`${base}/api/auth/wallet`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ wallet_address: addr }),
-        });
-        if (res.ok) {
-          if (!res.headers.get("content-type")?.includes("application/json")) {
-            throw new Error("Backend not found (no json response)");
-          }
-          const result = await res.json();
-          if (result && result.success && result.data) {
-            const profile = normalizeMember(result.data);
-            // if backend returns member, ensure it's in members list
-            set((state) => ({
-              currentUser: profile,
-              authMethod: "wallet",
-              authToken: null,
-              members: (() => {
-                const members = state.members.some((m) => m.id === profile.id)
-                  ? state.members.map((member) =>
-                      member.id === profile.id ? profile : member,
-                    )
-                  : [profile, ...state.members];
-                writeCache("members", members);
-                return members;
-              })(),
-            }));
-            markPendingAuthAnnouncement("wallet");
-            return;
-          } else {
-            // Backend responded OK but no member found
-            toast(
-              "❌ NOT A CLUB MEMBER\n\nYour wallet is not registered in the system.\nPlease register to use the website!",
-            );
-            set({
-              isWalletConnected: false,
-              walletAddress: null,
-              walletProvider: null,
-              authMethod: null,
-            });
-            return;
-          }
-        } else {
-          // Backend error - member not found
-          console.warn("Backend auth failed - member not found");
-          toast(
-            "❌ NOT A CLUB MEMBER\n\nYour wallet is not registered in the system.\nPlease register to use the website!",
-          );
-          set({
-            isWalletConnected: false,
-            walletAddress: null,
-            walletProvider: null,
-            authMethod: null,
-          });
-          return;
-        }
-      } catch (e) {
-        console.warn("Backend auth failed", e);
-        // Network error - show generic message
+        signature = await signWalletMessage(provider, challenge.message);
+      } catch (signError: any) {
+        console.warn("[connectWallet] sign rejected or failed", signError);
+        toast(
+          `❌ SIGNATURE REQUIRED\n\n${
+            signError?.message ||
+            "Approve the sign-in message in your wallet to continue."
+          }`,
+        );
+        clearWalletState();
+        return;
+      }
+
+      const res = await fetch(`${base}/api/auth/wallet`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          wallet_address: addr,
+          signature,
+          nonce: challenge.nonce,
+          message: challenge.message,
+        }),
+      });
+
+      if (!res.headers.get("content-type")?.includes("application/json")) {
         toast(
           "❌ AUTHENTICATION FAILED\n\nCannot connect to server. Please try again later.",
         );
-        set({
-          isWalletConnected: false,
-          walletAddress: null,
-          walletProvider: null,
-          authMethod: null,
-        });
+        clearWalletState();
         return;
       }
+
+      const result = await res.json();
+
+      if (res.ok && result?.success && result.data) {
+        const profile = normalizeMember(result.data);
+        const token = result.token || null;
+
+        if (token) {
+          localStorage.setItem("auth_token", token);
+        } else {
+          localStorage.removeItem("auth_token");
+        }
+
+        set((state) => ({
+          isWalletConnected: true,
+          walletAddress: addr,
+          walletProvider: provider,
+          currentUser: profile,
+          authMethod: "wallet",
+          authToken: token,
+          members: (() => {
+            const members = state.members.some((m) => m.id === profile.id)
+              ? state.members.map((member) =>
+                  member.id === profile.id ? profile : member,
+                )
+              : [profile, ...state.members];
+            writeCache("members", members);
+            return members;
+          })(),
+        }));
+        markPendingAuthAnnouncement("wallet");
+        return;
+      }
+
+      if (res.status === 404) {
+        toast(
+          "❌ NOT A CLUB MEMBER\n\nYour wallet is not registered in the system.\nPlease register to use the website!",
+        );
+      } else {
+        toast(
+          `❌ AUTHENTICATION FAILED\n\n${
+            result?.message || "Wallet signature could not be verified."
+          }`,
+        );
+      }
+      clearWalletState();
     } catch (err) {
       console.error("connectWallet error", err);
-      set({
-        isWalletConnected: false,
-        walletAddress: null,
-        walletProvider: null,
-        authMethod: null,
-      });
+      toast(
+        "❌ AUTHENTICATION FAILED\n\nCannot complete wallet sign-in. Please try again later.",
+      );
+      clearWalletState();
     }
   },
 
@@ -816,7 +908,9 @@ export const useStore = create<AppState>((set, get) => ({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-wallet-address": state.walletAddress,
+          ...(state.authToken
+            ? { Authorization: `Bearer ${state.authToken}` }
+            : {}),
         },
         credentials: "include",
         body: JSON.stringify({
