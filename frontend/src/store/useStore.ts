@@ -597,6 +597,9 @@ export const useStore = create<AppState>((set, get) => ({
 
   connectWallet: async (provider) => {
     const clearWalletState = () => {
+      // Keep memory and localStorage in sync so getAuthHeaders() cannot
+      // resurrect a previous JWT after a failed wallet login attempt.
+      localStorage.removeItem("auth_token");
       set({
         isWalletConnected: false,
         walletAddress: null,
@@ -771,6 +774,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   disconnectWallet: () => {
     clearPendingAuthAnnouncement();
+    localStorage.removeItem("auth_token");
     set({
       isWalletConnected: false,
       walletAddress: null,
