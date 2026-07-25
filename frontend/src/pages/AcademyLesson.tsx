@@ -300,10 +300,9 @@ function buildAuthHeaders(
     headers["Content-Type"] = "application/json";
   }
 
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  } else if (walletAddress) {
-    headers["x-wallet-address"] = walletAddress;
+  const authToken = token || localStorage.getItem("auth_token");
+  if (authToken) {
+    headers.Authorization = `Bearer ${authToken}`;
   }
 
   return headers;

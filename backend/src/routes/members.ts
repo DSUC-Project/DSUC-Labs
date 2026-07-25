@@ -386,46 +386,13 @@ router.get("/:id", async (req: Request, res: Response) => {
 });
 
 // POST /api/members/auth - Authenticate with wallet address
-router.post("/auth", async (req: Request, res: Response) => {
-  try {
-    const { wallet_address } = req.body;
-
-    if (!wallet_address) {
-      return res.status(400).json({
-        error: "Bad Request",
-        message: "wallet_address is required",
-      });
-    }
-
-    const { data: member, error } = await db
-      .from("members")
-      .select("*")
-      .eq("wallet_address", wallet_address)
-      .eq("is_active", true)
-      .single();
-
-    if (error || !member) {
-      return res.status(404).json({
-        error: "Not Found",
-        message:
-          "Wallet address not registered. Please sign in with Google first or ask an admin to add your wallet.",
-      });
-    }
-
-    const memberWithStats = await attachAcademyStatsToMember(member);
-
-    res.json({
-      success: true,
-      data: memberWithStats,
-      message: "Authentication successful",
-    });
-  } catch (error: any) {
-    console.error("Error authenticating member:", error);
-    res.status(500).json({
-      error: "Internal Server Error",
-      message: error.message,
-    });
-  }
+// Legacy endpoint — wallet ownership is no longer proven by address alone.
+router.post("/auth", async (_req: Request, res: Response) => {
+  return res.status(410).json({
+    error: "Gone",
+    message:
+      "POST /api/members/auth is disabled. Use POST /api/auth/wallet/challenge then POST /api/auth/wallet with a signed challenge.",
+  });
 });
 
 // PUT /api/members/:id - Update member profile (requires authentication)

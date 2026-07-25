@@ -23,23 +23,13 @@ import {
   Globe,
 } from "lucide-react";
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
-import { jwtDecode } from "jwt-decode";
 import { useStore } from "../store/useStore";
 import { BANKS } from "../data/mockData";
 import { SkillInput } from "../components/SkillInput";
-import { GoogleUserInfo } from "../types";
 import { useLocale } from "@/lib/locale";
 import {
   SoftBrutalCard,
 } from "@/components/ui/Primitives";
-
-interface GoogleJWTPayload {
-  sub: string;
-  email: string;
-  name: string;
-  picture: string;
-  email_verified: boolean;
-}
 
 
 export function MyProfile() {
@@ -285,16 +275,7 @@ export function MyProfile() {
 
     setIsLinkingGoogle(true);
     try {
-      const decoded = jwtDecode<GoogleJWTPayload>(
-        credentialResponse.credential,
-      );
-      const googleUserInfo: GoogleUserInfo = {
-        email: decoded.email,
-        google_id: decoded.sub,
-        name: decoded.name,
-        avatar: decoded.picture,
-      };
-      await linkGoogleAccount(googleUserInfo);
+      await linkGoogleAccount(credentialResponse.credential);
     } catch (error) {
       toast.error(
         text(

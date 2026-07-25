@@ -3,13 +3,12 @@ import { db } from '../db';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { USE_MOCK_DB } from '../config/runtime';
+import {
+  isLikelySolanaAddress,
+  verifyWalletSignature as verifyEd25519WalletSignature,
+} from '../lib/walletAuth';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dsuc-lab-jwt-secret-change-in-production';
-const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
-
-function isLikelySolanaAddress(value: string) {
-  return SOLANA_ADDRESS_RE.test(value);
-}
 
 // Custom user object type
 interface UserInfo {
@@ -111,66 +110,21 @@ export function hasAcademyAccess(user?: UserInfo | null): boolean {
   return user.academy_access !== false;
 }
 
-// Middleware to authenticate wallet address
+/**
+ * @deprecated Bare wallet-header auth is insecure (impersonation).
+ * Wallet sessions must go through signed challenge login and JWT.
+ * This middleware always rejects with guidance.
+ */
 export async function authenticateWallet(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ) {
-  try {
-    const walletAddress = req.headers['x-wallet-address'] as string;
-
-    if (!walletAddress) {
-      return res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Wallet address is required in x-wallet-address header',
-      });
-    }
-
-    // In mock mode, skip Solana validation for simpler local dev
-    if (!USE_MOCK_DB) {
-      // Validate Solana address format (production only)
-      if (!isLikelySolanaAddress(walletAddress)) {
-        return res.status(400).json({
-          error: 'Invalid Wallet',
-          message: 'Invalid Solana wallet address format',
-        });
-      }
-    }
-
-    // Query member from database
-    let query = db
-      .from('members')
-      .select('*')
-      .eq('wallet_address', walletAddress);
-
-    // Only check is_active in production (Supabase has this field)
-    if (!USE_MOCK_DB) {
-      query = query.eq('is_active', true);
-    }
-
-    const { data: member, error } = await (USE_MOCK_DB ? query : query.single());
-
-    // In mock mode, get first result from array
-    const foundMember = USE_MOCK_DB ? (Array.isArray(member) ? member[0] : member) : member;
-
-    if (error || !foundMember) {
-      return res.status(404).json({
-        error: 'Member Not Found',
-        message: 'Wallet address not registered in the system',
-      });
-    }
-
-    // Attach user info to request
-    req.user = foundMember;
-    next();
-  } catch (error: any) {
-    console.error('Authentication error:', error);
-    return res.status(500).json({
-      error: 'Authentication Failed',
-      message: error.message,
-    });
-  }
+  return res.status(401).json({
+    error: 'Unauthorized',
+    message:
+      'Wallet header authentication is disabled. Sign a login challenge via POST /api/auth/wallet/challenge and POST /api/auth/wallet, then send the returned JWT as Authorization: Bearer <token>.',
+  });
 }
 
 // Middleware to check if user has admin role (President, Vice-President, Tech-Lead)
@@ -279,27 +233,13 @@ export function requireRole(roles: string[]) {
   };
 }
 
-// Helper function to verify wallet signature (for future enhancement)
-// This can be used to verify that the user actually owns the wallet
+/** Verify that signature is a valid ed25519 detached sig for message by wallet. */
 export async function verifyWalletSignature(
   walletAddress: string,
   signature: string,
   message: string
 ): Promise<boolean> {
-  try {
-    if (!isLikelySolanaAddress(walletAddress) || !signature || !message) {
-      return false;
-    }
-
-    // In production, use @solana/web3.js to verify signature
-    // For now, we'll skip signature verification
-    // This is just a placeholder for future implementation
-
-    return true;
-  } catch (error) {
-    console.error('Signature verification error:', error);
-    return false;
-  }
+  return verifyEd25519WalletSignature(walletAddress, signature, message);
 }
 
 // Generate JWT token for authenticated users
@@ -358,6 +298,14 @@ export async function authenticateToken(
       return res.status(404).json({
         error: 'Member Not Found',
         message: 'User account not found',
+      });
+    }
+
+    // Re-check membership status on every request (JWT alone is not enough).
+    if (member.is_active === false) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'This account has been deactivated',
       });
     }
 
@@ -422,6 +370,13 @@ export async function authenticateUser(
         }
       }
 
+      if (agentUser && agentUser.is_active === false) {
+        return res.status(403).json({
+          error: 'Forbidden',
+          message: 'Agent key owner account has been deactivated',
+        });
+      }
+
       req.user = agentUser || {
         id: keyRow.created_by || `agent-${keyRow.id}`,
         name: keyRow.name || 'Agent Admin',
@@ -447,26 +402,29 @@ export async function authenticateUser(
     }
   }
 
-  // Method 1: Check wallet header (existing Solana wallet auth)
-  const walletAddress = req.headers['x-wallet-address'] as string;
-  if (walletAddress) {
-    return authenticateWallet(req, res, next);
-  }
-
-  // Method 2: Check JWT token (Google auth)
+  // Method 1: JWT (issued after Google login, local dev login, or signed wallet login)
   const token = req.cookies?.auth_token ||
     req.headers.authorization?.replace('Bearer ', '');
   if (token) {
     return authenticateToken(req, res, next);
   }
 
+  // Bare x-wallet-address is intentionally rejected (impersonation vector).
+  if (req.headers['x-wallet-address']) {
+    return res.status(401).json({
+      error: 'Unauthorized',
+      message:
+        'Wallet header alone is not accepted. Complete signed wallet login and send Authorization: Bearer <token>.',
+    });
+  }
+
   return res.status(401).json({
     error: 'Unauthorized',
-    message: 'Wallet address or authentication token required',
+    message: 'Authentication token required',
   });
 }
 
-// Optional middleware for signature verification
+// Optional middleware for ad-hoc signature verification on a single request
 export async function verifySignature(
   req: AuthRequest,
   res: Response,
@@ -477,10 +435,17 @@ export async function verifySignature(
     const signature = req.headers['x-signature'] as string;
     const message = req.headers['x-message'] as string;
 
-    if (!signature || !message) {
+    if (!walletAddress || !signature || !message) {
       return res.status(401).json({
         error: 'Signature Required',
-        message: 'Wallet signature and message are required',
+        message: 'x-wallet-address, x-signature, and x-message are required',
+      });
+    }
+
+    if (!isLikelySolanaAddress(walletAddress)) {
+      return res.status(400).json({
+        error: 'Invalid Wallet',
+        message: 'Invalid Solana wallet address format',
       });
     }
 

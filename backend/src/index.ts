@@ -47,11 +47,41 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(cookieParser());
 app.use(passport.initialize());
 
+const SENSITIVE_BODY_KEYS = new Set([
+  "signature",
+  "nonce",
+  "message",
+  "password",
+  "token",
+  "auth_token",
+  "credential",
+  "id_token",
+  "access_token",
+  "refresh_token",
+  "authorization",
+]);
+
+function redactBodyForLogs(body: unknown): unknown {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return body;
+  }
+  const redacted: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(body as Record<string, unknown>)) {
+    redacted[key] = SENSITIVE_BODY_KEYS.has(key.toLowerCase())
+      ? "[REDACTED]"
+      : value;
+  }
+  return redacted;
+}
+
 // Request logging middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   if (req.body && Object.keys(req.body).length > 0) {
-    console.log("Body:", JSON.stringify(req.body).substring(0, 200));
+    console.log(
+      "Body:",
+      JSON.stringify(redactBodyForLogs(req.body)).substring(0, 200)
+    );
   }
   next();
 });
