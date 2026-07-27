@@ -326,12 +326,12 @@ Suggested class prefix: `home-*` (e.g. `home-caution-divider`, `home-scanline`, 
 - [x] Reduced-motion verified  
 
 ### Pack C
-- [ ] D13 Crop marks  
-- [ ] D14 Section chips  
-- [ ] D16 Stats underline draw  
-- [ ] D19 Terminal watermark  
-- [ ] D07 Noise grain  
-- [ ] Reduced-motion verified  
+- [x] D13 Crop marks  
+- [x] D14 Section chips  
+- [x] D16 Stats underline draw  
+- [x] D19 Terminal watermark  
+- [x] D07 Noise grain  
+- [x] Reduced-motion verified  
 
 ### Pack D (optional)
 - [ ] D04 Dual-row marquee  
@@ -387,3 +387,4 @@ Only if still flat:           Pack D (pick 1–2 items, not all)
 |------|------|
 | 2026-07-27 | Initial plan from Home decorative discussion (marquee, atmosphere, micro-motion, frames). Implementation not started. |
 | 2026-07-27 | **Pack A + Pack B implemented** in `Home.tsx` + `index.css` (`home-*` classes). Pack C/D still open. |
+| 2026-07-27 | **Pack C implemented** — crop marks, section chips `01/02/03`, stats underline draw, terminal watermark, grain. Pack D still open. |

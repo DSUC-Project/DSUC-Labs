@@ -79,6 +79,44 @@ function CautionDivider() {
   );
 }
 
+/** D13 — print-style crop marks at the four corners of a framed region */
+function CropMarks({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn("pointer-events-none absolute inset-0 z-[5]", className)}
+      aria-hidden="true"
+    >
+      <span className="home-crop home-crop-tl" />
+      <span className="home-crop home-crop-tr" />
+      <span className="home-crop home-crop-bl" />
+      <span className="home-crop home-crop-br" />
+    </div>
+  );
+}
+
+/** D14 — editorial section index chip */
+function SectionChip({
+  index,
+  label,
+  className,
+}: {
+  index: string;
+  label: string;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "pointer-events-none absolute z-[6] select-none border border-text-main/25 bg-surface/80 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-text-muted backdrop-blur-sm dark:border-text-main/20",
+        className,
+      )}
+      aria-hidden="true"
+    >
+      {index} · {label}
+    </span>
+  );
+}
+
 function LiveBadge({ label }: { label: string }) {
   return (
     <motion.div
@@ -105,7 +143,10 @@ export function Home() {
     bootstrapStatus === "loading" || bootstrapStatus === "slow";
 
   return (
-    <div className="w-full">
+    <div className="relative w-full">
+      {/* D07 noise grain — one layer for whole Home */}
+      <div className="home-grain" aria-hidden="true" />
+
       {/* HERO SECTION */}
       <section className="relative container mx-auto px-4 py-12 md:py-24">
         {/* D05 vignette + D06 soft orbs (clipped so blobs don't spill page) */}
@@ -138,6 +179,14 @@ export function Home() {
             </>
           )}
         </div>
+
+        {/* D13 crop marks + D14 section chip */}
+        <CropMarks className="hidden sm:block" />
+        <SectionChip
+          index="01"
+          label="HERO"
+          className="-rotate-1 top-3 left-4 md:top-4 md:left-6"
+        />
 
         <div className="relative z-10 grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
           {/* LEFT: Content */}
@@ -264,10 +313,18 @@ export function Home() {
                 {/* D08 scanline */}
                 <span className="home-scanline" aria-hidden="true" />
 
-                <div className="absolute top-2 right-4 select-none font-mono text-[10px] text-slate-800 opacity-50">
+                {/* D19 hash watermark */}
+                <span
+                  className="pointer-events-none absolute bottom-3 left-3 z-[1] select-none font-mono text-[10px] font-bold uppercase tracking-[0.28em] text-slate-600/40"
+                  aria-hidden="true"
+                >
+                  0xDSUC · // labs
+                </span>
+
+                <div className="absolute top-2 right-4 z-[1] select-none font-mono text-[10px] text-slate-800 opacity-50">
                   RUST_ENV=prod
                 </div>
-                <div className="absolute right-4 bottom-2 select-none font-mono text-[10px] text-slate-800 opacity-50">
+                <div className="absolute right-4 bottom-2 z-[1] select-none font-mono text-[10px] text-slate-800 opacity-50">
                   cargo run --release
                 </div>
 
@@ -355,12 +412,24 @@ export function Home() {
       {/* D15 caution micro-divider */}
       <CautionDivider />
 
-      <MarqueeStrip />
+      <div className="relative">
+        <SectionChip
+          index="02"
+          label="SIGNAL"
+          className="rotate-1 top-1 left-4 z-10 md:left-[max(1rem,calc((100%-80rem)/2+1.5rem))]"
+        />
+        <MarqueeStrip />
+      </div>
 
       <CautionDivider />
 
       {/* System Overview Strip */}
-      <section className="border-t border-b border-border-main bg-main-bg/50">
+      <section className="relative border-t border-b border-border-main bg-main-bg/50">
+        <SectionChip
+          index="03"
+          label="STATS"
+          className="-rotate-1 top-3 left-4 z-10 md:left-[max(1rem,calc((100%-80rem)/2+1.5rem))]"
+        />
         <div className="container mx-auto">
           <div className="grid grid-cols-2 divide-y divide-border-main border-x border-border-main md:grid-cols-4 md:divide-y-0 md:divide-x">
             {[
@@ -401,9 +470,28 @@ export function Home() {
                       {stat.fixed ? stat.val : stat.val || "0"}
                     </p>
                   )}
-                  <p className="font-mono text-xs uppercase tracking-widest text-text-muted">
-                    {stat.label}
-                  </p>
+                  {/* D16 label + underline draw on view */}
+                  <div className="relative inline-flex flex-col items-center">
+                    <p className="font-mono text-xs uppercase tracking-widest text-text-muted">
+                      {stat.label}
+                    </p>
+                    <motion.span
+                      className="mt-1.5 h-[2px] w-full origin-left bg-primary"
+                      initial={{ scaleX: 0 }}
+                      whileInView={{ scaleX: 1 }}
+                      viewport={{ once: true, margin: "-40px" }}
+                      transition={
+                        shouldReduceMotion
+                          ? { duration: 0 }
+                          : {
+                              duration: 0.45,
+                              delay: 0.08 * i,
+                              ease: [0.22, 1, 0.36, 1],
+                            }
+                      }
+                      aria-hidden="true"
+                    />
+                  </div>
                 </div>
               );
             })}
