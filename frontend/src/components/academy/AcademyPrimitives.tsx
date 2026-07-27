@@ -253,21 +253,31 @@ export function AcademyProgressBar({
   className?: string;
   fillClassName?: string;
 }) {
-  const width = `${Math.max(0, Math.min(100, Math.round(value)))}%`;
+  const clamped = Math.max(0, Math.min(100, Math.round(value)));
+  const width = `${clamped}%`;
   return (
     <div
       className={cn(
         "relative h-2 overflow-hidden border border-text-main bg-main-bg",
         className,
       )}
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={clamped}
     >
       <div
         className={cn(
-          "absolute inset-y-0 left-0 bg-primary transition-all duration-500 ease-out",
+          "academy-progress-fill absolute inset-y-0 left-0 overflow-hidden bg-primary transition-all duration-500 ease-out",
           fillClassName,
         )}
         style={{ width }}
-      />
+      >
+        {/* Diagonal caution ribbon — tech hazard-tape stripes that march forward */}
+        {clamped > 0 ? (
+          <span className="academy-progress-caution" aria-hidden="true" />
+        ) : null}
+      </div>
     </div>
   );
 }
