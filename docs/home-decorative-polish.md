@@ -327,7 +327,7 @@ Suggested class prefix: `home-*` (e.g. `home-caution-divider`, `home-scanline`, 
 
 ### Pack C
 - [x] D13 Crop marks  
-- [x] D14 Section chips  
+- [x] D14 Section chips *(removed — not needed)*  
 - [x] D16 Stats underline draw  
 - [x] D19 Terminal watermark  
 - [x] D07 Noise grain  

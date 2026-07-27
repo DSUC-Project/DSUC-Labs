@@ -94,29 +94,6 @@ function CropMarks({ className }: { className?: string }) {
   );
 }
 
-/** D14 — editorial section index chip */
-function SectionChip({
-  index,
-  label,
-  className,
-}: {
-  index: string;
-  label: string;
-  className?: string;
-}) {
-  return (
-    <span
-      className={cn(
-        "pointer-events-none absolute z-[6] select-none border border-text-main/25 bg-surface/80 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-text-muted backdrop-blur-sm dark:border-text-main/20",
-        className,
-      )}
-      aria-hidden="true"
-    >
-      {index} · {label}
-    </span>
-  );
-}
-
 function LiveBadge({ label }: { label: string }) {
   return (
     <motion.div
@@ -180,13 +157,8 @@ export function Home() {
           )}
         </div>
 
-        {/* D13 crop marks + D14 section chip */}
+        {/* D13 crop marks */}
         <CropMarks className="hidden sm:block" />
-        <SectionChip
-          index="01"
-          label="HERO"
-          className="-rotate-1 top-2 left-3 md:top-3 md:left-4"
-        />
 
         <div className="relative z-10 grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
           {/* LEFT: Content */}
@@ -412,24 +384,12 @@ export function Home() {
       {/* D15 caution micro-divider */}
       <CautionDivider />
 
-      <div className="relative">
-        <SectionChip
-          index="02"
-          label="SIGNAL"
-          className="rotate-1 top-1 left-4 z-10 md:left-[max(1rem,calc((100%-80rem)/2+1.5rem))]"
-        />
-        <MarqueeStrip />
-      </div>
+      <MarqueeStrip />
 
       <CautionDivider />
 
       {/* System Overview Strip */}
       <section className="relative border-t border-b border-border-main bg-main-bg/50">
-        <SectionChip
-          index="03"
-          label="STATS"
-          className="-rotate-1 top-3 left-4 z-10 md:left-[max(1rem,calc((100%-80rem)/2+1.5rem))]"
-        />
         <div className="container mx-auto">
           <div className="grid grid-cols-2 divide-y divide-border-main border-x border-border-main md:grid-cols-4 md:divide-y-0 md:divide-x">
             {[
