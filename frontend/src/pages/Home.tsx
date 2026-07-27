@@ -148,7 +148,7 @@ export function Home() {
       <div className="home-grain" aria-hidden="true" />
 
       {/* HERO SECTION */}
-      <section className="relative container mx-auto px-4 py-12 md:py-24">
+      <section className="relative container mx-auto px-4 pt-6 pb-10 md:pt-10 md:pb-16">
         {/* D05 vignette + D06 soft orbs (clipped so blobs don't spill page) */}
         <div
           className="pointer-events-none absolute inset-0 -z-0 overflow-hidden"
@@ -185,7 +185,7 @@ export function Home() {
         <SectionChip
           index="01"
           label="HERO"
-          className="-rotate-1 top-3 left-4 md:top-4 md:left-6"
+          className="-rotate-1 top-2 left-3 md:top-3 md:left-4"
         />
 
         <div className="relative z-10 grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
