@@ -323,56 +323,51 @@
   }
 }
 
-/* Academy progress: moving caution ribbon (diagonal hazard tape) */
+/* Academy progress: caution stripes only on the unfilled track */
 @keyframes academy-progress-caution-march {
   from {
     background-position: 0 0;
   }
   to {
-    /* Must equal background-size for a seamless loop */
-    background-position: 16px 0;
+    /* Reverse march direction (negative = opposite of default) */
+    background-position: -16px 0;
   }
-}
-
-.academy-progress-fill {
-  isolation: isolate;
 }
 
 .academy-progress-caution {
   position: absolute;
   inset: 0;
+  z-index: 0;
   pointer-events: none;
-  /*
-   * Gold / ink chevrons — classic caution tape, tech loading aesthetic.
-   * 4-stop 50% pattern tiles cleanly when animated by background-size.
-   */
+  /* White base + gold diagonal ribbons (remaining / incomplete zone) */
+  background-color: #fffdf7;
   background-image: linear-gradient(
     -45deg,
     #f5c842 25%,
-    #14110c 25%,
-    #14110c 50%,
+    transparent 25%,
+    transparent 50%,
     #f5c842 50%,
     #f5c842 75%,
-    #14110c 75%,
-    #14110c
+    transparent 75%,
+    transparent
   );
   background-size: 16px 16px;
-  opacity: 0.88;
   animation: academy-progress-caution-march 0.5s linear infinite;
 }
 
 .dark .academy-progress-caution {
+  background-color: #1a1814;
   background-image: linear-gradient(
     -45deg,
     #facc15 25%,
-    #0b0a08 25%,
-    #0b0a08 50%,
+    transparent 25%,
+    transparent 50%,
     #facc15 50%,
     #facc15 75%,
-    #0b0a08 75%,
-    #0b0a08
+    transparent 75%,
+    transparent
   );
-  opacity: 0.82;
+  opacity: 0.9;
 }
 
 @media (prefers-reduced-motion: reduce) {
