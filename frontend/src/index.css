@@ -375,3 +375,233 @@
     animation: none;
   }
 }
+
+/* ── Home decorative polish (Pack A + B) ── */
+
+/* D01 marquee edge fade + D02 pause on hover + D03 duration via inline style */
+.home-marquee-mask {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 6%,
+    #000 94%,
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 6%,
+    #000 94%,
+    transparent
+  );
+}
+
+@keyframes home-marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.home-marquee-track {
+  width: max-content;
+  animation-name: home-marquee-scroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.home-marquee-mask:hover .home-marquee-track,
+.home-marquee-mask:focus-within .home-marquee-track {
+  animation-play-state: paused;
+}
+
+/* D05 hero vignette */
+.home-hero-vignette {
+  background: radial-gradient(
+    ellipse 70% 65% at 40% 40%,
+    transparent 0%,
+    color-mix(in srgb, var(--bg-main) 55%, transparent) 100%
+  );
+}
+
+/* D11 live badge pulse ring */
+@keyframes home-live-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  70% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+.home-live-dot-ring {
+  animation: home-live-ring 2s ease-out infinite;
+}
+
+/* D15 caution micro-divider */
+.home-caution-divider {
+  height: 5px;
+  width: 100%;
+  pointer-events: none;
+  background-color: #fffdf7;
+  background-image: linear-gradient(
+    -45deg,
+    #f5c842 25%,
+    transparent 25%,
+    transparent 50%,
+    #f5c842 50%,
+    #f5c842 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 12px 12px;
+  border-top: 1px solid color-mix(in srgb, var(--border-main) 80%, #f5c842);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-main) 80%, #f5c842);
+  animation: home-caution-march 1.1s linear infinite;
+}
+
+.dark .home-caution-divider {
+  background-color: #1a1814;
+  background-image: linear-gradient(
+    -45deg,
+    #facc15 25%,
+    transparent 25%,
+    transparent 50%,
+    #facc15 50%,
+    #facc15 75%,
+    transparent 75%,
+    transparent
+  );
+}
+
+@keyframes home-caution-march {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: -12px 0;
+  }
+}
+
+/* D08 terminal scanline */
+@keyframes home-scanline-move {
+  0% {
+    top: -4%;
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.55;
+  }
+  92% {
+    opacity: 0.45;
+  }
+  100% {
+    top: 104%;
+    opacity: 0;
+  }
+}
+
+.home-scanline {
+  pointer-events: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 2;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(56, 189, 248, 0.35),
+    rgba(250, 204, 21, 0.45),
+    rgba(56, 189, 248, 0.35),
+    transparent
+  );
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+  animation: home-scanline-move 10s linear infinite;
+}
+
+/* D09 terminal cursor blink */
+@keyframes home-cursor-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.home-terminal-cursor {
+  display: inline-block;
+  color: #facc15;
+  font-weight: 700;
+  animation: home-cursor-blink 1s step-end infinite;
+}
+
+/* D17 primary CTA shimmer */
+.home-cta-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.home-cta-shimmer::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.28) 50%,
+    transparent 60%
+  );
+  transform: translateX(-120%);
+  animation: home-cta-shimmer-sweep 3s ease-in-out infinite;
+}
+
+.dark .home-cta-shimmer::after {
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.18) 50%,
+    transparent 60%
+  );
+}
+
+@keyframes home-cta-shimmer-sweep {
+  0%,
+  55% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-marquee-track,
+  .home-live-dot-ring,
+  .home-caution-divider,
+  .home-scanline,
+  .home-terminal-cursor,
+  .home-cta-shimmer::after {
+    animation: none;
+  }
+
+  .home-terminal-cursor {
+    opacity: 1;
+  }
+
+  .home-cta-shimmer::after {
+    display: none;
+  }
+}
