@@ -283,22 +283,22 @@ function BackendWakeBanner({
                 <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
                   {isError
                     ? text("Live data refresh failed", "Chưa làm mới được dữ liệu live")
-                    : text("Backend is waking up", "Backend đang khởi động")}
+                    : text("Connecting to live services", "Đang kết nối dịch vụ live")}
                 </p>
                 <p className="mt-1 text-sm leading-relaxed text-text-main">
                   {isError
                     ? text(
-                        "Showing cached content. Try again when the backend is awake.",
-                        "Đang hiển thị dữ liệu cache. Thử lại khi backend đã thức.",
+                        "Showing the last available snapshot. Retry when ready.",
+                        "Đang hiển thị bản snapshot gần nhất. Thử lại khi sẵn sàng.",
                       )
                     : hasPublicData
                       ? text(
-                          "Render free tier can take about 15 seconds after sleep. Cached content stays visible.",
-                          "Render free tier có thể mất khoảng 15 giây sau khi sleep. Nội dung cache vẫn được giữ lại.",
+                          "Refreshing live data. Cached content stays visible.",
+                          "Đang làm mới dữ liệu live. Nội dung cache vẫn được giữ lại.",
                         )
                       : text(
-                          "Backend is waking up (~15s). Live data will appear shortly.",
-                          "Backend đang khởi động (~15s). Dữ liệu live sẽ hiện trong giây lát.",
+                          "Establishing a secure connection. Live data will appear shortly.",
+                          "Đang thiết lập kết nối an toàn. Dữ liệu live sẽ hiện trong giây lát.",
                         )}
                 </p>
                 {isError && error && (
@@ -381,8 +381,8 @@ function InitialDataScreen({
                     )
                   : isSlow
                     ? text(
-                        "The backend is waking up. This usually takes about 15 seconds after sleep.",
-                        "Backend đang thức dậy. Thường mất khoảng 15 giây sau khi sleep.",
+                        "Establishing a secure connection to live services. This may take a moment.",
+                        "Đang thiết lập kết nối an toàn tới dịch vụ live. Có thể mất thêm một chút.",
                       )
                     : text(
                         "Loading member profiles and public workspace data.",
