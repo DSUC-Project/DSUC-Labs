@@ -258,7 +258,7 @@ export function AcademyProgressBar({
   return (
     <div
       className={cn(
-        "relative h-2 overflow-hidden border border-text-main bg-main-bg",
+        "academy-progress-track relative h-2 overflow-hidden border border-text-main bg-main-bg",
         className,
       )}
       role="progressbar"
@@ -266,18 +266,18 @@ export function AcademyProgressBar({
       aria-valuemax={100}
       aria-valuenow={clamped}
     >
+      {/* Unfilled zone: yellow caution stripes on white */}
+      {clamped < 100 ? (
+        <span className="academy-progress-caution" aria-hidden="true" />
+      ) : null}
+      {/* Filled zone: solid primary / custom fill — no stripes */}
       <div
         className={cn(
-          "academy-progress-fill absolute inset-y-0 left-0 overflow-hidden bg-primary transition-all duration-500 ease-out",
+          "absolute inset-y-0 left-0 z-[1] bg-primary transition-all duration-500 ease-out",
           fillClassName,
         )}
         style={{ width }}
-      >
-        {/* Diagonal caution ribbon — tech hazard-tape stripes that march forward */}
-        {clamped > 0 ? (
-          <span className="academy-progress-caution" aria-hidden="true" />
-        ) : null}
-      </div>
+      />
     </div>
   );
 }
